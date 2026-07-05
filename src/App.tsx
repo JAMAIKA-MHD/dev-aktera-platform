@@ -298,7 +298,9 @@ export default function App() {
     };
   };
 
-  const sandboxBrandPreset = mapCampaignToBrandPreset(activeSandboxCampaign);
+  const sandboxBrandPreset = activeSandboxCampaign
+    ? mapCampaignToBrandPreset(activeSandboxCampaign)
+    : null;
 
   // Player simulator callback events
   const handleSandboxRegister = (data: any) => {
@@ -580,6 +582,12 @@ export default function App() {
 
               {/* Sandbox Smartphone shell */}
               <div className="flex-1 flex items-center justify-center">
+                {!sandboxBrandPreset ? (
+                  <div className="text-center text-slate-500 text-xs font-mono py-10">
+                    <div className="w-6 h-6 border-2 border-slate-700 border-t-slate-400 rounded-full animate-spin mx-auto mb-3" />
+                    No active campaigns yet — create one first.
+                  </div>
+                ) : (
                 <PhoneFrame>
                   <AnimatePresence mode="wait">
                     {sandboxScreen === 'landing' && (
@@ -633,6 +641,7 @@ export default function App() {
                     )}
                   </AnimatePresence>
                 </PhoneFrame>
+                )}
               </div>
 
             </motion.div>
