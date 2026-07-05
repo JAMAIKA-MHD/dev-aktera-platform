@@ -119,26 +119,13 @@ It should stay short and reflect the current usable state only.
 
 ## 4) Manual Supabase Actions Required
 
-### Required NOW (for player portal to work):
-
-**a) Anon read policy — campaigns:**
-```sql
-CREATE POLICY "Public read active campaigns"
-ON campaigns FOR SELECT TO anon
-USING (status = 'active');
-```
-
-**b) Anon read policy — prizes:**
-```sql
-CREATE POLICY "Public read prizes for active campaigns"
-ON prizes FOR SELECT TO anon
-USING (
-  EXISTS (
-    SELECT 1 FROM campaigns c
-    WHERE c.id = prizes.campaign_id AND c.status = 'active'
-  )
-);
-```
+### ✅ DB RESET COMPLETE (session after M4)
+- Full clean reset performed via Supabase Management API (not MCP — MCP tools were broken).
+- All 10 migrations applied in order. All RLS policies confirmed.
+- All 3 edge functions redeployed: `select-prize`, `confirm-coupon`, `create-organization`.
+- Anon read policies applied to `campaigns`, `prizes`, `quiz_questions`, and anon insert on `entries`.
+- `supabase/FULL_RESET.sql` committed — can be used in Supabase SQL editor for future resets.
+- **Status: no manual actions required. DB is clean and fully configured.**
 
 ### Pending (known technical debt):
 - **Migration needed:** `ALTER TABLE campaigns ADD COLUMN arabic_name TEXT;`
@@ -166,5 +153,8 @@ USING (
   prizes hadn't loaded at wizard mount time. Added `useEffect` to sync empty slots when
   prizes load. Added empty-state placeholder option. Added validation to block save with
   zero valid prizes.
+- ✅ **Fixed (632b8b7):** Prize creation form was silently failing (fire-and-forget). `PrizesManager.handleSubmit` now async, shows inline error, keeps form open on failure.
+- ✅ **Fixed (632b8b7):** `handleAddPrize` in `App.tsx` now rethrows Supabase errors so the form catches them.
+- ✅ **Fixed (799fc95):** DB fully reset and clean — all migrations + RLS applied. No leftover state from Phase 1 reset attempts.
 - Sandbox PlayerResult "TEST ANOTHER BRAND" button has sandbox-only label; real flow uses same component with "Back to Campaign" label. No bug, but label is shared — acceptable for MVP.
 - Chunk size warning in Vite build (>500 kB) — cosmetic only, no functional impact for MVP.
