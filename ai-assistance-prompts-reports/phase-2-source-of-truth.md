@@ -139,7 +139,14 @@ USING (
 
 ---
 
-## 6) Known Bugs / Discovered Issues
+## 6) Known Bugs / Discovered Issues (updated)
+- ✅ **Fixed (490ad18):** `AccountSettings` and `BillingUsage` were using dark player-portal
+  color tokens (`#161625`, `#0F0F1A`, `text-slate-100`) inside the white dashboard — they
+  appeared as broken dark panels. Both converted to light dashboard theme (white bg,
+  `border-gray-200`, `text-slate-800`).
+- ✅ **Fixed (490ad18):** `CampaignWizard` step 3 had stale prize `templateId` (`''`) when
+  prizes hadn't loaded at wizard mount time. Added `useEffect` to sync empty slots when
+  prizes load. Added empty-state placeholder option. Added validation to block save with
+  zero valid prizes.
 - Sandbox PlayerResult "TEST ANOTHER BRAND" button has sandbox-only label; real flow uses same component with "Back to Campaign" label. No bug, but label is shared — acceptable for MVP.
 - Chunk size warning in Vite build (>500 kB) — cosmetic only, no functional impact for MVP.
-
