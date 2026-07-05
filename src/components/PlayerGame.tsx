@@ -8,6 +8,8 @@ interface PlayerGameProps {
   forcedOutcome: 'win' | 'lose' | 'random';
   onGameComplete: (wonPrize: Prize) => void;
   playerName: string;
+  /** Real player flow: server-determined prize (bypasses forcedOutcome random selection) */
+  targetPrize?: Prize;
 }
 
 export const PlayerGame: React.FC<PlayerGameProps> = ({
@@ -15,6 +17,7 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
   forcedOutcome,
   onGameComplete,
   playerName,
+  targetPrize,
 }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
@@ -84,38 +87,47 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
     setIsSpinning(true);
     playTickSound(650, 0.1);
 
-    // 1. Determine index of target prize based on forcedOutcome
-    let eligibleIndices: number[] = [];
-    if (forcedOutcome === 'win') {
-      eligibleIndices = activeBrand.prizes
-        .map((p, idx) => (p.isWin ? idx : -1))
-        .filter((idx) => idx !== -1);
-    } else if (forcedOutcome === 'lose') {
-      eligibleIndices = activeBrand.prizes
-        .map((p, idx) => (!p.isWin ? idx : -1))
-        .filter((idx) => idx !== -1);
+    // Determine the resolved prize:
+    // - Real game: server already determined outcome via targetPrize prop
+    // - Sandbox: pick randomly based on forcedOutcome
+    let resolvedPrize: Prize;
+    if (targetPrize) {
+      resolvedPrize = targetPrize;
+    } else {
+      // Sandbox mode — random selection based on forcedOutcome
+      let eligibleIndices: number[] = [];
+      if (forcedOutcome === 'win') {
+        eligibleIndices = activeBrand.prizes
+          .map((p, idx) => (p.isWin ? idx : -1))
+          .filter((idx) => idx !== -1);
+      } else if (forcedOutcome === 'lose') {
+        eligibleIndices = activeBrand.prizes
+          .map((p, idx) => (!p.isWin ? idx : -1))
+          .filter((idx) => idx !== -1);
+      }
+      if (eligibleIndices.length === 0) {
+        eligibleIndices = activeBrand.prizes.map((_, idx) => idx);
+      }
+      const randomIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
+      resolvedPrize = activeBrand.prizes[randomIdx];
     }
 
-    // Fallback if no matching prizes found, or if outcome is random
-    if (eligibleIndices.length === 0) {
-      eligibleIndices = activeBrand.prizes.map((_, idx) => idx);
-    }
+    // Find the index of resolvedPrize in wheel slices (match by id, then by name)
+    const targetIdx = activeBrand.prizes.findIndex(
+      (p) => (resolvedPrize.id && p.id === resolvedPrize.id) || p.name === resolvedPrize.name,
+    );
+    const safeIdx = targetIdx >= 0 ? targetIdx : 0;
 
-    const targetIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
-    const targetPrize = activeBrand.prizes[targetIdx];
-
-    // 2. Perform the spin mathematics (Pointer at top-center - 0 degrees / 12 o'clock)
-    // To align center of target segment with top pointer, rotate by 360 - (idx * 60 + 30)
+    // Spin mathematics: pointer at top-center (12 o'clock)
     const segmentAngle = 360 / activeBrand.prizes.length;
     const centerOffset = segmentAngle / 2;
-    const prizeAngle = 360 - (targetIdx * segmentAngle + centerOffset);
-
-    const spinRotations = 6; // Spin 6 full loops
+    const prizeAngle = 360 - (safeIdx * segmentAngle + centerOffset);
+    const spinRotations = 6;
     const finalRotation = spinRotations * 360 + prizeAngle;
 
     setWheelRotation(finalRotation);
 
-    // Simulate sound ticks during high speed wheel rotation
+    // Simulate sound ticks during high-speed wheel rotation
     let speed = 40;
     const triggerTick = () => {
       if (speed > 800) return;
@@ -126,11 +138,11 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
     };
     setTimeout(triggerTick, 100);
 
-    // 3. Complete spin after 4.2 seconds
+    // Complete spin after 4.2 seconds
     setTimeout(() => {
       setIsSpinning(false);
       playTickSound(880, 0.25);
-      onGameComplete(targetPrize);
+      onGameComplete(resolvedPrize);
     }, 4200);
   };
 

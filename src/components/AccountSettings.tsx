@@ -1,20 +1,76 @@
-import React, { useState } from 'react';
-import { User, Shield, Building2, Check, Bell, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Shield, Building2, Check, Bell, Save, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { toFriendlyErrorMessage } from '../lib/errorMessages';
 
 export const AccountSettings: React.FC = () => {
-  const [success, setSuccess] = useState(false);
-  const [orgName, setOrgName] = useState('Djezzy Algeria Telecom');
-  const [nif, setNif] = useState('001234567890123'); // Algerian NIF (Numéro d'Identification Fiscale)
-  const [rc, setRc] = useState('16/00-123456B26'); // Algerian RC (Registre du Commerce)
-  const [contactName, setContactName] = useState('Abdelkader Benzine');
-  const [contactEmail, setContactEmail] = useState('a.benzine@djezzy.dz');
-  const [telegramAlerts, setTelegramAlerts] = useState(true);
+  const { profile, organization, refreshProfile } = useAuth();
 
-  const handleSave = (e: React.FormEvent) => {
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form state — initialized from real auth data
+  const [orgName, setOrgName] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+
+  // Algerian business identity fields (no DB columns yet — display only for MVP)
+  const [nif, setNif] = useState('');
+  const [rc, setRc] = useState('');
+  const [telegramAlerts, setTelegramAlerts] = useState(false);
+
+  // Populate form from auth data once loaded
+  useEffect(() => {
+    if (organization) setOrgName(organization.name);
+    if (profile) {
+      setContactName(profile.full_name);
+      setContactEmail(profile.email);
+    }
+  }, [organization, profile]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 3000);
+    setError(null);
+    setSaving(true);
+
+    try {
+      // Update organization name
+      if (organization && orgName.trim() !== organization.name) {
+        const { error: orgErr } = await supabase
+          .from('organizations')
+          .update({ name: orgName.trim() })
+          .eq('id', organization.id);
+        if (orgErr) throw orgErr;
+      }
+
+      // Update profile full name
+      if (profile && contactName.trim() !== profile.full_name) {
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .update({ full_name: contactName.trim() })
+          .eq('id', profile.id);
+        if (profileErr) throw profileErr;
+      }
+
+      // Email changes go through Supabase Auth (requires re-confirmation)
+      if (profile && contactEmail.trim().toLowerCase() !== profile.email.toLowerCase()) {
+        const { error: emailErr } = await supabase.auth.updateUser({
+          email: contactEmail.trim().toLowerCase(),
+        });
+        if (emailErr) throw emailErr;
+      }
+
+      await refreshProfile();
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3500);
+    } catch (err) {
+      setError(toFriendlyErrorMessage(err, 'Failed to save settings.'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -28,13 +84,24 @@ export const AccountSettings: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl text-xs font-semibold flex items-center gap-2"
+        >
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span>{error}</span>
+        </motion.div>
+      )}
+
       {success && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }} 
           className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl text-xs font-semibold flex items-center gap-2"
         >
-          <Check className="w-4.5 h-4.5 text-emerald-400" />
+          <Check className="w-4 h-4 text-emerald-400" />
           <span>Organization settings saved successfully!</span>
         </motion.div>
       )}
@@ -147,10 +214,15 @@ export const AccountSettings: React.FC = () => {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-6 py-3 rounded-xl font-bold flex items-center gap-2 cursor-pointer transition-all min-h-11 shadow-lg shadow-indigo-600/20"
+            disabled={saving}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs px-6 py-3 rounded-xl font-bold flex items-center gap-2 cursor-pointer transition-all min-h-11 shadow-lg shadow-indigo-600/20"
           >
-            <Save className="w-4 h-4" />
-            <span>Save Configuration</span>
+            {saving ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
           </button>
         </div>
 

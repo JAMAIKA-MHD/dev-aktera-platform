@@ -50,3 +50,96 @@ It should stay short and reflect the current usable state only.
 - Arabic-capable dynamic content must use `dir="auto"`.
 - Player screens stay mobile-first with max width 480px and 48px minimum touch targets.
 - Player CTA stays disabled until consent is checked.
+
+---
+
+## 3) Milestone Status
+
+### M1 — Foundation ✅
+- Packages: `@supabase/supabase-js`, `react-router-dom` installed; `@google/genai` removed.
+- `src/lib/supabase.ts` — Supabase client from env vars.
+- `src/lib/errorMessages.ts` — toFriendlyErrorMessage() mapper.
+- `src/contexts/AuthContext.tsx` — session + profile + org loading.
+- `src/contexts/PlayerContext.tsx` — player game state tracking.
+- `src/pages/auth/LoginPage.tsx`, `RegisterPage.tsx` — auth pages.
+- `src/AppRouter.tsx` — BrowserRouter with protected + public routes.
+- `vite.config.ts` fixed (host: `0.0.0.0`, no unicode corruption).
+- `tsconfig.json` fixed (vite/client types, supabase/functions excluded).
+- **Validation:** `lint ✅  build ✅`
+
+### M2 — Dashboard Data Wiring ✅
+- `src/hooks/useCampaigns.ts` — fetches campaigns + prizes + quiz_questions + entry counts.
+- `src/hooks/usePrizeTemplates.ts` — fetches prize templates, computes stock.
+- `src/hooks/useEntries.ts` — fetches entries with prize/campaign join.
+- `src/App.tsx` — all handlers made async + Supabase-wired:
+  - `handleAddPrize`, `handleUpdateStock`, `handleBulkRestock` → prize_templates mutations.
+  - `handleSaveCampaign`, `handleToggleCampaignStatus`, `handleArchiveCampaign`, `handleRelaunchTrigger` → campaigns mutations.
+  - Sandbox `handleSandboxGameComplete` — now visual-only, no mock DB writes.
+  - Header: org name display, signout button, actionError banner.
+- `src/components/AccountSettings.tsx` — wired to `useAuth()`: loads real org name, full_name, email; saves via Supabase.
+- **Validation:** `lint ✅  build ✅`
+
+### M3 — Player Flow ✅
+- `src/types.ts` — `Prize.id?: string` added; `BrandPreset.prizes` changed to `Prize[]`.
+- `src/components/PlayerGame.tsx` — `targetPrize?: Prize` prop added: when server provides outcome, wheel lands on that exact slice; sandbox fallback to `forcedOutcome` logic preserved.
+- `src/components/PlayerResult.tsx` — `entryId?` and `onCouponConfirmed?` props added; confirm button calls `confirm-coupon` edge function.
+- `src/pages/play/PlayerFlowPage.tsx` — full real player flow:
+  - Loads campaign by slug (anon public read; see RLS note below).
+  - State machine: `loading → landing → submitting → game → result` (plus `not-found`, `inactive`, `duplicate`, `error`).
+  - `handleRegister` calls `select-prize` edge function; handles duplicate, inactive, and error states.
+  - `handleGameComplete` transitions to result after wheel animation.
+  - `handleCouponConfirmed` calls `confirm-coupon` edge function.
+  - Loser slot (`LOSER_SLOT`) added as fixed wheel segment for non-winners.
+- **Validation:** `lint ✅  build ✅`
+
+### M4 — Quiz Game + Hardening (TODO)
+- Add quiz game screen (question/answer flow before spin/result).
+- Wire `quiz_passed` to `select-prize` payload.
+- Error surface audit across all flows.
+
+---
+
+## 4) Manual Supabase Actions Required
+
+### Required NOW (for player portal to work):
+
+**a) Anon read policy — campaigns:**
+```sql
+CREATE POLICY "Public read active campaigns"
+ON campaigns FOR SELECT TO anon
+USING (status = 'active');
+```
+
+**b) Anon read policy — prizes:**
+```sql
+CREATE POLICY "Public read prizes for active campaigns"
+ON prizes FOR SELECT TO anon
+USING (
+  EXISTS (
+    SELECT 1 FROM campaigns c
+    WHERE c.id = prizes.campaign_id AND c.status = 'active'
+  )
+);
+```
+
+### Pending (known technical debt):
+- **Migration needed:** `ALTER TABLE campaigns ADD COLUMN arabic_name TEXT;`
+  - Currently, `arabicName` is stored in `campaigns.description` as a workaround.
+  - After this migration, update `useCampaigns.ts` and `PlayerFlowPage.tsx` to read from `arabic_name`.
+
+---
+
+## 5) Key Data/Mapping Notes
+- `campaigns.win_probability`: stored as DECIMAL 0–1; multiply ×100 for UI display, ÷100 for DB writes.
+- `campaigns.status`: DB has `'ended'` → mapped to `'archived'` in `useCampaigns`.
+- `prize_templates.stock_quantity`: total coupon item count.
+- `prize_template_items.item_value`: actual coupon code string.
+- `entries.redeemed_coupon_value`: the coupon code assigned to a winning entry.
+- `entries.coupon_confirmed`: boolean; set true by `confirm-coupon` edge function.
+
+---
+
+## 6) Known Bugs / Discovered Issues
+- Sandbox PlayerResult "TEST ANOTHER BRAND" button has sandbox-only label; real flow uses same component with "Back to Campaign" label. No bug, but label is shared — acceptable for MVP.
+- Chunk size warning in Vite build (>500 kB) — cosmetic only, no functional impact for MVP.
+

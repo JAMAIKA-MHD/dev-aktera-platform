@@ -173,13 +173,18 @@ export interface BillingPlan {
 // --- CLIENT SIDE PLAYERS PRESETS & SIMULATORS STATE ---
 
 export interface BrandPreset {
+  id?: string;
   name: string;
   arabicName: string;
   primaryColor: string;
+  secondaryColor?: string;
   gradientFrom: string;
   gradientTo: string;
   description: string;
-  prizes: { name: string; icon: string; isWin: boolean }[];
+  logoUrl?: string;
+  slogan?: string;
+  arabicSlogan?: string;
+  prizes: Prize[];
 }
 
 export type ScreenType = 'landing' | 'game' | 'result';
@@ -191,7 +196,11 @@ export interface PlayerData {
 }
 
 export interface Prize {
+  id?: string;
   name: string;
   icon: string;
   isWin: boolean;
+  color?: string;
+  textColor?: string;
+  couponCode?: string;
 }

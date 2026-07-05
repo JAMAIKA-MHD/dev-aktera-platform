@@ -1,9 +1,4 @@
-import React, { useState } from 'react';
-import { 
-  INITIAL_CAMPAIGNS, 
-  INITIAL_PRIZES, 
-  INITIAL_LEADS 
-} from './data';
+import React, { useState, useEffect } from 'react';
 import { 
   Campaign, 
   PrizeTemplate, 
@@ -27,120 +22,219 @@ import { PlayerLanding } from './components/PlayerLanding';
 import { PlayerGame } from './components/PlayerGame';
 import { PlayerResult } from './components/PlayerResult';
 
+// Auth + data hooks
+import { useAuth } from './contexts/AuthContext';
+import { useCampaigns } from './hooks/useCampaigns';
+import { usePrizeTemplates } from './hooks/usePrizeTemplates';
+import { useEntries } from './hooks/useEntries';
+import { supabase } from './lib/supabase';
+import { toFriendlyErrorMessage } from './lib/errorMessages';
+
 import { 
   Flame, LayoutDashboard, Sliders, Gift, BarChart3, 
   Database, User, CreditCard, ChevronRight, Search, 
-  Smartphone, X, Check, ArrowRight, RotateCcw, AlertTriangle 
+  Smartphone, X, Check, ArrowRight, RotateCcw, AlertTriangle,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
+  const { organization, signOut } = useAuth();
+  const orgId = organization?.id ?? null;
+
+  // Real Supabase data
+  const { campaigns, loading: campLoading, refetch: refetchCampaigns } = useCampaigns(orgId);
+  const { prizes, loading: prizeLoading, refetch: refetchPrizes } = usePrizeTemplates(orgId);
+  const { entries: leads, refetch: refetchEntries } = useEntries(orgId);
+
+  // Action error state (shown in-dashboard for CRUD failures)
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [campaigns, setCampaigns] = useState<Campaign[]>(INITIAL_CAMPAIGNS);
-  const [prizes, setPrizes] = useState<PrizeTemplate[]>(INITIAL_PRIZES);
-  const [leads, setLeads] = useState<LeadEntry[]>(INITIAL_LEADS);
 
   // Focus & Draft states
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [relaunchDraftCampaign, setRelaunchDraftCampaign] = useState<Campaign | null>(null);
 
-  // Player Preview Sandbox state
+  // Player Preview Sandbox state (pure visual preview — does NOT write to DB)
   const [showSandbox, setShowSandbox] = useState<boolean>(false);
-  const [sandboxCampaignId, setSandboxCampaignId] = useState<string>(INITIAL_CAMPAIGNS[0].id);
+  const [sandboxCampaignId, setSandboxCampaignId] = useState<string>('');
   const [sandboxScreen, setSandboxScreen] = useState<'landing' | 'game' | 'result'>('landing');
   const [sandboxPlayerData, setSandboxPlayerData] = useState({ name: '', phone: '', consent: false });
   const [sandboxSelectedPrize, setSandboxSelectedPrize] = useState<any>(null);
 
-  // Handler: Add new prize template
-  const handleAddPrize = (newPrize: Omit<PrizeTemplate, 'id' | 'allocatedStock' | 'availableStock'>) => {
-    const id = `prize_${Date.now()}`;
-    const item: PrizeTemplate = {
-      ...newPrize,
-      id,
-      allocatedStock: 0,
-      availableStock: newPrize.totalStock,
-    };
-    setPrizes([...prizes, item]);
+  // Auto-select first loaded campaign for the sandbox
+  useEffect(() => {
+    if (campaigns.length > 0 && !sandboxCampaignId) {
+      setSandboxCampaignId(campaigns[0].id);
+    }
+  }, [campaigns, sandboxCampaignId]);
+
+  // ── Prize template handlers ────────────────────────────────────────────────
+
+  const handleAddPrize = async (newPrize: Omit<PrizeTemplate, 'id' | 'allocatedStock' | 'availableStock'>) => {
+    if (!orgId) return;
+    setActionError(null);
+    try {
+      // Parse numeric value from display string (e.g. "500 DA" → 500)
+      const numericValue = parseFloat(newPrize.itemValue.replace(/[^\d.]/g, '')) || 0;
+
+      const { error } = await supabase.from('prize_templates').insert({
+        organization_id: orgId,
+        name: newPrize.name,
+        description: newPrize.description || null,
+        category: newPrize.category,
+        value: numericValue,
+        stock_quantity: newPrize.totalStock,
+      });
+      if (error) throw error;
+      refetchPrizes();
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to create prize template.'));
+    }
   };
 
-  // Handler: Update Stock values manually
-  const handleUpdateStock = (id: string, amount: number) => {
-    setPrizes(prizes.map(p => {
-      if (p.id === id) {
-        return {
-          ...p,
-          totalStock: p.totalStock + amount,
-          availableStock: p.availableStock + amount
-        };
-      }
-      return p;
-    }));
+  const handleUpdateStock = async (id: string, amount: number) => {
+    setActionError(null);
+    try {
+      const template = prizes.find((p) => p.id === id);
+      if (!template) return;
+      const newTotal = Math.max(0, template.totalStock + amount);
+      const { error } = await supabase
+        .from('prize_templates')
+        .update({ stock_quantity: newTotal })
+        .eq('id', id);
+      if (error) throw error;
+      refetchPrizes();
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to update stock.'));
+    }
   };
 
-  // Handler: Bulk restock parsing
-  const handleBulkRestock = (parsedPrizes: { id: string; additionalStock: number }[]) => {
-    setPrizes(prizes.map(p => {
-      const match = parsedPrizes.find(item => item.id === p.id);
-      if (match) {
-        return {
-          ...p,
-          totalStock: p.totalStock + match.additionalStock,
-          availableStock: p.availableStock + match.additionalStock
-        };
+  const handleBulkRestock = async (parsedPrizes: { id: string; additionalStock: number }[]) => {
+    setActionError(null);
+    try {
+      for (const item of parsedPrizes) {
+        const template = prizes.find((p) => p.id === item.id);
+        if (!template) continue;
+        const newTotal = template.totalStock + item.additionalStock;
+        await supabase.from('prize_templates').update({ stock_quantity: newTotal }).eq('id', item.id);
       }
-      return p;
-    }));
+      refetchPrizes();
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to bulk update stock.'));
+    }
   };
 
-  // Handler: Save campaign from wizard
-  const handleSaveCampaign = (newCamp: Omit<Campaign, 'id' | 'participantsCount' | 'rewardsClaimed'>) => {
-    const id = `camp_${Date.now()}`;
-    const finalCamp: Campaign = {
-      ...newCamp,
-      id,
-      participantsCount: 0,
-      rewardsClaimed: 0
-    };
+  // ── Campaign CRUD handlers ─────────────────────────────────────────────────
 
-    // Update allocated stocks in warehouse
-    const updatedPrizes = prizes.map(p => {
-      const match = finalCamp.prizes.find(cp => cp.templateId === p.id);
-      if (match) {
-        return {
-          ...p,
-          allocatedStock: p.allocatedStock + match.quantity,
-          availableStock: Math.max(0, p.availableStock - match.quantity)
-        };
+  const handleSaveCampaign = async (newCamp: Omit<Campaign, 'id' | 'participantsCount' | 'rewardsClaimed'>) => {
+    if (!orgId) return;
+    setActionError(null);
+    try {
+      // 1. Insert campaign row
+      const { data: camp, error: campErr } = await supabase
+        .from('campaigns')
+        .insert({
+          organization_id: orgId,
+          name: newCamp.name,
+          slug: newCamp.slug || newCamp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          description: newCamp.arabicName || null, // arabic_name stored in description until migration
+          status: newCamp.status,
+          start_date: new Date(newCamp.startDate + 'T00:00:00Z').toISOString(),
+          end_date: new Date(newCamp.endDate + 'T23:59:59Z').toISOString(),
+          win_probability: newCamp.winProbability / 100, // UI: 0-100 → DB: 0-1
+          require_quiz: newCamp.type === 'quiz',
+          require_phone: true,
+          source_campaign_id: newCamp.parentCampaignId || null,
+        })
+        .select()
+        .single();
+
+      if (campErr) throw campErr;
+
+      // 2. Insert prize rows + inventory rows
+      for (const ap of newCamp.prizes) {
+        const template = prizes.find((p) => p.id === ap.templateId);
+        if (!template) continue;
+
+        const { data: prize, error: prizeErr } = await supabase
+          .from('prizes')
+          .insert({
+            campaign_id: camp.id,
+            organization_id: orgId,
+            prize_template_id: ap.templateId,
+            name: template.name,
+            quantity: ap.quantity,
+            weight: ap.weight,
+            probability: 0,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (prizeErr) throw prizeErr;
+
+        const { error: invErr } = await supabase.from('prize_inventory').insert({
+          prize_id: prize.id,
+          campaign_id: camp.id,
+          organization_id: orgId,
+          initial_quantity: ap.quantity,
+          remaining: ap.quantity,
+        });
+        if (invErr) throw invErr;
       }
-      return p;
-    });
 
-    setPrizes(updatedPrizes);
-    setCampaigns([finalCamp, ...campaigns]);
-    setRelaunchDraftCampaign(null);
-    setSelectedCampaignId(null);
-    setActiveTab('campaigns');
+      // 3. Insert quiz questions if quiz campaign
+      if (newCamp.type === 'quiz') {
+        for (let i = 0; i < newCamp.questions.length; i++) {
+          const q = newCamp.questions[i];
+          const { error: qErr } = await supabase.from('quiz_questions').insert({
+            campaign_id: camp.id,
+            organization_id: orgId,
+            question: q.questionText,
+            options: q.options,
+            correct_option_index: q.correctIndex,
+            position: i + 1,
+            is_active: true,
+          });
+          if (qErr) throw qErr;
+        }
+      }
+
+      setRelaunchDraftCampaign(null);
+      setSelectedCampaignId(null);
+      await refetchCampaigns();
+      await refetchPrizes();
+      setActiveTab('campaigns');
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to save campaign.'));
+    }
   };
 
-  // Handler: Toggle Campaign Status (Active vs Paused)
-  const handleToggleCampaignStatus = (id: string) => {
-    setCampaigns(campaigns.map(c => {
-      if (c.id === id) {
-        const nextStatus = c.status === 'active' ? 'paused' : 'active';
-        return { ...c, status: nextStatus };
-      }
-      return c;
-    }));
+  const handleToggleCampaignStatus = async (id: string) => {
+    setActionError(null);
+    const camp = campaigns.find((c) => c.id === id);
+    if (!camp) return;
+    const nextStatus = camp.status === 'active' ? 'paused' : 'active';
+    try {
+      const { error } = await supabase.from('campaigns').update({ status: nextStatus }).eq('id', id);
+      if (error) throw error;
+      refetchCampaigns();
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to update campaign status.'));
+    }
   };
 
-  // Handler: Archive Campaign
-  const handleArchiveCampaign = (id: string) => {
-    setCampaigns(campaigns.map(c => {
-      if (c.id === id) {
-        return { ...c, status: 'archived' };
-      }
-      return c;
-    }));
+  const handleArchiveCampaign = async (id: string) => {
+    setActionError(null);
+    try {
+      const { error } = await supabase.from('campaigns').update({ status: 'archived' }).eq('id', id);
+      if (error) throw error;
+      refetchCampaigns();
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to archive campaign.'));
+    }
   };
 
   // Handler: Relaunch Campaign pre-fill
@@ -149,8 +243,8 @@ export default function App() {
     setActiveTab('creator');
   };
 
-  // Helper: map a B2B Campaign object to the older player-facing BrandPreset type
-  const activeSandboxCampaign = campaigns.find(c => c.id === sandboxCampaignId) || campaigns[0];
+  // Helper: map a B2B Campaign to a sandbox BrandPreset for the visual preview
+  const activeSandboxCampaign = campaigns.find((c) => c.id === sandboxCampaignId) || campaigns[0];
 
   const mapCampaignToBrandPreset = (camp: Campaign): any => {
     const campaignPrizes = camp.prizes.map((p) => {
@@ -215,33 +309,7 @@ export default function App() {
   const handleSandboxGameComplete = (prize: any) => {
     setSandboxSelectedPrize(prize);
     setSandboxScreen('result');
-
-    // Simulate appending a live lead entry in the B2B pipeline!
-    const newLead: LeadEntry = {
-      id: `lead_${Date.now()}`,
-      campaignId: activeSandboxCampaign.id,
-      campaignName: activeSandboxCampaign.name,
-      playerName: sandboxPlayerData.name || 'Sandbox Guest',
-      phoneNumber: sandboxPlayerData.phone || '0555001122',
-      prizeWon: prize.name,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      consentGiven: true,
-      couponCode: `MOCK-${prize.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 9000 + 1000)}`,
-      status: 'confirmed'
-    };
-    setLeads([newLead, ...leads]);
-
-    // Increment participants counter
-    setCampaigns(campaigns.map(c => {
-      if (c.id === activeSandboxCampaign.id) {
-        return {
-          ...c,
-          participantsCount: c.participantsCount + 1,
-          rewardsClaimed: prize.isWin ? c.rewardsClaimed + 1 : c.rewardsClaimed
-        };
-      }
-      return c;
-    }));
+    // Sandbox is visual-only — no DB writes; real entries are created in the player portal
   };
 
   const handleSandboxRestart = () => {
@@ -281,15 +349,42 @@ export default function App() {
           </div>
         </div>
 
-        {/* Live Preview trigger button */}
-        <button
-          onClick={() => setShowSandbox(!showSandbox)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm hover:shadow"
-        >
-          <Smartphone className="w-4 h-4 text-white" />
-          <span>Interactive Player Sandbox</span>
-        </button>
+        {/* Live Preview trigger button + Signout */}
+        <div className="flex items-center gap-2">
+          {organization && (
+            <span className="hidden sm:block text-xs text-slate-500 font-mono truncate max-w-[120px]">
+              {organization.name}
+            </span>
+          )}
+          <button
+            onClick={() => setShowSandbox(!showSandbox)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm hover:shadow"
+          >
+            <Smartphone className="w-4 h-4 text-white" />
+            <span className="hidden sm:inline">Interactive Player Sandbox</span>
+          </button>
+          <button
+            onClick={signOut}
+            title="Sign out"
+            className="p-2.5 border border-slate-200 rounded-xl text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all cursor-pointer min-h-11"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </header>
+
+      {/* Inline action error banner (shown below header) */}
+      {actionError && (
+        <div className="w-full bg-red-50 border-b border-red-100 px-6 py-2.5 flex items-center justify-between gap-3 z-20 relative">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-600 cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* MAIN LAYOUT */}
       <div id="saas-main-layout" className="flex-1 flex max-w-7xl w-full mx-auto relative z-10 px-4 sm:px-6 py-6 gap-6 min-h-0">

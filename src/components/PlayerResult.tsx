@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrandPreset, Prize } from '../types';
-import { Gift, Copy, Check, MessageCircle, HelpCircle, Share2, RotateCcw } from 'lucide-react';
+import { Gift, Copy, Check, MessageCircle, RotateCcw } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface PlayerResultProps {
@@ -8,6 +8,10 @@ interface PlayerResultProps {
   prize: Prize | null;
   onRestart: () => void;
   playerName: string;
+  /** Real player flow: entry ID for confirm-coupon call */
+  entryId?: string;
+  /** Real player flow: callback to confirm coupon on the server */
+  onCouponConfirmed?: () => Promise<void>;
 }
 
 export const PlayerResult: React.FC<PlayerResultProps> = ({
@@ -15,17 +19,35 @@ export const PlayerResult: React.FC<PlayerResultProps> = ({
   prize,
   onRestart,
   playerName,
+  entryId,
+  onCouponConfirmed,
 }) => {
   const [copied, setCopied] = useState(false);
   const [couponConfirmed, setCouponConfirmed] = useState(false);
+  const [confirmingCoupon, setConfirmingCoupon] = useState(false);
 
   const isWin = prize?.isWin ?? false;
-  const couponCode = prize?.couponCode ?? 'DJZ-LUCKY-2026';
+  const couponCode = prize?.couponCode ?? '';
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(couponCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (couponCode) {
+      navigator.clipboard.writeText(couponCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleConfirmCoupon = async () => {
+    if (couponConfirmed || confirmingCoupon) return;
+    setConfirmingCoupon(true);
+    try {
+      if (onCouponConfirmed) {
+        await onCouponConfirmed();
+      }
+    } finally {
+      setConfirmingCoupon(false);
+      setCouponConfirmed(true);
+    }
   };
 
   const shareText = `Sahit! I just won ${prize?.name} from the ${activeBrand.name} lucky wheel! Try your luck too! 🇩🇿🎁`;
@@ -170,15 +192,21 @@ export const PlayerResult: React.FC<PlayerResultProps> = ({
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setCouponConfirmed(!couponConfirmed)}
+            onClick={handleConfirmCoupon}
+            disabled={couponConfirmed || confirmingCoupon}
             id="claim-confirmation-btn"
-            className={`w-full min-h-[52px] rounded-2xl text-xs font-bold tracking-wider flex items-center justify-center gap-2 border cursor-pointer transition-all duration-300 ${
+            className={`w-full min-h-[52px] rounded-2xl text-xs font-bold tracking-wider flex items-center justify-center gap-2 border cursor-pointer transition-all duration-300 disabled:cursor-default ${
               couponConfirmed 
                 ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300' 
                 : 'bg-[#1F1F2E] hover:bg-[#2D2D3F] border-[#2D2D3F] hover:border-slate-600 text-slate-300'
             }`}
           >
-            {couponConfirmed ? (
+            {confirmingCoupon ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>SAVING...</span>
+              </>
+            ) : couponConfirmed ? (
               <>
                 <Check className="w-4 h-4 text-emerald-400" />
                 <span>COUPON CLAIM CONFIRMED / تم حفظ الكود 🛡️</span>
