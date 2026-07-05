@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Campaign, PrizeTemplate, QuizQuestion } from '../types';
 import { 
   ArrowLeft, ArrowRight, HelpCircle, Gift, Sliders, 
@@ -46,6 +46,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       { id: 'q_1', questionText: 'What is the local calling code for Algeria?', options: ['+213', '+212', '+216', '+20'], correctIndex: 0 }
     ]
   );
+
+  // When prizes load after wizard opens, fill any empty templateId slots
+  useEffect(() => {
+    if (prizes.length > 0 && !relaunchDraft) {
+      setAllocatedPrizes(prev =>
+        prev.map(ap => ap.templateId === '' ? { ...ap, templateId: prizes[0].id } : ap)
+      );
+    }
+  }, [prizes, relaunchDraft]);
 
   // Quick helper for Dialect suggestions
   const handleApplyDarijaSample = () => {
@@ -105,6 +114,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   };
 
   const handlePublish = () => {
+    // Guard: must have at least one valid prize template selected
+    const validPrizes = allocatedPrizes.filter(ap => ap.templateId !== '');
+    if (validPrizes.length === 0) return; // prevents save with no prizes
     onSave({
       name,
       arabicName,
@@ -112,7 +124,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       type,
       status: 'active',
       winProbability,
-      prizes: allocatedPrizes,
+      prizes: validPrizes,
       questions: type === 'quiz' ? quizQuestions : [],
       startDate,
       endDate,
@@ -404,11 +416,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                       onChange={(e) => handleUpdatePrizeLine(idx, 'templateId', e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 text-xs text-slate-700 min-h-11 focus:outline-none"
                     >
-                      {prizes.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.itemValue} - Stock: {p.availableStock})
-                        </option>
-                      ))}
+                      {prizes.length === 0 ? (
+                        <option value="">— Create prize templates first —</option>
+                      ) : (
+                        prizes.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.itemValue} - Stock: {p.availableStock})
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
