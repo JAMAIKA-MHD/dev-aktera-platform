@@ -1,0 +1,6 @@
+{
+  "name": "DZENGAGE B2B Campaign Hub",
+  "description": "B2B SaaS campaign & prize management dashboard platform for Algerian enterprise brands with a live interactive player sandbox simulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
