@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 
 interface PrizesManagerProps {
   prizes: PrizeTemplate[];
-  onAddPrize: (newPrize: Omit<PrizeTemplate, 'id' | 'allocatedStock' | 'availableStock'>) => void;
+  onAddPrize: (newPrize: Omit<PrizeTemplate, 'id' | 'allocatedStock' | 'availableStock'>) => Promise<void>;
 }
 
 export const PrizesManager: React.FC<PrizesManagerProps> = ({ prizes, onAddPrize }) => {
@@ -19,24 +19,36 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({ prizes, onAddPrize
   const [itemValue, setItemValue] = useState('');
   const [totalStock, setTotalStock] = useState(100);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Async form state
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !itemValue) return;
+    if (!name.trim() || !itemValue.trim()) return;
 
-    onAddPrize({
-      name,
-      category,
-      description,
-      itemValue,
-      totalStock,
-    });
-
-    // Reset Form
-    setName('');
-    setDescription('');
-    setItemValue('');
-    setTotalStock(100);
-    setShowCreator(false);
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await onAddPrize({
+        name: name.trim(),
+        category,
+        description: description.trim(),
+        itemValue: itemValue.trim(),
+        totalStock,
+      });
+      // Only reset + close on success
+      setName('');
+      setDescription('');
+      setItemValue('');
+      setTotalStock(100);
+      setShowCreator(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create prize. Please try again.';
+      setFormError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const filteredPrizes = prizes.filter(p =>
@@ -156,20 +168,30 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({ prizes, onAddPrize
             </div>
           </div>
 
-          <div className="flex justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowCreator(false)}
-              className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer px-4"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-5 py-2.5 rounded-xl font-bold cursor-pointer transition-all"
-            >
-              Save to Library
-            </button>
+          <div className="flex flex-col gap-3 pt-2">
+            {formError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <span>⚠️ {formError}</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => { setShowCreator(false); setFormError(null); }}
+                disabled={submitting}
+                className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer px-4 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !name.trim() || !itemValue.trim()}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs px-5 py-2.5 rounded-xl font-bold cursor-pointer transition-all flex items-center gap-2 min-h-11"
+              >
+                {submitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                <span>{submitting ? 'Saving...' : 'Save to Library'}</span>
+              </button>
+            </div>
           </div>
         </motion.form>
       )}

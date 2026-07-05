@@ -73,25 +73,25 @@ export default function App() {
   // ── Prize template handlers ────────────────────────────────────────────────
 
   const handleAddPrize = async (newPrize: Omit<PrizeTemplate, 'id' | 'allocatedStock' | 'availableStock'>) => {
-    if (!orgId) return;
+    if (!orgId) throw new Error('Organization not loaded. Please refresh the page.');
     setActionError(null);
-    try {
-      // Parse numeric value from display string (e.g. "500 DA" → 500)
-      const numericValue = parseFloat(newPrize.itemValue.replace(/[^\d.]/g, '')) || 0;
+    // Parse numeric value from display string (e.g. "500 DA" → 500)
+    const numericValue = parseFloat(newPrize.itemValue.replace(/[^\d.]/g, '')) || 0;
 
-      const { error } = await supabase.from('prize_templates').insert({
-        organization_id: orgId,
-        name: newPrize.name,
-        description: newPrize.description || null,
-        category: newPrize.category,
-        value: numericValue,
-        stock_quantity: newPrize.totalStock,
-      });
-      if (error) throw error;
-      refetchPrizes();
-    } catch (err) {
-      setActionError(toFriendlyErrorMessage(err, 'Failed to create prize template.'));
+    const { error } = await supabase.from('prize_templates').insert({
+      organization_id: orgId,
+      name: newPrize.name,
+      description: newPrize.description || null,
+      category: newPrize.category,
+      value: numericValue,
+      stock_quantity: newPrize.totalStock,
+    });
+
+    if (error) {
+      console.error('[handleAddPrize]', error);
+      throw new Error(error.message);
     }
+    refetchPrizes();
   };
 
   const handleUpdateStock = async (id: string, amount: number) => {
