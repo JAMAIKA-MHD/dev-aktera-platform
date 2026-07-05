@@ -92,10 +92,28 @@ It should stay short and reflect the current usable state only.
   - Loser slot (`LOSER_SLOT`) added as fixed wheel segment for non-winners.
 - **Validation:** `lint ✅  build ✅`
 
-### M4 — Quiz Game + Hardening (TODO)
-- Add quiz game screen (question/answer flow before spin/result).
-- Wire `quiz_passed` to `select-prize` payload.
-- Error surface audit across all flows.
+### M4 — Quiz Game Screen ✅
+- `src/components/PlayerQuiz.tsx` — new mobile-first quiz challenge screen:
+  - One question at a time, animated slide between questions
+  - Progress bar tracks current question
+  - Instant feedback: green flash for correct, red for wrong (1.2s before advancing)
+  - Summary screen: pass/fail based on majority score (>50%), Arabic bilingual text
+  - "Spin the Wheel!" / "Spin Anyway" CTA — always proceeds to wheel after quiz
+- `src/pages/play/PlayerFlowPage.tsx` updated:
+  - New `quiz` state in the screen state machine
+  - Loads `require_quiz` + `quiz_questions` when fetching campaign by slug
+  - Quiz campaigns: `landing → quiz → submitting → game → result`
+  - Non-quiz campaigns: unchanged (`landing → submitting → game → result`)
+  - `callSelectPrize()` shared helper passes `quiz_passed` boolean to edge function
+- `supabase/functions/select-prize/index.ts` updated:
+  - Quiz campaigns with `quiz_passed=true` → run wheel probability + weighted prize selection
+  - Quiz campaigns with `quiz_passed=false` → always loser (entry still recorded)
+  - Non-quiz campaigns: unchanged behavior
+- **Validation:** `lint ✅  build ✅`
+- **⚠️ Supabase manual action required:** redeploy the `select-prize` edge function after this change:
+  ```
+  supabase functions deploy select-prize
+  ```
 
 ---
 
