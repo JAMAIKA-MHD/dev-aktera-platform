@@ -187,6 +187,49 @@ serve(async (req) => {
           }
         }
       }
+    } else if (quiz_passed === true) {
+      // QUIZ CAMPAIGN: player passed the quiz — run the same wheel probability logic
+      const roll = Math.random();
+      const campaignProb = Number(campaign.win_probability);
+
+      console.log(`[select-prize] QUIZ campaign=${campaign_id} passed=true roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`);
+
+      if (roll <= campaignProb) {
+        const { data: activePrizes, error: prizesError } = await supabaseAdmin
+          .from('prizes')
+          .select('id, name, weight, win_message, prize_inventory(id, remaining)')
+          .eq('campaign_id', campaign_id)
+          .eq('is_active', true);
+
+        if (!prizesError && activePrizes && activePrizes.length > 0) {
+          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter((p) => {
+            const inventory = Array.isArray(p.prize_inventory)
+              ? p.prize_inventory[0]
+              : p.prize_inventory;
+            return (inventory?.remaining ?? 0) > 0;
+          });
+
+          if (stockPrizes.length > 0) {
+            const totalWeight = stockPrizes.reduce((sum, p) => sum + Number(p.weight || 0), 0);
+            if (totalWeight > 0) {
+              let targetRoll = Math.random() * totalWeight;
+              for (const p of stockPrizes) {
+                targetRoll -= Number(p.weight || 0);
+                if (targetRoll <= 0) {
+                  selectedPrizeId = p.id;
+                  selectedPrize = p;
+                  isWinner = true;
+                  console.log(`[select-prize] QUIZ Selected prize="${p.name}" id=${p.id}`);
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // Quiz campaign + quiz_passed=false → always loser, no prize draw
+      console.log(`[select-prize] QUIZ campaign=${campaign_id} passed=false — assigning loser`);
     }
 
     // 4. Atomic inventory claim (if winner)

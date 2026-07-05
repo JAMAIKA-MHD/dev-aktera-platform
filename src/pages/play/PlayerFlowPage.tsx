@@ -2,12 +2,13 @@
  * PlayerFlowPage — public player-facing portal at /play/:slug
  *
  * Orchestrates the full real game flow:
- *   loading → landing → (select-prize call) → game → result
+ *   loading → landing → quiz (if require_quiz) → submitting → game → result
  *
  * Security rules:
  * - Prize outcome is ALWAYS determined server-side via select-prize edge function
  * - Duplicate check is handled by the edge function (phone_number unique per campaign)
  * - confirm-coupon is called server-side when player acknowledges copying their code
+ * - Quiz result (quiz_passed) is sent to select-prize; server gates prize draw on pass
  *
  * Manual Supabase action required:
  * - Ensure campaigns table has anon SELECT policy for active campaigns:
@@ -25,14 +26,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { BrandPreset, Prize, PlayerData } from '../../types';
+import { BrandPreset, Prize, PlayerData, QuizQuestion } from '../../types';
 import { PhoneFrame } from '../../components/PhoneFrame';
 import { PlayerLanding } from '../../components/PlayerLanding';
 import { PlayerGame } from '../../components/PlayerGame';
 import { PlayerResult } from '../../components/PlayerResult';
+import { PlayerQuiz } from '../../components/PlayerQuiz';
 import { AlertTriangle, Frown } from 'lucide-react';
 
-type PlayerScreen = 'loading' | 'not-found' | 'inactive' | 'landing' | 'submitting' | 'game' | 'result' | 'duplicate' | 'error';
+type PlayerScreen = 'loading' | 'not-found' | 'inactive' | 'landing' | 'quiz' | 'submitting' | 'game' | 'result' | 'duplicate' | 'error';
 
 // Palette for wheel slices — rotates through campaigns with multiple prizes
 const WHEEL_COLORS = [
@@ -60,7 +62,9 @@ interface DbCampaignRow {
   name: string;
   description: string | null;
   status: string;
+  require_quiz: boolean;
   prizes: Array<{ id: string; name: string; is_active: boolean; win_message: string | null }>;
+  quiz_questions: Array<{ id: string; question: string; options: string[]; correct_option_index: number; position: number; is_active: boolean }>;
 }
 
 export default function PlayerFlowPage() {
@@ -68,6 +72,8 @@ export default function PlayerFlowPage() {
 
   const [screen, setScreen] = useState<PlayerScreen>('loading');
   const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [isQuizCampaign, setIsQuizCampaign] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [brandPreset, setBrandPreset] = useState<BrandPreset | null>(null);
   const [playerData, setPlayerData] = useState<PlayerData>({ name: '', phone: '', consent: false });
 
@@ -81,7 +87,7 @@ export default function PlayerFlowPage() {
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, prizes(id, name, is_active, win_message)')
+      .select('id, name, description, status, require_quiz, prizes(id, name, is_active, win_message), quiz_questions(id, question, options, correct_option_index, position, is_active)')
       .eq('slug', slug)
       .single();
 
@@ -131,6 +137,18 @@ export default function PlayerFlowPage() {
 
     setCampaignId(row.id);
     setBrandPreset(preset);
+    setIsQuizCampaign(row.require_quiz);
+    // Map DB quiz_questions → QuizQuestion[]
+    const mappedQuestions: QuizQuestion[] = (row.quiz_questions ?? [])
+      .filter((q) => q.is_active)
+      .sort((a, b) => a.position - b.position)
+      .map((q) => ({
+        id: q.id,
+        questionText: q.question,
+        options: q.options,
+        correctIndex: q.correct_option_index,
+      }));
+    setQuizQuestions(mappedQuestions);
     setScreen('landing');
   }, [slug]);
 
@@ -139,6 +157,17 @@ export default function PlayerFlowPage() {
   // Called by PlayerLanding when player submits the form
   const handleRegister = async (data: PlayerData) => {
     setPlayerData(data);
+    // Quiz campaigns: show quiz before calling select-prize
+    if (isQuizCampaign && quizQuestions.length > 0) {
+      setScreen('quiz');
+      return;
+    }
+    // Non-quiz campaign: call select-prize immediately
+    await callSelectPrize(data, undefined);
+  };
+
+  // Shared function that calls select-prize and handles the response
+  const callSelectPrize = async (data: PlayerData, quizPassed: boolean | undefined) => {
     setScreen('submitting');
 
     try {
@@ -147,6 +176,7 @@ export default function PlayerFlowPage() {
           campaign_id: campaignId,
           phone_number: data.phone,
           participant_name: data.name,
+          quiz_passed: quizPassed,
           user_agent: navigator.userAgent,
         },
       });
@@ -175,7 +205,6 @@ export default function PlayerFlowPage() {
       // Determine the UI prize to land on
       let resolvedPrize: Prize;
       if (result.prize && brandPreset) {
-        // Find matching prize by id or name in the wheel
         const matched = brandPreset.prizes.find(
           (p) => p.id === result.prize.id || p.name === result.prize.name,
         );
@@ -183,17 +212,21 @@ export default function PlayerFlowPage() {
           ? { ...matched, couponCode: result.coupon?.code ?? undefined }
           : { ...LOSER_SLOT, isWin: false };
       } else {
-        // Player lost — wheel will land on the loser slot
         resolvedPrize = LOSER_SLOT;
       }
 
       setEntryId(result.entry?.id ?? null);
       setServerPrize(resolvedPrize);
       setScreen('game');
-    } catch (err) {
+    } catch {
       setErrorMsg('Unexpected error. Please check your connection.');
       setScreen('error');
     }
+  };
+
+  // Called by PlayerQuiz when all questions are answered
+  const handleQuizComplete = async (passed: boolean) => {
+    await callSelectPrize(playerData, passed);
   };
 
   // Called after the spin animation finishes
@@ -209,7 +242,7 @@ export default function PlayerFlowPage() {
     });
   };
 
-  // Reset to landing (player can view campaign page again — duplicate check prevents re-entry)
+  // Reset to landing (duplicate check prevents re-entry with same phone)
   const handleRestart = () => {
     setServerPrize(null);
     setEntryId(null);
@@ -313,6 +346,14 @@ export default function PlayerFlowPage() {
             activeBrand={brandPreset}
             onRegister={handleRegister}
             savedData={playerData}
+          />
+        )}
+        {screen === 'quiz' && quizQuestions.length > 0 && (
+          <PlayerQuiz
+            activeBrand={brandPreset}
+            questions={quizQuestions}
+            playerName={playerData.name}
+            onComplete={handleQuizComplete}
           />
         )}
         {screen === 'game' && serverPrize !== undefined && (
