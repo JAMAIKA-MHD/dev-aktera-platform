@@ -24,6 +24,10 @@ interface DbCampaignStatus {
   status: string;
 }
 
+interface DbTemplateItemCount {
+  prize_template_id: string;
+}
+
 export function usePrizeTemplates(organizationId: string | null) {
   const [prizes, setPrizes] = useState<PrizeTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +44,7 @@ export function usePrizeTemplates(organizationId: string | null) {
     setError(null);
 
     try {
-      const [{ data: templates, error: tErr }, { data: allPrizes }, { data: campaigns }] =
+      const [{ data: templates, error: tErr }, { data: allPrizes }, { data: campaigns }, { data: templateItems }] =
         await Promise.all([
           supabase
             .from('prize_templates')
@@ -55,6 +59,11 @@ export function usePrizeTemplates(organizationId: string | null) {
             .from('campaigns')
             .select('id, status')
             .eq('organization_id', organizationId),
+          supabase
+            .from('prize_template_items')
+            .select('prize_template_id')
+            .eq('organization_id', organizationId)
+            .not('item_value', 'is', null),
         ]);
 
       if (tErr) throw tErr;
@@ -74,6 +83,11 @@ export function usePrizeTemplates(organizationId: string | null) {
         }
       }
 
+      const filledValuesMap: Record<string, number> = {};
+      for (const item of (templateItems ?? []) as DbTemplateItemCount[]) {
+        filledValuesMap[item.prize_template_id] = (filledValuesMap[item.prize_template_id] ?? 0) + 1;
+      }
+
       const mapped: PrizeTemplate[] = ((templates ?? []) as DbTemplate[]).map((t) => {
         const totalStock = t.stock_quantity;
         const allocatedStock = allocatedMap[t.id] ?? 0;
@@ -87,6 +101,7 @@ export function usePrizeTemplates(organizationId: string | null) {
           totalStock,
           availableStock,
           allocatedStock,
+          filledValuesCount: filledValuesMap[t.id] ?? 0,
           // DB value is numeric (e.g. 500), display as "500 DA"
           itemValue: Number(t.value) > 0 ? `${Number(t.value).toLocaleString()} DA` : '',
           image: t.image_url ?? undefined,

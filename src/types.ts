@@ -57,6 +57,7 @@ export interface PrizeTemplate {
   availableStock: number;   // Ready & unallocated to active campaigns
   allocatedStock: number;   // Reserved/committed to current campaign prize instances
   itemValue: string;        // Presentation value e.g. "500 DA", "5 GB Pass", "Soda Bottle"
+  filledValuesCount?: number; // Number of per-unit values/IDs already prepared in stock room
   image?: string;
   createdAt?: string;
 }

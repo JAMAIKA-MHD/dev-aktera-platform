@@ -69,10 +69,10 @@ It should stay short and reflect the current usable state only.
 
 ### M2 — Dashboard Data Wiring ✅
 - `src/hooks/useCampaigns.ts` — fetches campaigns + prizes + quiz_questions + entry counts.
-- `src/hooks/usePrizeTemplates.ts` — fetches prize templates, computes stock.
+- `src/hooks/usePrizeTemplates.ts` — fetches prize templates, computes stock, and counts prepared per-item values from `prize_template_items`.
 - `src/hooks/useEntries.ts` — fetches entries with prize/campaign join.
 - `src/App.tsx` — all handlers made async + Supabase-wired:
-  - `handleAddPrize`, `handleUpdateStock`, `handleBulkRestock` → prize_templates mutations.
+  - `handleAddPrize`, `handleUpdateStock` → prize_templates mutations.
   - `handleSaveCampaign`, `handleToggleCampaignStatus`, `handleArchiveCampaign`, `handleRelaunchTrigger` → campaigns mutations.
   - Sandbox `handleSandboxGameComplete` — now visual-only, no mock DB writes.
   - Header: org name display, signout button, actionError banner.
@@ -110,22 +110,20 @@ It should stay short and reflect the current usable state only.
   - Quiz campaigns with `quiz_passed=false` → always loser (entry still recorded)
   - Non-quiz campaigns: unchanged behavior
 - **Validation:** `lint ✅  build ✅`
-- **⚠️ Supabase manual action required:** redeploy the `select-prize` edge function after this change:
-  ```
-  supabase functions deploy select-prize
-  ```
 
 ---
 
 ## 4) Manual Supabase Actions Required
 
-### ✅ DB RESET COMPLETE (session after M4)
+### ✅ Supabase actions already executed by agent
 - Full clean reset performed via Supabase Management API (not MCP — MCP tools were broken).
 - All 10 migrations applied in order. All RLS policies confirmed.
 - All 3 edge functions redeployed: `select-prize`, `confirm-coupon`, `create-organization`.
 - Anon read policies applied to `campaigns`, `prizes`, `quiz_questions`, and anon insert on `entries`.
 - `supabase/FULL_RESET.sql` committed — can be used in Supabase SQL editor for future resets.
-- **Status: no manual actions required. DB is clean and fully configured.**
+- **Post-reset fix:** raw schema reset had removed PostgREST grants, which broke dashboard CRUD and `create-organization`. A follow-up migration restores API grants/default privileges and adds an authenticated organization-recovery RPC for orphaned auth users.
+- Follow-up migration `20260706091000_restore_api_grants_and_add_org_recovery.sql` was also applied directly to the live Supabase project.
+- **Status: no manual Supabase action currently required. When the agent can do Supabase work directly, it should do it and record it here.**
 
 ### Pending (known technical debt):
 - **Migration needed:** `ALTER TABLE campaigns ADD COLUMN arabic_name TEXT;`
@@ -139,12 +137,33 @@ It should stay short and reflect the current usable state only.
 - `campaigns.status`: DB has `'ended'` → mapped to `'archived'` in `useCampaigns`.
 - `prize_templates.stock_quantity`: total coupon item count.
 - `prize_template_items.item_value`: actual coupon code string.
+- `prize_template_items` is now the intended place for:
+  - real voucher/coupon codes for digital rewards
+  - optional serial/reference/warehouse IDs for physical rewards
+- Prize template creation stores the reusable display value only; item-by-item values are prepared inside Stock Room per reward template.
 - `entries.redeemed_coupon_value`: the coupon code assigned to a winning entry.
 - `entries.coupon_confirmed`: boolean; set true by `confirm-coupon` edge function.
 
 ---
 
-## 6) Known Bugs / Discovered Issues (updated)
+## 6) Current Journey Snapshot
+- **Completed and working**
+  - M1 foundation/auth/router
+  - M2 dashboard data wiring
+  - M3 player portal live flow
+  - M4 quiz game flow
+  - post-reset auth/org recovery
+  - Supabase DB reset, grants restore, and edge-function redeploy
+  - prize template stock-room value preparation UI (manual + CSV per selected reward)
+- **Current remaining work**
+  - `campaigns.arabic_name` DB column migration + frontend switch away from the temporary `description` workaround
+  - any additional UI polish or bugs discovered during real operator testing
+- **Important product rule**
+  - reward outcome still stays server-side; stock-room value preparation only manages which code/reference can later be attached to a winning entry
+
+---
+
+## 7) Known Bugs / Discovered Issues (updated)
 - ✅ **Fixed (490ad18):** `AccountSettings` and `BillingUsage` were using dark player-portal
   color tokens (`#161625`, `#0F0F1A`, `text-slate-100`) inside the white dashboard — they
   appeared as broken dark panels. Both converted to light dashboard theme (white bg,
@@ -156,5 +175,11 @@ It should stay short and reflect the current usable state only.
 - ✅ **Fixed (632b8b7):** Prize creation form was silently failing (fire-and-forget). `PrizesManager.handleSubmit` now async, shows inline error, keeps form open on failure.
 - ✅ **Fixed (632b8b7):** `handleAddPrize` in `App.tsx` now rethrows Supabase errors so the form catches them.
 - ✅ **Fixed (799fc95):** DB fully reset and clean — all migrations + RLS applied. No leftover state from Phase 1 reset attempts.
+- ✅ **Fixed (current):** reset process now restores missing API grants/default privileges, which were required for authenticated CRUD and edge-function database access.
+- ✅ **Fixed (current):** authenticated users whose `auth.users` account survived a reset but lost `profiles`/`organizations` now see a recovery screen and can recreate their organization setup without manual SQL.
+- ✅ **Fixed (current):** stock room now supports prize-specific per-unit values:
+  - voucher templates can store real coupon/code values per unit
+  - physical templates can store optional serial/reference IDs per unit
+  - CSV import is now done inside the selected reward room instead of as a global stock-room action
 - Sandbox PlayerResult "TEST ANOTHER BRAND" button has sandbox-only label; real flow uses same component with "Back to Campaign" label. No bug, but label is shared — acceptable for MVP.
 - Chunk size warning in Vite build (>500 kB) — cosmetic only, no functional impact for MVP.

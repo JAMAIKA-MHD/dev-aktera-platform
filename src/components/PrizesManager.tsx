@@ -103,15 +103,18 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({ prizes, onAddPrize
 
             {/* Value */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">DA Value / Standard Value</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">Display Value / Face Value</label>
               <input
                 type="text"
-                placeholder="e.g. 1500 DA, 5 GB Pass, etc."
+                placeholder="e.g. 1500 DA, 5 GB Pass, Juice Bottle"
                 value={itemValue}
                 onChange={(e) => setItemValue(e.target.value)}
                 className="w-full bg-white border border-slate-250 hover:border-slate-400 focus:border-indigo-500 rounded-xl px-4 text-xs text-slate-800 min-h-11 focus:outline-none"
                 required
               />
+              <p className="text-[10px] text-slate-400">
+                Individual voucher codes or physical item references are prepared later inside Stock Room for each template.
+              </p>
             </div>
 
             {/* Category Select */}
@@ -237,6 +240,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({ prizes, onAddPrize
 
             {/* Mini Stock Status Indicator */}
             <div className="border-t border-slate-100 pt-4 mt-4 space-y-2">
+              <div className="flex justify-between text-[10px] font-mono">
+                <span className="text-slate-400">Prepared item values:</span>
+                <span className="text-slate-700 font-bold">{prize.filledValuesCount ?? 0} / {prize.totalStock}</span>
+              </div>
               <div className="flex justify-between text-[10px] font-mono">
                 <span className="text-slate-400">Warehouse Stocks:</span>
                 <span className="text-slate-700 font-bold">{prize.availableStock} / {prize.totalStock} available</span>

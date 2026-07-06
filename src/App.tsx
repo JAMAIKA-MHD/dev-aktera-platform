@@ -111,25 +111,13 @@ export default function App() {
     }
   };
 
-  const handleBulkRestock = async (parsedPrizes: { id: string; additionalStock: number }[]) => {
-    setActionError(null);
-    try {
-      for (const item of parsedPrizes) {
-        const template = prizes.find((p) => p.id === item.id);
-        if (!template) continue;
-        const newTotal = template.totalStock + item.additionalStock;
-        await supabase.from('prize_templates').update({ stock_quantity: newTotal }).eq('id', item.id);
-      }
-      refetchPrizes();
-    } catch (err) {
-      setActionError(toFriendlyErrorMessage(err, 'Failed to bulk update stock.'));
-    }
-  };
-
   // ── Campaign CRUD handlers ─────────────────────────────────────────────────
 
   const handleSaveCampaign = async (newCamp: Omit<Campaign, 'id' | 'participantsCount' | 'rewardsClaimed'>) => {
-    if (!orgId) return;
+    if (!orgId) {
+      setActionError('Organization not loaded. Please refresh the page and try again.');
+      return;
+    }
     setActionError(null);
     try {
       // 1. Insert campaign row
@@ -500,8 +488,8 @@ export default function App() {
               <motion.div key="inventory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <InventoryManager
                   prizes={prizes}
+                  organizationId={orgId}
                   onUpdateStock={handleUpdateStock}
-                  onBulkUpload={handleBulkRestock}
                 />
               </motion.div>
             )}

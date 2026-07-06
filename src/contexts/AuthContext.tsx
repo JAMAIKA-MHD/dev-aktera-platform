@@ -36,6 +36,8 @@ interface AuthContextValue {
   profile: DbProfile | null;
   organization: DbOrganization | null;
   loading: boolean;
+  authError: string | null;
+  needsOrganizationSetup: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -51,28 +53,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<DbProfile | null>(null);
   const [organization, setOrganization] = useState<DbOrganization | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [needsOrganizationSetup, setNeedsOrganizationSetup] = useState(false);
 
   /** Load profile + org for the authenticated user. */
   const loadProfileAndOrg = useCallback(async (userId: string) => {
+    setAuthError(null);
+    setNeedsOrganizationSetup(false);
+
     const { data: profileRow, error: profileErr } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (profileErr || !profileRow) {
+    const missingProfile = profileErr?.code === 'PGRST116' || !profileRow;
+
+    if (missingProfile) {
       setProfile(null);
       setOrganization(null);
+      setNeedsOrganizationSetup(true);
+      return;
+    }
+
+    if (profileErr) {
+      setProfile(null);
+      setOrganization(null);
+      setAuthError('We could not load your organization profile. Please refresh and try again.');
       return;
     }
 
     setProfile(profileRow as DbProfile);
 
-    const { data: orgRow } = await supabase
+    const { data: orgRow, error: orgErr } = await supabase
       .from('organizations')
       .select('*')
       .eq('id', (profileRow as DbProfile).organization_id)
       .single();
+
+    const missingOrganization = orgErr?.code === 'PGRST116' || !orgRow;
+
+    if (missingOrganization) {
+      setOrganization(null);
+      setNeedsOrganizationSetup(true);
+      return;
+    }
+
+    if (orgErr) {
+      setOrganization(null);
+      setAuthError('We could not load your organization details. Please refresh and try again.');
+      return;
+    }
 
     setOrganization(orgRow as DbOrganization | null);
   }, []);
@@ -95,10 +126,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        loadProfileAndOrg(s.user.id);
+        setLoading(true);
+        loadProfileAndOrg(s.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null);
         setOrganization(null);
+        setAuthError(null);
+        setNeedsOrganizationSetup(false);
+        setLoading(false);
       }
     });
 
@@ -115,11 +150,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async () => {
-    if (user?.id) await loadProfileAndOrg(user.id);
+    if (!user?.id) return;
+    setLoading(true);
+    await loadProfileAndOrg(user.id);
+    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, organization, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        profile,
+        organization,
+        loading,
+        authError,
+        needsOrganizationSetup,
+        signIn,
+        signOut,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

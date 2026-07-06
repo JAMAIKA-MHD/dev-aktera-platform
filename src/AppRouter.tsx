@@ -4,12 +4,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlayerProvider } from './contexts/PlayerContext';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import CompleteOrganizationSetupPage from './pages/auth/CompleteOrganizationSetupPage';
 import PlayerFlowPage from './pages/play/PlayerFlowPage';
 import App from './App';
 
 /** Redirects to /login when no session; shows a full-screen spinner while loading. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, authError, needsOrganizationSetup } = useAuth();
 
   if (loading) {
     return (
@@ -21,6 +22,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white border border-red-100 rounded-3xl shadow-sm p-8 text-center">
+          <h2 className="text-xl font-bold text-slate-900 mb-2">We could not load your account</h2>
+          <p className="text-sm text-slate-500">{authError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (needsOrganizationSetup) {
+    return <CompleteOrganizationSetupPage />;
   }
 
   return <>{children}</>;
