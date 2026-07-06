@@ -5,6 +5,7 @@ import {
   Plus, TrendingUp, Users, Gift, CheckCircle2, 
   ArrowUpRight, AlertTriangle, ChevronRight, FileSpreadsheet, Search 
 } from 'lucide-react';
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../lib/defaultImages';
 
 interface DashboardHomeProps {
   campaigns: Campaign[];
@@ -141,7 +142,16 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                   onClick={() => onSelectCampaign(camp.id)}
                   className="bg-slate-50/60 border border-slate-100 hover:border-slate-300 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 cursor-pointer transition-all duration-200 group"
                 >
-                  <div>
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={camp.heroImageUrl || DEFAULT_CAMPAIGN_IMAGE_URL}
+                      alt={`${camp.name} thumbnail`}
+                      className="h-12 w-12 rounded-xl border border-slate-200 object-cover"
+                      onError={(event) => {
+                        event.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
+                      }}
+                    />
+                    <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold font-sans text-slate-800 group-hover:text-indigo-600 transition-colors">
                         {camp.name}
@@ -151,6 +161,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-400 font-sans mt-0.5">{camp.arabicName}</p>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-6">

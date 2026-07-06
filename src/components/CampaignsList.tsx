@@ -1,26 +1,33 @@
 import React, { useState } from 'react';
 import { Campaign } from '../types';
 import { 
-  Plus, Search, Play, Pause, RotateCcw, BarChart3, 
-  Trash2, Filter, AlertCircle, Calendar, Eye 
+  Plus, Search, Play, Pause, RotateCcw, BarChart3, Archive,
+  Trash2, Filter, AlertCircle, Calendar, Eye, Pencil 
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../lib/defaultImages';
 
 interface CampaignsListProps {
   campaigns: Campaign[];
   onSelectCampaign: (id: string) => void;
+  onEditDraft?: (camp: Campaign) => void;
   onRelaunch: (camp: Campaign) => void;
+  onCreateUpdateDraft: (camp: Campaign) => void;
   onToggleStatus: (id: string) => void;
   onArchive: (id: string) => void;
+  onDelete: (id: string) => void;
   onOpenWizard: () => void;
 }
 
 export const CampaignsList: React.FC<CampaignsListProps> = ({
   campaigns,
   onSelectCampaign,
+  onEditDraft,
   onRelaunch,
+  onCreateUpdateDraft,
   onToggleStatus,
   onArchive,
+  onDelete,
   onOpenWizard
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,6 +123,14 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
           >
             {/* Top header block */}
             <div>
+              <img
+                src={camp.heroImageUrl || DEFAULT_CAMPAIGN_IMAGE_URL}
+                alt={`${camp.name} preview`}
+                className="mb-3 h-28 w-full rounded-2xl border border-slate-200 object-cover"
+                onError={(event) => {
+                  event.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
+                }}
+              />
               <div className="flex justify-between items-start gap-2 mb-2">
                 <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase border ${getStatusColor(camp.status)}`}>
                   {camp.status}
@@ -136,7 +151,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
               {camp.parentCampaignId && (
                 <div className="mt-2 inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[10px] text-indigo-600 font-mono">
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Relaunched from past campaign</span>
+                  <span>Derived from another campaign</span>
                 </div>
               )}
             </div>
@@ -169,13 +184,33 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 {/* View Details/Stats */}
                 <button
                   onClick={() => onSelectCampaign(camp.id)}
-                  title="View analytics details"
+                  title="Open campaign workspace"
                   className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 cursor-pointer transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
 
+                {camp.status === 'draft' && onEditDraft && (
+                  <button
+                    onClick={() => onEditDraft(camp)}
+                    title="Edit draft campaign"
+                    className="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 cursor-pointer transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+
                 {/* Pause/Resume switch */}
+                {camp.status !== 'archived' && camp.status !== 'draft' && (
+                  <button
+                    onClick={() => onCreateUpdateDraft(camp)}
+                    title="Create update draft"
+                    className="p-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg text-sky-700 cursor-pointer transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+
                 {camp.status !== 'archived' && camp.status !== 'draft' && (
                   <button
                     onClick={() => onToggleStatus(camp.id)}
@@ -205,6 +240,22 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     onClick={() => onArchive(camp.id)}
                     title="Archive campaign"
                     className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-rose-600 cursor-pointer transition-colors"
+                  >
+                    <Archive className="w-4 h-4" />
+                  </button>
+                )}
+
+                {(camp.status === 'draft' || camp.status === 'archived') && (
+                  <button
+                    onClick={() => {
+                      const confirmed = window.confirm(
+                        'Delete this campaign permanently? This action cannot be undone.'
+                      );
+                      if (!confirmed) return;
+                      onDelete(camp.id);
+                    }}
+                    title="Delete campaign permanently"
+                    className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-rose-700 cursor-pointer transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -10,6 +10,7 @@ import {
 import { DashboardHome } from './components/DashboardHome';
 import { CampaignsList } from './components/CampaignsList';
 import { CampaignWizard } from './components/CampaignWizard';
+import { CampaignWorkspace } from './components/CampaignWorkspace';
 import { PrizesManager } from './components/PrizesManager';
 import { InventoryManager } from './components/InventoryManager';
 import { AnalyticsCenter } from './components/AnalyticsCenter';
@@ -55,6 +56,8 @@ export default function App() {
   // Focus & Draft states
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [relaunchDraftCampaign, setRelaunchDraftCampaign] = useState<Campaign | null>(null);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [updateDraftSourceCampaign, setUpdateDraftSourceCampaign] = useState<Campaign | null>(null);
 
   // Player Preview Sandbox state (pure visual preview — does NOT write to DB)
   const [showSandbox, setShowSandbox] = useState<boolean>(false);
@@ -85,6 +88,7 @@ export default function App() {
       category: newPrize.category,
       value: numericValue,
       stock_quantity: newPrize.totalStock,
+      image_url: newPrize.image || null,
     });
 
     if (error) {
@@ -94,12 +98,83 @@ export default function App() {
     refetchPrizes();
   };
 
+  const handleUpdatePrize = async (
+    id: string,
+    updates: Omit<PrizeTemplate, 'id' | 'allocatedStock' | 'availableStock'>
+  ) => {
+    if (!orgId) throw new Error('Organization not loaded. Please refresh the page.');
+    setActionError(null);
+
+    const existingTemplate = prizes.find((p) => p.id === id);
+    if (!existingTemplate) {
+      throw new Error('Reward template could not be found.');
+    }
+
+    if (updates.totalStock < existingTemplate.allocatedStock) {
+      throw new Error(
+        `Reward stock cannot go below the reserved quantity (${existingTemplate.allocatedStock}) already allocated to campaigns.`
+      );
+    }
+
+    const numericValue = parseFloat(updates.itemValue.replace(/[^\d.]/g, '')) || 0;
+
+    const { error } = await supabase
+      .from('prize_templates')
+      .update({
+        name: updates.name,
+        description: updates.description || null,
+        category: updates.category,
+        value: numericValue,
+        stock_quantity: updates.totalStock,
+        image_url: updates.image || null,
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('[handleUpdatePrize]', error);
+      throw new Error(error.message);
+    }
+
+    refetchPrizes();
+  };
+
+  const handleDeletePrize = async (id: string) => {
+    if (!orgId) throw new Error('Organization not loaded. Please refresh the page.');
+    setActionError(null);
+
+    const existingTemplate = prizes.find((p) => p.id === id);
+    if (!existingTemplate) {
+      throw new Error('Reward template could not be found.');
+    }
+
+    if ((existingTemplate.campaignUsageCount ?? 0) > 0) {
+      throw new Error('This reward template is already used in campaigns and cannot be deleted.');
+    }
+
+    const { error } = await supabase.from('prize_templates').delete().eq('id', id);
+    if (error) {
+      console.error('[handleDeletePrize]', error);
+      throw new Error(error.message);
+    }
+
+    refetchPrizes();
+  };
+
   const handleUpdateStock = async (id: string, amount: number) => {
     setActionError(null);
+    const template = prizes.find((p) => p.id === id);
+    if (!template) {
+      throw new Error('Reward template could not be found.');
+    }
+
+    const newTotal = Math.max(0, template.totalStock + amount);
+    if (newTotal < template.allocatedStock) {
+      const message = `Reward stock cannot go below the reserved quantity (${template.allocatedStock}) already allocated to campaigns.`;
+      setActionError(message);
+      throw new Error(message);
+    }
+
     try {
-      const template = prizes.find((p) => p.id === id);
-      if (!template) return;
-      const newTotal = Math.max(0, template.totalStock + amount);
       const { error } = await supabase
         .from('prize_templates')
         .update({ stock_quantity: newTotal })
@@ -107,39 +182,170 @@ export default function App() {
       if (error) throw error;
       refetchPrizes();
     } catch (err) {
-      setActionError(toFriendlyErrorMessage(err, 'Failed to update stock.'));
+      const message = toFriendlyErrorMessage(err, 'Failed to update stock.');
+      setActionError(message);
+      throw new Error(message);
     }
   };
 
   // ── Campaign CRUD handlers ─────────────────────────────────────────────────
 
-  const handleSaveCampaign = async (newCamp: Omit<Campaign, 'id' | 'participantsCount' | 'rewardsClaimed'>) => {
+  const handleSaveCampaign = async (
+    newCamp: Omit<Campaign, 'participantsCount' | 'rewardsClaimed'> & {
+      mode?: 'create' | 'edit' | 'relaunch' | 'update';
+      submitStatus?: 'draft' | 'active';
+    }
+  ) => {
     if (!orgId) {
       setActionError('Organization not loaded. Please refresh the page and try again.');
       return;
     }
     setActionError(null);
     try {
-      // 1. Insert campaign row
-      const { data: camp, error: campErr } = await supabase
+      const submitStatus = newCamp.submitStatus ?? newCamp.status;
+      const isPublishingUpdate =
+        submitStatus === 'active' &&
+        (newCamp.mode === 'update' || (newCamp.mode === 'edit' && newCamp.parentCampaignId)) &&
+        Boolean(newCamp.parentCampaignId);
+      const resolvedSlug = newCamp.slug || newCamp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+      const prizeAllocationByTemplate = new Map<string, number>();
+      for (const allocation of newCamp.prizes) {
+        if (!allocation.templateId) continue;
+        const current = prizeAllocationByTemplate.get(allocation.templateId) ?? 0;
+        prizeAllocationByTemplate.set(allocation.templateId, current + allocation.quantity);
+      }
+
+      if (prizeAllocationByTemplate.size === 0) {
+        throw new Error('At least one reward allocation is required before saving this campaign.');
+      }
+
+      const existingDraftAllocations = new Map<string, number>();
+      if (newCamp.mode === 'edit' && newCamp.id) {
+        const { data: existingDraftPrizes, error: existingDraftPrizesError } = await supabase
+          .from('prizes')
+          .select('prize_template_id, quantity')
+          .eq('campaign_id', newCamp.id)
+          .eq('is_active', true);
+        if (existingDraftPrizesError) throw existingDraftPrizesError;
+
+        for (const draftPrize of existingDraftPrizes ?? []) {
+          const current = existingDraftAllocations.get(draftPrize.prize_template_id) ?? 0;
+          existingDraftAllocations.set(draftPrize.prize_template_id, current + draftPrize.quantity);
+        }
+      }
+
+      for (const [templateId, requestedQuantity] of prizeAllocationByTemplate.entries()) {
+        const template = prizes.find((prizeTemplate) => prizeTemplate.id === templateId);
+        if (!template) {
+          throw new Error('One of the selected reward templates is no longer available. Please refresh and retry.');
+        }
+
+        const editableExistingQuantity = existingDraftAllocations.get(templateId) ?? 0;
+        const maxAllowedQuantity = template.availableStock + editableExistingQuantity;
+        if (requestedQuantity > maxAllowedQuantity) {
+          throw new Error(
+            `Reward allocation exceeds available stock for "${template.name}". Requested ${requestedQuantity}, available ${maxAllowedQuantity}.`
+          );
+        }
+      }
+
+      const slugConflictQuery = supabase
         .from('campaigns')
-        .insert({
-          organization_id: orgId,
-          name: newCamp.name,
-          slug: newCamp.slug || newCamp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          description: newCamp.arabicName || null, // arabic_name stored in description until migration
-          status: newCamp.status,
-          start_date: new Date(newCamp.startDate + 'T00:00:00Z').toISOString(),
-          end_date: new Date(newCamp.endDate + 'T23:59:59Z').toISOString(),
-          win_probability: newCamp.winProbability / 100, // UI: 0-100 → DB: 0-1
-          require_quiz: newCamp.type === 'quiz',
-          require_phone: true,
-          source_campaign_id: newCamp.parentCampaignId || null,
-        })
-        .select()
-        .single();
+        .select('id, name')
+        .eq('organization_id', orgId)
+        .eq('slug', resolvedSlug)
+        .limit(1);
+      const { data: slugConflicts, error: slugConflictError } = newCamp.id
+        ? await slugConflictQuery.neq('id', newCamp.id)
+        : await slugConflictQuery;
+      if (slugConflictError) throw slugConflictError;
+      if ((slugConflicts?.length ?? 0) > 0) {
+        throw new Error(
+          `The portal slug "${resolvedSlug}" is already used by another campaign. Please choose a unique slug.`
+        );
+      }
+
+      const campaignPayload = {
+        organization_id: orgId,
+        name: newCamp.name,
+        slug: resolvedSlug,
+        arabic_name: newCamp.arabicName || null,
+        hero_image_url: newCamp.heroImageUrl || null,
+        description: null,
+        status: isPublishingUpdate ? 'draft' : submitStatus,
+        start_date: new Date(newCamp.startDate + 'T00:00:00Z').toISOString(),
+        end_date: new Date(newCamp.endDate + 'T23:59:59Z').toISOString(),
+        win_probability: newCamp.winProbability / 100,
+        max_entries: newCamp.maxEntries === '2' ? 2 : newCamp.maxEntries === 'unlimited' ? 0 : 1,
+        require_quiz: newCamp.type === 'quiz',
+        require_phone: true,
+        source_campaign_id: newCamp.mode === 'update' || (newCamp.mode === 'edit' && newCamp.parentCampaignId)
+          ? newCamp.parentCampaignId || null
+          : null,
+      };
+
+      const isEditingDraft = newCamp.mode === 'edit' && Boolean(newCamp.id);
+
+      let camp: { id: string } | null = null;
+      let campErr: Error | null = null;
+
+      if (isEditingDraft && newCamp.id) {
+        const { data: existingCampaign, error: existingCampaignError } = await supabase
+          .from('campaigns')
+          .select('id, status, source_campaign_id')
+          .eq('id', newCamp.id)
+          .single();
+
+        if (existingCampaignError) throw existingCampaignError;
+        if (!existingCampaign || existingCampaign.status !== 'draft') {
+          throw new Error('Only draft campaigns can be edited directly right now.');
+        }
+
+        const primaryUpdatePayload = {
+          ...campaignPayload,
+          source_campaign_id:
+            newCamp.parentCampaignId || existingCampaign.source_campaign_id || null,
+        };
+
+        let updatedCampaign: { id: string } | null = null;
+        let updateError: Error | null = null;
+
+        const primaryUpdateResult = await supabase
+          .from('campaigns')
+          .update(primaryUpdatePayload)
+          .eq('id', newCamp.id)
+          .select()
+          .single();
+        updatedCampaign = primaryUpdateResult.data;
+        updateError = primaryUpdateResult.error;
+
+        camp = updatedCampaign;
+        campErr = updateError;
+
+        const { error: quizDeleteError } = await supabase.from('quiz_questions').delete().eq('campaign_id', newCamp.id);
+        if (quizDeleteError) throw quizDeleteError;
+
+        const { error: prizeDeleteError } = await supabase.from('prizes').delete().eq('campaign_id', newCamp.id);
+        if (prizeDeleteError) throw prizeDeleteError;
+      } else {
+        let insertedCampaign: { id: string } | null = null;
+        let insertError: Error | null = null;
+
+        const primaryInsertResult = await supabase
+          .from('campaigns')
+          .insert(campaignPayload)
+          .select()
+          .single();
+        insertedCampaign = primaryInsertResult.data;
+        insertError = primaryInsertResult.error;
+
+        camp = insertedCampaign;
+        campErr = insertError;
+      }
 
       if (campErr) throw campErr;
+      if (!camp) throw new Error('Failed to save campaign.');
 
       // 2. Insert prize rows + inventory rows
       for (const ap of newCamp.prizes) {
@@ -190,7 +396,36 @@ export default function App() {
         }
       }
 
+      if (isPublishingUpdate && newCamp.parentCampaignId) {
+        const { data: sourceCampaign, error: sourceCampaignError } = await supabase
+          .from('campaigns')
+          .select('id, status')
+          .eq('id', newCamp.parentCampaignId)
+          .single();
+        if (sourceCampaignError) throw sourceCampaignError;
+
+        const { error: archiveSourceError } = await supabase
+          .from('campaigns')
+          .update({ status: 'archived' })
+          .eq('id', newCamp.parentCampaignId)
+          .in('status', ['active', 'paused']);
+        if (archiveSourceError) throw archiveSourceError;
+
+        const { error: activateTargetError } = await supabase
+          .from('campaigns')
+          .update({ status: 'active' })
+          .eq('id', camp.id);
+
+        if (activateTargetError) {
+          const restoreStatus = sourceCampaign.status === 'paused' ? 'paused' : 'active';
+          await supabase.from('campaigns').update({ status: restoreStatus }).eq('id', sourceCampaign.id);
+          throw activateTargetError;
+        }
+      }
+
       setRelaunchDraftCampaign(null);
+      setEditingCampaign(null);
+      setUpdateDraftSourceCampaign(null);
       setSelectedCampaignId(null);
       await refetchCampaigns();
       await refetchPrizes();
@@ -225,9 +460,73 @@ export default function App() {
     }
   };
 
+  const handleDeleteCampaign = async (id: string) => {
+    setActionError(null);
+    try {
+      const targetCampaign = campaigns.find((campaign) => campaign.id === id);
+      if (!targetCampaign) {
+        throw new Error('Campaign could not be found.');
+      }
+
+      if (!(targetCampaign.status === 'draft' || targetCampaign.status === 'archived')) {
+        throw new Error('Only draft or archived campaigns can be deleted.');
+      }
+
+      const { count: participationCount, error: participationError } = await supabase
+        .from('entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', id);
+      if (participationError) throw participationError;
+
+      if ((participationCount ?? 0) > 0) {
+        throw new Error(
+          'This campaign already has participant entries and cannot be deleted. Keep it archived for history.'
+        );
+      }
+
+      const { error: quizDeleteError } = await supabase.from('quiz_questions').delete().eq('campaign_id', id);
+      if (quizDeleteError) throw quizDeleteError;
+
+      const { error: inventoryDeleteError } = await supabase
+        .from('prize_inventory')
+        .delete()
+        .eq('campaign_id', id);
+      if (inventoryDeleteError) throw inventoryDeleteError;
+
+      const { error: prizesDeleteError } = await supabase.from('prizes').delete().eq('campaign_id', id);
+      if (prizesDeleteError) throw prizesDeleteError;
+
+      const { error: campaignDeleteError } = await supabase.from('campaigns').delete().eq('id', id);
+      if (campaignDeleteError) throw campaignDeleteError;
+
+      if (selectedCampaignId === id) {
+        setSelectedCampaignId(null);
+      }
+      await refetchCampaigns();
+    } catch (err) {
+      setActionError(toFriendlyErrorMessage(err, 'Failed to delete campaign.'));
+    }
+  };
+
   // Handler: Relaunch Campaign pre-fill
   const handleRelaunchTrigger = (camp: Campaign) => {
+    setEditingCampaign(null);
+    setUpdateDraftSourceCampaign(null);
     setRelaunchDraftCampaign(camp);
+    setActiveTab('creator');
+  };
+
+  const handleEditDraftTrigger = (camp: Campaign) => {
+    setRelaunchDraftCampaign(null);
+    setUpdateDraftSourceCampaign(null);
+    setEditingCampaign(camp);
+    setActiveTab('creator');
+  };
+
+  const handleUpdateDraftTrigger = (camp: Campaign) => {
+    setEditingCampaign(null);
+    setRelaunchDraftCampaign(null);
+    setUpdateDraftSourceCampaign(camp);
     setActiveTab('creator');
   };
 
@@ -282,6 +581,7 @@ export default function App() {
       gradientFrom,
       gradientTo,
       description: `Participate & Win premium voucher codes or physical merchandise.`,
+      logoUrl: camp.heroImageUrl,
       prizes: campaignPrizes
     };
   };
@@ -309,13 +609,23 @@ export default function App() {
 
   const handleSidebarNavigate = (tab: TabType) => {
     setSelectedCampaignId(null);
+    setEditingCampaign(null);
+    setRelaunchDraftCampaign(null);
+    setUpdateDraftSourceCampaign(null);
     setActiveTab(tab);
   };
 
   const handleCampaignFocus = (id: string) => {
     setSelectedCampaignId(id);
+    setActiveTab('campaigns');
+  };
+
+  const handleOpenAnalyticsDesk = (id: string) => {
+    setSelectedCampaignId(id);
     setActiveTab('analytics');
   };
+
+  const selectedCampaign = selectedCampaignId ? campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null : null;
 
   return (
     <div id="saas-app-root" className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between relative font-sans overflow-x-hidden select-none">
@@ -453,24 +763,53 @@ export default function App() {
 
             {activeTab === 'campaigns' && (
               <motion.div key="campaigns" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <CampaignsList
-                  campaigns={campaigns}
-                  onSelectCampaign={handleCampaignFocus}
-                  onRelaunch={handleRelaunchTrigger}
-                  onToggleStatus={handleToggleCampaignStatus}
-                  onArchive={handleArchiveCampaign}
-                  onOpenWizard={() => handleSidebarNavigate('creator')}
-                />
+                {selectedCampaign ? (
+                  <CampaignWorkspace
+                    campaign={selectedCampaign}
+                    prizes={prizes}
+                    leads={leads}
+                    onBack={() => setSelectedCampaignId(null)}
+                    onEditDraft={handleEditDraftTrigger}
+                    onRelaunch={handleRelaunchTrigger}
+                    onCreateUpdateDraft={handleUpdateDraftTrigger}
+                    onToggleStatus={handleToggleCampaignStatus}
+                    onOpenAnalytics={handleOpenAnalyticsDesk}
+                  />
+                ) : (
+                  <CampaignsList
+                    campaigns={campaigns}
+                    onSelectCampaign={handleCampaignFocus}
+                    onEditDraft={handleEditDraftTrigger}
+                    onRelaunch={handleRelaunchTrigger}
+                    onCreateUpdateDraft={handleUpdateDraftTrigger}
+                    onToggleStatus={handleToggleCampaignStatus}
+                    onArchive={handleArchiveCampaign}
+                    onDelete={handleDeleteCampaign}
+                    onOpenWizard={() => handleSidebarNavigate('creator')}
+                  />
+                )}
               </motion.div>
             )}
 
             {activeTab === 'creator' && (
-              <motion.div key="creator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div
+                key={`creator-${editingCampaign?.id ?? updateDraftSourceCampaign?.id ?? relaunchDraftCampaign?.id ?? 'new'}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 <CampaignWizard
                   prizes={prizes}
                   onSave={handleSaveCampaign}
-                  onCancel={() => handleSidebarNavigate('campaigns')}
+                  onCancel={() => {
+                    setEditingCampaign(null);
+                    setRelaunchDraftCampaign(null);
+                    setUpdateDraftSourceCampaign(null);
+                    setActiveTab('campaigns');
+                  }}
                   relaunchDraft={relaunchDraftCampaign}
+                  editingCampaign={editingCampaign}
+                  updateDraftSource={updateDraftSourceCampaign}
                 />
               </motion.div>
             )}
@@ -480,6 +819,8 @@ export default function App() {
                 <PrizesManager
                   prizes={prizes}
                   onAddPrize={handleAddPrize}
+                  onUpdatePrize={handleUpdatePrize}
+                  onDeletePrize={handleDeletePrize}
                 />
               </motion.div>
             )}
@@ -497,8 +838,6 @@ export default function App() {
             {activeTab === 'analytics' && (
               <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <AnalyticsCenter
-                  campaigns={campaigns}
-                  leads={leads}
                 />
               </motion.div>
             )}

@@ -27,7 +27,7 @@ prize_inventory, quiz_questions, entries, and billing.
    auth.users), organization_id, full_name, email, role
    (owner/admin/manager/viewer), avatar_url, timestamps.
 3. **campaigns** — Gamification campaigns. Fields: id, organization_id, name,
-   slug, description, status (draft/active/paused/ended/archived), start_date,
+   slug, arabic_name, description, status (draft/active/paused/ended/archived), start_date,
    end_date, win_probability (0–1), max_entries, require_phone, require_quiz,
    hero_image_url, theme_color, timestamps.
 4. **prize_templates** — Reusable prize catalog per org. Fields: id,
@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name            text NOT NULL,
   slug            text UNIQUE NOT NULL,
+  arabic_name     text,
   description     text,
   status          text NOT NULL DEFAULT 'draft'
                     CHECK (status IN ('draft', 'active', 'paused', 'ended', 'archived')),

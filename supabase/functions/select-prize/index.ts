@@ -18,6 +18,17 @@ interface SelectPrizeBody {
   user_agent?: string;
 }
 
+const normalizeDzPhone = (rawPhone: string): string => {
+  const digitsOnly = rawPhone.replace(/\D/g, '');
+  if (digitsOnly.startsWith('213') && digitsOnly.length === 12) {
+    return `0${digitsOnly.slice(3)}`;
+  }
+  if (digitsOnly.length === 9 && /^[567]/.test(digitsOnly)) {
+    return `0${digitsOnly}`;
+  }
+  return digitsOnly;
+};
+
 interface PrizeInventoryPayload {
   id: string;
   remaining: number;
@@ -66,6 +77,13 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const normalizedPhoneNumber = normalizeDzPhone(phone_number);
+    if (!/^(05|06|07)[0-9]{8}$/.test(normalizedPhoneNumber)) {
+      return new Response(JSON.stringify({ ok: false, error: 'Invalid Algerian phone number format.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -87,7 +105,7 @@ serve(async (req) => {
     // 1. Fetch Campaign and verify it is active
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
-      .select('id, organization_id, status, require_quiz, win_probability')
+      .select('id, organization_id, status, require_quiz, win_probability, max_entries')
       .eq('id', campaign_id)
       .single();
 
@@ -106,12 +124,11 @@ serve(async (req) => {
     }
 
     // 2. Check for duplicate entry (Anti-Fraud)
-    const { data: existingEntry, error: entryCheckError } = await supabaseAdmin
+    const { count: existingEntriesCount, error: entryCheckError } = await supabaseAdmin
       .from('entries')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('campaign_id', campaign_id)
-      .eq('phone_number', phone_number)
-      .maybeSingle();
+      .eq('phone_number', normalizedPhoneNumber);
 
     if (entryCheckError) {
       return new Response(JSON.stringify({ ok: false, error: 'Failed to validate existing participation.' }), {
@@ -120,7 +137,9 @@ serve(async (req) => {
       });
     }
 
-    if (existingEntry) {
+    const maxEntries = campaign.max_entries ?? 1;
+    const hasEntryLimit = maxEntries > 0;
+    if (hasEntryLimit && (existingEntriesCount ?? 0) >= maxEntries) {
       return new Response(JSON.stringify({ ok: false, error: 'You have already participated in this campaign.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -319,7 +338,7 @@ serve(async (req) => {
       .insert({
         campaign_id,
         organization_id: campaign.organization_id,
-        phone_number,
+        phone_number: normalizedPhoneNumber,
         participant_name: participant_name || null,
         participant_email: participant_email || null,
         quiz_passed: isQuizCampaign ? !!quiz_passed : null,

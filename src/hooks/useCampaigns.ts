@@ -25,12 +25,14 @@ interface DbCampaignRow {
   id: string;
   organization_id: string;
   name: string;
+  arabic_name: string | null;
+  hero_image_url: string | null;
   slug: string;
-  description: string | null;
   status: string;
   start_date: string;
   end_date: string;
   win_probability: string | number;
+  max_entries: number | null;
   require_quiz: boolean;
   source_campaign_id: string | null;
   prizes: DbPrizeRow[];
@@ -49,13 +51,14 @@ function mapToUi(row: DbCampaignRow, entryCount: number, winnerCount: number): C
     id: row.id,
     organizationId: row.organization_id,
     name: row.name,
-    // DB has no arabic_name column yet — stored in description field temporarily
-    arabicName: row.description ?? '',
+    arabicName: row.arabic_name ?? '',
+    heroImageUrl: row.hero_image_url ?? undefined,
     slug: row.slug,
     type: row.require_quiz ? 'quiz' : 'lucky_wheel',
     status,
     // DB stores 0-1 decimal, UI expects 0-100 integer percentage
     winProbability: Math.round(Number(row.win_probability) * 100),
+    maxEntries: row.max_entries === 2 ? '2' : row.max_entries === 0 ? 'unlimited' : '1',
     prizes: (row.prizes ?? [])
       .filter((p) => p.is_active)
       .map((p) => ({ templateId: p.prize_template_id, quantity: p.quantity, weight: p.weight })),
@@ -98,7 +101,7 @@ export function useCampaigns(organizationId: string | null) {
       const { data: rows, error: campErr } = await supabase
         .from('campaigns')
         .select(
-          'id, organization_id, name, slug, description, status, start_date, end_date, win_probability, require_quiz, source_campaign_id, created_at, prizes(id, prize_template_id, quantity, weight, is_active), quiz_questions(id, question, options, correct_option_index, position, is_active)'
+          'id, organization_id, name, arabic_name, hero_image_url, slug, status, start_date, end_date, win_probability, max_entries, require_quiz, source_campaign_id, created_at, prizes(id, prize_template_id, quantity, weight, is_active), quiz_questions(id, question, options, correct_option_index, position, is_active)'
         )
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });

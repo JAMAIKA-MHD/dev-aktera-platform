@@ -58,6 +58,8 @@ export interface PrizeTemplate {
   allocatedStock: number;   // Reserved/committed to current campaign prize instances
   itemValue: string;        // Presentation value e.g. "500 DA", "5 GB Pass", "Soda Bottle"
   filledValuesCount?: number; // Number of per-unit values/IDs already prepared in stock room
+  campaignUsageCount?: number; // Number of campaign prize rows using this template
+  quantityWonCount?: number;   // Number of winning units historically consumed from this template
   image?: string;
   createdAt?: string;
 }
@@ -107,10 +109,12 @@ export interface Campaign {
   organizationId?: string;
   name: string;
   arabicName: string;
+  heroImageUrl?: string;
   slug: string;
   type: 'lucky_wheel' | 'quiz';
   status: 'active' | 'paused' | 'draft' | 'archived';
   winProbability: number;   // Server-enforced winning percentage (0 to 100)
+  maxEntries?: '1' | '2' | 'unlimited';
   prizes: {
     templateId: string;
     quantity: number;       // Allocated amount

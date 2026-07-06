@@ -33,6 +33,7 @@ import { PlayerGame } from '../../components/PlayerGame';
 import { PlayerResult } from '../../components/PlayerResult';
 import { PlayerQuiz } from '../../components/PlayerQuiz';
 import { AlertTriangle, Frown } from 'lucide-react';
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../../lib/defaultImages';
 
 type PlayerScreen = 'loading' | 'not-found' | 'inactive' | 'landing' | 'quiz' | 'submitting' | 'game' | 'result' | 'duplicate' | 'error';
 
@@ -60,7 +61,8 @@ const LOSER_SLOT: Prize = {
 interface DbCampaignRow {
   id: string;
   name: string;
-  description: string | null;
+  arabic_name: string | null;
+  hero_image_url: string | null;
   status: string;
   require_quiz: boolean;
   prizes: Array<{ id: string; name: string; is_active: boolean; win_message: string | null }>;
@@ -82,12 +84,41 @@ export default function PlayerFlowPage() {
   const [entryId, setEntryId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const extractInvokeErrorMessage = async (invokeError: unknown): Promise<string> => {
+    let combined = '';
+    if (invokeError instanceof Error) {
+      combined = invokeError.message;
+    }
+
+    if (typeof invokeError === 'object' && invokeError !== null && 'context' in invokeError) {
+      const context = (invokeError as { context?: unknown }).context;
+      if (
+        context &&
+        typeof context === 'object' &&
+        'json' in context &&
+        typeof (context as { json?: unknown }).json === 'function'
+      ) {
+        try {
+          const payload = await (context as { json: () => Promise<unknown> }).json();
+          if (typeof payload === 'object' && payload !== null && 'error' in payload) {
+            const serverMessage = String((payload as { error?: unknown }).error ?? '');
+            combined = `${combined} ${serverMessage}`.trim();
+          }
+        } catch {
+          // Keep fallback error message below if response payload is not JSON.
+        }
+      }
+    }
+
+    return combined.toLowerCase();
+  };
+
   const loadCampaign = useCallback(async () => {
     if (!slug) { setScreen('not-found'); return; }
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('id, name, description, status, require_quiz, prizes(id, name, is_active, win_message), quiz_questions(id, question, options, correct_option_index, position, is_active)')
+      .select('id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message), quiz_questions(id, question, options, correct_option_index, position, is_active)')
       .eq('slug', slug)
       .single();
 
@@ -124,12 +155,13 @@ export default function PlayerFlowPage() {
     const preset: BrandPreset = {
       id: row.id,
       name: row.name,
-      arabicName: row.description ?? row.name,
+      arabicName: row.arabic_name ?? row.name,
       primaryColor: '#7C3AED',
       secondaryColor: '#A78BFA',
       gradientFrom: '#7C3AED',
       gradientTo: '#4F46E5',
-      description: row.description ?? '',
+      description: '',
+      logoUrl: row.hero_image_url || DEFAULT_CAMPAIGN_IMAGE_URL,
       slogan: 'Spin & Win',
       arabicSlogan: 'العب واربح 🎁',
       prizes: wheelPrizes,
@@ -182,7 +214,12 @@ export default function PlayerFlowPage() {
       });
 
       if (error) {
-        setErrorMsg('Connection error. Please try again.');
+        const invokeMessage = await extractInvokeErrorMessage(error);
+        if (invokeMessage.includes('already participated') || invokeMessage.includes('maximum entries')) {
+          setScreen('duplicate');
+          return;
+        }
+        setErrorMsg('We could not submit your participation right now. Please try again in a moment.');
         setScreen('error');
         return;
       }
@@ -379,4 +416,3 @@ export default function PlayerFlowPage() {
     </div>
   );
 }
-

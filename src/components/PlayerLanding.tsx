@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrandPreset, PlayerData } from '../types';
 import { Phone, User, CheckSquare, Square, Gift, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../lib/defaultImages';
 
 interface PlayerLandingProps {
   activeBrand: BrandPreset;
@@ -55,10 +56,13 @@ export const PlayerLanding: React.FC<PlayerLandingProps> = ({
           className="w-20 h-20 rounded-2xl p-0.5 bg-gradient-to-tr from-zinc-800 to-zinc-900 border border-zinc-700/60 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex items-center justify-center overflow-hidden"
         >
           <img 
-            src={activeBrand.logoUrl} 
+            src={activeBrand.logoUrl || DEFAULT_CAMPAIGN_IMAGE_URL}
             alt={activeBrand.name} 
             className="w-full h-full object-cover rounded-[14px]"
             referrerPolicy="no-referrer"
+            onError={(event) => {
+              event.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
+            }}
           />
         </motion.div>
 

@@ -19,11 +19,12 @@ import {
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { toFriendlyErrorMessage } from '../lib/errorMessages';
+import { DEFAULT_PRIZE_IMAGE_URL } from '../lib/defaultImages';
 
 interface InventoryManagerProps {
   prizes: PrizeTemplate[];
   organizationId: string | null;
-  onUpdateStock: (id: string, amount: number) => void;
+  onUpdateStock: (id: string, amount: number) => Promise<void>;
 }
 
 interface TemplateItemRow {
@@ -57,6 +58,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const totalAllocated = prizes.reduce((acc, p) => acc + p.allocatedStock, 0);
   const totalAvailable = prizes.reduce((acc, p) => acc + p.availableStock, 0);
   const totalPreparedValues = prizes.reduce((acc, p) => acc + (p.filledValuesCount ?? 0), 0);
+  const totalDistributed = prizes.reduce((acc, p) => acc + (p.quantityWonCount ?? 0), 0);
+  const totalCampaignBindings = prizes.reduce((acc, p) => acc + (p.campaignUsageCount ?? 0), 0);
   const lowStockCount = prizes.filter((p) => p.availableStock < 50).length;
 
   const filteredPrizes = useMemo(
@@ -74,6 +77,22 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     setSuccessMsg(message);
     window.setTimeout(() => setSuccessMsg(''), 3500);
   };
+
+  const activeTemplateItems = useMemo(
+    () =>
+      selectedTemplate
+        ? templateItems.filter((item) => item.item_index <= selectedTemplate.totalStock)
+        : templateItems,
+    [selectedTemplate, templateItems],
+  );
+
+  const overflowTemplateItems = useMemo(
+    () =>
+      selectedTemplate
+        ? templateItems.filter((item) => item.item_index > selectedTemplate.totalStock)
+        : [],
+    [selectedTemplate, templateItems],
+  );
 
   const loadTemplateItems = async (template: PrizeTemplate) => {
     if (!organizationId) {
@@ -114,9 +133,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           .order('item_index', { ascending: true });
 
         if (reloadError) throw reloadError;
-        setTemplateItems(((reloaded ?? []) as TemplateItemRow[]).slice(0, template.totalStock));
+        setTemplateItems((reloaded ?? []) as TemplateItemRow[]);
       } else {
-        setTemplateItems(rows.slice(0, template.totalStock));
+        setTemplateItems(rows);
       }
     } catch (err) {
       setErrorMsg(toFriendlyErrorMessage(err, 'Failed to load per-item values for this reward.'));
@@ -238,7 +257,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     }
   };
 
-  const handleAdjustStock = (id: string, isIncrement = true) => {
+  const handleAdjustStock = async (id: string, isIncrement = true) => {
     const rawValue = adjustments[id];
     const amount = Number.parseInt(rawValue, 10);
 
@@ -248,9 +267,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     }
 
     setErrorMsg(null);
-    onUpdateStock(id, isIncrement ? amount : -amount);
-    setAdjustments((current) => ({ ...current, [id]: '' }));
-    showSuccess(`Stock adjusted by ${isIncrement ? '+' : '-'}${amount} units.`);
+    try {
+      await onUpdateStock(id, isIncrement ? amount : -amount);
+      setAdjustments((current) => ({ ...current, [id]: '' }));
+      showSuccess(`Stock adjusted by ${isIncrement ? '+' : '-'}${amount} units.`);
+    } catch (err) {
+      setErrorMsg(toFriendlyErrorMessage(err, 'Failed to update stock.'));
+    }
   };
 
   return (
@@ -369,6 +392,17 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           <h4 className="text-3xl font-black mt-3 mb-1 text-slate-900">{totalAvailable.toLocaleString()}</h4>
           <p className="text-[11px] text-slate-500">{lowStockCount} templates below 50 available units</p>
         </div>
+
+        <div className="bg-white border border-slate-200 rounded-[24px] p-5 shadow-sm">
+          <div className="flex justify-between items-start">
+            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">Distributed / Won</span>
+            <div className="p-2 bg-sky-50 rounded-lg text-sky-600">
+              <Check className="w-4 h-4" />
+            </div>
+          </div>
+          <h4 className="text-3xl font-black mt-3 mb-1 text-sky-700">{totalDistributed.toLocaleString()}</h4>
+          <p className="text-[11px] text-slate-500">{totalCampaignBindings.toLocaleString()} live/draft campaign bindings across templates</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -391,6 +425,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 const reservedPct = p.totalStock > 0 ? (p.allocatedStock / p.totalStock) * 100 : 0;
                 const availablePct = p.totalStock > 0 ? (p.availableStock / p.totalStock) * 100 : 0;
                 const preparedPct = p.totalStock > 0 ? ((p.filledValuesCount ?? 0) / p.totalStock) * 100 : 0;
+                const distributedPct = p.totalStock > 0 ? (Math.min(p.quantityWonCount ?? 0, p.totalStock) / p.totalStock) * 100 : 0;
 
                 return (
                   <div
@@ -414,9 +449,19 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
 
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={p.image || DEFAULT_PRIZE_IMAGE_URL}
+                            alt={`${p.name} visual`}
+                            className="h-14 w-14 rounded-xl border border-slate-200 object-cover"
+                            onError={(event) => {
+                              event.currentTarget.src = DEFAULT_PRIZE_IMAGE_URL;
+                            }}
+                          />
+                          <div>
                           <h4 className="font-extrabold text-sm text-slate-800 leading-tight">{p.name}</h4>
                           <p className="text-[10px] text-slate-400 font-mono mt-0.5">Template ID: {p.id}</p>
+                          </div>
                         </div>
                         <button
                           type="button"
@@ -447,6 +492,14 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden flex">
                         <div className="bg-amber-500 h-full" style={{ width: `${reservedPct}%` }} />
                         <div className="bg-indigo-600 h-full" style={{ width: `${availablePct}%` }} />
+                      </div>
+
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-slate-400">Historically won:</span>
+                        <span className="text-slate-700 font-bold">{p.quantityWonCount ?? 0}</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-sky-500 h-full" style={{ width: `${distributedPct}%` }} />
                       </div>
 
                       <div className="flex justify-between items-center pt-1">
@@ -483,6 +536,16 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           </button>
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-[10px]">
+                        <div>
+                          <p className="text-slate-400">Campaigns</p>
+                          <p className="mt-1 font-bold text-slate-800">{p.campaignUsageCount ?? 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Reserved</p>
+                          <p className="mt-1 font-bold text-slate-800">{p.allocatedStock}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -505,6 +568,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       <th className="pb-3 pl-1 font-semibold">Reward Title</th>
                       <th className="pb-3 font-semibold text-center">Category</th>
                       <th className="pb-3 font-semibold text-center">Prepared</th>
+                      <th className="pb-3 font-semibold text-center">Reserved</th>
+                      <th className="pb-3 font-semibold text-center">Won</th>
+                      <th className="pb-3 font-semibold text-center">Campaigns</th>
                       <th className="pb-3 font-semibold text-center">Available</th>
                       <th className="pb-3 font-semibold text-right">Actions</th>
                     </tr>
@@ -527,6 +593,15 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           </td>
                           <td className="py-3.5 text-center font-mono text-slate-700">
                             {p.filledValuesCount ?? 0} / {p.totalStock}
+                          </td>
+                          <td className="py-3.5 text-center font-mono text-slate-700">
+                            {p.allocatedStock}
+                          </td>
+                          <td className="py-3.5 text-center font-mono text-sky-700">
+                            {p.quantityWonCount ?? 0}
+                          </td>
+                          <td className="py-3.5 text-center font-mono text-slate-700">
+                            {p.campaignUsageCount ?? 0}
                           </td>
                           <td className="py-3.5 text-center">
                             <span className={`inline-flex items-center gap-1.5 font-bold font-mono ${isLow ? 'text-amber-600' : 'text-slate-700'}`}>
@@ -590,6 +665,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <p><strong className="text-slate-800">Voucher templates:</strong> enter the real coupon / pin / code for each unit.</p>
               <p><strong className="text-slate-800">Physical templates:</strong> reference / serial / warehouse ID is optional for each unit.</p>
               <p><strong className="text-slate-800">CSV format:</strong> <code className="px-1 py-0.5 rounded bg-white border border-slate-200">item_index,item_value</code></p>
+              <p><strong className="text-slate-800">Historical rows:</strong> if stock was reduced later, older item rows stay preserved for audit and past coupon history.</p>
             </div>
             {selectedTemplate ? (
               <button
@@ -614,6 +690,14 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[32px] bg-white">
             <div className="flex flex-col gap-4 border-b border-slate-200/80 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
+                <img
+                  src={selectedTemplate.image || DEFAULT_PRIZE_IMAGE_URL}
+                  alt={`${selectedTemplate.name} preview`}
+                  className="mb-3 h-20 w-28 rounded-xl border border-slate-200 object-cover"
+                  onError={(event) => {
+                    event.currentTarget.src = DEFAULT_PRIZE_IMAGE_URL;
+                  }}
+                />
                 <h2 className="text-lg font-bold text-slate-900">Reward room — {selectedTemplate.name}</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {selectedTemplate.category === 'voucher'
@@ -639,15 +723,32 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[10px] font-mono uppercase text-slate-400">Prepared</p>
-                  <p className="mt-1 text-sm font-bold text-slate-800">
-                    {templateItems.filter((item) => item.item_value?.trim()).length} / {selectedTemplate.totalStock}
-                  </p>
+                  <p className="mt-1 text-sm font-bold text-slate-800">{activeTemplateItems.filter((item) => item.item_value?.trim()).length} / {selectedTemplate.totalStock}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[10px] font-mono uppercase text-slate-400">Face value</p>
                   <p className="mt-1 text-sm font-bold text-slate-800">{selectedTemplate.itemValue}</p>
                 </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase text-slate-400">Reserved / Won</p>
+                  <p className="mt-1 text-sm font-bold text-slate-800">
+                    {selectedTemplate.allocatedStock} reserved • {selectedTemplate.quantityWonCount ?? 0} won
+                  </p>
+                </div>
               </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] text-slate-600">
+                <p>
+                  Active campaign usage: <strong className="text-slate-800">{selectedTemplate.campaignUsageCount ?? 0}</strong>
+                  {' '}campaign(s). Available stock shown in this room excludes reserved units but does not remove historical rows used for audit.
+                </p>
+              </div>
+
+              {overflowTemplateItems.length > 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-800">
+                  Stock was reduced after this template had more item rows. The extra historical rows are preserved below for audit and past coupon tracing, but they are no longer part of the active stock pool.
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -694,7 +795,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {templateItems.map((instance) => (
+                      {activeTemplateItems.map((instance) => (
                         <tr key={instance.id}>
                           <td className="px-4 py-3 text-sm text-slate-600">#{instance.item_index}</td>
                           <td className="px-4 py-3">
@@ -710,6 +811,35 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white min-h-12"
                             />
                           </td>
+                          <td className="px-4 py-3 text-sm text-slate-500 capitalize">{instance.source_type}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {overflowTemplateItems.length > 0 && (
+                <div className="overflow-hidden rounded-[24px] border border-amber-200">
+                  <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
+                    <h3 className="text-sm font-bold text-amber-900">Historical rows outside current stock</h3>
+                    <p className="mt-1 text-[11px] text-amber-800">
+                      These rows remain read-only because the template stock was reduced after they were created.
+                    </p>
+                  </div>
+                  <table className="min-w-full">
+                    <thead className="border-b border-amber-200 bg-amber-50/60 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-700">
+                      <tr>
+                        <th className="px-4 py-3">Item</th>
+                        <th className="px-4 py-3">Stored value / reference</th>
+                        <th className="px-4 py-3">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-100 bg-white">
+                      {overflowTemplateItems.map((instance) => (
+                        <tr key={instance.id}>
+                          <td className="px-4 py-3 text-sm text-slate-600">#{instance.item_index}</td>
+                          <td className="px-4 py-3 text-sm text-slate-800">{instance.item_value?.trim() || '—'}</td>
                           <td className="px-4 py-3 text-sm text-slate-500 capitalize">{instance.source_type}</td>
                         </tr>
                       ))}

@@ -5,56 +5,93 @@ import {
   HelpCircle as QuizIcon, Check, Sparkles, Plus, Trash2, Globe 
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../lib/defaultImages';
+import { ImageUploader } from './common/ImageUploader';
 
 interface CampaignWizardProps {
   prizes: PrizeTemplate[];
-  onSave: (newCampaign: Omit<Campaign, 'id' | 'participantsCount' | 'rewardsClaimed'>) => void;
+  onSave: (
+    newCampaign: Omit<Campaign, 'participantsCount' | 'rewardsClaimed'> & {
+      mode?: 'create' | 'edit' | 'relaunch' | 'update';
+      submitStatus?: 'draft' | 'active';
+    }
+  ) => void;
   onCancel: () => void;
   relaunchDraft?: Campaign | null;
+  editingCampaign?: Campaign | null;
+  updateDraftSource?: Campaign | null;
 }
 
 export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   prizes,
   onSave,
   onCancel,
-  relaunchDraft
+  relaunchDraft,
+  editingCampaign,
+  updateDraftSource,
 }) => {
   const [step, setStep] = useState(1);
+  const baseCampaign = editingCampaign ?? updateDraftSource ?? relaunchDraft ?? null;
+  const isEditMode = Boolean(editingCampaign);
+  const isEditingUpdateDraft = Boolean(editingCampaign?.parentCampaignId);
+  const isUpdateDraftMode = Boolean(updateDraftSource) && !editingCampaign;
+  const isRelaunchMode = Boolean(relaunchDraft) && !editingCampaign;
+
+  const buildUpdateSlug = (baseSlug: string) => `${baseSlug}-update-${Date.now().toString().slice(-5)}`;
 
   // Form Fields
-  const [name, setName] = useState(relaunchDraft ? `${relaunchDraft.name} (Relaunch)` : '');
-  const [arabicName, setArabicName] = useState(relaunchDraft ? relaunchDraft.arabicName : '');
-  const [slug, setSlug] = useState(relaunchDraft ? `${relaunchDraft.slug}-relaunch` : '');
-  const [type, setType] = useState<'lucky_wheel' | 'quiz'>(relaunchDraft ? relaunchDraft.type : 'lucky_wheel');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [name, setName] = useState(
+    editingCampaign
+      ? editingCampaign.name
+      : updateDraftSource
+      ? `${updateDraftSource.name} (Update Draft)`
+      : relaunchDraft
+      ? `${relaunchDraft.name} (Relaunch)`
+      : ''
+  );
+  const [arabicName, setArabicName] = useState(baseCampaign ? baseCampaign.arabicName : '');
+  const [heroImageUrl, setHeroImageUrl] = useState(baseCampaign?.heroImageUrl ?? '');
+  const [slug, setSlug] = useState(
+    editingCampaign
+      ? editingCampaign.slug
+      : updateDraftSource
+      ? buildUpdateSlug(updateDraftSource.slug)
+      : relaunchDraft
+      ? `${relaunchDraft.slug}-relaunch`
+      : ''
+  );
+  const [type, setType] = useState<'lucky_wheel' | 'quiz'>(baseCampaign ? baseCampaign.type : 'lucky_wheel');
+  const [startDate, setStartDate] = useState(baseCampaign?.startDate ?? new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(
+    baseCampaign?.endDate ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
   
   // Step 2 Fields
-  const [winProbability, setWinProbability] = useState(relaunchDraft ? relaunchDraft.winProbability : 60);
-  const [maxEntries, setMaxEntries] = useState<'1' | '2' | 'unlimited'>('1');
+  const [winProbability, setWinProbability] = useState(baseCampaign ? baseCampaign.winProbability : 60);
+  const [maxEntries, setMaxEntries] = useState<'1' | '2' | 'unlimited'>(baseCampaign?.maxEntries ?? '1');
 
   // Step 3 Fields (Prize selection & weight)
   const [allocatedPrizes, setAllocatedPrizes] = useState<{ templateId: string; quantity: number; weight: number }[]>(
-    relaunchDraft ? relaunchDraft.prizes : [
+    baseCampaign ? baseCampaign.prizes : [
       { templateId: prizes[0]?.id || '', quantity: 100, weight: 100 }
     ]
   );
 
   // Step 4 Fields (Quiz Questions if type is quiz)
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(
-    relaunchDraft?.questions && relaunchDraft.questions.length > 0 ? relaunchDraft.questions : [
+    baseCampaign?.questions && baseCampaign.questions.length > 0 ? baseCampaign.questions : [
       { id: 'q_1', questionText: 'What is the local calling code for Algeria?', options: ['+213', '+212', '+216', '+20'], correctIndex: 0 }
     ]
   );
 
   // When prizes load after wizard opens, fill any empty templateId slots
   useEffect(() => {
-    if (prizes.length > 0 && !relaunchDraft) {
+    if (prizes.length > 0 && !baseCampaign) {
       setAllocatedPrizes(prev =>
         prev.map(ap => ap.templateId === '' ? { ...ap, templateId: prizes[0].id } : ap)
       );
     }
-  }, [prizes, relaunchDraft]);
+  }, [prizes, baseCampaign]);
 
   // Quick helper for Dialect suggestions
   const handleApplyDarijaSample = () => {
@@ -113,22 +150,31 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     setQuizQuestions(updated);
   };
 
-  const handlePublish = () => {
+  const handleSave = (submitStatus: 'draft' | 'active') => {
     // Guard: must have at least one valid prize template selected
     const validPrizes = allocatedPrizes.filter(ap => ap.templateId !== '');
     if (validPrizes.length === 0) return; // prevents save with no prizes
     onSave({
+      id: editingCampaign?.id ?? '',
       name,
       arabicName,
+      heroImageUrl: heroImageUrl || undefined,
       slug,
       type,
-      status: 'active',
+      status: submitStatus,
       winProbability,
+      maxEntries,
       prizes: validPrizes,
       questions: type === 'quiz' ? quizQuestions : [],
       startDate,
       endDate,
-      parentCampaignId: relaunchDraft ? relaunchDraft.id : undefined
+      parentCampaignId: isUpdateDraftMode
+        ? updateDraftSource?.id
+        : isEditingUpdateDraft
+        ? editingCampaign?.parentCampaignId
+        : undefined,
+      mode: isEditMode ? 'edit' : isUpdateDraftMode ? 'update' : isRelaunchMode ? 'relaunch' : 'create',
+      submitStatus,
     });
   };
 
@@ -149,13 +195,29 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           </button>
           <div>
             <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Campaign Builder Wizard</h2>
-            <p className="text-xs text-slate-500">Launch optimized brand activation campaigns in 4 easy steps</p>
+            <p className="text-xs text-slate-500">
+              {isEditMode
+                ? 'Edit your saved draft before publishing it live.'
+                : isUpdateDraftMode
+                ? 'Prepare a safe update draft derived from a live campaign without interrupting the current live version.'
+                : 'Launch optimized brand activation campaigns in 4 easy steps'}
+            </p>
           </div>
         </div>
 
-        {relaunchDraft && (
+        {isUpdateDraftMode && updateDraftSource && (
+          <span className="text-xs bg-amber-50 border border-amber-100 text-amber-700 px-3 py-1.5 rounded-xl font-mono font-bold">
+            Update Draft Mode: {updateDraftSource.name}
+          </span>
+        )}
+        {isRelaunchMode && (
           <span className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-xl font-mono font-bold">
             Relaunch Mode: {relaunchDraft.name}
+          </span>
+        )}
+        {isEditMode && editingCampaign && (
+          <span className="text-xs bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1.5 rounded-xl font-mono font-bold">
+            Draft Edit Mode: {editingCampaign.name}
           </span>
         )}
       </div>
@@ -294,6 +356,28 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full bg-white border border-slate-250 hover:border-slate-400 focus:border-indigo-500 rounded-xl px-4 text-xs text-slate-700 font-mono transition-all duration-200 min-h-12 focus:outline-none"
               />
+            </div>
+
+            <div className="md:col-span-2 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <ImageUploader
+                value={heroImageUrl}
+                onChange={setHeroImageUrl}
+                folder="campaigns"
+                label="Campaign image"
+              />
+              <div className="flex items-center gap-3">
+                <img
+                  src={heroImageUrl || DEFAULT_CAMPAIGN_IMAGE_URL}
+                  alt="Campaign visual preview"
+                  className="h-20 w-36 rounded-xl border border-slate-200 object-cover"
+                  onError={(event) => {
+                    event.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
+                  }}
+                />
+                <p className="text-[11px] text-slate-500">
+                  This image is shown in campaign cards, workspace, and player landing.
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -636,14 +720,31 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={handlePublish}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-11 shadow-sm"
-            >
-              <span>Publish & Deploy Live</span>
-              <Check className="w-4 h-4" />
-            </button>
+            <>
+              {!(!isEditMode && !isUpdateDraftMode && !isRelaunchMode) && (
+                <button
+                  type="button"
+                  onClick={() => handleSave('draft')}
+                  className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-11 shadow-sm"
+                >
+                  <span>{isEditMode ? 'Keep as Draft' : 'Save Draft'}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleSave('active')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-11 shadow-sm"
+              >
+                <span>
+                  {isUpdateDraftMode || isEditingUpdateDraft
+                    ? 'Publish Update Live'
+                    : isEditMode
+                    ? 'Publish Draft Live'
+                    : 'Publish & Deploy Live'}
+                </span>
+                <Check className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       </div>
