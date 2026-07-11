@@ -31,3 +31,15 @@ Thumbs.db
 #old ui code
 old-ui-code
 .env
+
+# =========================
+# Supabase local development
+# =========================
+supabase/.temp/
+.supabase/
+
+# Supabase local secrets
+supabase/.env
+supabase/.env.local
+supabase/.env.keys
+supabase/.env.modes
