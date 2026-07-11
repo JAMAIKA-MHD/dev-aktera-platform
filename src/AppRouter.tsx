@@ -43,13 +43,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppRouter() {
+  const isRegistrationEnabled = import.meta.env.VITE_REGISTRATION_ENABLED === 'true';
+
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
           {/* Public auth routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          {isRegistrationEnabled && <Route path="/register" element={<RegisterPage />} />}
 
           {/* Public player portal — wrapped in PlayerProvider for game state */}
           <Route

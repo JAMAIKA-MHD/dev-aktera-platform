@@ -39,6 +39,14 @@ const mapCreateOrganizationError = (error: DbErrorLike | null | undefined): stri
 const normalizeText = (value: string): string => value.trim().toLowerCase();
 
 serve(async (req) => {
+  // Do not allow new organization creation if registration is disabled
+  if (Deno.env.get('REGISTRATION_ENABLED') !== 'true') {
+    return new Response(JSON.stringify({ ok: false, error: 'Registration is currently disabled.' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
