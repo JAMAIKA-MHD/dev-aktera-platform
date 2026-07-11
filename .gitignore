@@ -27,3 +27,15 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 .env
+
+# =========================
+# Supabase local development
+# =========================
+supabase/.temp/
+.supabase/
+
+# Supabase local secrets
+supabase/.env
+supabase/.env.local
+supabase/.env.keys
+supabase/.env.modes
