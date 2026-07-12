@@ -5,9 +5,8 @@
 /dist
 
 # Local environment variables
-.env.local
-.env.*.local
-.env
+.env*
+!.env.example
 
 # Log files
 npm-debug.log*
