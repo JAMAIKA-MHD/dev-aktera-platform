@@ -30,8 +30,6 @@ Thumbs.db
 
 #old ui code
 old-ui-code
-.env
-
 # =========================
 # Supabase local development
 # =========================
@@ -43,3 +41,26 @@ supabase/.env
 supabase/.env.local
 supabase/.env.keys
 supabase/.env.modes
+
+# =========================
+# Firebase
+# =========================
+
+# Firebase local emulator data
+firebase-export/
+firebase-export-*/
+firebase-data/
+
+# Emulator logs
+firebase-debug.log
+firebase-debug.*.log
+
+# Emulator cache
+.firebase/
+
+# Cloud Functions dependencies (only if functions/ exists)
+functions/node_modules/
+
+# Local service account keys (never commit)
+firebase-service-account*.json
+service-account*.json
