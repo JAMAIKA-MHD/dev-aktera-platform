@@ -1,0 +1,63 @@
+# .github/workflows/ci-pr.yml
+#
+# WHAT THIS DOES:
+# Runs on every pull request opened against develop or master. This is
+# the check you'll mark as REQUIRED in GitHub's branch protection settings
+# (see step 3.4 below) — meaning GitHub physically won't let you merge
+# the PR until this workflow passes.
+#
+# Same quality checks as ci-feature.yml, plus a secret scan — cheap
+# insurance even though the repo is private, since it costs one extra
+# step and catches a class of mistake (a stray committed .env, an API
+# key pasted into code) before it's baked into develop's history.
+
+name: CI - Pull Request Gate
+
+on:
+  pull_request:
+    branches:
+      - develop
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 pulls full git history instead of just the
+          # latest commit. The secret-scanning step below needs this to
+          # scan the full diff introduced by the PR, not just one commit.
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npm run typecheck
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Run tests (if present)
+        run: npm run test --if-present
+
+      # Secret scanning: scans the commits introduced by this PR for
+      # patterns that look like API keys, private keys, tokens, etc.
+      # Free for public AND private repos via this official action.
+      - name: Scan for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN here is NOT something you create — it's an
+          # automatic, temporary token GitHub injects into every workflow
+          # run by default, scoped only to this repo, expires when the
+          # job ends. You never add this as a secret yourself.

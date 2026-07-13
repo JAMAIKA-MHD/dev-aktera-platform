@@ -1,0 +1,6 @@
+# .husky/pre-commit
+#
+# Runs automatically every time you run `git commit`.
+# Only checks the files you actually staged (git add), not the whole repo —
+# this keeps it fast even as the codebase grows.
+npx lint-staged

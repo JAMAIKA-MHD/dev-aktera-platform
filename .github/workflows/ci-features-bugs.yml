@@ -1,0 +1,70 @@
+# .github/workflows/ci-feature.yml
+# 
+# WHAT THIS DOES:
+# Runs lint, type-check, and a production build check on every push to a 
+# feature/* or fix/* branch. Purpose: catch mistakes while you're still 
+# working on the branch, before you even open a pull request into develop.
+# 
+# WHY A SEPARATE FILE FROM THE PR WORKFLOW:
+# This one has no "gate" — nothing blocks you, it's just fast feedback in 
+# the GitHub UI (a green/red check next to your commit). The PR workflow 
+# (ci-pr.yml) is the one that actually blocks a merge.
+
+name: CI - Feature/Bug Branches Checks
+
+# Trigger: any push to a branch named feature/anything or fix/anything.
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "fix/**"
+
+jobs:
+  quality-checks:
+    # GitHub-hosted runner, Ubuntu, free for private repos within the 
+    # monthly included minutes (2,000 min/month on GitHub Free).
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: pull your repo's code onto the runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: install Node.js, and cache node_modules based on your 
+      # package-lock.json hash — this is what makes repeat CI runs fast 
+      # (skips re-downloading every package from scratch every time).
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # Step 3: install dependencies exactly as locked in package-lock.json. 
+      # `ci` (not `install`) is stricter and faster — it refuses to run if 
+      # package.json and package-lock.json are out of sync, which is 
+      # exactly the kind of drift you want CI to catch.
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: lint — catches style issues and common bug patterns.
+      # Step 5: type-check — catches type errors ESLint doesn't cover.
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npm run typecheck
+
+      # Step 6: production build — the single most valuable check here. 
+      # A file can pass lint and typecheck and still fail to actually 
+      # build (bad import path, missing env var reference, etc).
+      - name: Run production build
+        run: npm run build
+
+      # Step 7: run tests IF a test script exists. `--if-present` means 
+      # this step silently succeeds (does nothing) if you haven't added 
+      # a "test" script to package.json yet — so this workflow doesn't 
+      # break just because you have no tests written yet. Add a real 
+      # test script later (Vitest is the natural fit for a Vite project) 
+      # and this step activates automatically, no workflow edit needed.
+      - name: Run tests (if present)
+        run: npm run test --if-present
