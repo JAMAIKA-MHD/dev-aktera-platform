@@ -22,6 +22,7 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+.agents/
 
 # OS generated files
 .DS_Store

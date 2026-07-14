@@ -21,6 +21,7 @@ This README describes the **current Phase 2 version**: what works, what is still
 ## 2) Current capabilities (Phase 2)
 
 ## Campaign management
+
 - Create draft/live campaigns
 - Edit draft campaigns
 - Relaunch campaigns
@@ -30,6 +31,7 @@ This README describes the **current Phase 2 version**: what works, what is still
 - Safe delete for draft/archived campaigns (history-protected)
 
 ## Rewards and inventory
+
 - Prize template create/edit/delete
 - Dependency-safe delete blocking
 - Stock adjustment with reserved-stock protection
@@ -37,17 +39,20 @@ This README describes the **current Phase 2 version**: what works, what is still
 - Historical overflow rows preserved read-only for audit
 
 ## Player flow
+
 - Wheel and quiz campaign support
 - Consent-gated participation (Loi 18-07 behavior)
 - Server-side outcome enforcement
 - Duplicate participation handling with player-safe duplicate UX
 
 ## Analytics, billing, account
+
 - Live analytics aggregate dashboard and campaign breakdown
 - Live billing history and plan-usage visualization
 - Account/org persistence cleanup (organization vs profile/auth responsibilities)
 
 ## Media support
+
 - Campaign image upload + display
 - Prize template image upload + display
 - Fallback generic visuals when no image is uploaded
@@ -94,21 +99,25 @@ These files are the baseline context for future AI/human contributors:
 ## 6) Local development
 
 Prerequisites:
+
 - Node.js 18+ recommended
 - npm
 - Supabase project credentials in `.env`
 
 Install:
+
 ```bash
 npm install
 ```
 
 Run dev server:
+
 ```bash
 npm run dev
 ```
 
 Validation commands:
+
 ```bash
 npm run lint
 npm run build
@@ -123,13 +132,13 @@ npm run build
 - Storage/media relies on bucket `campaign-media`.
 
 If you change edge function code (example: `supabase/functions/select-prize/index.ts`), you must redeploy function runtime to cloud:
+
 - Supabase Dashboard or Supabase CLI deployment flow.
 
 ---
 
 ## 8) Phase 3 recommended first step
 
-1. Redeploy `select-prize` (if local changes were made and not yet deployed).  
-2. Run regression across campaign lifecycle, player duplicate behavior, stock-room value workflows, and media upload/display paths.  
+1. Redeploy `select-prize` `create-organization` `confirm-coupon` (if local changes were made and not yet deployed).
+2. Run regression across campaign lifecycle, player duplicate behavior, stock-room value workflows, and media upload/display paths.
 3. Continue with product gaps (billing automation, legal-field support, optional UX/perf polish).
-

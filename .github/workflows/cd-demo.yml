@@ -1,0 +1,59 @@
+# .github/workflows/cd-demo.yml
+#
+# WHAT THIS DOES:
+# Automatically deploys to the "demo" Firebase Hosting site every time a
+# commit lands on develop — which in practice means every time you merge
+# a pull request (since ci-pr.yml already gated that merge). This is the
+# link your co-founder / test clients always open to see "current state."
+#
+# There is deliberately no manual approval step here — the whole point
+# of the demo environment is that it reflects develop with zero delay.
+
+name: CD - Deploy Demo
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy-demo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Build the app. The VITE_* values below get inlined into the
+      # compiled JS at this exact step — this is the ONLY place they
+      # need to be available during the whole CD process.
+      - name: Build for demo
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_REGISTRATION_ENABLED: ${{ vars.VITE_REGISTRATION_ENABLED || 'false'}}
+
+      # Deploys the freshly-built dist/ folder to the "demo" Hosting
+      # target using the official Firebase GitHub Action. Authenticates
+      # via the service account JSON stored as a secret in step 4.5 —
+      # no interactive login, no CLI token needed.
+      - name: Deploy to Firebase Hosting (demo)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEMO }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          target: demo
+          channelId: live 
+          # channelId: live means "deploy straight to the real demo URL,"
+          # as opposed to a temporary preview-channel URL that expires.

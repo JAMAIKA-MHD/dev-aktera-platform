@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "mvp-youengage-1ef91"
+  },
+  "targets": {
+    "mvp-youengage-1ef91": {
+      "hosting": {
+        "demo": [
+          "dzengage-demo"
+        ],
+        "stable": [
+          "dzengage-stable"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
