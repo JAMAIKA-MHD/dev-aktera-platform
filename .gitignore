@@ -16,13 +16,14 @@ pnpm-debug.log*
 
 # Editor directories and files
 .vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.agents/
 
 # OS generated files
 .DS_Store
@@ -64,3 +65,7 @@ functions/node_modules/
 # Local service account keys (never commit)
 firebase-service-account*.json
 service-account*.json
+
+.gitlab-ci-local/
+coverage/
+
