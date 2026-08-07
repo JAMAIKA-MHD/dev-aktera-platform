@@ -211,8 +211,8 @@ deploy-demo:
     # `echo` automatically appends a trailing newline character (`\n`) to standard output.
     # When decoding raw binary/JSON keys, trailing newlines corrupt the credential format.
     # `printf '%s'` outputs raw strings without modifications.
-    - printf '%s' "$FIREBASE_SERVICE_ACCOUNT_DEMO_B64" | base64 -d > firebase-service-account.json
-    - export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase-service-account.json"
+    #- printf '%s' "$FIREBASE_SERVICE_ACCOUNT_DEMO_B64" | base64 -d > firebase-service-account.json
+    - export GOOGLE_APPLICATION_CREDENTIALS="$FIREBASE_SERVICE_ACCOUNT_DEMO"
     
   script:
     # Deploy compiled static dist/ assets directly using official CLI tools
