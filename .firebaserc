@@ -1,18 +1,17 @@
 {
   "projects": {
-    "default": "mvp-youengage-1ef91"
+    "default": "octoreach-mvp"
   },
   "targets": {
-    "mvp-youengage-1ef91": {
+    "octoreach-mvp": {
       "hosting": {
         "demo": [
-          "dzengage-demo"
+          "octoreach-mvp-demo"
         ],
         "stable": [
-          "dzengage-stable"
+          "octoreach-mvp-stable"
         ]
       }
     }
-  },
-  "etags": {}
+  }
 }

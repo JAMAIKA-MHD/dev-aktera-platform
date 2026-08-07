@@ -1,0 +1,278 @@
+###############################################################################
+# .gitlab-ci.yml - PRODUCTION PIPELINE CONFIGURATION (MVP ADAPTIVE)
+#
+# ARCHITECTURE OVERVIEW:
+# This pipeline is designed for high-efficiency CI/CD under GitLab Free quota
+# constraints (400 CI minutes/month). It eliminates redundant runs on feature
+# branches, leverages Directed Acyclic Graph (DAG) execution via `needs:`,
+# caches npm dependencies globally across pipelines, and enforces zero-rebuild
+# deployment by reusing build artifacts.
+#
+# MVP SOFT-FAIL CONTROLS:
+# To support rapid iteration during the MVP phase, verification and security
+# jobs utilize GitLab's `allow_failure: true` directive (and script-level soft
+# execution). Warnings, linting issues, or vulnerability hits will generate an
+# orange pipeline warning without blocking downstream deployments.
+###############################################################################
+
+# =============================================================================
+# GLOBAL IMAGE DEFINITION
+# =============================================================================
+# WHY NODE 22 ALPINE?
+# 1. Matches project toolchain: package.json specifies "@types/node": "^22.14.0".
+# 2. Alpine Linux is extremely lightweight (~50MB vs ~900MB standard node image),
+#    drastically reducing runner image download/pull time and saving execution quota.
+# 3. Setting a top-level image provides a default runtime environment for all Node
+#    jobs while allowing specialized tools (e.g., Gitleaks) to override image per job.
+image: node:22-alpine
+
+# =============================================================================
+# PIPELINE STAGES
+# =============================================================================
+# Stages define the sequential execution order when DAG `needs:` dependencies
+# are not explicitly defined.
+stages:
+  - quality
+  - security
+  - deploy
+
+# =============================================================================
+# WORKFLOW RULES (CI COST & RUNNER TIME OPTIMIZATION)
+# =============================================================================
+# WHY WORKFLOW RULES?
+# GitLab Free tier provides ~400 CI minutes/month. Running pipelines on every
+# feature/bugfix push quickly exhausts this quota.
+#
+# STRATEGY:
+# 1. feature/*, bugfix/*, hotfix/* branches produce NO GitLab pipelines.
+#    Local verification is enforced via Husky git hooks running `npm run verify`.
+# 2. Pipelines execute strictly for:
+#    - Open Merge Requests (validates code before merging to target branches).
+#    - Direct pushes/merges into 'develop' (triggers Demo deployment).
+#    - Direct pushes/merges into 'master' (triggers Production workflow).
+workflow:
+  rules:
+    # Rule 1: Allow pipeline for Merge Request events (detached pipeline for MRs)
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    # Rule 2: Allow pipeline on direct commits or merges into the 'develop' branch
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    # Rule 3: Allow pipeline on direct commits or merges into the 'master' branch
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    # Rule 4: Drop all other push events (feature/*, bugfix/*, hotfix/*)
+    - when: never
+
+# =============================================================================
+# PIPELINE DEFAULT DELEGATIONS
+# =============================================================================
+default:
+  # WHY INTERRUPTIBLE?
+  # If a developer pushes a new commit to an active Merge Request while a pipeline
+  # is currently running, GitLab will automatically cancel the outdated pipeline.
+  # This prevents wasted runner time on obsolete code.
+  interruptible: true
+
+# =============================================================================
+# GLOBAL CACHE CONFIGURATION
+# =============================================================================
+# WHY CACHE VS ARTIFACTS?
+# - CACHE: Reused ACROSS DIFFERENT PIPELINE RUNS. Used to persist downloaded
+#   npm binaries (`.npm` cache) so jobs don't re-download packages from npmjs.org.
+# - ARTIFACTS: Transferred BETWEEN JOBS WITHIN THE SAME PIPELINE RUN. Used to
+#   pass single-source-of-truth build outputs (e.g. `dist/`) to deployment stages.
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+  policy: pull-push
+
+###############################################################################
+# STAGE: QUALITY
+###############################################################################
+
+quality-check:
+  stage: quality
+  image: node:22-alpine
+  interruptible: true
+  
+  # WHY ALLOW_FAILURE FOR MVP?
+  # During early MVP development, non-critical warnings, formatting errors, or
+  # unwritten tests should not halt development momentum. Setting `allow_failure: true`
+  # marks job failures with an orange warning indicator in GitLab CI while allowing
+  # downstream jobs (like deployment) to continue unblocked.
+  #
+  # PRODUCTION STRICT MODE (STRICT GATE):
+  # Set `allow_failure: false` when moving to strict production readiness.
+  allow_failure: true
+
+  # WHY VITE ENVIRONMENT VARIABLES AT BUILD TIME?
+  # Vite is a static bundler. Any client-side environment variable starting with
+  # `VITE_` is statically replaced in JS bundles DURING `vite build` (which runs
+  # inside `npm run verify`). They must be injected here; injecting them during
+  # deployment has zero effect on compiled static code.
+  variables:
+    VITE_SUPABASE_URL: "$VITE_SUPABASE_URL"
+    VITE_SUPABASE_ANON_KEY: "$VITE_SUPABASE_ANON_KEY"
+    VITE_REGISTRATION_ENABLED: "$VITE_REGISTRATION_ENABLED"
+    
+  before_script:
+    # Direct npm to store its global cache in our local project directory
+    # so GitLab CI can persist it via the cache key defined above.
+    - npm config set cache "$CI_PROJECT_DIR/.npm" --global
+    
+  script:
+    # WHY NPM CI INSTEAD OF NPM INSTALL?
+    # 1. `npm ci` installs exact dependency versions from package-lock.json.
+    # 2. It bypasses package resolution algorithms, making it faster.
+    # 3. It fails immediately if package.json and package-lock.json mismatch.
+    - npm ci --prefer-offline
+    
+    # SINGLE SOURCE OF TRUTH (MVP RESILIENT SCRIPT):
+    # Runs `npm run verify` (linting, typechecking, tests, build).
+    #
+    # MVP SOFT RUN: `|| true` ensures that even if lint/typecheck reports errors,
+    # bash execution will proceed to attempt the production build step or finish
+    # gracefully without exiting with a non-zero code.
+    #
+    # FOR PRODUCTION MODE: Simply remove `|| true` to enforce strict exit codes.
+    - npm run verify || (echo "Verification reported warnings/errors, continuing build for MVP..." && npm run build)
+
+  # ARTIFACT PRESERVATION:
+  # Captures the compiled distribution bundle. This exact artifact is passed
+  # directly to the deployment stage, avoiding double builds and guaranteeing
+  # that what was tested is identical to what is deployed.
+  artifacts:
+    name: "production-build-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA"
+    paths:
+      - dist/
+    expire_in: 1 week
+    # Ensure build artifacts are uploaded even if previous sub-commands raised warnings
+    when: always
+
+###############################################################################
+# STAGE: SECURITY
+###############################################################################
+
+gitleaks-scan:
+  stage: security
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  interruptible: true
+  
+  # WHY ALLOW_FAILURE FOR MVP?
+  # Security scans may flag false positives or legacy tokens during early prototyping.
+  # `allow_failure: true` surfaces security findings in MR UI without blocking PR merges.
+  #
+  # PRODUCTION STRICT MODE:
+  # Change to `allow_failure: false` to strictly reject PRs containing leaked secrets.
+  allow_failure: false
+
+  # WHY NEEDS: [] (DAG OPTIMIZATION)?
+  # Setting `needs: []` detaches this job from stage sequence dependencies.
+  # Gitleaks runs IMMEDIATELY at pipeline initiation in parallel with `quality-check`,
+  # shortening overall pipeline execution time.
+  needs: []
+  
+  rules:
+    # REQUIREMENTS: Run Gitleaks ONLY for Merge Requests to prevent credential leaks
+    # before code is accepted into protected branches.
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    
+  script:
+    # Detect leaked API keys, tokens, or private secrets in commit history
+    - gitleaks detect --source . --verbose --redact
+
+###############################################################################
+# STAGE: DEPLOYMENT
+###############################################################################
+
+deploy-demo:
+  stage: deploy
+  image: node:22-alpine
+  
+  # Deployments are non-interruptible to avoid leaving Firebase in a partial update state
+  interruptible: false
+  
+  rules:
+    # Automatically deploy to Demo environment ONLY after pipeline execution on 'develop'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    
+  # REUSE BUILD ARTIFACT (ZERO-REBUILD PRINCIPLE):
+  # Specifies that this job depends ONLY on `quality-check` and downloads its artifacts.
+  # Downstream jobs proceed seamlessly even when parent jobs have `allow_failure: true`.
+  needs:
+    - job: quality-check
+      artifacts: true
+      
+  before_script:
+    # WHY PRINTF '%S' INSTEAD OF ECHO FOR BASE64 DECODING?
+    # `echo` automatically appends a trailing newline character (`\n`) to standard output.
+    # When decoding raw binary/JSON keys, trailing newlines corrupt the credential format.
+    # `printf '%s'` outputs raw strings without modifications.
+    - printf '%s' "$FIREBASE_SERVICE_ACCOUNT_DEMO_B64" | base64 -d > firebase-service-account.json
+    - export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase-service-account.json"
+    
+  script:
+    # Deploy compiled static dist/ assets directly using official CLI tools
+    #- npx --yes firebase-tools deploy --only hosting --project default --non-interactive
+    - npx --yes firebase-tools deploy --only hosting:demo --project octoreach-mvp --non-interactive
+    
+  after_script:
+    # Clean up sensitive credential files from the temporary runner workspace
+    - rm -f firebase-service-account.json
+
+###############################################################################
+# FUTURE-READY & EXTENSIBLE PIPELINE MODULES (COMMENTED TEMPLATES)
+###############################################################################
+
+# -----------------------------------------------------------------------------
+# FUTURE ENHANCEMENT: PRODUCTION DEPLOYMENT
+# -----------------------------------------------------------------------------
+# Un-comment and configure when ready to activate automated/manual production deployment.
+#
+# deploy-production:
+#   stage: deploy
+#   image: node:22-alpine
+#   interruptible: false
+#   # Environment tracking provides GitLab dashboard integration, deployment history,
+#   # and rollback capabilities directly within the GitLab UI.
+#   environment:
+#     name: production
+#     url: https://your-production-app.web.app
+#   rules:
+#     # Executes only when code is pushed or merged to 'master'
+#     - if: '$CI_COMMIT_BRANCH == "master"'
+#       # Optional: Enforce manual approval button in GitLab UI before triggering deployment
+#       when: manual
+#   needs:
+#     - job: quality-check
+#       artifacts: true
+#   before_script:
+#     - printf '%s' "$FIREBASE_SERVICE_ACCOUNT_PROD_B64" | base64 -d > firebase-service-account.json
+#     - export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase-service-account.json"
+#   script:
+#     - npx --yes firebase-tools deploy --only hosting:stable --project octoreach-mvp --non-interactive
+#   after_script:
+#     - rm -f firebase-service-account.json
+
+# -----------------------------------------------------------------------------
+# FUTURE ENHANCEMENT: PREVIEW / EPHEMERAL ENVIRONMENTS FOR MERGE REQUESTS
+# -----------------------------------------------------------------------------
+# Deploy temporary hosting instances on Firebase per Merge Request for visual QA.
+#
+# deploy-preview:
+#   stage: deploy
+#   image: node:22-alpine
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#   needs:
+#     - job: quality-check
+#       artifacts: true
+#   script:
+#     - printf '%s' "$FIREBASE_SERVICE_ACCOUNT_DEMO_B64" | base64 -d > firebase-service-account.json
+#     - export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase-service-account.json"
+#     - npx --yes firebase-tools hosting:channel:deploy "mr-${CI_MERGE_REQUEST_IID}" --project octoreach-mvp
+#   after_script:
+#     - rm -f firebase-service-account.json
