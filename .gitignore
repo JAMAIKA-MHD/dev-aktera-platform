@@ -36,7 +36,7 @@ old-ui-code
 # =========================
 supabase/.temp/
 .supabase/
-
+supabase/functions/.env
 # Supabase local secrets
 supabase/.env
 supabase/.env.local
