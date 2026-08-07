@@ -134,7 +134,9 @@ quality-check:
     # MVP SOFT RUN: `|| true` ensures that even if lint/typecheck reports errors,
     # bash execution will proceed to attempt the production build step or finish
     # gracefully without exiting with a non-zero code.
-    #
+    - echo "DEBUG_URL=[$VITE_SUPABASE_URL]"
+    - echo "DEBUG_URL=[$VITE_SUPABASE_ANON_KEY]"
+    - echo "DEBUG_URL=[$VITE_REGISTRATION_ENABLED]"
     # FOR PRODUCTION MODE: Simply remove `|| true` to enforce strict exit codes.
     - npm run verify || (echo "Verification reported warnings/errors, continuing build for MVP..." && npm run build)
 
