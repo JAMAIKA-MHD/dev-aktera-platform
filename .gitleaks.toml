@@ -1,0 +1,5 @@
+[allowlist]
+description = "Ignore legacy env file for MVP"
+paths = [
+    '''old-ui-ode/\.env$'''
+]
