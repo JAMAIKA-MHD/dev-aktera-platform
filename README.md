@@ -1,7 +1,7 @@
-# YOUENGAGE - Phase 2 Baseline
+# OCTOREACH
 
-YOUENGAGE is an Algeria-focused gamification marketing SaaS MVP for B2B brands.  
-This repository is the **new UI codebase** wired to the validated Supabase business logic model.
+OCTOREACH is an Algeria-focused gamification marketing SaaS MVP for B2B brands.  
+This repository is wired to the validated Supabase business logic model.
 
 This README describes the **current Phase 2 version**: what works, what is still limited, and how to continue safely in Phase 3.
 

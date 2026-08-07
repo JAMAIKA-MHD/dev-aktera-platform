@@ -1,0 +1,24 @@
+# .husky/pre-push
+#
+# Runs automatically every time you run `git push`.
+# Only checks the files you actually staged (git add), not the whole repo —
+# this keeps it fast even as the codebase grows.
+
+#!/usr/bin/env sh
+
+echo "🚀 Running pre-push verification..."
+
+npm run verify || true
+
+status=$?
+
+if [ $status -ne 0 ]; then
+    echo ""
+    echo "❌ Push rejected."
+    echo "Fix the issues above before pushing."
+    exit $status
+fi
+
+echo ""
+echo "✅ Verification successful."
+echo "Push allowed."
