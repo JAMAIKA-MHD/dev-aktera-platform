@@ -1,77 +1,227 @@
-import React, { useMemo, useState } from 'react';
-import { Award, BarChart3, Clock, Download, MapPin, Sparkles, TrendingUp, Users } from 'lucide-react';
-import { useAnalytics } from '../hooks/useAnalytics';
-
-const HOURLY_PREVIEW = [
-  { hour: "00:00 - 04:00 (S'hour)", count: 32, label: 'Night pulse' },
-  { hour: '04:00 - 08:00 (Fajr)', count: 8, label: 'Calm morning' },
-  { hour: '08:00 - 12:00', count: 18, label: 'Work hours' },
-  { hour: '12:00 - 16:00', count: 24, label: 'Midday traffic' },
-  { hour: '16:00 - 20:00 (Iftar)', count: 15, label: 'Sunset prep' },
-  { hour: '20:00 - 00:00 (Tarawih)', count: 48, label: 'Night rush' },
-];
-
-const REGION_PREVIEW = [
-  { name: 'Algiers (الجزائر)', percentage: 42, count: '1,900' },
-  { name: 'Oran (وهران)', percentage: 22, count: '1,000' },
-  { name: 'Constantine (قسنطينة)', percentage: 18, count: '810' },
-  { name: 'Annaba (عنابة)', percentage: 10, count: '450' },
-  { name: 'Ouargla / Ghardaia (الجنوب)', percentage: 8, count: '360' },
-];
+import React, { useMemo, useRef, useState } from "react";
+import {
+  Award,
+  BarChart3,
+  Download,
+  FileSpreadsheet,
+  Sparkles,
+  TrendingUp,
+  Users,
+  CheckCircle2,
+  HelpCircle,
+  Upload,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
+import { useAnalytics } from "../hooks/useAnalytics";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { toFriendlyErrorMessage } from "../lib/errorMessages";
+import {
+  PercentageCircle,
+  ParticipationHistogram,
+  CarrierBreakdownChart,
+} from "./analytics/AnalyticsGraphics";
+import {
+  exportToCSV,
+  exportToExcel,
+  parseCSVFile,
+  parseExcelFile,
+  CampaignExportRow,
+} from "../lib/exportUtils";
 
 export const AnalyticsCenter: React.FC = () => {
+  const { organization } = useAuth();
   const { analytics, loading, error } = useAnalytics();
-  const [selectedCampId, setSelectedCampId] = useState<string>('all');
+  const [selectedCampId, setSelectedCampId] = useState<string>("all");
+  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("xlsx");
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !organization) return;
+
+    setImporting(true);
+    setImportSuccess(null);
+    setImportError(null);
+
+    try {
+      const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+      const rows = isExcel
+        ? await parseExcelFile<Record<string, unknown>>(file)
+        : await parseCSVFile<Record<string, unknown>>(file);
+
+      if (!rows || rows.length === 0) {
+        throw new Error("Import file is empty or could not be parsed.");
+      }
+
+      const targetCampId =
+        selectedCampId !== "all"
+          ? selectedCampId
+          : analytics?.by_campaign[0]?.campaign_id;
+
+      if (!targetCampId) {
+        throw new Error(
+          "Please create at least one campaign before importing participant entries.",
+        );
+      }
+
+      const newEntries = rows
+        .map((row) => {
+          const keys = Object.keys(row);
+          const phoneKey =
+            keys.find(
+              (k) =>
+                k.toLowerCase().includes("phone") ||
+                k.toLowerCase().includes("mobile") ||
+                k.toLowerCase().includes("tel"),
+            ) ?? keys[0];
+          const nameKey =
+            keys.find(
+              (k) =>
+                k.toLowerCase().includes("name") ||
+                k.toLowerCase().includes("participant") ||
+                k.toLowerCase().includes("user"),
+            ) ?? keys[1];
+
+          const rawPhone = String(row[phoneKey ?? ""] ?? "").trim();
+          const rawName = String(row[nameKey ?? ""] ?? "").trim();
+
+          const isWinnerVal = String(
+            row.is_winner ?? row["Winner"] ?? row["Status"] ?? "",
+          ).toLowerCase();
+          const isWinner =
+            isWinnerVal === "true" ||
+            isWinnerVal === "1" ||
+            isWinnerVal.includes("win");
+
+          return {
+            campaign_id: targetCampId,
+            organization_id: organization.id,
+            phone_number: rawPhone || "0500000000",
+            participant_name: rawName || null,
+            is_winner: isWinner,
+            created_at: new Date().toISOString(),
+          };
+        })
+        .filter((entry) => entry.phone_number.length >= 8);
+
+      if (newEntries.length === 0) {
+        throw new Error("No valid participant entries found in file.");
+      }
+
+      const { error: insertErr } = await supabase
+        .from("entries")
+        .insert(newEntries);
+      if (insertErr) throw insertErr;
+
+      setImportSuccess(
+        `Successfully imported ${newEntries.length} participant entries into database!`,
+      );
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err) {
+      setImportError(
+        toFriendlyErrorMessage(
+          err,
+          "Failed to import entries file. Please verify format and try again.",
+        ),
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const selectedCampaign = useMemo(
-    () => analytics?.by_campaign.find((campaign) => campaign.campaign_id === selectedCampId) ?? null,
+    () =>
+      analytics?.by_campaign.find(
+        (campaign) => campaign.campaign_id === selectedCampId,
+      ) ?? null,
     [analytics, selectedCampId],
   );
 
   const filteredStats = useMemo(() => {
     if (!analytics) {
-      return { totalEntries: 0, totalWins: 0, winPercentage: '0.0', totalPrizes: 0, activeCampaigns: 0 };
+      return {
+        totalEntries: 0,
+        totalWins: 0,
+        winPercentage: 0,
+        totalPrizes: 0,
+        activeCampaigns: 0,
+        quizPassRate: 0,
+        quizTotal: 0,
+        quizPassed: 0,
+        couponConfirmationRate: 0,
+        couponTotal: 0,
+        couponConfirmed: 0,
+      };
     }
 
     if (selectedCampaign) {
       return {
         totalEntries: selectedCampaign.total_entries,
         totalWins: selectedCampaign.total_winners,
-        winPercentage: (selectedCampaign.win_rate * 100).toFixed(1),
+        winPercentage: selectedCampaign.win_rate * 100,
         totalPrizes: selectedCampaign.total_prizes,
         activeCampaigns: 1,
+        quizPassRate: selectedCampaign.quiz_pass_rate * 100,
+        quizTotal: selectedCampaign.quiz_total_count,
+        quizPassed: selectedCampaign.quiz_passed_count,
+        couponConfirmationRate: selectedCampaign.coupon_confirmation_rate * 100,
+        couponTotal: selectedCampaign.coupon_total_count,
+        couponConfirmed: selectedCampaign.coupon_confirmed_count,
       };
     }
 
     return {
       totalEntries: analytics.total_entries,
       totalWins: analytics.total_winners,
-      winPercentage: (analytics.win_rate * 100).toFixed(1),
-      totalPrizes: analytics.by_campaign.reduce((sum, campaign) => sum + campaign.total_prizes, 0),
+      winPercentage: analytics.win_rate * 100,
+      totalPrizes: analytics.total_prizes_allocated,
       activeCampaigns: analytics.active_campaigns,
+      quizPassRate: analytics.quiz_pass_rate * 100,
+      quizTotal: analytics.quiz_total_count,
+      quizPassed: analytics.quiz_passed_count,
+      couponConfirmationRate: analytics.coupon_confirmation_rate * 100,
+      couponTotal: analytics.coupon_total_count,
+      couponConfirmed: analytics.coupon_confirmed_count,
     };
   }, [analytics, selectedCampaign]);
 
-  const handleExportCSV = () => {
+  const handleExportData = () => {
     if (!analytics) return;
 
-    const rows = selectedCampaign ? [selectedCampaign] : analytics.by_campaign;
-    const csvContent =
-      'data:text/csv;charset=utf-8,Campaign,Entries,Winners,Win_Rate,Allocated_Prizes\n' +
-      rows
-        .map(
-          (row) =>
-            `"${row.campaign_name}",${row.total_entries},${row.total_winners},${(row.win_rate * 100).toFixed(1)}%,${row.total_prizes}`,
-        )
-        .join('\n');
+    const rowsSource = selectedCampaign
+      ? [selectedCampaign]
+      : analytics.by_campaign;
+    const formattedRows: CampaignExportRow[] = rowsSource.map((row) => ({
+      "Campaign ID": row.campaign_id,
+      "Campaign Name": row.campaign_name,
+      "Total Entries": row.total_entries,
+      "Total Winners": row.total_winners,
+      "Win Rate (%)": `${(row.win_rate * 100).toFixed(1)}%`,
+      "Allocated Prizes": row.total_prizes,
+      "Quiz Pass Rate (%)": `${(row.quiz_pass_rate * 100).toFixed(1)}%`,
+      "Coupon Confirmation Rate (%)": `${(row.coupon_confirmation_rate * 100).toFixed(1)}%`,
+    }));
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `dzengage_analytics_export_${selectedCampId}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `octoreach_analytics_${selectedCampId}_${new Date().toISOString().split("T")[0]}`;
+
+    if (exportFormat === "xlsx") {
+      exportToExcel(
+        formattedRows as unknown as Record<string, unknown>[],
+        filename,
+        "Campaign Analytics",
+      );
+    } else {
+      exportToCSV(
+        formattedRows as unknown as Record<string, unknown>[],
+        filename,
+      );
+    }
   };
 
   if (loading) {
@@ -85,18 +235,22 @@ export const AnalyticsCenter: React.FC = () => {
   if (error || !analytics) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-        {error || 'Analytics unavailable right now.'}
+        {error || "Analytics unavailable right now."}
       </div>
     );
   }
 
   return (
     <div id="analytics-center-root" className="space-y-6 text-slate-800">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Campaign Analytics Desk</h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+            Campaign Analytics Desk
+          </h2>
           <p className="text-slate-500 text-xs mt-0.5">
-            Live totals now come from uncapped organization-wide aggregation instead of the 500-row entries sample.
+            Real-time analytics computed directly from live Supabase participant
+            entries and inventory records.
           </p>
         </div>
 
@@ -114,39 +268,178 @@ export const AnalyticsCenter: React.FC = () => {
             ))}
           </select>
 
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
+            <button
+              onClick={() => setExportFormat("xlsx")}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                exportFormat === "xlsx"
+                  ? "bg-white text-emerald-700 shadow-sm"
+                  : "text-slate-500"
+              }`}
+            >
+              Excel (.xlsx)
+            </button>
+            <button
+              onClick={() => setExportFormat("csv")}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                exportFormat === "csv"
+                  ? "bg-white text-indigo-700 shadow-sm"
+                  : "text-slate-500"
+              }`}
+            >
+              CSV
+            </button>
+          </div>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportFile}
+            accept=".csv, .xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="hidden"
+          />
+
           <button
-            onClick={handleExportCSV}
-            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm flex-shrink-0 disabled:opacity-60"
           >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export Summary</span>
+            {importing ? (
+              <div className="w-4 h-4 border-2 border-slate-600/30 border-t-slate-600 rounded-full animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            <span>Import Data</span>
+          </button>
+
+          <button
+            onClick={handleExportData}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm flex-shrink-0"
+          >
+            {exportFormat === "xlsx" ? (
+              <FileSpreadsheet className="w-4 h-4" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>Export Report</span>
           </button>
         </div>
       </div>
 
+      {/* Import Notification Banners */}
+      {importSuccess && (
+        <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs font-bold">
+          <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{importSuccess}</span>
+        </div>
+      )}
+
+      {importError && (
+        <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-xs font-bold">
+          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <span>{importError}</span>
+        </div>
+      )}
+
+      {/* Primary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         {[
-          { title: 'Entries', value: filteredStats.totalEntries, desc: 'All recorded participations', icon: Users, color: 'text-indigo-600' },
-          { title: 'Winners', value: filteredStats.totalWins, desc: 'Winning entries confirmed', icon: Award, color: 'text-emerald-600' },
-          { title: 'Win rate', value: `${filteredStats.winPercentage}%`, desc: 'Winner-to-entry conversion', icon: TrendingUp, color: 'text-amber-600' },
-          { title: 'Allocated prizes', value: filteredStats.totalPrizes, desc: selectedCampaign ? 'Reserved for this campaign' : `${filteredStats.activeCampaigns} active campaigns live`, icon: BarChart3, color: 'text-sky-600' },
+          {
+            title: "Total Entries",
+            value: filteredStats.totalEntries,
+            desc: "All recorded participations",
+            icon: Users,
+            color: "text-indigo-600",
+          },
+          {
+            title: "Total Winners",
+            value: filteredStats.totalWins,
+            desc: "Winning entries confirmed",
+            icon: Award,
+            color: "text-emerald-600",
+          },
+          {
+            title: "Win Rate",
+            value: `${filteredStats.winPercentage.toFixed(1)}%`,
+            desc: "Winner conversion rate",
+            icon: TrendingUp,
+            color: "text-amber-600",
+          },
+          {
+            title: "Allocated Prizes",
+            value: filteredStats.totalPrizes,
+            desc: selectedCampaign
+              ? "Reserved for this campaign"
+              : `${filteredStats.activeCampaigns} active campaigns live`,
+            icon: BarChart3,
+            color: "text-sky-600",
+          },
         ].map((stat) => (
-          <div key={stat.title} className="bg-white border border-slate-200 shadow-sm rounded-[24px] p-5">
+          <div
+            key={stat.title}
+            className="bg-white border border-slate-200 shadow-sm rounded-[24px] p-5"
+          >
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest">{stat.title}</span>
+              <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest">
+                {stat.title}
+              </span>
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
-            <h4 className="text-3xl font-extrabold mt-3 mb-1 text-slate-900">{stat.value}</h4>
+            <h4 className="text-3xl font-extrabold mt-3 mb-1 text-slate-900">
+              {stat.value}
+            </h4>
             <p className="text-[11px] text-slate-500">{stat.desc}</p>
           </div>
         ))}
       </div>
 
+      {/* Percentage Circles & Conversion Gauges */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <PercentageCircle
+          percentage={filteredStats.winPercentage}
+          title="Win Rate Percentage"
+          subtitle={`${filteredStats.totalWins} winners out of ${filteredStats.totalEntries} participations`}
+          color="#10B981"
+          badgeText="Instant Win"
+          icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+        />
+        <PercentageCircle
+          percentage={filteredStats.couponConfirmationRate}
+          title="Coupon Claim Rate"
+          subtitle={`${filteredStats.couponConfirmed} confirmed out of ${filteredStats.couponTotal} issued codes`}
+          color="#6366F1"
+          badgeText="Claim Confirmation"
+          icon={<CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+        />
+        <PercentageCircle
+          percentage={filteredStats.quizPassRate}
+          title="Quiz Pass Rate"
+          subtitle={`${filteredStats.quizPassed} passed out of ${filteredStats.quizTotal} quiz attempts`}
+          color="#F59E0B"
+          badgeText="Quiz Qualification"
+          icon={<HelpCircle className="w-4 h-4 text-amber-600" />}
+        />
+      </div>
+
+      {/* Histogram Chart */}
+      <ParticipationHistogram
+        dailyData={analytics.daily_distribution}
+        hourlyData={analytics.hourly_distribution}
+      />
+
+      {/* Carrier Split Chart */}
+      <CarrierBreakdownChart carrierData={analytics.carrier_distribution} />
+
+      {/* Live Table Performance Breakdown */}
       <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="font-bold text-sm text-slate-850">Campaign performance breakdown</h3>
-            <p className="text-[10px] text-slate-500">Organization-wide live totals by campaign.</p>
+            <h3 className="font-bold text-sm text-slate-900">
+              Campaign Performance Breakdown
+            </h3>
+            <p className="text-[10px] text-slate-500">
+              Live campaign aggregation breakdown from Supabase database.
+            </p>
           </div>
         </div>
 
@@ -157,20 +450,45 @@ export const AnalyticsCenter: React.FC = () => {
                 <th className="pb-3 pl-1 text-left font-semibold">Campaign</th>
                 <th className="pb-3 text-center font-semibold">Entries</th>
                 <th className="pb-3 text-center font-semibold">Winners</th>
-                <th className="pb-3 text-center font-semibold">Win rate</th>
-                <th className="pb-3 text-right font-semibold">Allocated prizes</th>
+                <th className="pb-3 text-center font-semibold">Win Rate</th>
+                <th className="pb-3 text-center font-semibold">Quiz Pass %</th>
+                <th className="pb-3 text-center font-semibold">
+                  Coupon Claim %
+                </th>
+                <th className="pb-3 text-right font-semibold">
+                  Allocated Prizes
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
               {analytics.by_campaign.map((campaign) => (
-                <tr key={campaign.campaign_id} className="hover:bg-slate-50/70 transition-all duration-150">
+                <tr
+                  key={campaign.campaign_id}
+                  className="hover:bg-slate-50/70 transition-all duration-150"
+                >
                   <td className="py-3.5 pl-1">
-                    <p className="font-bold text-slate-800">{campaign.campaign_name}</p>
+                    <p className="font-bold text-slate-800">
+                      {campaign.campaign_name}
+                    </p>
                   </td>
-                  <td className="py-3.5 text-center font-mono text-slate-700">{campaign.total_entries}</td>
-                  <td className="py-3.5 text-center font-mono text-emerald-700">{campaign.total_winners}</td>
-                  <td className="py-3.5 text-center font-mono text-amber-700">{(campaign.win_rate * 100).toFixed(1)}%</td>
-                  <td className="py-3.5 text-right font-mono text-slate-700">{campaign.total_prizes}</td>
+                  <td className="py-3.5 text-center font-mono text-slate-700">
+                    {campaign.total_entries}
+                  </td>
+                  <td className="py-3.5 text-center font-mono text-emerald-700 font-bold">
+                    {campaign.total_winners}
+                  </td>
+                  <td className="py-3.5 text-center font-mono text-amber-700">
+                    {(campaign.win_rate * 100).toFixed(1)}%
+                  </td>
+                  <td className="py-3.5 text-center font-mono text-indigo-700">
+                    {(campaign.quiz_pass_rate * 100).toFixed(1)}%
+                  </td>
+                  <td className="py-3.5 text-center font-mono text-sky-700">
+                    {(campaign.coupon_confirmation_rate * 100).toFixed(1)}%
+                  </td>
+                  <td className="py-3.5 text-right font-mono text-slate-700 font-bold">
+                    {campaign.total_prizes}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -178,66 +496,17 @@ export const AnalyticsCenter: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-indigo-600" />
-            <div>
-              <h3 className="font-bold text-sm text-slate-850">Algerian Hour-of-Day Footprint</h3>
-              <p className="text-[10px] text-slate-500">Preview retained until trustworthy hourly aggregation is wired to the backend.</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            {HOURLY_PREVIEW.map((entry) => {
-              const maxValue = Math.max(...HOURLY_PREVIEW.map((item) => item.count));
-              const widthPct = (entry.count / maxValue) * 100;
-              return (
-                <div key={entry.hour} className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-mono">
-                    <span className="text-slate-600">{entry.hour}</span>
-                    <span className="text-indigo-600 font-bold">{entry.count} entries ({entry.label})</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/50">
-                    <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${widthPct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-emerald-600" />
-            <div>
-              <h3 className="font-bold text-sm text-slate-850">Algerian Regional Split (Wilaya)</h3>
-              <p className="text-[10px] text-slate-500">Main provinces capturing promotional interactions in the preserved preview layer.</p>
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-2">
-            {REGION_PREVIEW.map((region) => (
-              <div key={region.name} className="space-y-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-slate-700">{region.name}</span>
-                  <span className="text-slate-500 font-mono text-[11px]">{region.percentage}% ({region.count} users)</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${region.percentage}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
+      {/* Info Badge */}
       <div className="bg-indigo-50 border border-indigo-100 rounded-[28px] p-5 shadow-sm flex items-start gap-3">
         <Sparkles className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
         <div>
-          <span className="text-xs font-bold text-indigo-900">Analytics fidelity upgraded</span>
+          <span className="text-xs font-bold text-indigo-900">
+            100% Real-Time Live Analytics Engine
+          </span>
           <p className="text-[11px] text-indigo-900 leading-relaxed mt-0.5 font-sans">
-            This dashboard now uses uncapped organization-level aggregation for entry, winner, and prize totals. The hourly and regional charts remain preview guidance until those dimensions are added to the backend event model.
+            All metrics, histograms, percentage circles, and export files are
+            calculated live from your organization's Supabase database. All mock
+            data previews have been replaced with real analytical functions.
           </p>
         </div>
       </div>
