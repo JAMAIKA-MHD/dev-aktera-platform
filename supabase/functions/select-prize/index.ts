@@ -1,10 +1,11 @@
-import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface SelectPrizeBody {
@@ -16,11 +17,13 @@ interface SelectPrizeBody {
   metadata?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
+  session_id?: string;
+  dwell_time_seconds?: number;
 }
 
 const normalizeDzPhone = (rawPhone: string): string => {
-  const digitsOnly = rawPhone.replace(/\D/g, '');
-  if (digitsOnly.startsWith('213') && digitsOnly.length === 12) {
+  const digitsOnly = rawPhone.replace(/\D/g, "");
+  if (digitsOnly.startsWith("213") && digitsOnly.length === 12) {
     return `0${digitsOnly.slice(3)}`;
   }
   if (digitsOnly.length === 9 && /^[567]/.test(digitsOnly)) {
@@ -47,19 +50,22 @@ interface ClaimPrizeInventoryRow {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ ok: false, error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Method not allowed" }),
+      {
+        status: 405,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   try {
-    const body = await req.json() as SelectPrizeBody;
+    const body = (await req.json()) as SelectPrizeBody;
     const {
       campaign_id,
       phone_number,
@@ -69,30 +75,50 @@ serve(async (req) => {
       metadata = {},
       ip_address,
       user_agent,
+      session_id,
+      dwell_time_seconds,
     } = body ?? {};
 
     if (!campaign_id || !phone_number) {
-      return new Response(JSON.stringify({ ok: false, error: 'campaign_id and phone_number are required.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "campaign_id and phone_number are required.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
     const normalizedPhoneNumber = normalizeDzPhone(phone_number);
     if (!/^(05|06|07)[0-9]{8}$/.test(normalizedPhoneNumber)) {
-      return new Response(JSON.stringify({ ok: false, error: 'Invalid Algerian phone number format.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Invalid Algerian phone number format.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(JSON.stringify({ ok: false, error: 'Server configuration is missing.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Server configuration is missing.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
@@ -102,48 +128,88 @@ serve(async (req) => {
       },
     });
 
+    if (session_id) {
+      await supabaseAdmin
+        .rpc("record_campaign_impression", {
+          p_campaign_id: campaign_id,
+          p_session_id: session_id,
+          p_user_agent: user_agent || null,
+          p_ip_address: ip_address || null,
+          p_dwell_time_seconds: dwell_time_seconds || 0,
+          p_game_played: true,
+          p_form_completed: true,
+        })
+        .catch((err: unknown) => {
+          console.warn(
+            "[select-prize] record_campaign_impression warning:",
+            err,
+          );
+        });
+    }
+
     // 1. Fetch Campaign and verify it is active
     const { data: campaign, error: campaignError } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, organization_id, status, require_quiz, win_probability, max_entries')
-      .eq('id', campaign_id)
+      .from("campaigns")
+      .select(
+        "id, organization_id, status, require_quiz, win_probability, max_entries",
+      )
+      .eq("id", campaign_id)
       .single();
 
     if (campaignError || !campaign) {
-      return new Response(JSON.stringify({ ok: false, error: 'Campaign not found.' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ ok: false, error: "Campaign not found." }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    if (campaign.status !== 'active') {
-      return new Response(JSON.stringify({ ok: false, error: 'Campaign is not active.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (campaign.status !== "active") {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Campaign is not active." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // 2. Check for duplicate entry (Anti-Fraud)
-    const { count: existingEntriesCount, error: entryCheckError } = await supabaseAdmin
-      .from('entries')
-      .select('id', { count: 'exact', head: true })
-      .eq('campaign_id', campaign_id)
-      .eq('phone_number', normalizedPhoneNumber);
+    const { count: existingEntriesCount, error: entryCheckError } =
+      await supabaseAdmin
+        .from("entries")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", campaign_id)
+        .eq("phone_number", normalizedPhoneNumber);
 
     if (entryCheckError) {
-      return new Response(JSON.stringify({ ok: false, error: 'Failed to validate existing participation.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Failed to validate existing participation.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const maxEntries = campaign.max_entries ?? 1;
     const hasEntryLimit = maxEntries > 0;
     if (hasEntryLimit && (existingEntriesCount ?? 0) >= maxEntries) {
-      return new Response(JSON.stringify({ ok: false, error: 'You have already participated in this campaign.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "You have already participated in this campaign.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // 3. Determine if Campaign is Wheel or Quiz
@@ -160,34 +226,47 @@ serve(async (req) => {
       const roll = Math.random(); // 0 to 1
       const campaignProb = Number(campaign.win_probability);
 
-      console.log(`[select-prize] campaign=${campaign_id} roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`);
+      console.log(
+        `[select-prize] campaign=${campaign_id} roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`,
+      );
 
       if (roll <= campaignProb) {
         // Winner rolled! Fetch eligible active prizes with stock remaining
         const { data: activePrizes, error: prizesError } = await supabaseAdmin
-          .from('prizes')
-          .select('id, name, weight, win_message, prize_inventory(id, remaining)')
-          .eq('campaign_id', campaign_id)
-          .eq('is_active', true);
+          .from("prizes")
+          .select(
+            "id, name, weight, win_message, prize_inventory(id, remaining)",
+          )
+          .eq("campaign_id", campaign_id)
+          .eq("is_active", true);
 
-        console.log(`[select-prize] activePrizes count=${activePrizes?.length ?? 0} prizesError=${prizesError?.message ?? 'none'}`);
+        console.log(
+          `[select-prize] activePrizes count=${activePrizes?.length ?? 0} prizesError=${prizesError?.message ?? "none"}`,
+        );
 
         if (!prizesError && activePrizes && activePrizes.length > 0) {
           // Filter prizes that have stock remaining (> 0)
-          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter((p) => {
-            const inventory = Array.isArray(p.prize_inventory)
-              ? p.prize_inventory[0]
-              : p.prize_inventory;
-            const remaining = inventory?.remaining ?? 0;
-            console.log(`[select-prize] prize=${p.id} name="${p.name}" remaining=${remaining} inventoryRaw=${JSON.stringify(p.prize_inventory)}`);
-            return remaining > 0;
-          });
+          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter(
+            (p) => {
+              const inventory = Array.isArray(p.prize_inventory)
+                ? p.prize_inventory[0]
+                : p.prize_inventory;
+              const remaining = inventory?.remaining ?? 0;
+              console.log(
+                `[select-prize] prize=${p.id} name="${p.name}" remaining=${remaining} inventoryRaw=${JSON.stringify(p.prize_inventory)}`,
+              );
+              return remaining > 0;
+            },
+          );
 
           console.log(`[select-prize] stockPrizes count=${stockPrizes.length}`);
 
           if (stockPrizes.length > 0) {
             // Weighted random selection
-            const totalWeight = stockPrizes.reduce((sum, p) => sum + Number(p.weight || 0), 0);
+            const totalWeight = stockPrizes.reduce(
+              (sum, p) => sum + Number(p.weight || 0),
+              0,
+            );
             if (totalWeight > 0) {
               let targetRoll = Math.random() * totalWeight;
               for (const p of stockPrizes) {
@@ -196,13 +275,17 @@ serve(async (req) => {
                   selectedPrizeId = p.id;
                   selectedPrize = p;
                   isWinner = true;
-                  console.log(`[select-prize] Selected prize="${p.name}" id=${p.id}`);
+                  console.log(
+                    `[select-prize] Selected prize="${p.name}" id=${p.id}`,
+                  );
                   break;
                 }
               }
             }
           } else {
-            console.log('[select-prize] No prizes with stock remaining — converting winner to loser');
+            console.log(
+              "[select-prize] No prizes with stock remaining — converting winner to loser",
+            );
           }
         }
       }
@@ -211,25 +294,34 @@ serve(async (req) => {
       const roll = Math.random();
       const campaignProb = Number(campaign.win_probability);
 
-      console.log(`[select-prize] QUIZ campaign=${campaign_id} passed=true roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`);
+      console.log(
+        `[select-prize] QUIZ campaign=${campaign_id} passed=true roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`,
+      );
 
       if (roll <= campaignProb) {
         const { data: activePrizes, error: prizesError } = await supabaseAdmin
-          .from('prizes')
-          .select('id, name, weight, win_message, prize_inventory(id, remaining)')
-          .eq('campaign_id', campaign_id)
-          .eq('is_active', true);
+          .from("prizes")
+          .select(
+            "id, name, weight, win_message, prize_inventory(id, remaining)",
+          )
+          .eq("campaign_id", campaign_id)
+          .eq("is_active", true);
 
         if (!prizesError && activePrizes && activePrizes.length > 0) {
-          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter((p) => {
-            const inventory = Array.isArray(p.prize_inventory)
-              ? p.prize_inventory[0]
-              : p.prize_inventory;
-            return (inventory?.remaining ?? 0) > 0;
-          });
+          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter(
+            (p) => {
+              const inventory = Array.isArray(p.prize_inventory)
+                ? p.prize_inventory[0]
+                : p.prize_inventory;
+              return (inventory?.remaining ?? 0) > 0;
+            },
+          );
 
           if (stockPrizes.length > 0) {
-            const totalWeight = stockPrizes.reduce((sum, p) => sum + Number(p.weight || 0), 0);
+            const totalWeight = stockPrizes.reduce(
+              (sum, p) => sum + Number(p.weight || 0),
+              0,
+            );
             if (totalWeight > 0) {
               let targetRoll = Math.random() * totalWeight;
               for (const p of stockPrizes) {
@@ -238,7 +330,9 @@ serve(async (req) => {
                   selectedPrizeId = p.id;
                   selectedPrize = p;
                   isWinner = true;
-                  console.log(`[select-prize] QUIZ Selected prize="${p.name}" id=${p.id}`);
+                  console.log(
+                    `[select-prize] QUIZ Selected prize="${p.name}" id=${p.id}`,
+                  );
                   break;
                 }
               }
@@ -248,39 +342,62 @@ serve(async (req) => {
       }
     } else {
       // Quiz campaign + quiz_passed=false → always loser, no prize draw
-      console.log(`[select-prize] QUIZ campaign=${campaign_id} passed=false — assigning loser`);
+      console.log(
+        `[select-prize] QUIZ campaign=${campaign_id} passed=false — assigning loser`,
+      );
     }
 
     // 4. Atomic inventory claim (if winner)
     if (isWinner && selectedPrizeId) {
-      const { data: claimedRows, error: claimInventoryError } = await supabaseAdmin.rpc(
-        'claim_prize_inventory',
-        { p_prize_id: selectedPrizeId },
-      );
+      const { data: claimedRows, error: claimInventoryError } =
+        await supabaseAdmin.rpc("claim_prize_inventory", {
+          p_prize_id: selectedPrizeId,
+        });
 
       if (claimInventoryError) {
-        console.error('[select-prize] claim_prize_inventory error:', claimInventoryError.message);
-        return new Response(JSON.stringify({ ok: false, error: 'Failed to reserve prize inventory.' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        console.error(
+          "[select-prize] claim_prize_inventory error:",
+          claimInventoryError.message,
+        );
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "Failed to reserve prize inventory.",
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
-      if (!claimedRows || (claimedRows as ClaimPrizeInventoryRow[]).length === 0) {
+      if (
+        !claimedRows ||
+        (claimedRows as ClaimPrizeInventoryRow[]).length === 0
+      ) {
         // Stock was exhausted by concurrent winners.
-        console.log('[select-prize] claim_prize_inventory returned empty — stock exhausted by concurrent winner');
+        console.log(
+          "[select-prize] claim_prize_inventory returned empty — stock exhausted by concurrent winner",
+        );
         isWinner = false;
         selectedPrizeId = null;
         selectedPrize = null;
       } else {
-        console.log('[select-prize] Inventory claimed successfully, row:', JSON.stringify(claimedRows));
+        console.log(
+          "[select-prize] Inventory claimed successfully, row:",
+          JSON.stringify(claimedRows),
+        );
         const { error: quantityWonError } = await supabaseAdmin.rpc(
-          'increment_prize_winner_count',
+          "increment_prize_winner_count",
           { p_prize_id: selectedPrizeId },
         );
 
         if (quantityWonError) {
-          console.error('[select-prize] increment_prize_winner_count error:', quantityWonError.message, '— converting winner to loser (inventory already claimed!)');
+          console.error(
+            "[select-prize] increment_prize_winner_count error:",
+            quantityWonError.message,
+            "— converting winner to loser (inventory already claimed!)",
+          );
           isWinner = false;
           selectedPrizeId = null;
           selectedPrize = null;
@@ -295,16 +412,16 @@ serve(async (req) => {
     if (isWinner && selectedPrizeId) {
       // Fetch the prize template to get coupon items
       const { data: prizeData, error: prizeError } = await supabaseAdmin
-        .from('prizes')
-        .select('prize_template_id')
-        .eq('id', selectedPrizeId)
+        .from("prizes")
+        .select("prize_template_id")
+        .eq("id", selectedPrizeId)
         .single();
 
       if (!prizeError && prizeData?.prize_template_id) {
         // Step A: get list of already-used coupon item IDs
         const { data: usedRows } = await supabaseAdmin
-          .from('coupon_redemptions')
-          .select('prize_template_item_id');
+          .from("coupon_redemptions")
+          .select("prize_template_item_id");
 
         const usedIds: string[] = (usedRows ?? []).map(
           (r: { prize_template_item_id: string }) => r.prize_template_item_id,
@@ -312,18 +429,19 @@ serve(async (req) => {
 
         // Step B: fetch an available (unused) coupon code
         let couponQuery = supabaseAdmin
-          .from('prize_template_items')
-          .select('id, item_value')
-          .eq('prize_template_id', prizeData.prize_template_id)
-          .not('item_value', 'is', null)
+          .from("prize_template_items")
+          .select("id, item_value")
+          .eq("prize_template_id", prizeData.prize_template_id)
+          .not("item_value", "is", null)
           .limit(1);
 
         // Exclude already-used items only if there are any
         if (usedIds.length > 0) {
-          couponQuery = couponQuery.not('id', 'in', `(${usedIds.join(',')})`);
+          couponQuery = couponQuery.not("id", "in", `(${usedIds.join(",")})`);
         }
 
-        const { data: couponItem, error: couponError } = await couponQuery.single();
+        const { data: couponItem, error: couponError } =
+          await couponQuery.single();
 
         if (!couponError && couponItem?.item_value) {
           couponCode = couponItem.item_value;
@@ -334,7 +452,7 @@ serve(async (req) => {
 
     // 6. Create Entry Record
     const { data: newEntry, error: insertError } = await supabaseAdmin
-      .from('entries')
+      .from("entries")
       .insert({
         campaign_id,
         organization_id: campaign.organization_id,
@@ -355,24 +473,36 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (insertError?.code === '23505') {
-      return new Response(JSON.stringify({ ok: false, error: 'You have already participated in this campaign.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (insertError?.code === "23505") {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "You have already participated in this campaign.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (insertError) {
-      return new Response(JSON.stringify({ ok: false, error: 'Failed to record campaign entry.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Failed to record campaign entry.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // 7. If coupon was assigned, track it in coupon_redemptions for audit trail
     if (couponCode && couponItemId && newEntry?.id) {
       const { error: trackError } = await supabaseAdmin
-        .from('coupon_redemptions')
+        .from("coupon_redemptions")
         .insert({
           entry_id: newEntry.id,
           prize_template_item_id: couponItemId,
@@ -381,7 +511,7 @@ serve(async (req) => {
         });
 
       if (trackError) {
-        console.warn('Failed to track coupon redemption:', trackError);
+        console.warn("Failed to track coupon redemption:", trackError);
         // Don't fail the whole request - the coupon is already in the entry
       }
     }
@@ -390,23 +520,26 @@ serve(async (req) => {
       JSON.stringify({
         ok: true,
         entry: newEntry,
-        prize: selectedPrize ? {
-          id: selectedPrize.id,
-          name: selectedPrize.name,
-          win_message: selectedPrize.win_message,
-        } : null,
+        prize: selectedPrize
+          ? {
+              id: selectedPrize.id,
+              name: selectedPrize.name,
+              win_message: selectedPrize.win_message,
+            }
+          : null,
         coupon: couponCode ? { code: couponCode } : null,
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected server error';
+    const message =
+      error instanceof Error ? error.message : "Unexpected server error";
     return new Response(JSON.stringify({ ok: false, error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

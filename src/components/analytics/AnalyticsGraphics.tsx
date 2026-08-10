@@ -15,6 +15,8 @@ import {
   HourlyDistributionItem,
   DailyDistributionItem,
   CarrierDistributionItem,
+  OSDistribution,
+  PrizeBurnRateItem,
 } from "../../hooks/useAnalytics";
 
 interface PercentageCircleProps {
@@ -321,6 +323,130 @@ export const CarrierBreakdownChart: React.FC<CarrierBreakdownChartProps> = ({
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface OSDistributionChartProps {
+  osData: OSDistribution;
+}
+
+export const OSDistributionChart: React.FC<OSDistributionChartProps> = ({
+  osData,
+}) => {
+  const total = osData.android + osData.ios + osData.desktop + osData.other;
+  const items = [
+    { label: "Android", count: osData.android, color: "#10B981", icon: "📱" },
+    { label: "iOS (Apple)", count: osData.ios, color: "#6366F1", icon: "🍎" },
+    {
+      label: "Desktop / PC",
+      count: osData.desktop,
+      color: "#F59E0B",
+      icon: "💻",
+    },
+    {
+      label: "Other Devices",
+      count: osData.other,
+      color: "#64748B",
+      icon: "🌐",
+    },
+  ];
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm space-y-4">
+      <div>
+        <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+          <span>Operating System Split (OS Distribution)</span>
+        </h3>
+        <p className="text-[11px] text-slate-500">
+          Critical for local campaign targeting and mobile optimization.
+        </p>
+      </div>
+
+      <div className="space-y-3 pt-1">
+        {items.map((item) => {
+          const pct =
+            total > 0 ? Number(((item.count / total) * 100).toFixed(1)) : 0;
+          return (
+            <div key={item.label} className="space-y-1">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                  <span className="text-sm">{item.icon}</span>
+                  <span>{item.label}</span>
+                </span>
+                <span className="text-slate-600 font-mono text-[11px]">
+                  {pct}% ({item.count} visitors)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, backgroundColor: item.color }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+interface PrizeBurnRateListProps {
+  prizes: PrizeBurnRateItem[];
+}
+
+export const PrizeBurnRateList: React.FC<PrizeBurnRateListProps> = ({
+  prizes,
+}) => {
+  return (
+    <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm space-y-4">
+      <div>
+        <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+          <span>Prize Burn Rate (Stock Exhaustion Speed)</span>
+        </h3>
+        <p className="text-[11px] text-slate-500">
+          Real-time stock depletion tracker showing claimed vs remaining units
+          per prize item.
+        </p>
+      </div>
+
+      {prizes.length === 0 ? (
+        <div className="h-32 flex items-center justify-center text-slate-400 text-xs italic bg-slate-50/50 rounded-2xl">
+          No active prizes allocated yet.
+        </div>
+      ) : (
+        <div className="space-y-3.5 pt-1">
+          {prizes.map((p) => (
+            <div
+              key={p.id}
+              className="space-y-1.5 bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200"
+            >
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-800">{p.name}</span>
+                <span className="text-slate-600 font-mono text-[11px] font-semibold">
+                  {p.quantity_won} / {p.quantity} claimed (
+                  {p.burn_rate_percentage}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    p.burn_rate_percentage >= 90
+                      ? "bg-red-500"
+                      : p.burn_rate_percentage >= 50
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                  }`}
+                  style={{
+                    width: `${Math.min(100, p.burn_rate_percentage)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

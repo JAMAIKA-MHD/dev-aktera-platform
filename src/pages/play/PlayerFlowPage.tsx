@@ -23,39 +23,49 @@
  *     WHERE c.id = prizes.campaign_id AND c.status = 'active'
  *   ));
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { BrandPreset, Prize, PlayerData, QuizQuestion } from '../../types';
-import { PhoneFrame } from '../../components/PhoneFrame';
-import { PlayerLanding } from '../../components/PlayerLanding';
-import { PlayerGame } from '../../components/PlayerGame';
-import { PlayerResult } from '../../components/PlayerResult';
-import { PlayerQuiz } from '../../components/PlayerQuiz';
-import { AlertTriangle, Frown } from 'lucide-react';
-import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../../lib/defaultImages';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
+import { BrandPreset, Prize, PlayerData, QuizQuestion } from "../../types";
+import { PhoneFrame } from "../../components/PhoneFrame";
+import { PlayerLanding } from "../../components/PlayerLanding";
+import { PlayerGame } from "../../components/PlayerGame";
+import { PlayerResult } from "../../components/PlayerResult";
+import { PlayerQuiz } from "../../components/PlayerQuiz";
+import { AlertTriangle, Frown } from "lucide-react";
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../../lib/defaultImages";
 
-type PlayerScreen = 'loading' | 'not-found' | 'inactive' | 'landing' | 'quiz' | 'submitting' | 'game' | 'result' | 'duplicate' | 'error';
+type PlayerScreen =
+  | "loading"
+  | "not-found"
+  | "inactive"
+  | "landing"
+  | "quiz"
+  | "submitting"
+  | "game"
+  | "result"
+  | "duplicate"
+  | "error";
 
 // Palette for wheel slices — rotates through campaigns with multiple prizes
 const WHEEL_COLORS = [
-  { bg: '#7C3AED', text: '#FFFFFF' },
-  { bg: '#2563EB', text: '#FFFFFF' },
-  { bg: '#059669', text: '#FFFFFF' },
-  { bg: '#D97706', text: '#000000' },
-  { bg: '#DC2626', text: '#FFFFFF' },
-  { bg: '#9333EA', text: '#FFFFFF' },
-  { bg: '#0891B2', text: '#FFFFFF' },
-  { bg: '#4F46E5', text: '#FFFFFF' },
+  { bg: "#7C3AED", text: "#FFFFFF" },
+  { bg: "#2563EB", text: "#FFFFFF" },
+  { bg: "#059669", text: "#FFFFFF" },
+  { bg: "#D97706", text: "#000000" },
+  { bg: "#DC2626", text: "#FFFFFF" },
+  { bg: "#9333EA", text: "#FFFFFF" },
+  { bg: "#0891B2", text: "#FFFFFF" },
+  { bg: "#4F46E5", text: "#FFFFFF" },
 ];
 
 const LOSER_SLOT: Prize = {
-  id: '__loser__',
-  name: 'Khir Ghira!',
-  icon: '🌙',
+  id: "__loser__",
+  name: "Khir Ghira!",
+  icon: "🌙",
   isWin: false,
-  color: '#1E1E2E',
-  textColor: '#6B7280',
+  color: "#1E1E2E",
+  textColor: "#6B7280",
 };
 
 interface DbCampaignRow {
@@ -65,43 +75,73 @@ interface DbCampaignRow {
   hero_image_url: string | null;
   status: string;
   require_quiz: boolean;
-  prizes: Array<{ id: string; name: string; is_active: boolean; win_message: string | null }>;
-  quiz_questions: Array<{ id: string; question: string; options: string[]; correct_option_index: number; position: number; is_active: boolean }>;
+  prizes: Array<{
+    id: string;
+    name: string;
+    is_active: boolean;
+    win_message: string | null;
+  }>;
+  quiz_questions: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correct_option_index: number;
+    position: number;
+    is_active: boolean;
+  }>;
 }
 
 export default function PlayerFlowPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const [screen, setScreen] = useState<PlayerScreen>('loading');
+  const [screen, setScreen] = useState<PlayerScreen>("loading");
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [isQuizCampaign, setIsQuizCampaign] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [brandPreset, setBrandPreset] = useState<BrandPreset | null>(null);
-  const [playerData, setPlayerData] = useState<PlayerData>({ name: '', phone: '', consent: false });
+  const [playerData, setPlayerData] = useState<PlayerData>({
+    name: "",
+    phone: "",
+    consent: false,
+  });
 
   // Server-determined outcome — set after select-prize responds
   const [serverPrize, setServerPrize] = useState<Prize | null>(null);
   const [entryId, setEntryId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const extractInvokeErrorMessage = async (invokeError: unknown): Promise<string> => {
-    let combined = '';
+  const extractInvokeErrorMessage = async (
+    invokeError: unknown,
+  ): Promise<string> => {
+    let combined = "";
     if (invokeError instanceof Error) {
       combined = invokeError.message;
     }
 
-    if (typeof invokeError === 'object' && invokeError !== null && 'context' in invokeError) {
+    if (
+      typeof invokeError === "object" &&
+      invokeError !== null &&
+      "context" in invokeError
+    ) {
       const context = (invokeError as { context?: unknown }).context;
       if (
         context &&
-        typeof context === 'object' &&
-        'json' in context &&
-        typeof (context as { json?: unknown }).json === 'function'
+        typeof context === "object" &&
+        "json" in context &&
+        typeof (context as { json?: unknown }).json === "function"
       ) {
         try {
-          const payload = await (context as { json: () => Promise<unknown> }).json();
-          if (typeof payload === 'object' && payload !== null && 'error' in payload) {
-            const serverMessage = String((payload as { error?: unknown }).error ?? '');
+          const payload = await (
+            context as { json: () => Promise<unknown> }
+          ).json();
+          if (
+            typeof payload === "object" &&
+            payload !== null &&
+            "error" in payload
+          ) {
+            const serverMessage = String(
+              (payload as { error?: unknown }).error ?? "",
+            );
             combined = `${combined} ${serverMessage}`.trim();
           }
         } catch {
@@ -114,23 +154,28 @@ export default function PlayerFlowPage() {
   };
 
   const loadCampaign = useCallback(async () => {
-    if (!slug) { setScreen('not-found'); return; }
+    if (!slug) {
+      setScreen("not-found");
+      return;
+    }
 
     const { data, error } = await supabase
-      .from('campaigns')
-      .select('id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message), quiz_questions(id, question, options, correct_option_index, position, is_active)')
-      .eq('slug', slug)
+      .from("campaigns")
+      .select(
+        "id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message), quiz_questions(id, question, options, correct_option_index, position, is_active)",
+      )
+      .eq("slug", slug)
       .single();
 
     if (error || !data) {
-      setScreen('not-found');
+      setScreen("not-found");
       return;
     }
 
     const row = data as unknown as DbCampaignRow;
 
-    if (row.status !== 'active') {
-      setScreen('inactive');
+    if (row.status !== "active") {
+      setScreen("inactive");
       return;
     }
 
@@ -142,7 +187,7 @@ export default function PlayerFlowPage() {
         return {
           id: p.id,
           name: p.name,
-          icon: '🎁',
+          icon: "🎁",
           isWin: true,
           color: palette.bg,
           textColor: palette.text,
@@ -156,14 +201,14 @@ export default function PlayerFlowPage() {
       id: row.id,
       name: row.name,
       arabicName: row.arabic_name ?? row.name,
-      primaryColor: '#7C3AED',
-      secondaryColor: '#A78BFA',
-      gradientFrom: '#7C3AED',
-      gradientTo: '#4F46E5',
-      description: '',
+      primaryColor: "#7C3AED",
+      secondaryColor: "#A78BFA",
+      gradientFrom: "#7C3AED",
+      gradientTo: "#4F46E5",
+      description: "",
       logoUrl: row.hero_image_url || DEFAULT_CAMPAIGN_IMAGE_URL,
-      slogan: 'Spin & Win',
-      arabicSlogan: 'العب واربح 🎁',
+      slogan: "Spin & Win",
+      arabicSlogan: "العب واربح 🎁",
       prizes: wheelPrizes,
     };
 
@@ -181,17 +226,44 @@ export default function PlayerFlowPage() {
         correctIndex: q.correct_option_index,
       }));
     setQuizQuestions(mappedQuestions);
-    setScreen('landing');
+
+    // Record Campaign Visitor Impression
+    let sessionId = sessionStorage.getItem("octoreach_session_id");
+    if (!sessionId) {
+      sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem("octoreach_session_id", sessionId);
+    }
+
+    void (async () => {
+      try {
+        await supabase.rpc("record_campaign_impression", {
+          p_campaign_id: row.id,
+          p_session_id: sessionId,
+          p_user_agent: navigator.userAgent,
+          p_dwell_time_seconds: 0,
+          p_game_played: false,
+          p_form_completed: false,
+        });
+      } catch {
+        // Silent catch for impression tracking
+      }
+    })();
+
+    setScreen("landing");
   }, [slug]);
 
-  useEffect(() => { loadCampaign(); }, [loadCampaign]);
+  const pageLoadTimeRef = React.useRef(Date.now());
+
+  useEffect(() => {
+    loadCampaign();
+  }, [loadCampaign]);
 
   // Called by PlayerLanding when player submits the form
   const handleRegister = async (data: PlayerData) => {
     setPlayerData(data);
     // Quiz campaigns: show quiz before calling select-prize
     if (isQuizCampaign && quizQuestions.length > 0) {
-      setScreen('quiz');
+      setScreen("quiz");
       return;
     }
     // Non-quiz campaign: call select-prize immediately
@@ -199,43 +271,66 @@ export default function PlayerFlowPage() {
   };
 
   // Shared function that calls select-prize and handles the response
-  const callSelectPrize = async (data: PlayerData, quizPassed: boolean | undefined) => {
-    setScreen('submitting');
+  const callSelectPrize = async (
+    data: PlayerData,
+    quizPassed: boolean | undefined,
+  ) => {
+    setScreen("submitting");
+
+    const sessionId =
+      sessionStorage.getItem("octoreach_session_id") || `sess_${Date.now()}`;
+    const dwellTimeSeconds = Math.max(
+      1,
+      Math.round((Date.now() - pageLoadTimeRef.current) / 1000),
+    );
 
     try {
-      const { data: result, error } = await supabase.functions.invoke('select-prize', {
-        body: {
-          campaign_id: campaignId,
-          phone_number: data.phone,
-          participant_name: data.name,
-          quiz_passed: quizPassed,
-          user_agent: navigator.userAgent,
+      const { data: result, error } = await supabase.functions.invoke(
+        "select-prize",
+        {
+          body: {
+            campaign_id: campaignId,
+            phone_number: data.phone,
+            participant_name: data.name,
+            quiz_passed: quizPassed,
+            user_agent: navigator.userAgent,
+            session_id: sessionId,
+            dwell_time_seconds: dwellTimeSeconds,
+          },
         },
-      });
+      );
 
       if (error) {
         const invokeMessage = await extractInvokeErrorMessage(error);
-        if (invokeMessage.includes('already participated') || invokeMessage.includes('maximum entries')) {
-          setScreen('duplicate');
+        if (
+          invokeMessage.includes("already participated") ||
+          invokeMessage.includes("maximum entries")
+        ) {
+          setScreen("duplicate");
           return;
         }
-        setErrorMsg('We could not submit your participation right now. Please try again in a moment.');
-        setScreen('error');
+        setErrorMsg(
+          "We could not submit your participation right now. Please try again in a moment.",
+        );
+        setScreen("error");
         return;
       }
 
       if (!result.ok) {
-        const msg: string = result.error ?? '';
-        if (msg.toLowerCase().includes('already participated')) {
-          setScreen('duplicate');
+        const msg: string = result.error ?? "";
+        if (msg.toLowerCase().includes("already participated")) {
+          setScreen("duplicate");
           return;
         }
-        if (msg.toLowerCase().includes('not active') || msg.toLowerCase().includes('not found')) {
-          setScreen('inactive');
+        if (
+          msg.toLowerCase().includes("not active") ||
+          msg.toLowerCase().includes("not found")
+        ) {
+          setScreen("inactive");
           return;
         }
-        setErrorMsg(msg || 'An error occurred. Please try again.');
-        setScreen('error');
+        setErrorMsg(msg || "An error occurred. Please try again.");
+        setScreen("error");
         return;
       }
 
@@ -254,10 +349,10 @@ export default function PlayerFlowPage() {
 
       setEntryId(result.entry?.id ?? null);
       setServerPrize(resolvedPrize);
-      setScreen('game');
+      setScreen("game");
     } catch {
-      setErrorMsg('Unexpected error. Please check your connection.');
-      setScreen('error');
+      setErrorMsg("Unexpected error. Please check your connection.");
+      setScreen("error");
     }
   };
 
@@ -268,13 +363,13 @@ export default function PlayerFlowPage() {
 
   // Called after the spin animation finishes
   const handleGameComplete = (_prize: Prize) => {
-    setScreen('result');
+    setScreen("result");
   };
 
   // Called when player clicks "I have copied my coupon"
   const handleCouponConfirmed = async () => {
     if (!entryId) return;
-    await supabase.functions.invoke('confirm-coupon', {
+    await supabase.functions.invoke("confirm-coupon", {
       body: { entry_id: entryId },
     });
   };
@@ -283,13 +378,13 @@ export default function PlayerFlowPage() {
   const handleRestart = () => {
     setServerPrize(null);
     setEntryId(null);
-    setPlayerData({ name: '', phone: '', consent: false });
-    setScreen('landing');
+    setPlayerData({ name: "", phone: "", consent: false });
+    setScreen("landing");
   };
 
   // --- Full-screen non-interactive states ---
 
-  if (screen === 'loading') {
+  if (screen === "loading") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
@@ -297,42 +392,52 @@ export default function PlayerFlowPage() {
     );
   }
 
-  if (screen === 'not-found') {
+  if (screen === "not-found") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center px-6 text-center">
         <div>
           <Frown className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-          <h1 className="text-lg font-bold text-zinc-200">Campaign Not Found</h1>
-          <p className="text-sm text-zinc-500 mt-2">The link you followed may have expired or is incorrect.</p>
+          <h1 className="text-lg font-bold text-zinc-200">
+            Campaign Not Found
+          </h1>
+          <p className="text-sm text-zinc-500 mt-2">
+            The link you followed may have expired or is incorrect.
+          </p>
         </div>
       </div>
     );
   }
 
-  if (screen === 'inactive') {
+  if (screen === "inactive") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center px-6 text-center">
         <div>
           <AlertTriangle className="w-12 h-12 text-amber-500/60 mx-auto mb-4" />
           <h1 className="text-lg font-bold text-zinc-200">Campaign Closed</h1>
           <p className="text-sm text-zinc-500 mt-2 font-sans">
-            This campaign is no longer active. Check back later for new promotions! 🇩🇿
+            This campaign is no longer active. Check back later for new
+            promotions! 🇩🇿
           </p>
-          <p dir="auto" className="text-xs text-zinc-600 mt-1">الحملة غير نشطة حالياً. تابعونا للحملات القادمة!</p>
+          <p dir="auto" className="text-xs text-zinc-600 mt-1">
+            الحملة غير نشطة حالياً. تابعونا للحملات القادمة!
+          </p>
         </div>
       </div>
     );
   }
 
-  if (screen === 'duplicate') {
+  if (screen === "duplicate") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center px-6 text-center">
         <div>
           <span className="text-5xl">🔒</span>
-          <h1 className="text-lg font-bold text-zinc-200 mt-4">Already Participated</h1>
+          <h1 className="text-lg font-bold text-zinc-200 mt-4">
+            Already Participated
+          </h1>
           <p className="text-sm text-zinc-400 mt-2 font-sans">
             You have already entered this campaign with this phone number.
-            <br />One entry per person — that's the rule! 😊
+            <br />
+            One entry per person — that's the rule! 😊
           </p>
           <p dir="auto" className="text-xs text-zinc-500 mt-2">
             لقد شاركت مسبقاً في هذه الحملة. مشاركة واحدة فقط لكل شخص.
@@ -342,15 +447,17 @@ export default function PlayerFlowPage() {
     );
   }
 
-  if (screen === 'error') {
+  if (screen === "error") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center px-6 text-center">
         <div>
           <AlertTriangle className="w-12 h-12 text-red-500/60 mx-auto mb-4" />
-          <h1 className="text-lg font-bold text-zinc-200">Something Went Wrong</h1>
+          <h1 className="text-lg font-bold text-zinc-200">
+            Something Went Wrong
+          </h1>
           {errorMsg && <p className="text-sm text-red-400 mt-2">{errorMsg}</p>}
           <button
-            onClick={() => setScreen('landing')}
+            onClick={() => setScreen("landing")}
             className="mt-6 px-6 py-3 rounded-xl bg-violet-700 hover:bg-violet-600 text-white text-sm font-bold cursor-pointer min-h-[48px]"
           >
             Try Again
@@ -360,13 +467,17 @@ export default function PlayerFlowPage() {
     );
   }
 
-  if (screen === 'submitting') {
+  if (screen === "submitting") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm font-bold text-zinc-300">Preparing your spin...</p>
-          <p dir="auto" className="text-xs text-zinc-500 mt-1">جارٍ تحضير دورتك...</p>
+          <p className="text-sm font-bold text-zinc-300">
+            Preparing your spin...
+          </p>
+          <p dir="auto" className="text-xs text-zinc-500 mt-1">
+            جارٍ تحضير دورتك...
+          </p>
         </div>
       </div>
     );
@@ -378,14 +489,14 @@ export default function PlayerFlowPage() {
   return (
     <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center py-4">
       <PhoneFrame>
-        {screen === 'landing' && (
+        {screen === "landing" && (
           <PlayerLanding
             activeBrand={brandPreset}
             onRegister={handleRegister}
             savedData={playerData}
           />
         )}
-        {screen === 'quiz' && quizQuestions.length > 0 && (
+        {screen === "quiz" && quizQuestions.length > 0 && (
           <PlayerQuiz
             activeBrand={brandPreset}
             questions={quizQuestions}
@@ -393,16 +504,16 @@ export default function PlayerFlowPage() {
             onComplete={handleQuizComplete}
           />
         )}
-        {screen === 'game' && serverPrize !== undefined && (
+        {screen === "game" && serverPrize !== undefined && (
           <PlayerGame
             activeBrand={brandPreset}
-            forcedOutcome={serverPrize?.isWin ? 'win' : 'lose'}
+            forcedOutcome={serverPrize?.isWin ? "win" : "lose"}
             targetPrize={serverPrize ?? undefined}
             onGameComplete={handleGameComplete}
             playerName={playerData.name}
           />
         )}
-        {screen === 'result' && (
+        {screen === "result" && (
           <PlayerResult
             activeBrand={brandPreset}
             prize={serverPrize?.isWin ? serverPrize : null}

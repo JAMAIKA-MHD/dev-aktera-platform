@@ -4,7 +4,6 @@ import {
   BarChart3,
   Download,
   FileSpreadsheet,
-  Sparkles,
   TrendingUp,
   Users,
   CheckCircle2,
@@ -12,6 +11,9 @@ import {
   Upload,
   Check,
   AlertTriangle,
+  Clock,
+  Smartphone,
+  Sparkles,
 } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
@@ -21,13 +23,14 @@ import {
   PercentageCircle,
   ParticipationHistogram,
   CarrierBreakdownChart,
+  OSDistributionChart,
+  PrizeBurnRateList,
 } from "./analytics/AnalyticsGraphics";
 import {
   exportToCSV,
   exportToExcel,
   parseCSVFile,
   parseExcelFile,
-  CampaignExportRow,
 } from "../lib/exportUtils";
 
 export const AnalyticsCenter: React.FC = () => {
@@ -143,78 +146,38 @@ export const AnalyticsCenter: React.FC = () => {
     [analytics, selectedCampId],
   );
 
-  const filteredStats = useMemo(() => {
-    if (!analytics) {
-      return {
-        totalEntries: 0,
-        totalWins: 0,
-        winPercentage: 0,
-        totalPrizes: 0,
-        activeCampaigns: 0,
-        quizPassRate: 0,
-        quizTotal: 0,
-        quizPassed: 0,
-        couponConfirmationRate: 0,
-        couponTotal: 0,
-        couponConfirmed: 0,
-      };
-    }
-
-    if (selectedCampaign) {
-      return {
-        totalEntries: selectedCampaign.total_entries,
-        totalWins: selectedCampaign.total_winners,
-        winPercentage: selectedCampaign.win_rate * 100,
-        totalPrizes: selectedCampaign.total_prizes,
-        activeCampaigns: 1,
-        quizPassRate: selectedCampaign.quiz_pass_rate * 100,
-        quizTotal: selectedCampaign.quiz_total_count,
-        quizPassed: selectedCampaign.quiz_passed_count,
-        couponConfirmationRate: selectedCampaign.coupon_confirmation_rate * 100,
-        couponTotal: selectedCampaign.coupon_total_count,
-        couponConfirmed: selectedCampaign.coupon_confirmed_count,
-      };
-    }
-
-    return {
-      totalEntries: analytics.total_entries,
-      totalWins: analytics.total_winners,
-      winPercentage: analytics.win_rate * 100,
-      totalPrizes: analytics.total_prizes_allocated,
-      activeCampaigns: analytics.active_campaigns,
-      quizPassRate: analytics.quiz_pass_rate * 100,
-      quizTotal: analytics.quiz_total_count,
-      quizPassed: analytics.quiz_passed_count,
-      couponConfirmationRate: analytics.coupon_confirmation_rate * 100,
-      couponTotal: analytics.coupon_total_count,
-      couponConfirmed: analytics.coupon_confirmed_count,
-    };
-  }, [analytics, selectedCampaign]);
-
   const handleExportData = () => {
     if (!analytics) return;
 
-    const rowsSource = selectedCampaign
-      ? [selectedCampaign]
-      : analytics.by_campaign;
-    const formattedRows: CampaignExportRow[] = rowsSource.map((row) => ({
-      "Campaign ID": row.campaign_id,
+    const rowsToExport =
+      selectedCampId === "all"
+        ? analytics.by_campaign
+        : selectedCampaign
+          ? [selectedCampaign]
+          : [];
+
+    const formattedRows = rowsToExport.map((row) => ({
       "Campaign Name": row.campaign_name,
+      "Total Visitors / Impressions": analytics.total_impressions,
       "Total Entries": row.total_entries,
       "Total Winners": row.total_winners,
-      "Win Rate (%)": `${(row.win_rate * 100).toFixed(1)}%`,
-      "Allocated Prizes": row.total_prizes,
-      "Quiz Pass Rate (%)": `${(row.quiz_pass_rate * 100).toFixed(1)}%`,
-      "Coupon Confirmation Rate (%)": `${(row.coupon_confirmation_rate * 100).toFixed(1)}%`,
+      "Game Play Rate (%)": `${analytics.game_play_rate}%`,
+      "Form Completion Rate (%)": `${analytics.form_completion_rate}%`,
+      "Win Rate (%)": `${row.win_rate}%`,
+      "Avg Dwell Time (s)": `${analytics.avg_dwell_time_seconds}s`,
+      "Quiz Pass Rate (%)": `${row.quiz_pass_rate}%`,
+      "Coupon Confirmation Rate (%)": `${row.coupon_confirmation_rate}%`,
     }));
 
-    const filename = `octoreach_analytics_${selectedCampId}_${new Date().toISOString().split("T")[0]}`;
+    const filename = `octoreach_analytics_${selectedCampId}_${
+      new Date().toISOString().split("T")[0]
+    }`;
 
     if (exportFormat === "xlsx") {
       exportToExcel(
         formattedRows as unknown as Record<string, unknown>[],
         filename,
-        "Campaign Analytics",
+        "Campaign Business Analytics",
       );
     } else {
       exportToCSV(
@@ -234,7 +197,7 @@ export const AnalyticsCenter: React.FC = () => {
 
   if (error || !analytics) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 font-medium">
         {error || "Analytics unavailable right now."}
       </div>
     );
@@ -245,12 +208,12 @@ export const AnalyticsCenter: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
-            Campaign Analytics Desk
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+            <span>Campaign Business Analytics Desk</span>
           </h2>
           <p className="text-slate-500 text-xs mt-0.5">
-            Real-time analytics computed directly from live Supabase participant
-            entries and inventory records.
+            Engineered with PostgreSQL database RPC function for instant
+            conversion, dwell time, OS split, and prize burn rate analysis.
           </p>
         </div>
 
@@ -326,7 +289,7 @@ export const AnalyticsCenter: React.FC = () => {
         </div>
       </div>
 
-      {/* Import Notification Banners */}
+      {/* Import Banners */}
       {importSuccess && (
         <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs font-bold">
           <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -341,38 +304,36 @@ export const AnalyticsCenter: React.FC = () => {
         </div>
       )}
 
-      {/* Primary KPI Cards */}
+      {/* Primary Business KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         {[
           {
-            title: "Total Entries",
-            value: filteredStats.totalEntries,
-            desc: "All recorded participations",
+            title: "Total Visitors / Impressions",
+            value: analytics.total_impressions,
+            desc: "Unique views on /play link (WhatsApp/QR)",
             icon: Users,
             color: "text-indigo-600",
           },
           {
-            title: "Total Winners",
-            value: filteredStats.totalWins,
-            desc: "Winning entries confirmed",
-            icon: Award,
+            title: "Game Play Rate (Conversion %)",
+            value: `${analytics.game_play_rate}%`,
+            desc: "Unique Plays / Unique Impressions",
+            icon: Sparkles,
             color: "text-emerald-600",
           },
           {
-            title: "Win Rate",
-            value: `${filteredStats.winPercentage.toFixed(1)}%`,
-            desc: "Winner conversion rate",
-            icon: TrendingUp,
-            color: "text-amber-600",
+            title: "Form Completion Rate",
+            value: `${analytics.form_completion_rate}%`,
+            desc: "Entries Captured / Game Plays",
+            icon: CheckCircle2,
+            color: "text-sky-600",
           },
           {
-            title: "Allocated Prizes",
-            value: filteredStats.totalPrizes,
-            desc: selectedCampaign
-              ? "Reserved for this campaign"
-              : `${filteredStats.activeCampaigns} active campaigns live`,
-            icon: BarChart3,
-            color: "text-sky-600",
+            title: "Dwell Time (Brand Attention)",
+            value: `${analytics.avg_dwell_time_seconds}s`,
+            desc: "Average time spent on campaign page",
+            icon: Clock,
+            color: "text-amber-600",
           },
         ].map((stat) => (
           <div
@@ -393,42 +354,47 @@ export const AnalyticsCenter: React.FC = () => {
         ))}
       </div>
 
-      {/* Percentage Circles & Conversion Gauges */}
+      {/* Secondary Ratios: Win Rate, Quiz Pass Rate, Coupon Claim Rate */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <PercentageCircle
-          percentage={filteredStats.winPercentage}
-          title="Win Rate Percentage"
-          subtitle={`${filteredStats.totalWins} winners out of ${filteredStats.totalEntries} participations`}
+          percentage={analytics.win_rate}
+          title="Win Rate %"
+          subtitle={`${analytics.total_wins} winners out of ${analytics.total_entries} recorded entries`}
           color="#10B981"
-          badgeText="Instant Win"
+          badgeText="Win Rate"
           icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
         />
         <PercentageCircle
-          percentage={filteredStats.couponConfirmationRate}
-          title="Coupon Claim Rate"
-          subtitle={`${filteredStats.couponConfirmed} confirmed out of ${filteredStats.couponTotal} issued codes`}
+          percentage={analytics.game_play_rate}
+          title="Game Play Rate (Landing Conversion)"
+          subtitle={`${analytics.total_entries} played out of ${analytics.total_impressions} total visitors`}
           color="#6366F1"
-          badgeText="Claim Confirmation"
-          icon={<CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+          badgeText="Teaser Conversion"
+          icon={<Sparkles className="w-4 h-4 text-indigo-600" />}
         />
         <PercentageCircle
-          percentage={filteredStats.quizPassRate}
-          title="Quiz Pass Rate"
-          subtitle={`${filteredStats.quizPassed} passed out of ${filteredStats.quizTotal} quiz attempts`}
+          percentage={analytics.coupon_confirmation_rate}
+          title="Coupon Claim Rate"
+          subtitle={`${analytics.coupon_confirmed} confirmed out of ${analytics.coupon_total} issued codes`}
           color="#F59E0B"
-          badgeText="Quiz Qualification"
+          badgeText="Coupon Claim"
           icon={<HelpCircle className="w-4 h-4 text-amber-600" />}
         />
       </div>
 
-      {/* Histogram Chart */}
-      <ParticipationHistogram
-        dailyData={analytics.daily_distribution}
-        hourlyData={analytics.hourly_distribution}
-      />
+      {/* Visual Analytics Charts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <ParticipationHistogram
+          dailyData={analytics.daily_distribution}
+          hourlyData={analytics.hourly_distribution}
+        />
+        <CarrierBreakdownChart carrierData={analytics.carrier_distribution} />
+      </div>
 
-      {/* Carrier Split Chart */}
-      <CarrierBreakdownChart carrierData={analytics.carrier_distribution} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <OSDistributionChart osData={analytics.os_distribution} />
+        <PrizeBurnRateList prizes={analytics.prize_burn_rate} />
+      </div>
 
       {/* Live Table Performance Breakdown */}
       <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm">
@@ -438,7 +404,8 @@ export const AnalyticsCenter: React.FC = () => {
               Campaign Performance Breakdown
             </h3>
             <p className="text-[10px] text-slate-500">
-              Live campaign aggregation breakdown from Supabase database.
+              Aggregated directly by Supabase get_campaign_analytics_v2 RPC
+              procedure.
             </p>
           </div>
         </div>
@@ -448,66 +415,55 @@ export const AnalyticsCenter: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-150 text-[10px] font-mono text-slate-400 uppercase">
                 <th className="pb-3 pl-1 text-left font-semibold">Campaign</th>
+                <th className="pb-3 text-center font-semibold">Status</th>
                 <th className="pb-3 text-center font-semibold">Entries</th>
                 <th className="pb-3 text-center font-semibold">Winners</th>
                 <th className="pb-3 text-center font-semibold">Win Rate</th>
                 <th className="pb-3 text-center font-semibold">Quiz Pass %</th>
-                <th className="pb-3 text-center font-semibold">
-                  Coupon Claim %
-                </th>
                 <th className="pb-3 text-right font-semibold">
-                  Allocated Prizes
+                  Coupon Claim %
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-              {analytics.by_campaign.map((campaign) => (
+              {analytics.by_campaign.map((row) => (
                 <tr
-                  key={campaign.campaign_id}
-                  className="hover:bg-slate-50/70 transition-all duration-150"
+                  key={row.campaign_id}
+                  className="hover:bg-slate-50/60 transition-all"
                 >
-                  <td className="py-3.5 pl-1">
-                    <p className="font-bold text-slate-800">
-                      {campaign.campaign_name}
-                    </p>
+                  <td className="py-3.5 pl-1 font-bold text-slate-800">
+                    {row.campaign_name}
+                  </td>
+                  <td className="py-3.5 text-center">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                        row.status === "active"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {row.status}
+                    </span>
                   </td>
                   <td className="py-3.5 text-center font-mono text-slate-700">
-                    {campaign.total_entries}
+                    {row.total_entries}
                   </td>
                   <td className="py-3.5 text-center font-mono text-emerald-700 font-bold">
-                    {campaign.total_winners}
+                    {row.total_winners}
                   </td>
-                  <td className="py-3.5 text-center font-mono text-amber-700">
-                    {(campaign.win_rate * 100).toFixed(1)}%
+                  <td className="py-3.5 text-center font-mono text-slate-700">
+                    {row.win_rate}%
                   </td>
-                  <td className="py-3.5 text-center font-mono text-indigo-700">
-                    {(campaign.quiz_pass_rate * 100).toFixed(1)}%
+                  <td className="py-3.5 text-center font-mono text-slate-700">
+                    {row.quiz_pass_rate}%
                   </td>
-                  <td className="py-3.5 text-center font-mono text-sky-700">
-                    {(campaign.coupon_confirmation_rate * 100).toFixed(1)}%
-                  </td>
-                  <td className="py-3.5 text-right font-mono text-slate-700 font-bold">
-                    {campaign.total_prizes}
+                  <td className="py-3.5 text-right font-mono text-indigo-700 font-bold">
+                    {row.coupon_confirmation_rate}%
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Info Badge */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-[28px] p-5 shadow-sm flex items-start gap-3">
-        <Sparkles className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
-        <div>
-          <span className="text-xs font-bold text-indigo-900">
-            100% Real-Time Live Analytics Engine
-          </span>
-          <p className="text-[11px] text-indigo-900 leading-relaxed mt-0.5 font-sans">
-            All metrics, histograms, percentage circles, and export files are
-            calculated live from your organization's Supabase database. All mock
-            data previews have been replaced with real analytical functions.
-          </p>
         </div>
       </div>
     </div>
