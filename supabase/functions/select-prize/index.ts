@@ -129,22 +129,25 @@ serve(async (req) => {
     });
 
     if (session_id) {
-      await supabaseAdmin
-        .rpc("record_campaign_impression", {
-          p_campaign_id: campaign_id,
-          p_session_id: session_id,
-          p_user_agent: user_agent || null,
-          p_ip_address: ip_address || null,
-          p_dwell_time_seconds: dwell_time_seconds || 0,
-          p_game_played: true,
-          p_form_completed: true,
-        })
-        .catch((err: unknown) => {
-          console.warn(
-            "[select-prize] record_campaign_impression warning:",
-            err,
-          );
-        });
+      try {
+        const { error: impErr } = await supabaseAdmin.rpc(
+          "record_campaign_impression",
+          {
+            p_campaign_id: campaign_id,
+            p_session_id: session_id,
+            p_user_agent: user_agent || null,
+            p_ip_address: ip_address || null,
+            p_dwell_time_seconds: dwell_time_seconds || 0,
+            p_game_played: true,
+            p_form_completed: true,
+          },
+        );
+        if (impErr) {
+          console.warn("[select-prize] impression notice:", impErr.message);
+        }
+      } catch (impEx) {
+        console.warn("[select-prize] impression exception ignored:", impEx);
+      }
     }
 
     // 1. Fetch Campaign and verify it is active

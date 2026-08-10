@@ -94,33 +94,51 @@ export function useAnalytics() {
 
     const fetchAnalytics = async () => {
       try {
-        // Execute PostgreSQL Analytics RPC
+        let payload: Partial<AnalyticsSummary> = {};
+
+        // 1. Try PostgreSQL Analytics RPC
         const { data: rpcData, error: rpcError } = await supabase.rpc(
           "get_campaign_analytics_v2",
           { p_organization_id: organization.id },
         );
 
-        if (rpcError) throw rpcError;
+        if (!rpcError && rpcData) {
+          payload = rpcData as unknown as AnalyticsSummary;
+        }
+
         if (cancelled) return;
 
-        const payload = rpcData as unknown as AnalyticsSummary;
+        // 2. Fetch raw tables for fallback calculations
+        const [
+          { data: campaignsData },
+          { data: entriesData },
+          { data: prizesData },
+        ] = await Promise.all([
+          supabase
+            .from("campaigns")
+            .select("id, name, status")
+            .eq("organization_id", organization.id)
+            .neq("status", "archived"),
+          supabase
+            .from("entries")
+            .select(
+              "id, campaign_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, created_at",
+            )
+            .eq("organization_id", organization.id),
+          supabase
+            .from("prizes")
+            .select("id, name, campaign_id, quantity, quantity_won")
+            .eq("organization_id", organization.id)
+            .eq("is_active", true),
+        ]);
 
-        // Fetch fallback timelines if needed
-        const [{ data: entriesData }, { data: prizesData }] = await Promise.all(
-          [
-            supabase
-              .from("entries")
-              .select("created_at, is_winner")
-              .eq("organization_id", organization.id),
-            supabase
-              .from("prizes")
-              .select("id, name, campaign_id, quantity, quantity_won")
-              .eq("organization_id", organization.id)
-              .eq("is_active", true),
-          ],
-        );
+        if (cancelled) return;
 
-        // Compute hourly buckets
+        const rawEntries = entriesData ?? [];
+        const rawCampaigns = campaignsData ?? [];
+        const rawPrizes = prizesData ?? [];
+
+        // Hourly buckets tracker
         const HOURLY_BUCKETS = [
           { start: 0, end: 4, label: "00:00 - 04:00 (Night pulse)" },
           { start: 4, end: 8, label: "04:00 - 08:00 (Morning)" },
@@ -135,7 +153,13 @@ export function useAnalytics() {
         const dailyMap: Record<string, { entries: number; winners: number }> =
           {};
 
-        for (const entry of entriesData ?? []) {
+        // Fallback Carrier tracker
+        let mobilisCount = 0;
+        let djezzyCount = 0;
+        let ooredooCount = 0;
+        let otherCarrierCount = 0;
+
+        for (const entry of rawEntries) {
           if (entry.created_at) {
             const d = new Date(entry.created_at);
             const hour = d.getHours();
@@ -149,6 +173,17 @@ export function useAnalytics() {
             dailyMap[dateStr] ??= { entries: 0, winners: 0 };
             dailyMap[dateStr].entries += 1;
             if (entry.is_winner) dailyMap[dateStr].winners += 1;
+          }
+
+          const phone = entry.phone_number ?? "";
+          if (phone.startsWith("06") || phone.startsWith("2136")) {
+            mobilisCount++;
+          } else if (phone.startsWith("07") || phone.startsWith("2137")) {
+            djezzyCount++;
+          } else if (phone.startsWith("05") || phone.startsWith("2135")) {
+            ooredooCount++;
+          } else {
+            otherCarrierCount++;
           }
         }
 
@@ -178,35 +213,124 @@ export function useAnalytics() {
             };
           });
 
-        const prizeBurnRate: PrizeBurnRateItem[] = (prizesData ?? []).map(
-          (p) => {
-            const qty = Number(p.quantity ?? 0);
-            const won = Number(p.quantity_won ?? 0);
-            const burnRate =
-              qty > 0 ? Number(((won / qty) * 100).toFixed(1)) : 0;
+        const prizeBurnRate: PrizeBurnRateItem[] = rawPrizes.map((p) => {
+          const qty = Number(p.quantity ?? 0);
+          const won = Number(p.quantity_won ?? 0);
+          const burnRate = qty > 0 ? Number(((won / qty) * 100).toFixed(1)) : 0;
+          return {
+            id: p.id,
+            name: p.name,
+            campaign_id: p.campaign_id,
+            quantity: qty,
+            quantity_won: won,
+            remaining: Math.max(0, qty - won),
+            burn_rate_percentage: burnRate,
+          };
+        });
+
+        const totalEntriesFallback = rawEntries.length;
+        const totalWinsFallback = rawEntries.filter((e) => e.is_winner).length;
+        const totalPhoneEntriesFallback =
+          mobilisCount + djezzyCount + ooredooCount + otherCarrierCount;
+
+        const fallbackCarriers: CarrierDistributionItem[] = [
+          {
+            name: "Mobilis (06)",
+            code: "mobilis",
+            count: mobilisCount,
+            percentage:
+              totalPhoneEntriesFallback > 0
+                ? Number(
+                    ((mobilisCount / totalPhoneEntriesFallback) * 100).toFixed(
+                      1,
+                    ),
+                  )
+                : 0,
+            color: "#059669",
+          },
+          {
+            name: "Djezzy (07)",
+            code: "djezzy",
+            count: djezzyCount,
+            percentage:
+              totalPhoneEntriesFallback > 0
+                ? Number(
+                    ((djezzyCount / totalPhoneEntriesFallback) * 100).toFixed(
+                      1,
+                    ),
+                  )
+                : 0,
+            color: "#DC2626",
+          },
+          {
+            name: "Ooredoo (05)",
+            code: "ooredoo",
+            count: ooredooCount,
+            percentage:
+              totalPhoneEntriesFallback > 0
+                ? Number(
+                    ((ooredooCount / totalPhoneEntriesFallback) * 100).toFixed(
+                      1,
+                    ),
+                  )
+                : 0,
+            color: "#2563EB",
+          },
+          {
+            name: "Other Networks",
+            code: "other",
+            count: otherCarrierCount,
+            percentage:
+              totalPhoneEntriesFallback > 0
+                ? Number(
+                    (
+                      (otherCarrierCount / totalPhoneEntriesFallback) *
+                      100
+                    ).toFixed(1),
+                  )
+                : 0,
+            color: "#64748B",
+          },
+        ];
+
+        const fallbackByCampaign: CampaignAnalytics[] = rawCampaigns.map(
+          (c) => {
+            const cEntries = rawEntries.filter((e) => e.campaign_id === c.id);
+            const cWins = cEntries.filter((e) => e.is_winner).length;
+            const cWinRate =
+              cEntries.length > 0
+                ? Number(((cWins / cEntries.length) * 100).toFixed(1))
+                : 0;
+
             return {
-              id: p.id,
-              name: p.name,
-              campaign_id: p.campaign_id,
-              quantity: qty,
-              quantity_won: won,
-              remaining: Math.max(0, qty - won),
-              burn_rate_percentage: burnRate,
+              campaign_id: c.id,
+              campaign_name: c.name,
+              status: c.status,
+              total_entries: cEntries.length,
+              total_winners: cWins,
+              win_rate: cWinRate,
+              quiz_pass_rate: 0,
+              coupon_confirmation_rate: 0,
             };
           },
         );
 
         const completeSummary: AnalyticsSummary = {
-          total_impressions: payload.total_impressions ?? 0,
-          total_entries: payload.total_entries ?? 0,
-          total_wins: payload.total_wins ?? 0,
-          game_play_rate: payload.game_play_rate ?? 0,
-          form_completion_rate: payload.form_completion_rate ?? 0,
-          win_rate: payload.win_rate ?? 0,
+          total_impressions: payload.total_impressions ?? totalEntriesFallback,
+          total_entries: payload.total_entries ?? totalEntriesFallback,
+          total_wins: payload.total_wins ?? totalWinsFallback,
+          game_play_rate: payload.game_play_rate ?? 100,
+          form_completion_rate: payload.form_completion_rate ?? 100,
+          win_rate:
+            payload.win_rate ??
+            (totalEntriesFallback > 0
+              ? Number(
+                  ((totalWinsFallback / totalEntriesFallback) * 100).toFixed(1),
+                )
+              : 0),
           avg_dwell_time_seconds: payload.avg_dwell_time_seconds ?? 0,
-          active_campaigns: (payload.by_campaign ?? []).filter(
-            (c) => c.status === "active",
-          ).length,
+          active_campaigns: rawCampaigns.filter((c) => c.status === "active")
+            .length,
           quiz_pass_rate: payload.quiz_pass_rate ?? 0,
           quiz_total: payload.quiz_total ?? 0,
           quiz_passed: payload.quiz_passed ?? 0,
@@ -219,11 +343,15 @@ export function useAnalytics() {
             desktop: 0,
             other: 0,
           },
-          carrier_distribution: payload.carrier_distribution ?? [],
+          carrier_distribution: payload.carrier_distribution?.length
+            ? payload.carrier_distribution
+            : fallbackCarriers,
           prize_burn_rate: payload.prize_burn_rate?.length
             ? payload.prize_burn_rate
             : prizeBurnRate,
-          by_campaign: payload.by_campaign ?? [],
+          by_campaign: payload.by_campaign?.length
+            ? payload.by_campaign
+            : fallbackByCampaign,
           hourly_distribution,
           daily_distribution,
         };
