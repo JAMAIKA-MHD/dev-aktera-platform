@@ -258,6 +258,37 @@ export default function PlayerFlowPage() {
     loadCampaign();
   }, [loadCampaign]);
 
+  // Active Dwell Time Counter Interval (Periodic heartbeats)
+  useEffect(() => {
+    if (!campaignId) return;
+
+    const interval = setInterval(() => {
+      const sessionId = sessionStorage.getItem("octoreach_session_id");
+      if (!sessionId) return;
+      const currentDwellSeconds = Math.max(
+        1,
+        Math.round((Date.now() - pageLoadTimeRef.current) / 1000),
+      );
+
+      void (async () => {
+        try {
+          await supabase.rpc("record_campaign_impression", {
+            p_campaign_id: campaignId,
+            p_session_id: sessionId,
+            p_user_agent: navigator.userAgent,
+            p_dwell_time_seconds: currentDwellSeconds,
+            p_game_played: false,
+            p_form_completed: false,
+          });
+        } catch {
+          // Silent catch for impression tracking
+        }
+      })();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [campaignId]);
+
   // Called by PlayerLanding when player submits the form
   const handleRegister = async (data: PlayerData) => {
     setPlayerData(data);

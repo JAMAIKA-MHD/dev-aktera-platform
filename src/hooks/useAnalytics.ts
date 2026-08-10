@@ -61,6 +61,10 @@ export interface AnalyticsSummary {
   win_rate: number;
   avg_dwell_time_seconds: number;
   active_campaigns: number;
+  unique_users_count: number;
+  repeat_users_count: number;
+  avg_participations_per_user: number;
+  max_user_participations: number;
   quiz_pass_rate: number;
   quiz_total: number;
   quiz_passed: number;
@@ -75,7 +79,7 @@ export interface AnalyticsSummary {
   daily_distribution: DailyDistributionItem[];
 }
 
-export function useAnalytics() {
+export function useAnalytics(selectedCampaignId?: string) {
   const { organization } = useAuth();
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,11 +99,18 @@ export function useAnalytics() {
     const fetchAnalytics = async () => {
       try {
         let payload: Partial<AnalyticsSummary> = {};
+        const targetCampId =
+          selectedCampaignId === "all" || !selectedCampaignId
+            ? null
+            : selectedCampaignId;
 
         // 1. Try PostgreSQL Analytics RPC
         const { data: rpcData, error: rpcError } = await supabase.rpc(
           "get_campaign_analytics_v2",
-          { p_organization_id: organization.id },
+          {
+            p_organization_id: organization.id,
+            p_campaign_id: targetCampId,
+          },
         );
 
         if (!rpcError && rpcData) {
@@ -108,7 +119,25 @@ export function useAnalytics() {
 
         if (cancelled) return;
 
-        // 2. Fetch raw tables for fallback calculations
+        // 2. Fetch raw tables for fallback & timeline calculations
+        let entriesQuery = supabase
+          .from("entries")
+          .select(
+            "id, campaign_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, created_at",
+          )
+          .eq("organization_id", organization.id);
+
+        let prizesQuery = supabase
+          .from("prizes")
+          .select("id, name, campaign_id, quantity, quantity_won")
+          .eq("organization_id", organization.id)
+          .eq("is_active", true);
+
+        if (targetCampId) {
+          entriesQuery = entriesQuery.eq("campaign_id", targetCampId);
+          prizesQuery = prizesQuery.eq("campaign_id", targetCampId);
+        }
+
         const [
           { data: campaignsData },
           { data: entriesData },
@@ -119,17 +148,8 @@ export function useAnalytics() {
             .select("id, name, status")
             .eq("organization_id", organization.id)
             .neq("status", "archived"),
-          supabase
-            .from("entries")
-            .select(
-              "id, campaign_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, created_at",
-            )
-            .eq("organization_id", organization.id),
-          supabase
-            .from("prizes")
-            .select("id, name, campaign_id, quantity, quantity_won")
-            .eq("organization_id", organization.id)
-            .eq("is_active", true),
+          entriesQuery,
+          prizesQuery,
         ]);
 
         if (cancelled) return;
@@ -153,11 +173,13 @@ export function useAnalytics() {
         const dailyMap: Record<string, { entries: number; winners: number }> =
           {};
 
-        // Fallback Carrier tracker
+        // Fallback Carrier & User repeat tracker
         let mobilisCount = 0;
         let djezzyCount = 0;
         let ooredooCount = 0;
         let otherCarrierCount = 0;
+
+        const phoneMap: Record<string, number> = {};
 
         for (const entry of rawEntries) {
           if (entry.created_at) {
@@ -175,17 +197,34 @@ export function useAnalytics() {
             if (entry.is_winner) dailyMap[dateStr].winners += 1;
           }
 
-          const phone = entry.phone_number ?? "";
-          if (phone.startsWith("06") || phone.startsWith("2136")) {
-            mobilisCount++;
-          } else if (phone.startsWith("07") || phone.startsWith("2137")) {
-            djezzyCount++;
-          } else if (phone.startsWith("05") || phone.startsWith("2135")) {
-            ooredooCount++;
-          } else {
-            otherCarrierCount++;
+          const phone = (entry.phone_number ?? "").trim();
+          if (phone) {
+            phoneMap[phone] = (phoneMap[phone] ?? 0) + 1;
+            if (phone.startsWith("06") || phone.startsWith("2136")) {
+              mobilisCount++;
+            } else if (phone.startsWith("07") || phone.startsWith("2137")) {
+              djezzyCount++;
+            } else if (phone.startsWith("05") || phone.startsWith("2135")) {
+              ooredooCount++;
+            } else {
+              otherCarrierCount++;
+            }
           }
         }
+
+        const uniquePhones = Object.keys(phoneMap);
+        const uniqueUsersFallback = uniquePhones.length;
+        const repeatUsersFallback = uniquePhones.filter(
+          (p) => phoneMap[p] > 1,
+        ).length;
+        const maxUserEntriesFallback = uniquePhones.reduce(
+          (max, p) => Math.max(max, phoneMap[p]),
+          0,
+        );
+        const avgParticipationsFallback =
+          uniqueUsersFallback > 0
+            ? Number((rawEntries.length / uniqueUsersFallback).toFixed(2))
+            : 0;
 
         const hourly_distribution: HourlyDistributionItem[] =
           HOURLY_BUCKETS.map((b, idx) => ({
@@ -331,6 +370,12 @@ export function useAnalytics() {
           avg_dwell_time_seconds: payload.avg_dwell_time_seconds ?? 0,
           active_campaigns: rawCampaigns.filter((c) => c.status === "active")
             .length,
+          unique_users_count: payload.unique_users_count ?? uniqueUsersFallback,
+          repeat_users_count: payload.repeat_users_count ?? repeatUsersFallback,
+          avg_participations_per_user:
+            payload.avg_participations_per_user ?? avgParticipationsFallback,
+          max_user_participations:
+            payload.max_user_participations ?? maxUserEntriesFallback,
           quiz_pass_rate: payload.quiz_pass_rate ?? 0,
           quiz_total: payload.quiz_total ?? 0,
           quiz_passed: payload.quiz_passed ?? 0,
@@ -376,7 +421,7 @@ export function useAnalytics() {
     return () => {
       cancelled = true;
     };
-  }, [organization]);
+  }, [organization, selectedCampaignId]);
 
   return { analytics, loading, error };
 }

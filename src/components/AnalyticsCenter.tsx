@@ -1,7 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
 import {
-  Award,
-  BarChart3,
   Download,
   FileSpreadsheet,
   TrendingUp,
@@ -12,8 +10,8 @@ import {
   Check,
   AlertTriangle,
   Clock,
-  Smartphone,
   Sparkles,
+  Repeat,
 } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,10 +31,20 @@ import {
   parseExcelFile,
 } from "../lib/exportUtils";
 
+const formatDwellTime = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return "0s";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+};
+
 export const AnalyticsCenter: React.FC = () => {
   const { organization } = useAuth();
-  const { analytics, loading, error } = useAnalytics();
   const [selectedCampId, setSelectedCampId] = useState<string>("all");
+
+  // Pass selectedCampId into useAnalytics hook to trigger instant dynamic filtering
+  const { analytics, loading, error } = useAnalytics(selectedCampId);
   const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("xlsx");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -164,7 +172,9 @@ export const AnalyticsCenter: React.FC = () => {
       "Game Play Rate (%)": `${analytics.game_play_rate}%`,
       "Form Completion Rate (%)": `${analytics.form_completion_rate}%`,
       "Win Rate (%)": `${row.win_rate}%`,
-      "Avg Dwell Time (s)": `${analytics.avg_dwell_time_seconds}s`,
+      "Avg Dwell Time": formatDwellTime(analytics.avg_dwell_time_seconds),
+      "Repeat Users Count": analytics.repeat_users_count,
+      "Avg Participations / User": analytics.avg_participations_per_user,
       "Quiz Pass Rate (%)": `${row.quiz_pass_rate}%`,
       "Coupon Confirmation Rate (%)": `${row.coupon_confirmation_rate}%`,
     }));
@@ -221,7 +231,7 @@ export const AnalyticsCenter: React.FC = () => {
           <select
             value={selectedCampId}
             onChange={(e) => setSelectedCampId(e.target.value)}
-            className="bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-4 py-2 text-xs text-slate-800 focus:outline-none min-h-11 shadow-sm cursor-pointer font-sans"
+            className="bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-4 py-2 text-xs text-slate-800 focus:outline-none min-h-11 shadow-sm cursor-pointer font-sans font-bold"
           >
             <option value="all">All Campaigns Combined</option>
             {analytics.by_campaign.map((campaign) => (
@@ -305,7 +315,7 @@ export const AnalyticsCenter: React.FC = () => {
       )}
 
       {/* Primary Business KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[
           {
             title: "Total Visitors / Impressions",
@@ -330,26 +340,37 @@ export const AnalyticsCenter: React.FC = () => {
           },
           {
             title: "Dwell Time (Brand Attention)",
-            value: `${analytics.avg_dwell_time_seconds}s`,
-            desc: "Average time spent on campaign page",
+            value: formatDwellTime(analytics.avg_dwell_time_seconds),
+            desc: "Time spent on campaign landing screen",
             icon: Clock,
             color: "text-amber-600",
+          },
+          {
+            title: "Repeat User Participations",
+            value: `${analytics.repeat_users_count}`,
+            desc: `${analytics.avg_participations_per_user} avg plays/user (Max ${analytics.max_user_participations})`,
+            icon: Repeat,
+            color: "text-purple-600",
           },
         ].map((stat) => (
           <div
             key={stat.title}
-            className="bg-white border border-slate-200 shadow-sm rounded-[24px] p-5"
+            className="bg-white border border-slate-200 shadow-sm rounded-[24px] p-4.5 flex flex-col justify-between"
           >
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest">
+              <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest leading-tight">
                 {stat.title}
               </span>
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <stat.icon className={`w-4 h-4 ${stat.color} flex-shrink-0`} />
             </div>
-            <h4 className="text-3xl font-extrabold mt-3 mb-1 text-slate-900">
-              {stat.value}
-            </h4>
-            <p className="text-[11px] text-slate-500">{stat.desc}</p>
+            <div>
+              <h4 className="text-2.5xl font-extrabold mt-2 mb-1 text-slate-900">
+                {stat.value}
+              </h4>
+              <p className="text-[10.5px] text-slate-500 leading-tight">
+                {stat.desc}
+              </p>
+            </div>
           </div>
         ))}
       </div>

@@ -178,6 +178,11 @@ DECLARE
   v_ooredoo_count bigint := 0;
   v_other_carrier_count bigint := 0;
   v_total_phone_entries bigint := 0;
+
+  v_unique_users_count bigint := 0;
+  v_repeat_users_count bigint := 0;
+  v_avg_participations_per_user numeric := 0;
+  v_max_user_participations bigint := 0;
 BEGIN
   -- Calculate impression counts and dwell times
   SELECT
@@ -276,9 +281,31 @@ BEGIN
   FROM public.entries e
   WHERE e.organization_id = p_organization_id
     AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id)
-    AND e.phone_number IS NOT NULL AND e.phone_number <> '';
-
   v_total_phone_entries := v_mobilis_count + v_djezzy_count + v_ooredoo_count + v_other_carrier_count;
+
+  -- Repeat user statistics
+  SELECT
+    coalesce(count(DISTINCT user_stats.phone_number), 0),
+    coalesce(count(*) FILTER (WHERE user_stats.cnt > 1), 0),
+    coalesce(max(user_stats.cnt), 0)
+  INTO
+    v_unique_users_count,
+    v_repeat_users_count,
+    v_max_user_participations
+  FROM (
+    SELECT phone_number, count(*) as cnt
+    FROM public.entries
+    WHERE organization_id = p_organization_id
+      AND (p_campaign_id IS NULL OR campaign_id = p_campaign_id)
+      AND phone_number IS NOT NULL AND phone_number <> ''
+    GROUP BY phone_number
+  ) user_stats;
+
+  IF v_unique_users_count > 0 THEN
+    v_avg_participations_per_user := round((v_total_entries::numeric / v_unique_users_count::numeric), 2);
+  ELSE
+    v_avg_participations_per_user := 0;
+  END IF;
 
   -- Build Prize Burn Rate list
   SELECT jsonb_agg(
@@ -358,6 +385,10 @@ BEGIN
     'form_completion_rate', v_form_completion_rate,
     'win_rate', v_win_rate,
     'avg_dwell_time_seconds', round(v_avg_dwell_time, 1),
+    'unique_users_count', v_unique_users_count,
+    'repeat_users_count', v_repeat_users_count,
+    'avg_participations_per_user', v_avg_participations_per_user,
+    'max_user_participations', v_max_user_participations,
     'quiz_pass_rate', v_quiz_pass_rate,
     'quiz_total', v_total_quizzes,
     'quiz_passed', v_passed_quizzes,
