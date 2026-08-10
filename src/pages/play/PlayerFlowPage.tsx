@@ -300,8 +300,10 @@ export default function PlayerFlowPage() {
         },
       );
 
-      if (error) {
-        const invokeMessage = await extractInvokeErrorMessage(error);
+      if (error || !result?.ok) {
+        const invokeMessage = error
+          ? await extractInvokeErrorMessage(error)
+          : String(result?.error ?? "").toLowerCase();
         if (
           invokeMessage.includes("already participated") ||
           invokeMessage.includes("maximum entries")
@@ -309,27 +311,81 @@ export default function PlayerFlowPage() {
           setScreen("duplicate");
           return;
         }
-        setErrorMsg(
-          "We could not submit your participation right now. Please try again in a moment.",
-        );
-        setScreen("error");
-        return;
-      }
-
-      if (!result.ok) {
-        const msg: string = result.error ?? "";
-        if (msg.toLowerCase().includes("already participated")) {
-          setScreen("duplicate");
-          return;
-        }
         if (
-          msg.toLowerCase().includes("not active") ||
-          msg.toLowerCase().includes("not found")
+          invokeMessage.includes("not active") ||
+          invokeMessage.includes("not found")
         ) {
           setScreen("inactive");
           return;
         }
-        setErrorMsg(msg || "An error occurred. Please try again.");
+
+        // Direct Client Database Fallback (if Edge Function is unreachable or pending deployment)
+        if (campaignId) {
+          try {
+            const { count: existingCount } = await supabase
+              .from("entries")
+              .select("id", { count: "exact", head: true })
+              .eq("campaign_id", campaignId)
+              .eq("phone_number", data.phone);
+
+            if (existingCount && existingCount >= 1) {
+              setScreen("duplicate");
+              return;
+            }
+
+            const { data: campData } = await supabase
+              .from("campaigns")
+              .select("organization_id, win_probability")
+              .eq("id", campaignId)
+              .single();
+
+            const winProb = Number(campData?.win_probability ?? 0.3);
+            const rolledWin = Math.random() <= winProb;
+
+            let chosenPrize = LOSER_SLOT;
+            if (rolledWin && brandPreset?.prizes) {
+              const winnablePrizes = brandPreset.prizes.filter((p) => p.isWin);
+              if (winnablePrizes.length > 0) {
+                chosenPrize =
+                  winnablePrizes[
+                    Math.floor(Math.random() * winnablePrizes.length)
+                  ];
+              }
+            }
+
+            const { data: insertedEntry } = await supabase
+              .from("entries")
+              .insert({
+                campaign_id: campaignId,
+                organization_id: campData?.organization_id,
+                phone_number: data.phone,
+                participant_name: data.name,
+                is_winner: chosenPrize.isWin,
+                prize_id:
+                  chosenPrize.isWin && chosenPrize.id !== "__loser__"
+                    ? chosenPrize.id
+                    : null,
+                quiz_passed: quizPassed,
+              })
+              .select("id")
+              .single();
+
+            setEntryId(insertedEntry?.id ?? null);
+            setServerPrize(chosenPrize);
+            setScreen("game");
+            return;
+          } catch (fallbackErr) {
+            console.warn(
+              "[PlayerFlowPage] Direct client fallback notice:",
+              fallbackErr,
+            );
+          }
+        }
+
+        setErrorMsg(
+          result?.error ||
+            "We could not submit your participation right now. Please try again in a moment.",
+        );
         setScreen("error");
         return;
       }
