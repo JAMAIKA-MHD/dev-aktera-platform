@@ -52,6 +52,20 @@ export interface PrizeBurnRateItem {
   burn_rate_percentage: number;
 }
 
+export interface PlayerParticipantEntry {
+  id: string;
+  campaign_id: string;
+  phone_number: string;
+  participant_name: string | null;
+  is_winner: boolean;
+  prize_name: string | null;
+  quiz_passed: boolean | null;
+  coupon_confirmed: boolean | null;
+  redeemed_coupon_value: string | null;
+  dwell_time_seconds: number;
+  created_at: string;
+}
+
 export interface AnalyticsSummary {
   total_impressions: number;
   total_entries: number;
@@ -75,6 +89,7 @@ export interface AnalyticsSummary {
   carrier_distribution: CarrierDistributionItem[];
   prize_burn_rate: PrizeBurnRateItem[];
   by_campaign: CampaignAnalytics[];
+  participants: PlayerParticipantEntry[];
   hourly_distribution: HourlyDistributionItem[];
   daily_distribution: DailyDistributionItem[];
 }
@@ -119,13 +134,14 @@ export function useAnalytics(selectedCampaignId?: string) {
 
         if (cancelled) return;
 
-        // 2. Fetch raw tables for fallback & timeline calculations
+        // 2. Fetch raw tables for fallback, participants, & timeline calculations
         let entriesQuery = supabase
           .from("entries")
           .select(
-            "id, campaign_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, created_at",
+            "id, campaign_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, participant_name, dwell_time_seconds, created_at, prizes(name)",
           )
-          .eq("organization_id", organization.id);
+          .eq("organization_id", organization.id)
+          .order("created_at", { ascending: false });
 
         let prizesQuery = supabase
           .from("prizes")
@@ -157,6 +173,25 @@ export function useAnalytics(selectedCampaignId?: string) {
         const rawEntries = entriesData ?? [];
         const rawCampaigns = campaignsData ?? [];
         const rawPrizes = prizesData ?? [];
+
+        // Build detailed participants list
+        const participants: PlayerParticipantEntry[] = rawEntries.map(
+          (e: any) => ({
+            id: e.id,
+            campaign_id: e.campaign_id,
+            phone_number: e.phone_number ?? "N/A",
+            participant_name: e.participant_name ?? null,
+            is_winner: !!e.is_winner,
+            prize_name: Array.isArray(e.prizes)
+              ? (e.prizes[0]?.name ?? null)
+              : (e.prizes?.name ?? (e.is_winner ? "Winning Prize" : null)),
+            quiz_passed: e.quiz_passed,
+            coupon_confirmed: e.coupon_confirmed,
+            redeemed_coupon_value: e.redeemed_coupon_value,
+            dwell_time_seconds: Number(e.dwell_time_seconds ?? 0),
+            created_at: e.created_at,
+          }),
+        );
 
         // Hourly buckets tracker
         const HOURLY_BUCKETS = [
@@ -397,6 +432,7 @@ export function useAnalytics(selectedCampaignId?: string) {
           by_campaign: payload.by_campaign?.length
             ? payload.by_campaign
             : fallbackByCampaign,
+          participants,
           hourly_distribution,
           daily_distribution,
         };

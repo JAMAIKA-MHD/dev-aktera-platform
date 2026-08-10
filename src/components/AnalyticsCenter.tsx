@@ -12,6 +12,7 @@ import {
   Clock,
   Sparkles,
   Repeat,
+  Trophy,
 } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
@@ -52,6 +53,14 @@ export const AnalyticsCenter: React.FC = () => {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
+  const selectedCampaign = useMemo(
+    () =>
+      analytics?.by_campaign.find(
+        (campaign) => campaign.campaign_id === selectedCampId,
+      ) ?? null,
+    [analytics, selectedCampId],
+  );
+
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !organization) return;
@@ -77,7 +86,7 @@ export const AnalyticsCenter: React.FC = () => {
 
       if (!targetCampId) {
         throw new Error(
-          "Please create at least one campaign before importing participant entries.",
+          "Please select or create at least one campaign before importing participant entries.",
         );
       }
 
@@ -131,7 +140,9 @@ export const AnalyticsCenter: React.FC = () => {
       if (insertErr) throw insertErr;
 
       setImportSuccess(
-        `Successfully imported ${newEntries.length} participant entries into database!`,
+        `Successfully imported ${newEntries.length} participant entries into ${
+          selectedCampaign?.campaign_name ?? "campaign"
+        }!`,
       );
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
@@ -146,54 +157,82 @@ export const AnalyticsCenter: React.FC = () => {
     }
   };
 
-  const selectedCampaign = useMemo(
-    () =>
-      analytics?.by_campaign.find(
-        (campaign) => campaign.campaign_id === selectedCampId,
-      ) ?? null,
-    [analytics, selectedCampId],
-  );
-
   const handleExportData = () => {
     if (!analytics) return;
 
-    const rowsToExport =
-      selectedCampId === "all"
-        ? analytics.by_campaign
-        : selectedCampaign
-          ? [selectedCampaign]
-          : [];
+    if (selectedCampId === "all") {
+      // Export Overview of All Campaigns
+      const formattedRows = analytics.by_campaign.map((row) => ({
+        "Campaign Name": row.campaign_name,
+        Status: row.status,
+        "Total Visitors / Impressions": analytics.total_impressions,
+        "Total Entries": row.total_entries,
+        "Total Winners": row.total_winners,
+        "Win Rate (%)": `${row.win_rate}%`,
+        "Game Play Rate (%)": `${analytics.game_play_rate}%`,
+        "Form Completion Rate (%)": `${analytics.form_completion_rate}%`,
+        "Avg Dwell Time": formatDwellTime(analytics.avg_dwell_time_seconds),
+        "Repeat Users Count": analytics.repeat_users_count,
+        "Avg Participations / User": analytics.avg_participations_per_user,
+        "Quiz Pass Rate (%)": `${row.quiz_pass_rate}%`,
+        "Coupon Confirmation Rate (%)": `${row.coupon_confirmation_rate}%`,
+      }));
 
-    const formattedRows = rowsToExport.map((row) => ({
-      "Campaign Name": row.campaign_name,
-      "Total Visitors / Impressions": analytics.total_impressions,
-      "Total Entries": row.total_entries,
-      "Total Winners": row.total_winners,
-      "Game Play Rate (%)": `${analytics.game_play_rate}%`,
-      "Form Completion Rate (%)": `${analytics.form_completion_rate}%`,
-      "Win Rate (%)": `${row.win_rate}%`,
-      "Avg Dwell Time": formatDwellTime(analytics.avg_dwell_time_seconds),
-      "Repeat Users Count": analytics.repeat_users_count,
-      "Avg Participations / User": analytics.avg_participations_per_user,
-      "Quiz Pass Rate (%)": `${row.quiz_pass_rate}%`,
-      "Coupon Confirmation Rate (%)": `${row.coupon_confirmation_rate}%`,
-    }));
+      const filename = `octoreach_all_campaigns_${
+        new Date().toISOString().split("T")[0]
+      }`;
 
-    const filename = `octoreach_analytics_${selectedCampId}_${
-      new Date().toISOString().split("T")[0]
-    }`;
-
-    if (exportFormat === "xlsx") {
-      exportToExcel(
-        formattedRows as unknown as Record<string, unknown>[],
-        filename,
-        "Campaign Business Analytics",
-      );
+      if (exportFormat === "xlsx") {
+        exportToExcel(
+          formattedRows as unknown as Record<string, unknown>[],
+          filename,
+          "All Campaigns Performance",
+        );
+      } else {
+        exportToCSV(
+          formattedRows as unknown as Record<string, unknown>[],
+          filename,
+        );
+      }
     } else {
-      exportToCSV(
-        formattedRows as unknown as Record<string, unknown>[],
-        filename,
-      );
+      // Export Detailed Player Participants List for Selected Campaign
+      const campName = selectedCampaign?.campaign_name ?? selectedCampId;
+      const formattedRows = analytics.participants.map((p) => ({
+        "Participant Name": p.participant_name || "Anonymous Player",
+        "Phone Number": p.phone_number,
+        "Game Outcome": p.is_winner ? "WINNER" : "NO WIN",
+        "Prize Awarded": p.is_winner
+          ? p.prize_name || "Winning Reward"
+          : "None",
+        "Time Spent in Game": formatDwellTime(p.dwell_time_seconds),
+        "Dwell Time (seconds)": p.dwell_time_seconds,
+        "Quiz Status":
+          p.quiz_passed === true
+            ? "Passed"
+            : p.quiz_passed === false
+              ? "Failed"
+              : "N/A",
+        "Coupon Code": p.redeemed_coupon_value || "N/A",
+        "Coupon Confirmed": p.coupon_confirmed ? "Yes" : "No",
+        "Date Submitted": new Date(p.created_at).toLocaleString(),
+      }));
+
+      const filename = `octoreach_players_${campName.replace(/\s+/g, "_")}_${
+        new Date().toISOString().split("T")[0]
+      }`;
+
+      if (exportFormat === "xlsx") {
+        exportToExcel(
+          formattedRows as unknown as Record<string, unknown>[],
+          filename,
+          `${campName} Players`,
+        );
+      } else {
+        exportToCSV(
+          formattedRows as unknown as Record<string, unknown>[],
+          filename,
+        );
+      }
     }
   };
 
@@ -215,8 +254,8 @@ export const AnalyticsCenter: React.FC = () => {
 
   return (
     <div id="analytics-center-root" className="space-y-6 text-slate-800">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6">
+      {/* Header with Fail-Safe Wrapping Layout */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 border-b border-slate-200 pb-6">
         <div>
           <h2 className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
             <span>Campaign Business Analytics Desk</span>
@@ -227,11 +266,12 @@ export const AnalyticsCenter: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        {/* Action Controls Box — Wrapped properly to prevent UI frame overflow */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto max-w-full">
           <select
             value={selectedCampId}
             onChange={(e) => setSelectedCampId(e.target.value)}
-            className="bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-4 py-2 text-xs text-slate-800 focus:outline-none min-h-11 shadow-sm cursor-pointer font-sans font-bold"
+            className="bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none min-h-11 shadow-sm cursor-pointer font-sans font-bold flex-shrink-0"
           >
             <option value="all">All Campaigns Combined</option>
             {analytics.by_campaign.map((campaign) => (
@@ -241,7 +281,7 @@ export const AnalyticsCenter: React.FC = () => {
             ))}
           </select>
 
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60 flex-shrink-0">
             <button
               onClick={() => setExportFormat("xlsx")}
               className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
@@ -275,7 +315,7 @@ export const AnalyticsCenter: React.FC = () => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm flex-shrink-0 disabled:opacity-60"
+            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm flex-shrink-0 disabled:opacity-60"
           >
             {importing ? (
               <div className="w-4 h-4 border-2 border-slate-600/30 border-t-slate-600 rounded-full animate-spin" />
@@ -287,14 +327,18 @@ export const AnalyticsCenter: React.FC = () => {
 
           <button
             onClick={handleExportData}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm flex-shrink-0"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm flex-shrink-0"
           >
             {exportFormat === "xlsx" ? (
               <FileSpreadsheet className="w-4 h-4" />
             ) : (
               <Download className="w-4 h-4" />
             )}
-            <span>Export Report</span>
+            <span>
+              {selectedCampId === "all"
+                ? "Export Overview"
+                : "Export Player List"}
+            </span>
           </button>
         </div>
       </div>
@@ -417,74 +461,189 @@ export const AnalyticsCenter: React.FC = () => {
         <PrizeBurnRateList prizes={analytics.prize_burn_rate} />
       </div>
 
-      {/* Live Table Performance Breakdown */}
+      {/* DYNAMIC PERFORMANCE TABLE: Switches based on Dropdown Selection */}
       <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="font-bold text-sm text-slate-900">
-              Campaign Performance Breakdown
+            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+              {selectedCampId === "all" ? (
+                <span>Campaign Performance Breakdown</span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-indigo-600" />
+                  Player Participants & Gameplay Times for{" "}
+                  <span className="text-indigo-600">
+                    {selectedCampaign?.campaign_name ?? selectedCampId}
+                  </span>
+                </span>
+              )}
             </h3>
             <p className="text-[10px] text-slate-500">
-              Aggregated directly by Supabase get_campaign_analytics_v2 RPC
-              procedure.
+              {selectedCampId === "all"
+                ? "Aggregated campaign metrics across all active campaigns."
+                : `Showing real-time player participations, game dwell times, and winning results for ${
+                    selectedCampaign?.campaign_name ?? selectedCampId
+                  }.`}
             </p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-slate-150 text-[10px] font-mono text-slate-400 uppercase">
-                <th className="pb-3 pl-1 text-left font-semibold">Campaign</th>
-                <th className="pb-3 text-center font-semibold">Status</th>
-                <th className="pb-3 text-center font-semibold">Entries</th>
-                <th className="pb-3 text-center font-semibold">Winners</th>
-                <th className="pb-3 text-center font-semibold">Win Rate</th>
-                <th className="pb-3 text-center font-semibold">Quiz Pass %</th>
-                <th className="pb-3 text-right font-semibold">
-                  Coupon Claim %
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-              {analytics.by_campaign.map((row) => (
-                <tr
-                  key={row.campaign_id}
-                  className="hover:bg-slate-50/60 transition-all"
-                >
-                  <td className="py-3.5 pl-1 font-bold text-slate-800">
-                    {row.campaign_name}
-                  </td>
-                  <td className="py-3.5 text-center">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                        row.status === "active"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 text-center font-mono text-slate-700">
-                    {row.total_entries}
-                  </td>
-                  <td className="py-3.5 text-center font-mono text-emerald-700 font-bold">
-                    {row.total_winners}
-                  </td>
-                  <td className="py-3.5 text-center font-mono text-slate-700">
-                    {row.win_rate}%
-                  </td>
-                  <td className="py-3.5 text-center font-mono text-slate-700">
-                    {row.quiz_pass_rate}%
-                  </td>
-                  <td className="py-3.5 text-right font-mono text-indigo-700 font-bold">
-                    {row.coupon_confirmation_rate}%
-                  </td>
+          {selectedCampId === "all" ? (
+            /* MODE A: All Campaigns Summary Breakdown Table */
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-150 text-[10px] font-mono text-slate-400 uppercase">
+                  <th className="pb-3 pl-1 text-left font-semibold">
+                    Campaign
+                  </th>
+                  <th className="pb-3 text-center font-semibold">Status</th>
+                  <th className="pb-3 text-center font-semibold">Entries</th>
+                  <th className="pb-3 text-center font-semibold">Winners</th>
+                  <th className="pb-3 text-center font-semibold">Win Rate</th>
+                  <th className="pb-3 text-center font-semibold">
+                    Quiz Pass %
+                  </th>
+                  <th className="pb-3 text-right font-semibold">
+                    Coupon Claim %
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
+                {analytics.by_campaign.map((row) => (
+                  <tr
+                    key={row.campaign_id}
+                    className="hover:bg-slate-50/60 transition-all cursor-pointer"
+                    onClick={() => setSelectedCampId(row.campaign_id)}
+                  >
+                    <td className="py-3.5 pl-1 font-bold text-slate-800">
+                      {row.campaign_name}
+                    </td>
+                    <td className="py-3.5 text-center">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                          row.status === "active"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-center font-mono text-slate-700">
+                      {row.total_entries}
+                    </td>
+                    <td className="py-3.5 text-center font-mono text-emerald-700 font-bold">
+                      {row.total_winners}
+                    </td>
+                    <td className="py-3.5 text-center font-mono text-slate-700">
+                      {row.win_rate}%
+                    </td>
+                    <td className="py-3.5 text-center font-mono text-slate-700">
+                      {row.quiz_pass_rate}%
+                    </td>
+                    <td className="py-3.5 text-right font-mono text-indigo-700 font-bold">
+                      {row.coupon_confirmation_rate}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            /* MODE B: Specific Campaign Player Participants & Time Spent Table */
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-150 text-[10px] font-mono text-slate-400 uppercase">
+                  <th className="pb-3 pl-1 text-left font-semibold">
+                    Participant Name
+                  </th>
+                  <th className="pb-3 text-center font-semibold">
+                    Phone Number
+                  </th>
+                  <th className="pb-3 text-center font-semibold">
+                    Result / Prize
+                  </th>
+                  <th className="pb-3 text-center font-semibold">
+                    Time Spent in Game
+                  </th>
+                  <th className="pb-3 text-center font-semibold">
+                    Quiz Status
+                  </th>
+                  <th className="pb-3 text-center font-semibold">
+                    Coupon Code
+                  </th>
+                  <th className="pb-3 text-right font-semibold">
+                    Date Submitted
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
+                {analytics.participants.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-8 text-center text-slate-400 italic"
+                    >
+                      No player participations recorded yet for this campaign.
+                    </td>
+                  </tr>
+                ) : (
+                  analytics.participants.map((player) => (
+                    <tr
+                      key={player.id}
+                      className="hover:bg-slate-50/60 transition-all"
+                    >
+                      <td className="py-3.5 pl-1 font-bold text-slate-900">
+                        {player.participant_name || "Anonymous Player"}
+                      </td>
+                      <td className="py-3.5 text-center font-mono text-slate-700">
+                        {player.phone_number}
+                      </td>
+                      <td className="py-3.5 text-center">
+                        {player.is_winner ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                            🏆 {player.prize_name || "WINNER"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">
+                            No Win
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 text-center font-mono font-bold text-amber-600">
+                        {formatDwellTime(player.dwell_time_seconds)}
+                      </td>
+                      <td className="py-3.5 text-center font-mono">
+                        {player.quiz_passed === true ? (
+                          <span className="text-emerald-600 font-bold">
+                            Passed
+                          </span>
+                        ) : player.quiz_passed === false ? (
+                          <span className="text-red-500 font-bold">Failed</span>
+                        ) : (
+                          <span className="text-slate-400">N/A</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 text-center font-mono text-indigo-600 font-bold">
+                        {player.redeemed_coupon_value || "—"}
+                      </td>
+                      <td className="py-3.5 text-right font-mono text-slate-400 text-[11px]">
+                        {new Date(player.created_at).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
