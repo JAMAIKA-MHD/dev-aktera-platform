@@ -132,46 +132,47 @@ export function useAnalytics(selectedCampaignId?: string) {
           payload = rpcData as unknown as AnalyticsSummary;
         }
 
-        if (cancelled) return;
+        // 2. Fetch campaigns first to get campaign IDs
+        const { data: campaignsData } = await supabase
+          .from("campaigns")
+          .select("id, name, status")
+          .eq("organization_id", organization.id)
+          .neq("status", "archived");
 
-        // 2. Fetch raw tables for fallback, participants, & timeline calculations
+        const rawCampaigns = campaignsData ?? [];
+        const orgCampaignIds = rawCampaigns.map((c) => c.id);
+
+        // 3. Fetch raw tables for fallback, participants, & timeline calculations
         let entriesQuery = supabase
           .from("entries")
           .select(
             "id, campaign_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, participant_name, dwell_time_seconds, created_at, prizes(name)",
           )
-          .eq("organization_id", organization.id)
           .order("created_at", { ascending: false });
 
         let prizesQuery = supabase
           .from("prizes")
           .select("id, name, campaign_id, quantity, quantity_won")
-          .eq("organization_id", organization.id)
           .eq("is_active", true);
 
         if (targetCampId) {
           entriesQuery = entriesQuery.eq("campaign_id", targetCampId);
           prizesQuery = prizesQuery.eq("campaign_id", targetCampId);
+        } else if (orgCampaignIds.length > 0) {
+          entriesQuery = entriesQuery.in("campaign_id", orgCampaignIds);
+          prizesQuery = prizesQuery.in("campaign_id", orgCampaignIds);
+        } else {
+          entriesQuery = entriesQuery.eq("organization_id", organization.id);
+          prizesQuery = prizesQuery.eq("organization_id", organization.id);
         }
 
-        const [
-          { data: campaignsData },
-          { data: entriesData },
-          { data: prizesData },
-        ] = await Promise.all([
-          supabase
-            .from("campaigns")
-            .select("id, name, status")
-            .eq("organization_id", organization.id)
-            .neq("status", "archived"),
-          entriesQuery,
-          prizesQuery,
-        ]);
+        const [{ data: entriesData }, { data: prizesData }] = await Promise.all(
+          [entriesQuery, prizesQuery],
+        );
 
         if (cancelled) return;
 
         const rawEntries = entriesData ?? [];
-        const rawCampaigns = campaignsData ?? [];
         const rawPrizes = prizesData ?? [];
 
         // Build detailed participants list

@@ -206,10 +206,12 @@ BEGIN
     v_desktop_count,
     v_other_os_count
   FROM public.campaign_impressions ci
-  WHERE ci.organization_id = p_organization_id
-    AND (p_campaign_id IS NULL OR ci.campaign_id = p_campaign_id);
+  WHERE (ci.organization_id = p_organization_id OR ci.campaign_id IN (
+    SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
+  ))
+  AND (p_campaign_id IS NULL OR ci.campaign_id = p_campaign_id);
 
-  -- Calculate entry stats
+  -- Calculate entry stats (matching organization campaigns)
   SELECT
     coalesce(count(*), 0),
     coalesce(count(*) FILTER (WHERE is_winner = true), 0),
@@ -225,8 +227,27 @@ BEGIN
     v_total_coupons,
     v_confirmed_coupons
   FROM public.entries e
-  WHERE e.organization_id = p_organization_id
-    AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
+  WHERE (e.organization_id = p_organization_id OR e.campaign_id IN (
+    SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
+  ))
+  AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
+
+  -- Combine dwell time across impressions and entries
+  SELECT coalesce(avg(greatest(dwell_sec, 0)), 0)
+  INTO v_avg_dwell_time
+  FROM (
+    SELECT dwell_time_seconds as dwell_sec
+    FROM public.campaign_impressions
+    WHERE (organization_id = p_organization_id OR campaign_id IN (SELECT id FROM public.campaigns WHERE organization_id = p_organization_id))
+      AND (p_campaign_id IS NULL OR campaign_id = p_campaign_id)
+      AND dwell_time_seconds > 0
+    UNION ALL
+    SELECT dwell_time_seconds as dwell_sec
+    FROM public.entries
+    WHERE (organization_id = p_organization_id OR campaign_id IN (SELECT id FROM public.campaigns WHERE organization_id = p_organization_id))
+      AND (p_campaign_id IS NULL OR campaign_id = p_campaign_id)
+      AND dwell_time_seconds > 0
+  ) dwell_combined;
 
   -- Fallback for impressions if migration is newly deployed
   IF v_total_impressions < v_total_entries THEN
