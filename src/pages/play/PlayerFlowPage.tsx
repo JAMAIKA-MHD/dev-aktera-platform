@@ -403,6 +403,7 @@ export default function PlayerFlowPage() {
 
             setEntryId(insertedEntry?.id ?? null);
             setServerPrize(chosenPrize);
+            gameOpenTimeRef.current = Date.now();
             setScreen("game");
             return;
           } catch (fallbackErr) {
@@ -436,6 +437,7 @@ export default function PlayerFlowPage() {
 
       setEntryId(result.entry?.id ?? null);
       setServerPrize(resolvedPrize);
+      gameOpenTimeRef.current = Date.now();
       setScreen("game");
     } catch {
       setErrorMsg("Unexpected error. Please check your connection.");
@@ -448,8 +450,27 @@ export default function PlayerFlowPage() {
     await callSelectPrize(playerData, passed);
   };
 
+  const gameOpenTimeRef = React.useRef<number | null>(null);
+
   // Called after the spin animation finishes
   const handleGameComplete = (_prize: Prize) => {
+    const gameplayDwell = gameOpenTimeRef.current
+      ? Math.max(1, Math.round((Date.now() - gameOpenTimeRef.current) / 1000))
+      : Math.max(1, Math.round((Date.now() - pageLoadTimeRef.current) / 1000));
+
+    if (entryId) {
+      void (async () => {
+        try {
+          await supabase
+            .from("entries")
+            .update({ dwell_time_seconds: gameplayDwell })
+            .eq("id", entryId);
+        } catch {
+          // Silent catch for entry dwell time update
+        }
+      })();
+    }
+
     setScreen("result");
   };
 

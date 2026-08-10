@@ -466,6 +466,7 @@ serve(async (req) => {
         is_winner: isWinner,
         prize_id: selectedPrizeId,
         redeemed_coupon_value: couponCode,
+        dwell_time_seconds: dwell_time_seconds || 0,
         metadata: {
           ...metadata,
           server_timestamp: new Date().toISOString(),

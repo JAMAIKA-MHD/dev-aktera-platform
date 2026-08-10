@@ -33,6 +33,10 @@ CREATE INDEX IF NOT EXISTS idx_campaign_impressions_campaign ON public.campaign_
 CREATE INDEX IF NOT EXISTS idx_campaign_impressions_organization ON public.campaign_impressions (organization_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_impressions_created_at ON public.campaign_impressions (created_at DESC);
 
+-- Ensure entries table has dwell_time_seconds for per-user gameplay timing
+ALTER TABLE public.entries
+  ADD COLUMN IF NOT EXISTS dwell_time_seconds integer DEFAULT 0;
+
 -- Enable RLS
 ALTER TABLE public.campaign_impressions ENABLE ROW LEVEL SECURITY;
 
