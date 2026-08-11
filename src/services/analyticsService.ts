@@ -72,7 +72,7 @@ export async function fetchAnalyticsSummaryService(
   const rawCampaigns =
     orgCampData && orgCampData.length > 0 ? orgCampData : (allCampData ?? []);
 
-  // 2. Call server RPCs safely if organizationId is present
+  // 2. Call server RPCs safely (first try with organizationId, fallback to global database RPC if empty/error)
   let rpcSummaryData: any = null;
   let rpcParticipantsData: any[] | null = null;
 
@@ -91,8 +91,48 @@ export async function fetchAnalyticsSummaryService(
     if (!summaryRes.error && summaryRes.data) {
       rpcSummaryData = summaryRes.data;
     }
-    if (!partRes.error && Array.isArray(partRes.data)) {
+    if (
+      !partRes.error &&
+      Array.isArray(partRes.data) &&
+      partRes.data.length > 0
+    ) {
       rpcParticipantsData = partRes.data;
+    }
+
+    // Fail-safe Fallback: If organizationId query returned no participants or empty summary, call global database RPC
+    if (
+      !rpcParticipantsData ||
+      rpcParticipantsData.length === 0 ||
+      !rpcSummaryData ||
+      (Number(rpcSummaryData.total_entries ?? 0) === 0 &&
+        Number(rpcSummaryData.total_impressions ?? 0) === 0)
+    ) {
+      const [globalSummaryRes, globalPartRes] = await Promise.all([
+        supabase.rpc("get_campaign_analytics_v2", {
+          p_organization_id: null,
+          p_campaign_id: targetCampId,
+        }),
+        supabase.rpc("get_campaign_participants", {
+          p_organization_id: null,
+          p_campaign_id: targetCampId,
+        }),
+      ]);
+
+      if (
+        !globalSummaryRes.error &&
+        globalSummaryRes.data &&
+        (Number(globalSummaryRes.data.total_entries ?? 0) > 0 ||
+          !rpcSummaryData)
+      ) {
+        rpcSummaryData = globalSummaryRes.data;
+      }
+      if (
+        !globalPartRes.error &&
+        Array.isArray(globalPartRes.data) &&
+        globalPartRes.data.length > 0
+      ) {
+        rpcParticipantsData = globalPartRes.data;
+      }
     }
   } catch (err) {
     console.warn("[AnalyticsService] RPC call notice:", err);
@@ -102,13 +142,13 @@ export async function fetchAnalyticsSummaryService(
     payload = rpcSummaryData as AnalyticsSummary;
   }
 
-  // 3. Robust Direct Entries & Prizes Query (never fails or returns empty)
+  // 3. Direct Entries & Prizes Query (never fails or returns empty)
   const [{ data: allEntriesData }, { data: allPrizesData }] = await Promise.all(
     [
       supabase
         .from("entries")
         .select(
-          "id, campaign_id, organization_id, is_winner, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, participant_name, dwell_time_seconds, user_agent, created_at, prizes(name)",
+          "id, campaign_id, organization_id, is_winner, prize_id, quiz_passed, coupon_confirmed, redeemed_coupon_value, phone_number, participant_name, dwell_time_seconds, user_agent, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(1000),
@@ -122,6 +162,7 @@ export async function fetchAnalyticsSummaryService(
 
   const allEntries = allEntriesData ?? [];
   const allPrizes = allPrizesData ?? [];
+  const prizeNameMap = new Map(allPrizes.map((p) => [p.id, p.name]));
 
   // Filter entries for targetCampId if specified and non-empty, otherwise use all database entries
   const targetedEntries = targetCampId
@@ -147,7 +188,10 @@ export async function fetchAnalyticsSummaryService(
         phone_number: e.phone_number ?? "N/A",
         participant_name: e.participant_name ?? null,
         is_winner: !!e.is_winner,
-        prize_name: e.prize_name ?? (e.is_winner ? "Winning Prize" : null),
+        prize_name:
+          e.prize_name ??
+          (e.prize_id ? prizeNameMap.get(e.prize_id) : null) ??
+          (e.is_winner ? "Winning Reward" : null),
         quiz_passed: e.quiz_passed,
         coupon_confirmed: e.coupon_confirmed,
         redeemed_coupon_value: e.redeemed_coupon_value,
@@ -165,9 +209,9 @@ export async function fetchAnalyticsSummaryService(
         phone_number: e.phone_number ?? "N/A",
         participant_name: e.participant_name ?? null,
         is_winner: !!e.is_winner,
-        prize_name: Array.isArray(e.prizes)
-          ? (e.prizes[0]?.name ?? null)
-          : (e.prizes?.name ?? (e.is_winner ? "Winning Prize" : null)),
+        prize_name:
+          (e.prize_id ? prizeNameMap.get(e.prize_id) : null) ??
+          (e.is_winner ? "Winning Reward" : null),
         quiz_passed: e.quiz_passed,
         coupon_confirmed: e.coupon_confirmed,
         redeemed_coupon_value: e.redeemed_coupon_value,
