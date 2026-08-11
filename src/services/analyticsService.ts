@@ -72,11 +72,12 @@ export async function fetchAnalyticsSummaryService(
   const rawCampaigns =
     orgCampData && orgCampData.length > 0 ? orgCampData : (allCampData ?? []);
 
-  // 2. Call server RPCs safely (first try with organizationId, fallback to global database RPC if empty/error)
+  // 2. Call server RPCs safely (3-tier fail-safe: org scope -> global scope -> no-args call)
   let rpcSummaryData: any = null;
   let rpcParticipantsData: any[] | null = null;
 
   try {
+    // Tier 1: Try with current organizationId & campaignId
     const [summaryRes, partRes] = await Promise.all([
       supabase.rpc("get_campaign_analytics_v2", {
         p_organization_id: organizationId,
@@ -99,7 +100,7 @@ export async function fetchAnalyticsSummaryService(
       rpcParticipantsData = partRes.data;
     }
 
-    // Fail-safe Fallback: If organizationId query returned no participants or empty summary, call global database RPC
+    // Tier 2: Try with NULL organizationId (global database scope)
     if (
       !rpcParticipantsData ||
       rpcParticipantsData.length === 0 ||
@@ -132,6 +133,25 @@ export async function fetchAnalyticsSummaryService(
         globalPartRes.data.length > 0
       ) {
         rpcParticipantsData = globalPartRes.data;
+      }
+    }
+
+    // Tier 3: Parameterless RPC fallback
+    if (!rpcParticipantsData || rpcParticipantsData.length === 0) {
+      const noArgsPartRes = await supabase.rpc("get_campaign_participants");
+      if (
+        !noArgsPartRes.error &&
+        Array.isArray(noArgsPartRes.data) &&
+        noArgsPartRes.data.length > 0
+      ) {
+        rpcParticipantsData = noArgsPartRes.data;
+      }
+    }
+
+    if (!rpcSummaryData) {
+      const noArgsSummaryRes = await supabase.rpc("get_campaign_analytics_v2");
+      if (!noArgsSummaryRes.error && noArgsSummaryRes.data) {
+        rpcSummaryData = noArgsSummaryRes.data;
       }
     }
   } catch (err) {

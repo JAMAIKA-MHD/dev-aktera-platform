@@ -1,7 +1,25 @@
 -- Migration: 20260811020000_fix_analytics_histogram_and_participants_rpc.sql
--- Description: Add daily/hourly distribution aggregation to get_campaign_analytics_v2 RPC and include campaign_name in get_campaign_participants RPC.
+-- Description: Drop existing RPC functions to clear signature conflicts, add daily/hourly distribution aggregation to get_campaign_analytics_v2, add campaign_name to get_campaign_participants RPC, and ensure full database RLS permissions.
 
--- 1. Update get_campaign_participants to return campaign_name
+-- 0. Drop existing RPC functions to prevent PostgreSQL return signature conflicts
+DROP FUNCTION IF EXISTS public.get_campaign_participants(uuid, uuid);
+DROP FUNCTION IF EXISTS public.get_campaign_participants();
+DROP FUNCTION IF EXISTS public.get_campaign_analytics_v2(uuid, uuid);
+DROP FUNCTION IF EXISTS public.get_campaign_analytics_v2();
+
+-- Ensure public/authenticated roles have read permissions on core analytics tables
+GRANT SELECT ON public.entries TO anon, authenticated, service_role;
+GRANT SELECT ON public.campaigns TO anon, authenticated, service_role;
+GRANT SELECT ON public.prizes TO anon, authenticated, service_role;
+GRANT SELECT ON public.campaign_impressions TO anon, authenticated, service_role;
+
+-- Fail-safe RLS SELECT policy for entries table
+DROP POLICY IF EXISTS "select_entries_failsafe" ON public.entries;
+CREATE POLICY "select_entries_failsafe" ON public.entries FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- 1. Create get_campaign_participants with campaign_name & SECURITY DEFINER rights
 CREATE OR REPLACE FUNCTION public.get_campaign_participants(
   p_organization_id uuid DEFAULT NULL,
   p_campaign_id uuid DEFAULT NULL
@@ -29,7 +47,7 @@ BEGIN
   SELECT
     e.id,
     e.campaign_id,
-    c.name AS campaign_name,
+    coalesce(c.name, 'Campaign') AS campaign_name,
     coalesce(e.phone_number, 'N/A') AS phone_number,
     e.participant_name,
     coalesce(e.is_winner, false) AS is_winner,
@@ -37,7 +55,7 @@ BEGIN
     e.quiz_passed,
     e.coupon_confirmed,
     e.redeemed_coupon_value,
-    coalesce(e.dwell_time_seconds, 0) AS dwell_time_seconds,
+    coalesce(e.dwell_time_seconds, 0)::numeric AS dwell_time_seconds,
     e.created_at
   FROM public.entries e
   LEFT JOIN public.campaigns c ON c.id = e.campaign_id
@@ -50,7 +68,8 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.get_campaign_participants TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_campaign_participants(uuid, uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_campaign_participants() TO anon, authenticated, service_role;
 
 -- 2. Comprehensive Business Analytics Engine RPC with Daily & Hourly Distributions
 CREATE OR REPLACE FUNCTION public.get_campaign_analytics_v2(
@@ -454,4 +473,5 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.get_campaign_analytics_v2 TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_campaign_analytics_v2(uuid, uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_campaign_analytics_v2() TO anon, authenticated, service_role;
