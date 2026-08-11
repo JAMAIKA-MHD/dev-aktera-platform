@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Campaign, PrizeTemplate, LeadEntry, TabType } from "./types";
+import { Campaign, PrizeTemplate, TabType } from "./types";
 
 // B2B view subcomponents
 import { DashboardHome } from "./components/DashboardHome";
@@ -23,8 +23,17 @@ import { useAuth } from "./contexts/AuthContext";
 import { useCampaigns } from "./hooks/useCampaigns";
 import { usePrizeTemplates } from "./hooks/usePrizeTemplates";
 import { useEntries } from "./hooks/useEntries";
-import { supabase } from "./lib/supabase";
 import { toFriendlyErrorMessage } from "./lib/errorMessages";
+import {
+  addPrizeTemplateService,
+  updatePrizeTemplateService,
+  deletePrizeTemplateService,
+  updatePrizeTemplateStockService,
+  updateCampaignStatusService,
+  archiveCampaignService,
+  deleteCampaignService,
+  createOrUpdateCampaignFullService,
+} from "./services/campaignService";
 
 import {
   Flame,
@@ -107,24 +116,8 @@ export default function App() {
     if (!orgId)
       throw new Error("Organization not loaded. Please refresh the page.");
     setActionError(null);
-    // Parse numeric value from display string (e.g. "500 DA" → 500)
-    const numericValue =
-      parseFloat(newPrize.itemValue.replace(/[^\d.]/g, "")) || 0;
 
-    const { error } = await supabase.from("prize_templates").insert({
-      organization_id: orgId,
-      name: newPrize.name,
-      description: newPrize.description || null,
-      category: newPrize.category,
-      value: numericValue,
-      stock_quantity: newPrize.totalStock,
-      image_url: newPrize.image || null,
-    });
-
-    if (error) {
-      console.error("[handleAddPrize]", error);
-      throw new Error(error.message);
-    }
+    await addPrizeTemplateService(newPrize, orgId);
     refetchPrizes();
   };
 
@@ -147,26 +140,7 @@ export default function App() {
       );
     }
 
-    const numericValue =
-      parseFloat(updates.itemValue.replace(/[^\d.]/g, "")) || 0;
-
-    const { error } = await supabase
-      .from("prize_templates")
-      .update({
-        name: updates.name,
-        description: updates.description || null,
-        category: updates.category,
-        value: numericValue,
-        stock_quantity: updates.totalStock,
-        image_url: updates.image || null,
-      })
-      .eq("id", id);
-
-    if (error) {
-      console.error("[handleUpdatePrize]", error);
-      throw new Error(error.message);
-    }
-
+    await updatePrizeTemplateService(id, updates);
     refetchPrizes();
   };
 
@@ -186,15 +160,7 @@ export default function App() {
       );
     }
 
-    const { error } = await supabase
-      .from("prize_templates")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      console.error("[handleDeletePrize]", error);
-      throw new Error(error.message);
-    }
-
+    await deletePrizeTemplateService(id);
     refetchPrizes();
   };
 
@@ -213,11 +179,7 @@ export default function App() {
     }
 
     try {
-      const { error } = await supabase
-        .from("prize_templates")
-        .update({ stock_quantity: newTotal })
-        .eq("id", id);
-      if (error) throw error;
+      await updatePrizeTemplateStockService(id, newTotal);
       refetchPrizes();
     } catch (err) {
       const message = toFriendlyErrorMessage(err, "Failed to update stock.");
@@ -244,271 +206,17 @@ export default function App() {
     try {
       const submitStatus = newCamp.submitStatus ?? newCamp.status;
       const isPublishingUpdate =
-        submitStatus === "active" &&
-        (newCamp.mode === "update" ||
-          (newCamp.mode === "edit" && newCamp.parentCampaignId)) &&
-        Boolean(newCamp.parentCampaignId);
-      const resolvedSlug =
-        newCamp.slug || newCamp.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        newCamp.mode === "update" && submitStatus === "active";
 
-      const prizeAllocationByTemplate = new Map<string, number>();
-      for (const allocation of newCamp.prizes) {
-        if (!allocation.templateId) continue;
-        const current =
-          prizeAllocationByTemplate.get(allocation.templateId) ?? 0;
-        prizeAllocationByTemplate.set(
-          allocation.templateId,
-          current + allocation.quantity,
-        );
-      }
-
-      if (prizeAllocationByTemplate.size === 0) {
-        throw new Error(
-          "At least one reward allocation is required before saving this campaign.",
-        );
-      }
-
-      const existingDraftAllocations = new Map<string, number>();
-      if (newCamp.mode === "edit" && newCamp.id) {
-        const { data: existingDraftPrizes, error: existingDraftPrizesError } =
-          await supabase
-            .from("prizes")
-            .select("prize_template_id, quantity")
-            .eq("campaign_id", newCamp.id)
-            .eq("is_active", true);
-        if (existingDraftPrizesError) throw existingDraftPrizesError;
-
-        for (const draftPrize of existingDraftPrizes ?? []) {
-          const current =
-            existingDraftAllocations.get(draftPrize.prize_template_id) ?? 0;
-          existingDraftAllocations.set(
-            draftPrize.prize_template_id,
-            current + draftPrize.quantity,
-          );
-        }
-      }
-
-      for (const [
-        templateId,
-        requestedQuantity,
-      ] of prizeAllocationByTemplate.entries()) {
-        const template = prizes.find(
-          (prizeTemplate) => prizeTemplate.id === templateId,
-        );
-        if (!template) {
-          throw new Error(
-            "One of the selected reward templates is no longer available. Please refresh and retry.",
-          );
-        }
-
-        const editableExistingQuantity =
-          existingDraftAllocations.get(templateId) ?? 0;
-        const maxAllowedQuantity =
-          template.availableStock + editableExistingQuantity;
-        if (requestedQuantity > maxAllowedQuantity) {
-          throw new Error(
-            `Reward allocation exceeds available stock for "${template.name}". Requested ${requestedQuantity}, available ${maxAllowedQuantity}.`,
-          );
-        }
-      }
-
-      const slugConflictQuery = supabase
-        .from("campaigns")
-        .select("id, name")
-        .eq("organization_id", orgId)
-        .eq("slug", resolvedSlug)
-        .limit(1);
-      const { data: slugConflicts, error: slugConflictError } = newCamp.id
-        ? await slugConflictQuery.neq("id", newCamp.id)
-        : await slugConflictQuery;
-      if (slugConflictError) throw slugConflictError;
-      if ((slugConflicts?.length ?? 0) > 0) {
-        throw new Error(
-          `The portal slug "${resolvedSlug}" is already used by another campaign. Please choose a unique slug.`,
-        );
-      }
-
-      const campaignPayload = {
-        organization_id: orgId,
-        name: newCamp.name,
-        slug: resolvedSlug,
-        arabic_name: newCamp.arabicName || null,
-        hero_image_url: newCamp.heroImageUrl || null,
-        description: null,
-        status: isPublishingUpdate ? "draft" : submitStatus,
-        start_date: new Date(newCamp.startDate + "T00:00:00Z").toISOString(),
-        end_date: new Date(newCamp.endDate + "T23:59:59Z").toISOString(),
-        win_probability: newCamp.winProbability / 100,
-        max_entries:
-          newCamp.maxEntries === "2"
-            ? 2
-            : newCamp.maxEntries === "unlimited"
-              ? 0
-              : 1,
-        require_quiz: newCamp.type === "quiz",
-        require_phone: true,
-        source_campaign_id:
-          newCamp.mode === "update" ||
-          (newCamp.mode === "edit" && newCamp.parentCampaignId)
-            ? newCamp.parentCampaignId || null
-            : null,
-      };
-
-      const isEditingDraft = newCamp.mode === "edit" && Boolean(newCamp.id);
-
-      let camp: { id: string } | null = null;
-      let campErr: Error | null = null;
-
-      if (isEditingDraft && newCamp.id) {
-        const { data: existingCampaign, error: existingCampaignError } =
-          await supabase
-            .from("campaigns")
-            .select("id, status, source_campaign_id")
-            .eq("id", newCamp.id)
-            .single();
-
-        if (existingCampaignError) throw existingCampaignError;
-        if (!existingCampaign || existingCampaign.status !== "draft") {
-          throw new Error(
-            "Only draft campaigns can be edited directly right now.",
-          );
-        }
-
-        const primaryUpdatePayload = {
-          ...campaignPayload,
-          source_campaign_id:
-            newCamp.parentCampaignId ||
-            existingCampaign.source_campaign_id ||
-            null,
-        };
-
-        let updatedCampaign: { id: string } | null = null;
-        let updateError: Error | null = null;
-
-        const primaryUpdateResult = await supabase
-          .from("campaigns")
-          .update(primaryUpdatePayload)
-          .eq("id", newCamp.id)
-          .select()
-          .single();
-        updatedCampaign = primaryUpdateResult.data;
-        updateError = primaryUpdateResult.error;
-
-        camp = updatedCampaign;
-        campErr = updateError;
-
-        const { error: quizDeleteError } = await supabase
-          .from("quiz_questions")
-          .delete()
-          .eq("campaign_id", newCamp.id);
-        if (quizDeleteError) throw quizDeleteError;
-
-        const { error: prizeDeleteError } = await supabase
-          .from("prizes")
-          .delete()
-          .eq("campaign_id", newCamp.id);
-        if (prizeDeleteError) throw prizeDeleteError;
-      } else {
-        let insertedCampaign: { id: string } | null = null;
-        let insertError: Error | null = null;
-
-        const primaryInsertResult = await supabase
-          .from("campaigns")
-          .insert(campaignPayload)
-          .select()
-          .single();
-        insertedCampaign = primaryInsertResult.data;
-        insertError = primaryInsertResult.error;
-
-        camp = insertedCampaign;
-        campErr = insertError;
-      }
-
-      if (campErr) throw campErr;
-      if (!camp) throw new Error("Failed to save campaign.");
-
-      // 2. Insert prize rows + inventory rows
-      for (const ap of newCamp.prizes) {
-        const template = prizes.find((p) => p.id === ap.templateId);
-        if (!template) continue;
-
-        const { data: prize, error: prizeErr } = await supabase
-          .from("prizes")
-          .insert({
-            campaign_id: camp.id,
-            organization_id: orgId,
-            prize_template_id: ap.templateId,
-            name: template.name,
-            quantity: ap.quantity,
-            weight: ap.weight,
-            probability: 0,
-            is_active: true,
-          })
-          .select()
-          .single();
-
-        if (prizeErr) throw prizeErr;
-
-        const { error: invErr } = await supabase
-          .from("prize_inventory")
-          .insert({
-            prize_id: prize.id,
-            campaign_id: camp.id,
-            organization_id: orgId,
-            initial_quantity: ap.quantity,
-            remaining: ap.quantity,
-          });
-        if (invErr) throw invErr;
-      }
-
-      // 3. Insert quiz questions if quiz campaign
-      if (newCamp.type === "quiz") {
-        for (let i = 0; i < newCamp.questions.length; i++) {
-          const q = newCamp.questions[i];
-          const { error: qErr } = await supabase.from("quiz_questions").insert({
-            campaign_id: camp.id,
-            organization_id: orgId,
-            question: q.questionText,
-            options: q.options,
-            correct_option_index: q.correctIndex,
-            position: i + 1,
-            is_active: true,
-          });
-          if (qErr) throw qErr;
-        }
-      }
-
-      if (isPublishingUpdate && newCamp.parentCampaignId) {
-        const { data: sourceCampaign, error: sourceCampaignError } =
-          await supabase
-            .from("campaigns")
-            .select("id, status")
-            .eq("id", newCamp.parentCampaignId)
-            .single();
-        if (sourceCampaignError) throw sourceCampaignError;
-
-        const { error: archiveSourceError } = await supabase
-          .from("campaigns")
-          .update({ status: "archived" })
-          .eq("id", newCamp.parentCampaignId)
-          .in("status", ["active", "paused"]);
-        if (archiveSourceError) throw archiveSourceError;
-
-        const { error: activateTargetError } = await supabase
-          .from("campaigns")
-          .update({ status: "active" })
-          .eq("id", camp.id);
-
-        if (activateTargetError) {
-          const restoreStatus =
-            sourceCampaign.status === "paused" ? "paused" : "active";
-          await supabase
-            .from("campaigns")
-            .update({ status: restoreStatus })
-            .eq("id", sourceCampaign.id);
-          throw activateTargetError;
-        }
-      }
+      await createOrUpdateCampaignFullService(
+        {
+          orgId,
+          newCamp,
+          submitStatus,
+          isPublishingUpdate,
+        },
+        prizes,
+      );
 
       setRelaunchDraftCampaign(null);
       setEditingCampaign(null);
@@ -528,11 +236,7 @@ export default function App() {
     if (!camp) return;
     const nextStatus = camp.status === "active" ? "paused" : "active";
     try {
-      const { error } = await supabase
-        .from("campaigns")
-        .update({ status: nextStatus })
-        .eq("id", id);
-      if (error) throw error;
+      await updateCampaignStatusService(id, nextStatus);
       refetchCampaigns();
     } catch (err) {
       setActionError(
@@ -544,11 +248,7 @@ export default function App() {
   const handleArchiveCampaign = async (id: string) => {
     setActionError(null);
     try {
-      const { error } = await supabase
-        .from("campaigns")
-        .update({ status: "archived" })
-        .eq("id", id);
-      if (error) throw error;
+      await archiveCampaignService(id);
       refetchCampaigns();
     } catch (err) {
       setActionError(
@@ -572,42 +272,7 @@ export default function App() {
         throw new Error("Only draft or archived campaigns can be deleted.");
       }
 
-      const { count: participationCount, error: participationError } =
-        await supabase
-          .from("entries")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", id);
-      if (participationError) throw participationError;
-
-      if ((participationCount ?? 0) > 0) {
-        throw new Error(
-          "This campaign already has participant entries and cannot be deleted. Keep it archived for history.",
-        );
-      }
-
-      const { error: quizDeleteError } = await supabase
-        .from("quiz_questions")
-        .delete()
-        .eq("campaign_id", id);
-      if (quizDeleteError) throw quizDeleteError;
-
-      const { error: inventoryDeleteError } = await supabase
-        .from("prize_inventory")
-        .delete()
-        .eq("campaign_id", id);
-      if (inventoryDeleteError) throw inventoryDeleteError;
-
-      const { error: prizesDeleteError } = await supabase
-        .from("prizes")
-        .delete()
-        .eq("campaign_id", id);
-      if (prizesDeleteError) throw prizesDeleteError;
-
-      const { error: campaignDeleteError } = await supabase
-        .from("campaigns")
-        .delete()
-        .eq("id", id);
-      if (campaignDeleteError) throw campaignDeleteError;
+      await deleteCampaignService(id);
 
       if (selectedCampaignId === id) {
         setSelectedCampaignId(null);
@@ -937,6 +602,7 @@ export default function App() {
                     onToggleStatus={handleToggleCampaignStatus}
                     onArchive={handleArchiveCampaign}
                     onDelete={handleDeleteCampaign}
+                    onOpenAnalytics={handleOpenAnalyticsDesk}
                     onOpenWizard={() => handleSidebarNavigate("creator")}
                   />
                 )}
@@ -1005,7 +671,7 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <AnalyticsCenter />
+                <AnalyticsCenter initialCampaignId={selectedCampaignId} />
               </motion.div>
             )}
 

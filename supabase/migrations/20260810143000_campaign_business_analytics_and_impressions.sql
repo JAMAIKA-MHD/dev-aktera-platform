@@ -141,7 +141,7 @@ GRANT EXECUTE ON FUNCTION public.record_campaign_impression TO anon, authenticat
 
 -- 3. Comprehensive Business Analytics Engine RPC
 CREATE OR REPLACE FUNCTION public.get_campaign_analytics_v2(
-  p_organization_id uuid,
+  p_organization_id uuid DEFAULT NULL,
   p_campaign_id uuid DEFAULT NULL
 )
 RETURNS jsonb
@@ -288,6 +288,29 @@ BEGIN
     v_coupon_confirm_rate := 0;
   END IF;
 
+  -- Fallback OS counts from entries if impressions table has no OS breakdown yet
+  IF (v_android_count + v_ios_count + v_desktop_count) = 0 THEN
+    SELECT
+      coalesce(count(*) FILTER (WHERE lower(e.user_agent) LIKE '%android%'), 0),
+      coalesce(count(*) FILTER (WHERE lower(e.user_agent) LIKE '%iphone%' OR lower(e.user_agent) LIKE '%ipad%' OR lower(e.user_agent) LIKE '%mac os%'), 0),
+      coalesce(count(*) FILTER (WHERE lower(e.user_agent) LIKE '%windows%' OR lower(e.user_agent) LIKE '%macintosh%' OR lower(e.user_agent) LIKE '%linux%'), 0),
+      coalesce(count(*) FILTER (WHERE e.user_agent IS NOT NULL AND NOT (
+        lower(e.user_agent) LIKE '%android%' OR
+        lower(e.user_agent) LIKE '%iphone%' OR lower(e.user_agent) LIKE '%ipad%' OR lower(e.user_agent) LIKE '%mac os%' OR
+        lower(e.user_agent) LIKE '%windows%' OR lower(e.user_agent) LIKE '%macintosh%' OR lower(e.user_agent) LIKE '%linux%'
+      )), 0)
+    INTO
+      v_android_count,
+      v_ios_count,
+      v_desktop_count,
+      v_other_os_count
+    FROM public.entries e
+    WHERE (e.organization_id = p_organization_id OR e.campaign_id IN (
+      SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
+    ))
+    AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
+  END IF;
+
   -- Carrier phone prefix counts
   SELECT
     coalesce(count(*) FILTER (WHERE e.phone_number LIKE '06%' OR e.phone_number LIKE '2136%'), 0),
@@ -304,8 +327,11 @@ BEGIN
     v_ooredoo_count,
     v_other_carrier_count
   FROM public.entries e
-  WHERE e.organization_id = p_organization_id
-    AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id)
+  WHERE (e.organization_id = p_organization_id OR e.campaign_id IN (
+    SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
+  ))
+  AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
+
   v_total_phone_entries := v_mobilis_count + v_djezzy_count + v_ooredoo_count + v_other_carrier_count;
 
   -- Repeat user statistics
@@ -319,10 +345,12 @@ BEGIN
     v_max_user_participations
   FROM (
     SELECT phone_number, count(*) as cnt
-    FROM public.entries
-    WHERE organization_id = p_organization_id
-      AND (p_campaign_id IS NULL OR campaign_id = p_campaign_id)
-      AND phone_number IS NOT NULL AND phone_number <> ''
+    FROM public.entries e2
+    WHERE (e2.organization_id = p_organization_id OR e2.campaign_id IN (
+      SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
+    ))
+    AND (p_campaign_id IS NULL OR e2.campaign_id = p_campaign_id)
+    AND phone_number IS NOT NULL AND phone_number <> ''
     GROUP BY phone_number
   ) user_stats;
 
@@ -348,9 +376,11 @@ BEGIN
     )
   ) INTO v_prizes_json
   FROM public.prizes p
-  WHERE p.organization_id = p_organization_id
-    AND (p_campaign_id IS NULL OR p.campaign_id = p_campaign_id)
-    AND p.is_active = true;
+  WHERE (p.organization_id = p_organization_id OR p.campaign_id IN (
+    SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
+  ))
+  AND (p_campaign_id IS NULL OR p.campaign_id = p_campaign_id)
+  AND p.is_active = true;
 
   IF v_prizes_json IS NULL THEN
     v_prizes_json := '[]'::jsonb;
@@ -394,8 +424,7 @@ BEGIN
     FROM public.entries
     GROUP BY campaign_id
   ) entry_stats ON entry_stats.campaign_id = c.id
-  WHERE c.organization_id = p_organization_id
-    AND (p_campaign_id IS NULL OR c.id = p_campaign_id);
+  WHERE c.organization_id = p_organization_id;
 
   IF v_by_campaign_json IS NULL THEN
     v_by_campaign_json := '[]'::jsonb;

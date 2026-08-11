@@ -253,6 +253,7 @@ export default function PlayerFlowPage() {
   }, [slug]);
 
   const pageLoadTimeRef = React.useRef(Date.now());
+  const entryIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     loadCampaign();
@@ -401,7 +402,9 @@ export default function PlayerFlowPage() {
               .select("id")
               .single();
 
-            setEntryId(insertedEntry?.id ?? null);
+            const fallbackId = insertedEntry?.id ?? null;
+            setEntryId(fallbackId);
+            entryIdRef.current = fallbackId;
             setServerPrize(chosenPrize);
             gameOpenTimeRef.current = Date.now();
             setScreen("game");
@@ -435,7 +438,9 @@ export default function PlayerFlowPage() {
         resolvedPrize = LOSER_SLOT;
       }
 
-      setEntryId(result.entry?.id ?? null);
+      const newId = result.entry?.id ?? null;
+      setEntryId(newId);
+      entryIdRef.current = newId;
       setServerPrize(resolvedPrize);
       gameOpenTimeRef.current = Date.now();
       setScreen("game");
@@ -458,15 +463,41 @@ export default function PlayerFlowPage() {
       ? Math.max(1, Math.round((Date.now() - gameOpenTimeRef.current) / 1000))
       : Math.max(1, Math.round((Date.now() - pageLoadTimeRef.current) / 1000));
 
-    if (entryId) {
+    const totalSessionDwell = Math.max(
+      1,
+      Math.round((Date.now() - pageLoadTimeRef.current) / 1000),
+    );
+
+    const targetEntryId = entryIdRef.current || entryId;
+
+    if (targetEntryId) {
       void (async () => {
         try {
           await supabase
             .from("entries")
             .update({ dwell_time_seconds: gameplayDwell })
-            .eq("id", entryId);
+            .eq("id", targetEntryId);
         } catch {
           // Silent catch for entry dwell time update
+        }
+      })();
+    }
+
+    const sessionId =
+      sessionStorage.getItem("octoreach_session_id") || `sess_${Date.now()}`;
+    if (campaignId) {
+      void (async () => {
+        try {
+          await supabase.rpc("record_campaign_impression", {
+            p_campaign_id: campaignId,
+            p_session_id: sessionId,
+            p_user_agent: navigator.userAgent,
+            p_dwell_time_seconds: totalSessionDwell,
+            p_game_played: true,
+            p_form_completed: true,
+          });
+        } catch {
+          // Silent catch for impression update
         }
       })();
     }

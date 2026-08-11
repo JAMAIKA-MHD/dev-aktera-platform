@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
+import { importParticipantEntries } from "../services/analyticsService";
 import { toFriendlyErrorMessage } from "../lib/errorMessages";
 import {
   PercentageCircle,
@@ -40,9 +40,23 @@ const formatDwellTime = (seconds: number): string => {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 };
 
-export const AnalyticsCenter: React.FC = () => {
+interface AnalyticsCenterProps {
+  initialCampaignId?: string | null;
+}
+
+export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
+  initialCampaignId,
+}) => {
   const { organization } = useAuth();
-  const [selectedCampId, setSelectedCampId] = useState<string>("all");
+  const [selectedCampId, setSelectedCampId] = useState<string>(
+    initialCampaignId ?? "all",
+  );
+
+  React.useEffect(() => {
+    if (initialCampaignId) {
+      setSelectedCampId(initialCampaignId);
+    }
+  }, [initialCampaignId]);
 
   // Pass selectedCampId into useAnalytics hook to trigger instant dynamic filtering
   const { analytics, loading, error } = useAnalytics(selectedCampId);
@@ -55,7 +69,7 @@ export const AnalyticsCenter: React.FC = () => {
 
   const selectedCampaign = useMemo(
     () =>
-      analytics?.by_campaign.find(
+      (analytics?.by_campaign ?? []).find(
         (campaign) => campaign.campaign_id === selectedCampId,
       ) ?? null,
     [analytics, selectedCampId],
@@ -134,10 +148,7 @@ export const AnalyticsCenter: React.FC = () => {
         throw new Error("No valid participant entries found in file.");
       }
 
-      const { error: insertErr } = await supabase
-        .from("entries")
-        .insert(newEntries);
-      if (insertErr) throw insertErr;
+      await importParticipantEntries(newEntries);
 
       setImportSuccess(
         `Successfully imported ${newEntries.length} participant entries into ${
@@ -274,9 +285,9 @@ export const AnalyticsCenter: React.FC = () => {
             className="bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none min-h-11 shadow-sm cursor-pointer font-sans font-bold flex-shrink-0"
           >
             <option value="all">All Campaigns Combined</option>
-            {analytics.by_campaign.map((campaign) => (
+            {(analytics?.by_campaign ?? []).map((campaign) => (
               <option key={campaign.campaign_id} value={campaign.campaign_id}>
-                {campaign.campaign_name}
+                {campaign.campaign_name} ({campaign.status.toUpperCase()})
               </option>
             ))}
           </select>
@@ -438,9 +449,9 @@ export const AnalyticsCenter: React.FC = () => {
           icon={<Sparkles className="w-4 h-4 text-indigo-600" />}
         />
         <PercentageCircle
-          percentage={analytics.coupon_confirmation_rate}
+          percentage={analytics?.coupon_confirmation_rate ?? 0}
           title="Coupon Claim Rate"
-          subtitle={`${analytics.coupon_confirmed} confirmed out of ${analytics.coupon_total} issued codes`}
+          subtitle={`${analytics?.coupon_confirmed ?? 0} confirmed out of ${analytics?.coupon_total ?? 0} issued codes`}
           color="#F59E0B"
           badgeText="Coupon Claim"
           icon={<HelpCircle className="w-4 h-4 text-amber-600" />}
@@ -510,7 +521,7 @@ export const AnalyticsCenter: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-                {analytics.by_campaign.map((row) => (
+                {(analytics?.by_campaign ?? []).map((row) => (
                   <tr
                     key={row.campaign_id}
                     className="hover:bg-slate-50/60 transition-all cursor-pointer"
@@ -578,7 +589,7 @@ export const AnalyticsCenter: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-                {analytics.participants.length === 0 ? (
+                {(analytics?.participants ?? []).length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -588,7 +599,7 @@ export const AnalyticsCenter: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  analytics.participants.map((player) => (
+                  (analytics?.participants ?? []).map((player) => (
                     <tr
                       key={player.id}
                       className="hover:bg-slate-50/60 transition-all"

@@ -39,7 +39,9 @@ export const PercentageCircle: React.FC<PercentageCircleProps> = ({
   badgeText,
   icon,
 }) => {
-  const normalizedPct = Math.min(Math.max(percentage, 0), 100);
+  const safeValue =
+    typeof percentage === "number" && !isNaN(percentage) ? percentage : 0;
+  const normalizedPct = Math.min(Math.max(safeValue, 0), 100);
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset =

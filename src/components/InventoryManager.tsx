@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { supabase } from "../lib/supabase";
+import { useInventoryManager } from "../hooks/useInventoryManager";
 import { toFriendlyErrorMessage } from "../lib/errorMessages";
 import { DEFAULT_PRIZE_IMAGE_URL } from "../lib/defaultImages";
 import {
@@ -35,14 +35,6 @@ interface InventoryManagerProps {
   onRefreshPrizes?: () => void;
 }
 
-interface TemplateItemRow {
-  id: string;
-  prize_template_id: string;
-  item_index: number;
-  item_value: string | null;
-  source_type: "manual" | "bulk";
-}
-
 export const InventoryManager: React.FC<InventoryManagerProps> = ({
   prizes,
   organizationId,
@@ -56,9 +48,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [selectedTemplate, setSelectedTemplate] =
     useState<PrizeTemplate | null>(null);
-  const [templateItems, setTemplateItems] = useState<TemplateItemRow[]>([]);
-  const [itemsLoading, setItemsLoading] = useState(false);
-  const [itemsSaving, setItemsSaving] = useState(false);
+
+  const {
+    templateItems,
+    setTemplateItems,
+    loading: itemsLoading,
+    saving: itemsSaving,
+    error: hookError,
+    loadTemplateItems,
+    updateSingleItemValue,
+    saveAllItemsBulk,
+  } = useInventoryManager(organizationId);
+
   const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   const totalStockInPool = prizes.reduce((acc, p) => acc + p.totalStock, 0);
@@ -114,70 +115,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     [selectedTemplate, templateItems],
   );
 
-  const loadTemplateItems = async (template: PrizeTemplate) => {
-    if (!organizationId) {
-      setErrorMsg(
-        "Organization not loaded. Please refresh the page and try again.",
-      );
-      return;
-    }
-
-    setItemsLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const { data, error } = await supabase
-        .from("prize_template_items")
-        .select("id, prize_template_id, item_index, item_value, source_type")
-        .eq("prize_template_id", template.id)
-        .order("item_index", { ascending: true });
-
-      if (error) throw error;
-
-      const rows = ((data ?? []) as TemplateItemRow[]).sort(
-        (a, b) => a.item_index - b.item_index,
-      );
-
-      if (rows.length < template.totalStock) {
-        const missingRows = Array.from(
-          { length: template.totalStock - rows.length },
-          (_, index) => ({
-            prize_template_id: template.id,
-            organization_id: organizationId,
-            item_index: rows.length + index + 1,
-            item_value: null,
-            source_type: "manual" as const,
-          }),
-        );
-
-        const { error: insertError } = await supabase
-          .from("prize_template_items")
-          .insert(missingRows);
-        if (insertError) throw insertError;
-
-        const { data: reloaded, error: reloadError } = await supabase
-          .from("prize_template_items")
-          .select("id, prize_template_id, item_index, item_value, source_type")
-          .eq("prize_template_id", template.id)
-          .order("item_index", { ascending: true });
-
-        if (reloadError) throw reloadError;
-        setTemplateItems((reloaded ?? []) as TemplateItemRow[]);
-      } else {
-        setTemplateItems(rows);
-      }
-    } catch (err) {
-      setErrorMsg(
-        toFriendlyErrorMessage(
-          err,
-          "Failed to load per-item values for this reward.",
-        ),
-      );
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
   const openValuesModal = async (template: PrizeTemplate) => {
     setSelectedTemplate(template);
     await loadTemplateItems(template);
@@ -203,40 +140,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     );
   };
 
-  const updateSingleItemValue = async (id: string, value: string) => {
-    setItemsSaving(true);
-    setErrorMsg(null);
-
-    try {
-      const normalized = value.trim();
-      const { error } = await supabase
-        .from("prize_template_items")
-        .update({
-          item_value: normalized.length > 0 ? normalized : null,
-          source_type: "manual",
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setTemplateItems((current) =>
-        current.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                item_value: normalized.length > 0 ? normalized : null,
-                source_type: "manual",
-              }
-            : item,
-        ),
-      );
+  const handleSaveSingleItem = async (id: string, value: string) => {
+    const success = await updateSingleItemValue(id, value);
+    if (success) {
       onRefreshPrizes?.();
-    } catch (err) {
-      setErrorMsg(
-        toFriendlyErrorMessage(err, "Failed to save this item value."),
-      );
-    } finally {
-      setItemsSaving(false);
     }
   };
 
@@ -281,7 +188,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const handleBulkUpload = async (file: File) => {
     if (!selectedTemplate) return;
 
-    setItemsSaving(true);
     setErrorMsg(null);
 
     try {
@@ -333,30 +239,23 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         return { item_index, item_value };
       });
 
+      const itemsToSave: { id: string; item_value: string | null }[] = [];
       let importedCount = 0;
+
       for (const update of updates) {
-        if (
-          !Number.isInteger(update.item_index) ||
-          update.item_index <= 0 ||
-          update.item_index > selectedTemplate.totalStock
-        ) {
-          continue;
-        }
-
-        const { error } = await supabase
-          .from("prize_template_items")
-          .update({
+        const matchedItem = templateItems.find(
+          (t) => t.item_index === update.item_index,
+        );
+        if (matchedItem) {
+          itemsToSave.push({
+            id: matchedItem.id,
             item_value: update.item_value.length > 0 ? update.item_value : null,
-            source_type: "bulk",
-          })
-          .eq("prize_template_id", selectedTemplate.id)
-          .eq("item_index", update.item_index);
-
-        if (error) throw error;
-        importedCount++;
+          });
+          importedCount++;
+        }
       }
 
-      await loadTemplateItems(selectedTemplate);
+      await saveAllItemsBulk(selectedTemplate, itemsToSave);
       onRefreshPrizes?.();
       showSuccess(
         `Successfully imported ${importedCount} voucher values for ${selectedTemplate.name}.`,
@@ -368,8 +267,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           "Failed to import voucher file. Please verify the file format and try again.",
         ),
       );
-    } finally {
-      setItemsSaving(false);
     }
   };
 
