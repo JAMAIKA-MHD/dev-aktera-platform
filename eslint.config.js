@@ -4,9 +4,20 @@ import tseslint from "typescript-eslint";
 import globals from "globals";
 
 export default [
-  // 1. Ignore build artifacts completely
+  // 1. Ignore build artifacts and Deno edge functions completely
   {
-    ignores: ["dist", "build", "node_modules", ".next"],
+    ignores: [
+      "dist/**",
+      "build/**",
+      "node_modules/**",
+      ".next/**",
+      "supabase/**",
+      "**/supabase/**",
+      "old-ui-code/**",
+      "**/old-ui-code/**",
+      ".supabase/**",
+      "**/.supabase/**",
+    ],
   },
 
   // 2. Base setups
@@ -21,7 +32,7 @@ export default [
     },
     languageOptions: {
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { ...globals.browser },
+      globals: { ...globals.browser, ...globals.node },
     },
     settings: {
       react: { version: "detect" },
