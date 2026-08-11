@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
-import { Campaign } from '../types';
-import { 
-  Plus, Search, Play, Pause, RotateCcw, BarChart3, Archive,
-  Trash2, Filter, AlertCircle, Calendar, Eye, Pencil 
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../lib/defaultImages';
+import React, { useState } from "react";
+import { Campaign } from "../types";
+import {
+  Plus,
+  Search,
+  Play,
+  Pause,
+  RotateCcw,
+  BarChart3,
+  Archive,
+  Trash2,
+  Filter,
+  AlertCircle,
+  Calendar,
+  Eye,
+  Pencil,
+} from "lucide-react";
+import { motion } from "motion/react";
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../lib/defaultImages";
 
 interface CampaignsListProps {
   campaigns: Campaign[];
@@ -16,6 +27,7 @@ interface CampaignsListProps {
   onToggleStatus: (id: string) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
+  onOpenAnalytics?: (id: string) => void;
   onOpenWizard: () => void;
 }
 
@@ -28,40 +40,48 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
   onToggleStatus,
   onArchive,
   onDelete,
-  onOpenWizard
+  onOpenAnalytics,
+  onOpenWizard,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'draft' | 'archived'>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "paused" | "draft" | "archived"
+  >("all");
 
   // Filter logic
-  const filteredCampaigns = campaigns.filter(camp => {
-    const matchesSearch = camp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          camp.arabicName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || camp.status === statusFilter;
+  const filteredCampaigns = campaigns.filter((camp) => {
+    const matchesSearch =
+      camp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      camp.arabicName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || camp.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: Campaign['status']) => {
+  const getStatusColor = (status: Campaign["status"]) => {
     switch (status) {
-      case 'active':
-        return 'bg-emerald-50 border-emerald-100 text-emerald-700';
-      case 'paused':
-        return 'bg-amber-50 border-amber-100 text-amber-700';
-      case 'draft':
-        return 'bg-blue-50 border-blue-100 text-blue-700';
-      case 'archived':
-        return 'bg-slate-50 border-slate-100 text-slate-500';
+      case "active":
+        return "bg-emerald-50 border-emerald-100 text-emerald-700";
+      case "paused":
+        return "bg-amber-50 border-amber-100 text-amber-700";
+      case "draft":
+        return "bg-blue-50 border-blue-100 text-blue-700";
+      case "archived":
+        return "bg-slate-50 border-slate-100 text-slate-500";
     }
   };
 
   return (
     <div id="campaigns-list-root" className="space-y-6 text-slate-855">
-      
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Campaign Radios & Portals</h2>
-          <p className="text-slate-500 text-xs mt-0.5">Configure active wheels, lucky drawers, and quiz pipelines.</p>
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+            Campaign Radios & Portals
+          </h2>
+          <p className="text-slate-500 text-xs mt-0.5">
+            Configure active wheels, lucky drawers, and quiz pipelines.
+          </p>
         </div>
         <button
           onClick={onOpenWizard}
@@ -74,23 +94,24 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
 
       {/* Filter and search block */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        
         {/* Status Filters */}
         <div className="flex gap-1 bg-white border border-slate-200 p-1 rounded-xl w-full md:w-auto overflow-x-auto select-none">
-          {([
-            { id: 'all', label: 'All Portals' },
-            { id: 'active', label: 'Live' },
-            { id: 'paused', label: 'Paused' },
-            { id: 'draft', label: 'Draft' },
-            { id: 'archived', label: 'Archived' }
-          ] as const).map((tab) => (
+          {(
+            [
+              { id: "all", label: "All Portals" },
+              { id: "active", label: "Live" },
+              { id: "paused", label: "Paused" },
+              { id: "draft", label: "Draft" },
+              { id: "archived", label: "Archived" },
+            ] as const
+          ).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all duration-150 ${
                 statusFilter === tab.id
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
               }`}
             >
               {tab.label}
@@ -109,7 +130,6 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             className="w-full bg-white border border-slate-200 hover:border-slate-400 focus:border-indigo-500 rounded-xl pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-all duration-200 min-h-[44px] focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
           />
         </div>
-
       </div>
 
       {/* Main Campaign Grid */}
@@ -132,11 +152,16 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 }}
               />
               <div className="flex justify-between items-start gap-2 mb-2">
-                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase border ${getStatusColor(camp.status)}`}>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase border ${getStatusColor(camp.status)}`}
+                >
                   {camp.status}
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  Type: <strong className="text-slate-600 capitalize font-sans">{camp.type.replace('_', ' ')}</strong>
+                  Type:{" "}
+                  <strong className="text-slate-600 capitalize font-sans">
+                    {camp.type.replace("_", " ")}
+                  </strong>
                 </span>
               </div>
 
@@ -159,16 +184,28 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             {/* Middle Quick Stats Block */}
             <div className="grid grid-cols-3 gap-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-3 my-4">
               <div className="text-center border-r border-slate-200/80">
-                <p className="text-sm font-extrabold text-slate-800">{camp.participantsCount}</p>
-                <p className="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Entries</p>
+                <p className="text-sm font-extrabold text-slate-800">
+                  {camp.participantsCount}
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono uppercase tracking-wider">
+                  Entries
+                </p>
               </div>
               <div className="text-center border-r border-slate-200/80">
-                <p className="text-sm font-extrabold text-indigo-600">{camp.rewardsClaimed}</p>
-                <p className="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Prizes Won</p>
+                <p className="text-sm font-extrabold text-indigo-600">
+                  {camp.rewardsClaimed}
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono uppercase tracking-wider">
+                  Prizes Won
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-sm font-extrabold text-slate-800">{camp.winProbability}%</p>
-                <p className="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Win Prob</p>
+                <p className="text-sm font-extrabold text-slate-800">
+                  {camp.winProbability}%
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono uppercase tracking-wider">
+                  Win Prob
+                </p>
               </div>
             </div>
 
@@ -176,7 +213,9 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 border-t border-slate-100 pt-4 mt-1">
               <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-mono">{camp.startDate} to {camp.endDate}</span>
+                <span className="font-mono">
+                  {camp.startDate} to {camp.endDate}
+                </span>
               </div>
 
               {/* Action buttons list */}
@@ -190,7 +229,17 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   <Eye className="w-4 h-4" />
                 </button>
 
-                {camp.status === 'draft' && onEditDraft && (
+                {onOpenAnalytics && (
+                  <button
+                    onClick={() => onOpenAnalytics(camp.id)}
+                    title="Open campaign analytics desk"
+                    className="p-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-indigo-700 cursor-pointer transition-colors"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </button>
+                )}
+
+                {camp.status === "draft" && onEditDraft && (
                   <button
                     onClick={() => onEditDraft(camp)}
                     title="Edit draft campaign"
@@ -201,7 +250,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 )}
 
                 {/* Pause/Resume switch */}
-                {camp.status !== 'archived' && camp.status !== 'draft' && (
+                {camp.status !== "archived" && camp.status !== "draft" && (
                   <button
                     onClick={() => onCreateUpdateDraft(camp)}
                     title="Create update draft"
@@ -211,17 +260,25 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   </button>
                 )}
 
-                {camp.status !== 'archived' && camp.status !== 'draft' && (
+                {camp.status !== "archived" && camp.status !== "draft" && (
                   <button
                     onClick={() => onToggleStatus(camp.id)}
-                    title={camp.status === 'active' ? 'Pause Campaign' : 'Resume Campaign'}
+                    title={
+                      camp.status === "active"
+                        ? "Pause Campaign"
+                        : "Resume Campaign"
+                    }
                     className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                      camp.status === 'active'
-                        ? 'bg-amber-50 border-amber-250 text-amber-700 hover:bg-amber-100'
-                        : 'bg-emerald-50 border-emerald-250 text-emerald-700 hover:bg-emerald-100'
+                      camp.status === "active"
+                        ? "bg-amber-50 border-amber-250 text-amber-700 hover:bg-amber-100"
+                        : "bg-emerald-50 border-emerald-250 text-emerald-700 hover:bg-emerald-100"
                     }`}
                   >
-                    {camp.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    {camp.status === "active" ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
                   </button>
                 )}
 
@@ -235,7 +292,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 </button>
 
                 {/* Delete/Archive */}
-                {camp.status !== 'archived' && (
+                {camp.status !== "archived" && (
                   <button
                     onClick={() => onArchive(camp.id)}
                     title="Archive campaign"
@@ -245,11 +302,11 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   </button>
                 )}
 
-                {(camp.status === 'draft' || camp.status === 'archived') && (
+                {(camp.status === "draft" || camp.status === "archived") && (
                   <button
                     onClick={() => {
                       const confirmed = window.confirm(
-                        'Delete this campaign permanently? This action cannot be undone.'
+                        "Delete this campaign permanently? This action cannot be undone.",
                       );
                       if (!confirmed) return;
                       onDelete(camp.id);
@@ -262,21 +319,22 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 )}
               </div>
             </div>
-
           </motion.div>
         ))}
 
         {filteredCampaigns.length === 0 && (
           <div className="col-span-full text-center py-12 bg-white border border-slate-200 rounded-3xl p-6">
             <AlertCircle className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-            <h4 className="text-base font-bold text-slate-700">No campaigns found</h4>
+            <h4 className="text-base font-bold text-slate-700">
+              No campaigns found
+            </h4>
             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              Refine your filter options or trigger a new campaign via our interactive multi-step configuration wizard.
+              Refine your filter options or trigger a new campaign via our
+              interactive multi-step configuration wizard.
             </p>
           </div>
         )}
       </div>
-
     </div>
   );
 };
