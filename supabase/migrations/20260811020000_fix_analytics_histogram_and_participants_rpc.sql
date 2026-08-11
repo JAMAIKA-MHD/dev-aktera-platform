@@ -3,9 +3,7 @@
 
 -- 0. Drop existing RPC functions to prevent PostgreSQL return signature conflicts
 DROP FUNCTION IF EXISTS public.get_campaign_participants(uuid, uuid);
-DROP FUNCTION IF EXISTS public.get_campaign_participants();
 DROP FUNCTION IF EXISTS public.get_campaign_analytics_v2(uuid, uuid);
-DROP FUNCTION IF EXISTS public.get_campaign_analytics_v2();
 
 -- Ensure public/authenticated roles have read permissions on core analytics tables
 GRANT SELECT ON public.entries TO anon, authenticated, service_role;
@@ -106,7 +104,6 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_campaign_participants(uuid, uuid) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_campaign_participants() TO anon, authenticated, service_role;
 
 -- 2. Comprehensive Business Analytics Engine RPC with Daily & Hourly Distributions
 CREATE OR REPLACE FUNCTION public.get_campaign_analytics_v2(
@@ -511,4 +508,3 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_campaign_analytics_v2(uuid, uuid) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_campaign_analytics_v2() TO anon, authenticated, service_role;

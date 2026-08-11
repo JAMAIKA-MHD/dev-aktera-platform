@@ -136,22 +136,34 @@ export async function fetchAnalyticsSummaryService(
       }
     }
 
-    // Tier 3: Parameterless RPC fallback
+    // Tier 3: Explicit NULL parameter fallback (matches (uuid, uuid) PostgREST signature)
     if (!rpcParticipantsData || rpcParticipantsData.length === 0) {
-      const noArgsPartRes = await supabase.rpc("get_campaign_participants");
+      const globalNullPartRes = await supabase.rpc(
+        "get_campaign_participants",
+        {
+          p_organization_id: null,
+          p_campaign_id: null,
+        },
+      );
       if (
-        !noArgsPartRes.error &&
-        Array.isArray(noArgsPartRes.data) &&
-        noArgsPartRes.data.length > 0
+        !globalNullPartRes.error &&
+        Array.isArray(globalNullPartRes.data) &&
+        globalNullPartRes.data.length > 0
       ) {
-        rpcParticipantsData = noArgsPartRes.data;
+        rpcParticipantsData = globalNullPartRes.data;
       }
     }
 
     if (!rpcSummaryData) {
-      const noArgsSummaryRes = await supabase.rpc("get_campaign_analytics_v2");
-      if (!noArgsSummaryRes.error && noArgsSummaryRes.data) {
-        rpcSummaryData = noArgsSummaryRes.data;
+      const globalNullSummaryRes = await supabase.rpc(
+        "get_campaign_analytics_v2",
+        {
+          p_organization_id: null,
+          p_campaign_id: null,
+        },
+      );
+      if (!globalNullSummaryRes.error && globalNullSummaryRes.data) {
+        rpcSummaryData = globalNullSummaryRes.data;
       }
     }
   } catch (err) {
