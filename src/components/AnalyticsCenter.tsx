@@ -51,6 +51,9 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   const [selectedCampId, setSelectedCampId] = useState<string>(
     initialCampaignId ?? "all",
   );
+  const [tableViewMode, setTableViewMode] = useState<
+    "participants" | "summary"
+  >("participants");
 
   React.useEffect(() => {
     if (initialCampaignId) {
@@ -458,7 +461,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         />
       </div>
 
-      {/* Visual Analytics Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <ParticipationHistogram
           dailyData={analytics.daily_distribution}
@@ -472,35 +474,58 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         <PrizeBurnRateList prizes={analytics.prize_burn_rate} />
       </div>
 
-      {/* DYNAMIC PERFORMANCE TABLE: Switches based on Dropdown Selection */}
+      {/* DYNAMIC PERFORMANCE TABLE: Switches based on Toggle Mode or Dropdown Selection */}
       <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
           <div>
             <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-              {selectedCampId === "all" ? (
-                <span>Campaign Performance Breakdown</span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-indigo-600" />
-                  Player Participants & Gameplay Times for{" "}
-                  <span className="text-indigo-600">
-                    {selectedCampaign?.campaign_name ?? selectedCampId}
-                  </span>
+              <Trophy className="w-4 h-4 text-indigo-600" />
+              {tableViewMode === "participants" ? (
+                <span>
+                  Player Participants & Gameplay Times{" "}
+                  {selectedCampId !== "all" && (
+                    <span className="text-indigo-600">
+                      for {selectedCampaign?.campaign_name ?? selectedCampId}
+                    </span>
+                  )}
                 </span>
+              ) : (
+                <span>Campaign Performance Breakdown</span>
               )}
             </h3>
             <p className="text-[10px] text-slate-500">
-              {selectedCampId === "all"
-                ? "Aggregated campaign metrics across all active campaigns."
-                : `Showing real-time player participations, game dwell times, and winning results for ${
-                    selectedCampaign?.campaign_name ?? selectedCampId
-                  }.`}
+              {tableViewMode === "participants"
+                ? "Real-time client player entries, game dwell times, and prize outcomes."
+                : "Aggregated campaign metrics across all active campaigns."}
             </p>
+          </div>
+
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60 text-xs flex-shrink-0">
+            <button
+              onClick={() => setTableViewMode("participants")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                tableViewMode === "participants"
+                  ? "bg-white text-indigo-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Player Participants ({analytics?.participants?.length ?? 0})
+            </button>
+            <button
+              onClick={() => setTableViewMode("summary")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                tableViewMode === "summary"
+                  ? "bg-white text-indigo-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Campaign Breakdown ({analytics?.by_campaign?.length ?? 0})
+            </button>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          {selectedCampId === "all" ? (
+          {tableViewMode === "summary" ? (
             /* MODE A: All Campaigns Summary Breakdown Table */
             <table className="w-full border-collapse">
               <thead>
@@ -525,7 +550,10 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                   <tr
                     key={row.campaign_id}
                     className="hover:bg-slate-50/60 transition-all cursor-pointer"
-                    onClick={() => setSelectedCampId(row.campaign_id)}
+                    onClick={() => {
+                      setSelectedCampId(row.campaign_id);
+                      setTableViewMode("participants");
+                    }}
                   >
                     <td className="py-3.5 pl-1 font-bold text-slate-800">
                       {row.campaign_name}
@@ -561,13 +589,16 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
               </tbody>
             </table>
           ) : (
-            /* MODE B: Specific Campaign Player Participants & Time Spent Table */
+            /* MODE B: Specific or All Campaign Player Participants Table */
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-150 text-[10px] font-mono text-slate-400 uppercase">
                   <th className="pb-3 pl-1 text-left font-semibold">
                     Participant Name
                   </th>
+                  {selectedCampId === "all" && (
+                    <th className="pb-3 text-left font-semibold">Campaign</th>
+                  )}
                   <th className="pb-3 text-center font-semibold">
                     Phone Number
                   </th>
@@ -592,10 +623,10 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                 {(analytics?.participants ?? []).length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={selectedCampId === "all" ? 8 : 7}
                       className="py-8 text-center text-slate-400 italic"
                     >
-                      No player participations recorded yet for this campaign.
+                      No player participations recorded yet for this selection.
                     </td>
                   </tr>
                 ) : (
@@ -607,6 +638,11 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                       <td className="py-3.5 pl-1 font-bold text-slate-900">
                         {player.participant_name || "Anonymous Player"}
                       </td>
+                      {selectedCampId === "all" && (
+                        <td className="py-3.5 text-left font-medium text-indigo-700">
+                          {player.campaign_name || "Default Campaign"}
+                        </td>
+                      )}
                       <td className="py-3.5 text-center font-mono text-slate-700">
                         {player.phone_number}
                       </td>

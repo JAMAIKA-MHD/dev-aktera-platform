@@ -138,38 +138,48 @@ export async function fetchAnalyticsSummaryService(
 
   // Build Participants List (prefer server RPC if non-empty, otherwise use raw entries)
   if (Array.isArray(rpcParticipantsData) && rpcParticipantsData.length > 0) {
-    participants = rpcParticipantsData.map((e: any) => ({
-      id: e.id,
-      campaign_id: e.campaign_id,
-      phone_number: e.phone_number ?? "N/A",
-      participant_name: e.participant_name ?? null,
-      is_winner: !!e.is_winner,
-      prize_name: e.prize_name ?? (e.is_winner ? "Winning Prize" : null),
-      quiz_passed: e.quiz_passed,
-      coupon_confirmed: e.coupon_confirmed,
-      redeemed_coupon_value: e.redeemed_coupon_value,
-      dwell_time_seconds: Number(e.dwell_time_seconds ?? 0),
-      created_at: e.created_at,
-    }));
+    participants = rpcParticipantsData.map((e: any) => {
+      const campMatch = rawCampaigns.find((c) => c.id === e.campaign_id);
+      return {
+        id: e.id,
+        campaign_id: e.campaign_id,
+        campaign_name: e.campaign_name ?? campMatch?.name ?? null,
+        phone_number: e.phone_number ?? "N/A",
+        participant_name: e.participant_name ?? null,
+        is_winner: !!e.is_winner,
+        prize_name: e.prize_name ?? (e.is_winner ? "Winning Prize" : null),
+        quiz_passed: e.quiz_passed,
+        coupon_confirmed: e.coupon_confirmed,
+        redeemed_coupon_value: e.redeemed_coupon_value,
+        dwell_time_seconds: Number(e.dwell_time_seconds ?? 0),
+        created_at: e.created_at,
+      };
+    });
   } else {
-    participants = rawEntries.map((e: any) => ({
-      id: e.id,
-      campaign_id: e.campaign_id,
-      phone_number: e.phone_number ?? "N/A",
-      participant_name: e.participant_name ?? null,
-      is_winner: !!e.is_winner,
-      prize_name: Array.isArray(e.prizes)
-        ? (e.prizes[0]?.name ?? null)
-        : (e.prizes?.name ?? (e.is_winner ? "Winning Prize" : null)),
-      quiz_passed: e.quiz_passed,
-      coupon_confirmed: e.coupon_confirmed,
-      redeemed_coupon_value: e.redeemed_coupon_value,
-      dwell_time_seconds: Number(e.dwell_time_seconds ?? 0),
-      created_at: e.created_at,
-    }));
+    participants = rawEntries.map((e: any) => {
+      const campMatch = rawCampaigns.find((c) => c.id === e.campaign_id);
+      return {
+        id: e.id,
+        campaign_id: e.campaign_id,
+        campaign_name: campMatch?.name ?? null,
+        phone_number: e.phone_number ?? "N/A",
+        participant_name: e.participant_name ?? null,
+        is_winner: !!e.is_winner,
+        prize_name: Array.isArray(e.prizes)
+          ? (e.prizes[0]?.name ?? null)
+          : (e.prizes?.name ?? (e.is_winner ? "Winning Prize" : null)),
+        quiz_passed: e.quiz_passed,
+        coupon_confirmed: e.coupon_confirmed,
+        redeemed_coupon_value: e.redeemed_coupon_value,
+        dwell_time_seconds: Number(e.dwell_time_seconds ?? 0),
+        created_at: e.created_at,
+      };
+    });
   }
 
-  // 4. Compute Graphics & Distributions from Raw Entries
+  // 4. Compute Graphics & Distributions (prefer participants array from SECURITY DEFINER RPC, fallback to raw entries)
+  const sourceDataset = participants.length > 0 ? participants : rawEntries;
+
   const hourlyCounts = [0, 0, 0, 0, 0, 0];
   const hourlyWinners = [0, 0, 0, 0, 0, 0];
   const dailyMap: Record<string, { entries: number; winners: number }> = {};
@@ -187,11 +197,11 @@ export async function fetchAnalyticsSummaryService(
   const validDwellTimes: number[] = [];
   const phoneMap: Record<string, number> = {};
 
-  for (const entry of rawEntries) {
+  for (const entry of sourceDataset) {
     const dwell = Number(entry.dwell_time_seconds ?? 0);
     if (dwell > 0) validDwellTimes.push(dwell);
 
-    const ua = String(entry.user_agent ?? "").toLowerCase();
+    const ua = String((entry as any).user_agent ?? "").toLowerCase();
     if (ua.includes("android")) {
       androidCount++;
     } else if (

@@ -56,6 +56,7 @@ export interface PrizeBurnRateItem {
 export interface PlayerParticipantEntry {
   id: string;
   campaign_id: string;
+  campaign_name?: string | null;
   phone_number: string;
   participant_name: string | null;
   is_winner: boolean;
