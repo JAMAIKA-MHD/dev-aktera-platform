@@ -158,13 +158,85 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
           selectedCampaign?.campaign_name ?? "campaign"
         }!`,
       );
-      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
       setImportError(
         toFriendlyErrorMessage(
           err,
           "Failed to import entries file. Please verify format and try again.",
         ),
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleGenerateSampleData = async () => {
+    if (!organization) return;
+    setImporting(true);
+    setImportSuccess(null);
+    setImportError(null);
+
+    try {
+      const targetCampId =
+        selectedCampId !== "all"
+          ? selectedCampId
+          : analytics?.by_campaign[0]?.campaign_id;
+
+      if (!targetCampId) {
+        throw new Error(
+          "Please select or create at least one campaign before generating participant data.",
+        );
+      }
+
+      const sampleNames = [
+        "Yacine Benali",
+        "Amine Khelifi",
+        "Meriem Zerrouki",
+        "Karim Belkacem",
+        "Fatima Boumedienne",
+        "Sami Ferhani",
+        "Lina Mansouri",
+        "Omar Saidi",
+        "Nadia Brahimi",
+        "Ryad Mahrez",
+      ];
+      const prefixes = ["06", "07", "05"];
+      const userAgents = [
+        "Mozilla/5.0 (Linux; Android 13; SM-G998B)",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X)",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      ];
+
+      const sampleEntries = Array.from({ length: 12 }).map((_, idx) => {
+        const pref = prefixes[idx % prefixes.length];
+        const num = Math.floor(1000000 + Math.random() * 8999999);
+        const isWin = idx % 3 === 0;
+        const dwell = Math.floor(15 + Math.random() * 120);
+
+        return {
+          campaign_id: targetCampId,
+          organization_id: organization.id,
+          phone_number: `${pref}${num}`,
+          participant_name: sampleNames[idx % sampleNames.length],
+          is_winner: isWin,
+          quiz_passed: true,
+          coupon_confirmed: isWin,
+          redeemed_coupon_value: isWin
+            ? `WIN-${Math.floor(1000 + Math.random() * 9000)}`
+            : undefined,
+          dwell_time_seconds: dwell,
+          user_agent: userAgents[idx % userAgents.length],
+          created_at: new Date(Date.now() - idx * 3600000 * 4).toISOString(),
+        };
+      });
+
+      await importParticipantEntries(sampleEntries);
+      setImportSuccess(
+        `Successfully generated and recorded 12 participant entries into the database!`,
+      );
+    } catch (err) {
+      setImportError(
+        toFriendlyErrorMessage(err, "Failed to generate sample data."),
       );
     } finally {
       setImporting(false);
@@ -624,9 +696,32 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                   <tr>
                     <td
                       colSpan={selectedCampId === "all" ? 8 : 7}
-                      className="py-8 text-center text-slate-400 italic"
+                      className="py-12 text-center"
                     >
-                      No player participations recorded yet for this selection.
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <Users className="w-8 h-8 text-slate-300" />
+                        <p className="text-sm font-semibold text-slate-600">
+                          No player participations recorded in database yet for
+                          this selection.
+                        </p>
+                        <p className="text-xs text-slate-400 max-w-md">
+                          Entries will appear automatically when players use
+                          your shareable /play links, or you can import
+                          CSV/Excel records.
+                        </p>
+                        <button
+                          onClick={handleGenerateSampleData}
+                          disabled={importing}
+                          className="mt-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-60"
+                        >
+                          {importing ? (
+                            <div className="w-3.5 h-3.5 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                          )}
+                          <span>Generate & Record Sample Database Entries</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : (

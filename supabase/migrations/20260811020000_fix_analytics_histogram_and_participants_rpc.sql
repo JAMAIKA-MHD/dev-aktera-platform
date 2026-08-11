@@ -1,5 +1,5 @@
 -- Migration: 20260811020000_fix_analytics_histogram_and_participants_rpc.sql
--- Description: Drop existing RPC functions to clear signature conflicts, add daily/hourly distribution aggregation to get_campaign_analytics_v2, add campaign_name to get_campaign_participants RPC, and ensure full database RLS permissions.
+-- Description: Drop existing RPC functions to clear signature conflicts, add daily/hourly distribution aggregation to get_campaign_analytics_v2, include campaign_name & visitor impressions fallback in get_campaign_participants RPC, and ensure full database RLS permissions.
 
 -- 0. Drop existing RPC functions to prevent PostgreSQL return signature conflicts
 DROP FUNCTION IF EXISTS public.get_campaign_participants(uuid, uuid);
@@ -44,27 +44,64 @@ SET search_path = public
 AS $$
 BEGIN
   RETURN QUERY
-  SELECT
-    e.id,
-    e.campaign_id,
-    coalesce(c.name, 'Campaign') AS campaign_name,
-    coalesce(e.phone_number, 'N/A') AS phone_number,
-    e.participant_name,
-    coalesce(e.is_winner, false) AS is_winner,
-    p.name AS prize_name,
-    e.quiz_passed,
-    e.coupon_confirmed,
-    e.redeemed_coupon_value,
-    coalesce(e.dwell_time_seconds, 0)::numeric AS dwell_time_seconds,
-    e.created_at
-  FROM public.entries e
-  LEFT JOIN public.campaigns c ON c.id = e.campaign_id
-  LEFT JOIN public.prizes p ON p.id = e.prize_id
-  WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.campaign_id IN (
-    SELECT cmp.id FROM public.campaigns cmp WHERE cmp.organization_id = p_organization_id
-  ))
-  AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id)
-  ORDER BY e.created_at DESC;
+  WITH all_entries AS (
+    -- Player entries recorded in entries table
+    SELECT
+      e.id,
+      e.campaign_id,
+      coalesce(c.name, 'Campaign') AS campaign_name,
+      coalesce(e.phone_number, 'N/A') AS phone_number,
+      coalesce(e.participant_name, 'Anonymous Player') AS participant_name,
+      coalesce(e.is_winner, false) AS is_winner,
+      p.name AS prize_name,
+      e.quiz_passed,
+      e.coupon_confirmed,
+      e.redeemed_coupon_value,
+      coalesce(e.dwell_time_seconds, 0)::numeric AS dwell_time_seconds,
+      e.created_at
+    FROM public.entries e
+    LEFT JOIN public.campaigns c ON c.id = e.campaign_id
+    LEFT JOIN public.prizes p ON p.id = e.prize_id
+    WHERE (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id)
+      AND (
+        p_organization_id IS NULL 
+        OR e.organization_id = p_organization_id 
+        OR e.organization_id IS NULL
+        OR e.campaign_id IN (SELECT cmp.id FROM public.campaigns cmp WHERE cmp.organization_id = p_organization_id)
+      )
+
+    UNION ALL
+
+    -- Visitor impressions fallback if entries table has no rows for the target campaign
+    SELECT
+      ci.id,
+      ci.campaign_id,
+      coalesce(c.name, 'Campaign') AS campaign_name,
+      'Visitor Link Session' AS phone_number,
+      concat('Visitor (', upper(ci.os_type), ')') AS participant_name,
+      false AS is_winner,
+      NULL::text AS prize_name,
+      ci.game_played AS quiz_passed,
+      ci.form_completed AS coupon_confirmed,
+      NULL::text AS redeemed_coupon_value,
+      coalesce(ci.dwell_time_seconds, 0)::numeric AS dwell_time_seconds,
+      ci.created_at
+    FROM public.campaign_impressions ci
+    LEFT JOIN public.campaigns c ON c.id = ci.campaign_id
+    WHERE (p_campaign_id IS NULL OR ci.campaign_id = p_campaign_id)
+      AND (
+        p_organization_id IS NULL 
+        OR ci.organization_id = p_organization_id 
+        OR ci.organization_id IS NULL
+        OR ci.campaign_id IN (SELECT cmp.id FROM public.campaigns cmp WHERE cmp.organization_id = p_organization_id)
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM public.entries e2
+        WHERE (p_campaign_id IS NULL OR e2.campaign_id = p_campaign_id)
+      )
+  )
+  SELECT * FROM all_entries
+  ORDER BY created_at DESC;
 END;
 $$;
 
@@ -137,7 +174,7 @@ BEGIN
     v_desktop_count,
     v_other_os_count
   FROM public.campaign_impressions ci
-  WHERE (p_organization_id IS NULL OR ci.organization_id = p_organization_id OR ci.campaign_id IN (
+  WHERE (p_organization_id IS NULL OR ci.organization_id = p_organization_id OR ci.organization_id IS NULL OR ci.campaign_id IN (
     SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
   ))
   AND (p_campaign_id IS NULL OR ci.campaign_id = p_campaign_id);
@@ -158,7 +195,7 @@ BEGIN
     v_total_coupons,
     v_confirmed_coupons
   FROM public.entries e
-  WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.campaign_id IN (
+  WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.organization_id IS NULL OR e.campaign_id IN (
     SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
   ))
   AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
@@ -169,13 +206,13 @@ BEGIN
   FROM (
     SELECT dwell_time_seconds as dwell_sec
     FROM public.campaign_impressions
-    WHERE (p_organization_id IS NULL OR organization_id = p_organization_id OR campaign_id IN (SELECT id FROM public.campaigns WHERE organization_id = p_organization_id))
+    WHERE (p_organization_id IS NULL OR organization_id = p_organization_id OR organization_id IS NULL OR campaign_id IN (SELECT id FROM public.campaigns WHERE organization_id = p_organization_id))
       AND (p_campaign_id IS NULL OR campaign_id = p_campaign_id)
       AND dwell_time_seconds > 0
     UNION ALL
     SELECT dwell_time_seconds as dwell_sec
     FROM public.entries
-    WHERE (p_organization_id IS NULL OR organization_id = p_organization_id OR campaign_id IN (SELECT id FROM public.campaigns WHERE organization_id = p_organization_id))
+    WHERE (p_organization_id IS NULL OR organization_id = p_organization_id OR organization_id IS NULL OR campaign_id IN (SELECT id FROM public.campaigns WHERE organization_id = p_organization_id))
       AND (p_campaign_id IS NULL OR campaign_id = p_campaign_id)
       AND dwell_time_seconds > 0
   ) dwell_combined;
@@ -235,7 +272,7 @@ BEGIN
       v_desktop_count,
       v_other_os_count
     FROM public.entries e
-    WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.campaign_id IN (
+    WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.organization_id IS NULL OR e.campaign_id IN (
       SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
     ))
     AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
@@ -257,7 +294,7 @@ BEGIN
     v_ooredoo_count,
     v_other_carrier_count
   FROM public.entries e
-  WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.campaign_id IN (
+  WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.organization_id IS NULL OR e.campaign_id IN (
     SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
   ))
   AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id);
@@ -276,7 +313,7 @@ BEGIN
   FROM (
     SELECT phone_number, count(*) as cnt
     FROM public.entries e2
-    WHERE (p_organization_id IS NULL OR e2.organization_id = p_organization_id OR e2.campaign_id IN (
+    WHERE (p_organization_id IS NULL OR e2.organization_id = p_organization_id OR e2.organization_id IS NULL OR e2.campaign_id IN (
       SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
     ))
     AND (p_campaign_id IS NULL OR e2.campaign_id = p_campaign_id)
@@ -314,7 +351,7 @@ BEGIN
       count(*) as entry_count,
       count(*) FILTER (WHERE e.is_winner = true) as winner_count
     FROM public.entries e
-    WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.campaign_id IN (
+    WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.organization_id IS NULL OR e.campaign_id IN (
       SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
     ))
     AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id)
@@ -342,7 +379,7 @@ BEGIN
       count(*) as entry_count,
       count(*) FILTER (WHERE e.is_winner = true) as winner_count
     FROM public.entries e
-    WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.campaign_id IN (
+    WHERE (p_organization_id IS NULL OR e.organization_id = p_organization_id OR e.organization_id IS NULL OR e.campaign_id IN (
       SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
     ))
     AND (p_campaign_id IS NULL OR e.campaign_id = p_campaign_id)
@@ -368,7 +405,7 @@ BEGIN
     )
   ) INTO v_prizes_json
   FROM public.prizes p
-  WHERE (p_organization_id IS NULL OR p.organization_id = p_organization_id OR p.campaign_id IN (
+  WHERE (p_organization_id IS NULL OR p.organization_id = p_organization_id OR p.organization_id IS NULL OR p.campaign_id IN (
     SELECT id FROM public.campaigns WHERE organization_id = p_organization_id
   ))
   AND (p_campaign_id IS NULL OR p.campaign_id = p_campaign_id)
@@ -414,7 +451,7 @@ BEGIN
     FROM public.entries
     GROUP BY campaign_id
   ) entry_stats ON entry_stats.campaign_id = c.id
-  WHERE (p_organization_id IS NULL OR c.organization_id = p_organization_id);
+  WHERE (p_organization_id IS NULL OR c.organization_id = p_organization_id OR c.organization_id IS NULL);
 
   IF v_by_campaign_json IS NULL THEN v_by_campaign_json := '[]'::jsonb; END IF;
 
