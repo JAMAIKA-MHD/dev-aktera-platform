@@ -308,7 +308,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={orgName}
-                    placeholder="e.g. Djezzy SPA"
+                    placeholder="e.g. Acme Corp"
                     onChange={(e) => setOrgName(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -327,7 +327,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="email"
                     value={orgContactEmail}
-                    placeholder="e.g. contact@djezzy.dz"
+                    placeholder="e.g. contact@company.com"
                     onChange={(e) => setOrgContactEmail(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -346,7 +346,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="tel"
                     value={orgPhone}
-                    placeholder="e.g. 0512346768"
+                    placeholder="e.g. 0550000000"
                     onChange={(e) => setOrgPhone(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold font-mono transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -364,7 +364,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={nif}
-                    placeholder="e.g. 000216001548792"
+                    placeholder="e.g. 000000000000000"
                     maxLength={15}
                     onChange={(e) => setNif(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold font-mono transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
@@ -383,7 +383,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={rc}
-                    placeholder="e.g. 16/00-0145892B01"
+                    placeholder="e.g. 00/00-0000000B00"
                     onChange={(e) => setRc(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold font-mono transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -401,7 +401,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={nis}
-                    placeholder="e.g. 099816010023456"
+                    placeholder="e.g. 000000000000000"
                     onChange={(e) => setNis(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold font-mono transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -419,7 +419,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={ai}
-                    placeholder="e.g. 16100234901"
+                    placeholder="e.g. 00000000000"
                     onChange={(e) => setAi(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold font-mono transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -437,7 +437,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={industry}
-                    placeholder="e.g. Telecommunications, FMCG, Banking"
+                    placeholder="e.g. Retail, Technology, Services"
                     onChange={(e) => setIndustry(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -455,7 +455,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={address}
-                    placeholder="e.g. Route de Dar El Beida, Bab Ezzouar"
+                    placeholder="e.g. 123 Business Avenue, Suite 100"
                     onChange={(e) => setAddress(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -473,7 +473,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={wilaya}
-                    placeholder="e.g. 16 - Alger"
+                    placeholder="e.g. Province / State"
                     onChange={(e) => setWilaya(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -491,7 +491,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="url"
                     value={website}
-                    placeholder="e.g. https://www.djezzy.dz"
+                    placeholder="e.g. https://www.company.com"
                     onChange={(e) => setWebsite(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -517,7 +517,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={contactName}
-                    placeholder="e.g. Amine Benali"
+                    placeholder="e.g. Jane Doe"
                     onChange={(e) => setContactName(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark
@@ -534,7 +534,7 @@ export const AccountSettings: React.FC = () => {
                   <input
                     type="text"
                     value={jobTitle}
-                    placeholder="e.g. Head of Digital Campaigns"
+                    placeholder="e.g. Marketing Lead"
                     onChange={(e) => setJobTitle(e.target.value)}
                     className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 min-h-11 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
                       isDark

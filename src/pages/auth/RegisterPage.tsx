@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Djezzy Algeria"
+                  placeholder="e.g. Acme Enterprises"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-[#151E30] text-slate-900 dark:text-white text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all font-medium"
@@ -206,7 +206,7 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Anis Belkacem"
+                  placeholder="e.g. Jane Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-[#151E30] text-slate-900 dark:text-white text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all font-medium"
@@ -249,7 +249,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="tel"
-                  placeholder="e.g. 0555123456"
+                  placeholder="e.g. 0550000000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-[#151E30] text-slate-900 dark:text-white text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all font-medium"
