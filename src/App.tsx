@@ -21,7 +21,6 @@ import { PlayerResult } from "./components/PlayerResult";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 import { useLanguage } from "./contexts/LanguageContext";
-import { LanguageSelector } from "./components/LanguageSelector";
 import { useCampaigns } from "./hooks/useCampaigns";
 import { usePrizeTemplates } from "./hooks/usePrizeTemplates";
 import { useEntries } from "./hooks/useEntries";
@@ -587,9 +586,6 @@ export default function App() {
                 className={`fa-solid ${theme === "dark" ? "fa-sun text-amber-400 text-base" : "fa-moon text-slate-700 text-base"}`}
               ></i>
             </button>
-
-            {/* Language Selector (placed right after the moon/sun theme icon) */}
-            <LanguageSelector />
 
             {/* Notifications circular button */}
             <button
