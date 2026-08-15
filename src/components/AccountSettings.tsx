@@ -310,6 +310,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={orgName}
                     placeholder="e.g. Acme Corp"
                     onChange={(e) => setOrgName(e.target.value)}
@@ -329,6 +330,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="email"
+                    dir="auto"
                     value={orgContactEmail}
                     placeholder="e.g. contact@company.com"
                     onChange={(e) => setOrgContactEmail(e.target.value)}
@@ -348,6 +350,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="tel"
+                    dir="auto"
                     value={orgPhone}
                     placeholder="e.g. 0550000000"
                     onChange={(e) => setOrgPhone(e.target.value)}
@@ -366,6 +369,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={nif}
                     placeholder="e.g. 000000000000000"
                     maxLength={15}
@@ -385,6 +389,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={rc}
                     placeholder="e.g. 00/00-0000000B00"
                     onChange={(e) => setRc(e.target.value)}
@@ -403,6 +408,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={nis}
                     placeholder="e.g. 000000000000000"
                     onChange={(e) => setNis(e.target.value)}
@@ -421,6 +427,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={ai}
                     placeholder="e.g. 00000000000"
                     onChange={(e) => setAi(e.target.value)}
@@ -439,6 +446,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={industry}
                     placeholder="e.g. Retail, Technology, Services"
                     onChange={(e) => setIndustry(e.target.value)}
@@ -457,6 +465,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={address}
                     placeholder="e.g. 123 Business Avenue, Suite 100"
                     onChange={(e) => setAddress(e.target.value)}
@@ -475,6 +484,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={wilaya}
                     placeholder="e.g. Province / State"
                     onChange={(e) => setWilaya(e.target.value)}
@@ -493,6 +503,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="url"
+                    dir="auto"
                     value={website}
                     placeholder="e.g. https://www.company.com"
                     onChange={(e) => setWebsite(e.target.value)}
@@ -519,6 +530,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={contactName}
                     placeholder="e.g. Jane Doe"
                     onChange={(e) => setContactName(e.target.value)}
@@ -536,6 +548,7 @@ export const AccountSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    dir="auto"
                     value={jobTitle}
                     placeholder="e.g. Marketing Lead"
                     onChange={(e) => setJobTitle(e.target.value)}
@@ -651,6 +664,7 @@ export const AccountSettings: React.FC = () => {
                 </label>
                 <input
                   type="email"
+                  dir="auto"
                   value={newEmail}
                   placeholder="Enter new email address"
                   onChange={(e) => setNewEmail(e.target.value)}

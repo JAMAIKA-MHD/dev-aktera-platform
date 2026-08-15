@@ -119,6 +119,7 @@ export default function CompleteOrganizationSetupPage() {
                 <Building2 className="absolute left-3.5 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
+                  dir="auto"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="e.g. Acme Enterprises"
@@ -137,6 +138,7 @@ export default function CompleteOrganizationSetupPage() {
                 <User className="absolute left-3.5 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
+                  dir="auto"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. Jane Doe"
@@ -155,6 +157,7 @@ export default function CompleteOrganizationSetupPage() {
                 <Mail className="absolute left-3.5 w-4 h-4 text-slate-400" />
                 <input
                   type="email"
+                  dir="auto"
                   value={email}
                   className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-500 bg-slate-50 outline-none min-h-12"
                   disabled
@@ -173,6 +176,7 @@ export default function CompleteOrganizationSetupPage() {
                 <Phone className="absolute left-3.5 w-4 h-4 text-slate-400" />
                 <input
                   type="tel"
+                  dir="auto"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. 0550000000"

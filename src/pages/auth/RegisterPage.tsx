@@ -199,6 +199,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="text"
+                  dir="auto"
                   required
                   placeholder="e.g. Acme Enterprises"
                   value={orgName}
@@ -219,6 +220,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="text"
+                  dir="auto"
                   required
                   placeholder="e.g. Jane Doe"
                   value={fullName}
@@ -239,6 +241,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="email"
+                  dir="auto"
                   required
                   autoComplete="email"
                   placeholder="you@company.com"
@@ -263,6 +266,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="tel"
+                  dir="auto"
                   placeholder="e.g. 0550000000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}

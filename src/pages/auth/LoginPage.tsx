@@ -128,6 +128,7 @@ export default function LoginPage() {
                   id="login-email"
                   name="email"
                   type="email"
+                  dir="auto"
                   autoComplete="email"
                   required
                   placeholder="name@company.com"
