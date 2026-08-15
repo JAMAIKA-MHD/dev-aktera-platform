@@ -9,6 +9,9 @@ import {
   Upload,
   Settings,
   Sparkles,
+  X,
+  CreditCard,
+  Building,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -94,6 +97,39 @@ export const BillingUsage: React.FC = () => {
   const { t } = useLanguage();
   const isDark = theme === "dark";
 
+  // Interactive Plan Upgrade Modal State
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [selectedPlan, setSelectedPlan] =
+    React.useState<BillingRecord["plan"]>("pro");
+  const [paymentMethod, setPaymentMethod] = React.useState<
+    "edahabia" | "cib" | "wire"
+  >("edahabia");
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [modalSuccess, setModalSuccess] = React.useState<string | null>(null);
+  const [modalError, setModalError] = React.useState<string | null>(null);
+
+  const handleUpgradeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    setModalError(null);
+    setModalSuccess(null);
+
+    // TODO(backend): payment/plan-upgrade contract not implemented
+    setTimeout(() => {
+      setIsProcessing(false);
+      setModalSuccess(
+        `Your upgrade request to ${PLAN_LABELS[selectedPlan]} via ${paymentMethod.toUpperCase()} has been submitted. Our team will verify and activate your quota.`,
+      );
+    }, 1200);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalSuccess(null);
+    setModalError(null);
+    setIsProcessing(false);
+  };
+
   const currentPlanKey = organization?.plan ?? "free";
   const currentPlan = PLAN_PRICES[currentPlanKey];
   const totalEntries = analytics?.total_entries ?? 0;
@@ -133,6 +169,7 @@ export const BillingUsage: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             type="button"
+            onClick={() => setIsModalOpen(true)}
             className={`px-5 py-3 rounded-2xl font-bold text-base transition-all flex items-center gap-2.5 cursor-pointer border ${
               isDark
                 ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
@@ -144,6 +181,7 @@ export const BillingUsage: React.FC = () => {
           </button>
           <button
             type="button"
+            onClick={() => setIsModalOpen(true)}
             className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold text-base transition-all flex items-center gap-2.5 shadow-lg shadow-blue-500/25 cursor-pointer hover:scale-102"
           >
             <Upload className="w-5 h-5 stroke-[2.2]" />
@@ -211,7 +249,11 @@ export const BillingUsage: React.FC = () => {
 
           {/* Glowing Neon Upgrade Plan Button (adapted to width of the box) */}
           <div className="pt-8 mt-6">
-            <button type="button" className="shadow__btn" onClick={() => {}}>
+            <button
+              type="button"
+              className="shadow__btn"
+              onClick={() => setIsModalOpen(true)}
+            >
               <span>{t("billing.upgradePlan", "Upgrade Plan")}</span>
             </button>
           </div>
@@ -415,6 +457,199 @@ export const BillingUsage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* UPGRADE / CHANGE PLAN INTERACTIVE MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div
+            className={`w-full max-w-xl rounded-3xl p-6 sm:p-8 shadow-2xl border transition-all ${
+              isDark
+                ? "bg-[#111726] border-slate-700 text-white"
+                : "bg-white border-slate-200 text-slate-900"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-card-border">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black">Upgrade / Manage Plan</h3>
+                  <p className="text-xs text-brand-textMuted font-semibold">
+                    Select a tier and payment method for your organization
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {modalSuccess ? (
+              <div className="py-8 text-center space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center border border-emerald-500/30">
+                  <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
+                </div>
+                <h4 className="text-lg font-black text-emerald-500">
+                  Request Submitted Successfully
+                </h4>
+                <p className="text-sm text-brand-textMuted max-w-md mx-auto leading-relaxed">
+                  {modalSuccess}
+                </p>
+                <div className="pt-4">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-6 py-2.5 rounded-full transition-all cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleUpgradeSubmit} className="space-y-6 pt-4">
+                {modalError && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-bold">
+                    {modalError}
+                  </div>
+                )}
+
+                {/* Plan Selection */}
+                <div className="space-y-2.5">
+                  <label className="text-xs font-black uppercase tracking-wider text-brand-textMuted">
+                    Select New Tier
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(["starter", "pro", "enterprise"] as const).map((plan) => (
+                      <button
+                        key={plan}
+                        type="button"
+                        onClick={() => setSelectedPlan(plan)}
+                        className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                          selectedPlan === plan
+                            ? "border-blue-600 bg-blue-600/10 ring-2 ring-blue-600/30"
+                            : isDark
+                              ? "border-slate-800 bg-[#151E30] hover:border-slate-700"
+                              : "border-slate-200 bg-slate-50 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="text-xs font-black uppercase tracking-wider text-brand-textMuted">
+                          {plan}
+                        </span>
+                        <span className="text-base font-black text-brand-text mt-1">
+                          {PLAN_PRICES[plan].price}
+                        </span>
+                        <span className="text-[11px] text-brand-textMuted mt-0.5">
+                          {PLAN_PRICES[plan].quota.toLocaleString()} leads
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Method Selector */}
+                <div className="space-y-2.5">
+                  <label className="text-xs font-black uppercase tracking-wider text-brand-textMuted">
+                    Payment Method
+                  </label>
+                  <div className="space-y-2">
+                    {[
+                      {
+                        id: "edahabia",
+                        label: "EDAHABIA (BaridiMob)",
+                        desc: "Instant national postal card verification",
+                        icon: CreditCard,
+                      },
+                      {
+                        id: "cib",
+                        label: "CIB Bank Card",
+                        desc: "Algerian interbank payment card",
+                        icon: CreditCard,
+                      },
+                      {
+                        id: "wire",
+                        label: "Bank Wire Transfer",
+                        desc: "Corporate bank invoice with proforma verification",
+                        icon: Building,
+                      },
+                    ].map((method) => {
+                      const Icon = method.icon;
+                      return (
+                        <label
+                          key={method.id}
+                          className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                            paymentMethod === method.id
+                              ? "border-blue-600 bg-blue-600/10 ring-1 ring-blue-600/30"
+                              : isDark
+                                ? "border-slate-800 bg-[#151E30] hover:border-slate-700"
+                                : "border-slate-200 bg-slate-50 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400">
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-brand-text">
+                                {method.label}
+                              </div>
+                              <div className="text-[11px] text-brand-textMuted">
+                                {method.desc}
+                              </div>
+                            </div>
+                          </div>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === method.id}
+                            onChange={() =>
+                              setPaymentMethod(
+                                method.id as "edahabia" | "cib" | "wire",
+                              )
+                            }
+                            className="w-4 h-4 text-blue-600 accent-blue-600"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Modal Footer Actions */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-card-border">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    disabled={isProcessing}
+                    className="px-5 py-2.5 rounded-full font-bold text-xs text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-black text-xs px-6 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all hover:scale-102 cursor-pointer"
+                  >
+                    {isProcessing ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    <span>
+                      {isProcessing ? "Processing..." : "Confirm Upgrade"}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
