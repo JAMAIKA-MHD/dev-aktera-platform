@@ -12,7 +12,7 @@ interface VisitorStatsChartProps {
 }
 
 export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
-  campaigns = [],
+  campaigns: _campaigns = [],
   onMoreDetails,
 }) => {
   const { theme } = useTheme();

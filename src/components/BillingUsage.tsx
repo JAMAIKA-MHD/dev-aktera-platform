@@ -1,6 +1,5 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
-  AlertTriangle,
   CheckCircle2,
   Users,
   Cpu,

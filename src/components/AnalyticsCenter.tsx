@@ -1,36 +1,8 @@
-import React, { useMemo, useRef, useState } from "react";
-import {
-  Download,
-  FileSpreadsheet,
-  TrendingUp,
-  Users,
-  CheckCircle2,
-  HelpCircle,
-  Upload,
-  Check,
-  AlertTriangle,
-  Clock,
-  Sparkles,
-  Repeat,
-  Trophy,
-} from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Users, Trophy } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
-import { importParticipantEntries } from "../services/analyticsService";
-import { toFriendlyErrorMessage } from "../lib/errorMessages";
-import {
-  PercentageCircle,
-  ParticipationHistogram,
-  CarrierBreakdownChart,
-  OSDistributionChart,
-  PrizeBurnRateList,
-} from "./analytics/AnalyticsGraphics";
-import {
-  exportToCSV,
-  exportToExcel,
-  parseCSVFile,
-  parseExcelFile,
-} from "../lib/exportUtils";
+import { exportToCSV, exportToExcel } from "../lib/exportUtils";
 
 const formatDwellTime = (seconds: number): string => {
   if (!seconds || seconds <= 0) return "0s";
@@ -47,7 +19,7 @@ interface AnalyticsCenterProps {
 export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
 }) => {
-  const { organization } = useAuth();
+  const { organization: _organization } = useAuth();
   const [selectedCampId, setSelectedCampId] = useState<string>(
     initialCampaignId ?? "all",
   );
@@ -63,12 +35,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
   // Pass selectedCampId into useAnalytics hook to trigger instant dynamic filtering
   const { analytics, loading, error } = useAnalytics(selectedCampId);
-  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("xlsx");
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [importSuccess, setImportSuccess] = useState<string | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
+  const [exportFormat] = useState<"csv" | "xlsx">("xlsx");
 
   const selectedCampaign = useMemo(
     () =>
@@ -77,98 +44,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
       ) ?? null,
     [analytics, selectedCampId],
   );
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !organization) return;
-
-    setImporting(true);
-    setImportSuccess(null);
-    setImportError(null);
-
-    try {
-      const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
-      const rows = isExcel
-        ? await parseExcelFile<Record<string, unknown>>(file)
-        : await parseCSVFile<Record<string, unknown>>(file);
-
-      if (!rows || rows.length === 0) {
-        throw new Error("Import file is empty or could not be parsed.");
-      }
-
-      const targetCampId =
-        selectedCampId !== "all"
-          ? selectedCampId
-          : analytics?.by_campaign[0]?.campaign_id;
-
-      if (!targetCampId) {
-        throw new Error(
-          "Please select or create at least one campaign before importing participant entries.",
-        );
-      }
-
-      const newEntries = rows
-        .map((row) => {
-          const keys = Object.keys(row);
-          const phoneKey =
-            keys.find(
-              (k) =>
-                k.toLowerCase().includes("phone") ||
-                k.toLowerCase().includes("mobile") ||
-                k.toLowerCase().includes("tel"),
-            ) ?? keys[0];
-          const nameKey =
-            keys.find(
-              (k) =>
-                k.toLowerCase().includes("name") ||
-                k.toLowerCase().includes("participant") ||
-                k.toLowerCase().includes("user"),
-            ) ?? keys[1];
-
-          const rawPhone = String(row[phoneKey ?? ""] ?? "").trim();
-          const rawName = String(row[nameKey ?? ""] ?? "").trim();
-
-          const isWinnerVal = String(
-            row.is_winner ?? row["Winner"] ?? row["Status"] ?? "",
-          ).toLowerCase();
-          const isWinner =
-            isWinnerVal === "true" ||
-            isWinnerVal === "1" ||
-            isWinnerVal.includes("win");
-
-          return {
-            campaign_id: targetCampId,
-            organization_id: organization.id,
-            phone_number: rawPhone || "0500000000",
-            participant_name: rawName || null,
-            is_winner: isWinner,
-            created_at: new Date().toISOString(),
-          };
-        })
-        .filter((entry) => entry.phone_number.length >= 8);
-
-      if (newEntries.length === 0) {
-        throw new Error("No valid participant entries found in file.");
-      }
-
-      await importParticipantEntries(newEntries);
-
-      setImportSuccess(
-        `Successfully imported ${newEntries.length} participant entries into ${
-          selectedCampaign?.campaign_name ?? "campaign"
-        }!`,
-      );
-    } catch (err) {
-      setImportError(
-        toFriendlyErrorMessage(
-          err,
-          "Failed to import entries file. Please verify format and try again.",
-        ),
-      );
-    } finally {
-      setImporting(false);
-    }
-  };
 
   const handleExportData = () => {
     if (!analytics) return;
