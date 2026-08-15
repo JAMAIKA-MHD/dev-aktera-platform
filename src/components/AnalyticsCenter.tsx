@@ -170,79 +170,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
     }
   };
 
-  const handleGenerateSampleData = async () => {
-    if (!organization) return;
-    setImporting(true);
-    setImportSuccess(null);
-    setImportError(null);
-
-    try {
-      const targetCampId =
-        selectedCampId !== "all"
-          ? selectedCampId
-          : analytics?.by_campaign[0]?.campaign_id;
-
-      if (!targetCampId) {
-        throw new Error(
-          "Please select or create at least one campaign before generating participant data.",
-        );
-      }
-
-      const sampleNames = [
-        "Yacine Benali",
-        "Amine Khelifi",
-        "Meriem Zerrouki",
-        "Karim Belkacem",
-        "Fatima Boumedienne",
-        "Sami Ferhani",
-        "Lina Mansouri",
-        "Omar Saidi",
-        "Nadia Brahimi",
-        "Ryad Mahrez",
-      ];
-      const prefixes = ["06", "07", "05"];
-      const userAgents = [
-        "Mozilla/5.0 (Linux; Android 13; SM-G998B)",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X)",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-      ];
-
-      const sampleEntries = Array.from({ length: 12 }).map((_, idx) => {
-        const pref = prefixes[idx % prefixes.length];
-        const num = Math.floor(1000000 + Math.random() * 8999999);
-        const isWin = idx % 3 === 0;
-        const dwell = Math.floor(15 + Math.random() * 120);
-
-        return {
-          campaign_id: targetCampId,
-          organization_id: organization.id,
-          phone_number: `${pref}${num}`,
-          participant_name: sampleNames[idx % sampleNames.length],
-          is_winner: isWin,
-          quiz_passed: true,
-          coupon_confirmed: isWin,
-          redeemed_coupon_value: isWin
-            ? `WIN-${Math.floor(1000 + Math.random() * 9000)}`
-            : undefined,
-          dwell_time_seconds: dwell,
-          user_agent: userAgents[idx % userAgents.length],
-          created_at: new Date(Date.now() - idx * 3600000 * 4).toISOString(),
-        };
-      });
-
-      await importParticipantEntries(sampleEntries);
-      setImportSuccess(
-        `Successfully generated and recorded 12 participant entries into the database!`,
-      );
-    } catch (err) {
-      setImportError(
-        toFriendlyErrorMessage(err, "Failed to generate sample data."),
-      );
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const handleExportData = () => {
     if (!analytics) return;
 
@@ -919,18 +846,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                           No player participations recorded in database yet for
                           this selection.
                         </p>
-                        <button
-                          onClick={handleGenerateSampleData}
-                          disabled={importing}
-                          className="mt-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-2xl text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-60"
-                        >
-                          {importing ? (
-                            <div className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
-                          ) : (
-                            <Sparkles className="w-3.5 h-3.5" />
-                          )}
-                          <span>Generate Sample Data</span>
-                        </button>
                       </div>
                     </td>
                   </tr>
