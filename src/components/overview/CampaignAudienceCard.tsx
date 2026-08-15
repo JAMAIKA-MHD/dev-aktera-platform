@@ -1,15 +1,24 @@
 import React, { useState } from "react";
 import { ChevronDown, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 import { CAMPAIGN_AUDIENCE_DATA, ChannelAudience } from "./OverviewMockData";
+import { useTheme } from "../../contexts/ThemeContext";
 
 export const CampaignAudienceCard: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
 
   const filterOptions = ["All", "This Week", "This Month", "Past 90 Days"];
 
   return (
-    <div className="backdrop-blur-xl bg-card-bg/90 dark:bg-[#111726]/80 border border-card-border/80 dark:border-white/10 rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full">
+    <div
+      className={`rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full border ${
+        isDark
+          ? "bg-[#151E30] border-slate-800 text-white"
+          : "bg-white border-slate-200 text-slate-900 shadow-sm"
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-bold text-xl sm:text-2xl text-brand-text">
@@ -20,14 +29,24 @@ export const CampaignAudienceCard: React.FC = () => {
         <div className="relative">
           <button
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 dark:border-white/10 bg-card-bg-subtle/80 text-xs sm:text-sm font-semibold text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+              isDark
+                ? "border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
+                : "border-slate-200 bg-slate-50 text-slate-700 hover:text-slate-900"
+            }`}
           >
             <span>{selectedFilter}</span>
             <ChevronDown className="w-4 h-4 opacity-70" />
           </button>
 
           {filterOpen && (
-            <div className="absolute right-0 mt-1 w-36 backdrop-blur-2xl bg-card-bg/95 dark:bg-[#151e30]/95 border border-card-border dark:border-white/15 rounded-2xl shadow-2xl z-30 py-1 overflow-hidden">
+            <div
+              className={`absolute right-0 mt-1 w-36 rounded-2xl shadow-xl z-30 py-1 overflow-hidden border ${
+                isDark
+                  ? "bg-[#151E30] border-slate-700 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
               {filterOptions.map((opt) => (
                 <button
                   key={opt}
@@ -35,7 +54,11 @@ export const CampaignAudienceCard: React.FC = () => {
                     setSelectedFilter(opt);
                     setFilterOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs sm:text-sm text-brand-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  className={`w-full text-left px-3.5 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                    isDark
+                      ? "text-slate-200 hover:bg-white/5"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
                 >
                   {opt}
                 </button>

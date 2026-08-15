@@ -29,8 +29,8 @@
   --theme-card-subtle: #f8fafc;
   --theme-card-border: #e2e8f0;
   --theme-card-hover: #f1f5f9;
-  --theme-kpi-card: #ebf3fc;
-  --theme-kpi-border: rgba(59, 130, 246, 0.15);
+  --theme-kpi-card: #ffffff;
+  --theme-kpi-border: #e2e8f0;
 }
 
 [data-theme="dark"] {

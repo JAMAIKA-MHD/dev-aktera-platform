@@ -7,12 +7,15 @@ import {
   AvailableCampaignInfo,
 } from "./OverviewMockData";
 import { Campaign } from "../../types";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface CampaignAgendaGridProps {
   campaigns?: Campaign[];
 }
 
 export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<AgendaTimeSlot | null>(null);
@@ -75,7 +78,11 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
   return (
     <div
       ref={containerRef}
-      className="bg-card-bg border border-card-border rounded-[32px] p-7 sm:p-8 transition-all duration-200 hover:shadow-lg flex flex-col justify-between h-full relative overflow-visible"
+      className={`rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
+        isDark
+          ? "bg-[#151E30] border-slate-800 text-white"
+          : "bg-white border-slate-200 text-slate-900 shadow-sm"
+      }`}
     >
       {/* Header with Title, Subtitle, and Legend */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -99,7 +106,11 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
             <span>3-</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-emerald-100 dark:bg-slate-700 shrink-0"></span>
+            <span
+              className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                isDark ? "bg-slate-700" : "bg-slate-200"
+              }`}
+            ></span>
             <span>0</span>
           </div>
         </div>
@@ -108,75 +119,56 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
       {/* Heatmap Grid */}
       <div className="w-full overflow-x-auto relative">
         <div className="min-w-[550px]">
-          {/* Day Rows */}
-          <div className="space-y-2.5">
-            {CAMPAIGN_AGENDA_GRID.map((schedule: AgendaDaySchedule) => {
-              const isDayHovered = hoveredDay === schedule.day;
-
-              return (
-                <div
-                  key={schedule.day}
-                  className="flex items-center gap-3 relative"
-                >
-                  {/* Day Label (Y-axis) with Direct Hover Detection */}
-                  <div
-                    onMouseEnter={(e) => handleMouseMove(e, schedule.day)}
-                    onMouseMove={(e) => handleMouseMove(e, schedule.day)}
-                    onMouseLeave={handleMouseLeave}
-                    className="w-10 cursor-pointer select-none py-1"
-                  >
-                    <span
-                      className={`text-xs sm:text-sm font-bold transition-colors ${
-                        isDayHovered
-                          ? "text-emerald-500 underline underline-offset-2"
-                          : "text-brand-textMuted hover:text-brand-text"
-                      }`}
-                    >
-                      {schedule.day}
-                    </span>
-                  </div>
-
-                  {/* 8 Time Slot Cells */}
-                  <div className="grid grid-cols-8 gap-2 flex-1">
-                    {schedule.slots.map((slot: AgendaTimeSlot, idx: number) => (
-                      <div
-                        key={`${schedule.day}-${idx}`}
-                        onMouseEnter={(e) =>
-                          handleMouseMove(e, schedule.day, slot)
-                        }
-                        onMouseMove={(e) =>
-                          handleMouseMove(e, schedule.day, slot)
-                        }
-                        onMouseLeave={handleMouseLeave}
-                        className={`h-7 sm:h-8 rounded-lg transition-all duration-150 cursor-pointer relative ${getCellClass(
-                          slot.intensity,
-                        )}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          {/* Hour labels row */}
+          <div className="grid grid-cols-12 gap-1 mb-2 pl-14">
+            {AGENDA_TIME_LABELS.map((label, idx) => (
+              <span
+                key={idx}
+                className="text-[10px] sm:text-xs font-bold text-brand-textMuted text-center select-none"
+              >
+                {label}
+              </span>
+            ))}
           </div>
 
-          {/* Time Slot Labels (X-axis) */}
-          <div className="flex items-center gap-3 mt-3 pt-2">
-            <span className="w-10"></span>
-            <div className="grid grid-cols-8 gap-2 flex-1">
-              {AGENDA_TIME_LABELS.map((timeLabel) => (
-                <span
-                  key={timeLabel}
-                  className="text-center text-[11px] sm:text-xs font-bold text-brand-textMuted uppercase select-none tracking-tight"
-                >
-                  {timeLabel}
+          {/* Grid rows by day */}
+          <div className="space-y-1.5">
+            {CAMPAIGN_AGENDA_GRID.map((daySchedule) => (
+              <div
+                key={daySchedule.day}
+                className="flex items-center gap-2 group/row"
+              >
+                {/* Day label */}
+                <span className="w-12 text-xs sm:text-sm font-bold text-brand-text select-none text-left">
+                  {daySchedule.day}
                 </span>
-              ))}
-            </div>
+
+                {/* 12-Slot grid cells */}
+                <div className="grid grid-cols-12 gap-1.5 flex-1">
+                  {daySchedule.slots.map((slot, sIdx) => {
+                    const cellClass = getCellClass(slot.intensity);
+                    return (
+                      <div
+                        key={sIdx}
+                        onMouseEnter={(e) =>
+                          handleMouseMove(e, daySchedule.day, slot)
+                        }
+                        onMouseMove={(e) =>
+                          handleMouseMove(e, daySchedule.day, slot)
+                        }
+                        onMouseLeave={handleMouseLeave}
+                        className={`h-7 sm:h-8 rounded-lg cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* FLOATING CURSOR-TRACKED DETAILS POPOVER */}
+      {/* HOVER POPOVER */}
       {hoveredDay &&
         activeSchedule &&
         activeCampaigns.length > 0 &&
@@ -189,10 +181,18 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
               )}px`,
               top: `${mousePos.y > 160 ? mousePos.y - 130 : mousePos.y + 20}px`,
             }}
-            className="absolute z-50 bg-card-bg border border-card-border shadow-2xl rounded-2xl p-3.5 min-w-[240px] max-w-[300px] pointer-events-none transition-all duration-75 ease-out animate-in fade-in zoom-in-95"
+            className={`absolute z-50 rounded-2xl p-3.5 min-w-[240px] max-w-[300px] pointer-events-none transition-all duration-75 ease-out animate-in fade-in zoom-in-95 border ${
+              isDark
+                ? "bg-[#151E30] border-slate-700 text-white shadow-2xl"
+                : "bg-white border-slate-200 text-slate-900 shadow-xl"
+            }`}
           >
             {/* Popover Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-brand-border/30 pb-2 mb-2">
+            <div
+              className={`flex items-center justify-between gap-2 pb-2 mb-2 border-b ${
+                isDark ? "border-slate-800" : "border-slate-100"
+              }`}
+            >
               <span className="text-xs font-black text-brand-text">
                 {hoveredDay}{" "}
                 {hoveredSlot ? `(${hoveredSlot.timeLabel})` : "Campaigns"}
@@ -207,7 +207,11 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
               {activeCampaigns.map((camp, cIdx) => (
                 <div
                   key={cIdx}
-                  className="flex flex-col gap-0.5 bg-card-bg-subtle p-2 rounded-xl border border-brand-border/20"
+                  className={`flex flex-col gap-0.5 p-2 rounded-xl border ${
+                    isDark
+                      ? "bg-slate-800/60 border-slate-700/60"
+                      : "bg-slate-50 border-slate-100"
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-brand-text truncate">

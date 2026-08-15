@@ -2,6 +2,7 @@ import React from "react";
 import { TrendingUp, Activity } from "lucide-react";
 import { OVERVIEW_KPI_CARDS, KpiCardData } from "./OverviewMockData";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface OverviewKpiCardsProps {
   activeCampaignsCount?: number;
@@ -12,13 +13,19 @@ interface OverviewKpiCardsProps {
 
 export const OverviewKpiCards: React.FC<OverviewKpiCardsProps> = () => {
   const { t } = useLanguage();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {OVERVIEW_KPI_CARDS.map((card: KpiCardData) => (
         <div
           key={card.id}
-          className="backdrop-blur-xl bg-kpi-card/90 dark:bg-[#131b2c]/80 border border-slate-200/80 dark:border-white/10 rounded-[32px] p-6 sm:p-7 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between"
+          className={`rounded-[32px] p-6 sm:p-7 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between border ${
+            isDark
+              ? "bg-[#151E30] border-slate-800 text-white"
+              : "bg-white border-slate-200 text-slate-900 shadow-sm"
+          }`}
         >
           {/* Card Top Row: Title & Percentage Badge */}
           <div className="flex items-start justify-between gap-2 mb-5">
@@ -32,7 +39,11 @@ export const OverviewKpiCards: React.FC<OverviewKpiCardsProps> = () => {
           </div>
 
           {/* Card Bottom Row: Clicks & Conversions Submetrics */}
-          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-brand-border/20">
+          <div
+            className={`grid grid-cols-2 gap-4 pt-3 border-t ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}
+          >
             {/* Clicks */}
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5 text-brand-textMuted text-xs sm:text-sm font-medium mb-1.5">

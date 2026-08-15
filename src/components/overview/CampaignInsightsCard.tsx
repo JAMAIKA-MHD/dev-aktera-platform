@@ -36,7 +36,13 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
   ];
 
   return (
-    <div className="backdrop-blur-xl bg-card-bg/90 dark:bg-[#111726]/80 border border-card-border/80 dark:border-white/10 rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full">
+    <div
+      className={`rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full border ${
+        isDark
+          ? "bg-[#151E30] border-slate-800 text-white"
+          : "bg-white border-slate-200 text-slate-900 shadow-sm"
+      }`}
+    >
       {/* Top Header: Title, Subtitle, and Filter Dropdown */}
       <div className="flex items-start justify-between mb-4">
         <div>
@@ -54,14 +60,24 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
         <div className="relative shrink-0">
           <button
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 dark:border-white/10 bg-card-bg-subtle/80 text-xs sm:text-sm font-semibold text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+              isDark
+                ? "border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
+                : "border-slate-200 bg-slate-50 text-slate-700 hover:text-slate-900"
+            }`}
           >
             <span className="truncate max-w-[120px]">{selectedChannel}</span>
             <ChevronDown className="w-4 h-4 opacity-70 shrink-0" />
           </button>
 
           {filterOpen && (
-            <div className="absolute right-0 mt-1 w-48 backdrop-blur-2xl bg-card-bg/95 dark:bg-[#151e30]/95 border border-card-border dark:border-white/15 rounded-2xl shadow-2xl z-30 py-1 overflow-hidden max-h-60 overflow-y-auto">
+            <div
+              className={`absolute right-0 mt-1 w-48 rounded-2xl shadow-xl z-30 py-1 overflow-hidden max-h-60 overflow-y-auto border ${
+                isDark
+                  ? "bg-[#151E30] border-slate-700 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
               {channelOptions.map((channel) => (
                 <button
                   key={channel}
@@ -69,7 +85,11 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
                     setSelectedChannel(channel);
                     setFilterOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-xs sm:text-sm text-brand-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate cursor-pointer"
+                  className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors truncate cursor-pointer ${
+                    isDark
+                      ? "text-slate-200 hover:bg-white/5"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
                 >
                   {channel}
                 </button>
