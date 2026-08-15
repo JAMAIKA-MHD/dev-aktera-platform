@@ -1,27 +1,23 @@
-import React, { useState, useRef } from "react";
-import { useAnalytics } from "../hooks/useAnalytics";
-import { useAuth } from "../contexts/AuthContext";
-import { exportToExcel, exportToCSV } from "../lib/exportUtils";
-import { importParticipantEntries } from "../services/analyticsService";
-import { toFriendlyErrorMessage } from "../lib/errorMessages";
+import React, { useMemo, useRef, useState } from "react";
 import {
-  Users,
-  Eye,
-  Trophy,
-  Upload,
   Download,
   FileSpreadsheet,
+  TrendingUp,
+  Users,
   CheckCircle2,
+  HelpCircle,
+  Upload,
+  Check,
+  AlertTriangle,
   Clock,
   Sparkles,
-  TrendingUp,
-  HelpCircle,
   Repeat,
-  AlertTriangle,
-  Check,
-  Search,
-  Filter,
+  Trophy,
 } from "lucide-react";
+import { useAnalytics } from "../hooks/useAnalytics";
+import { useAuth } from "../contexts/AuthContext";
+import { importParticipantEntries } from "../services/analyticsService";
+import { toFriendlyErrorMessage } from "../lib/errorMessages";
 import {
   PercentageCircle,
   ParticipationHistogram,
@@ -29,17 +25,23 @@ import {
   OSDistributionChart,
   PrizeBurnRateList,
 } from "./analytics/AnalyticsGraphics";
+import {
+  exportToCSV,
+  exportToExcel,
+  parseCSVFile,
+  parseExcelFile,
+} from "../lib/exportUtils";
+
+const formatDwellTime = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return "0s";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+};
 
 interface AnalyticsCenterProps {
   initialCampaignId?: string | null;
-}
-
-function formatDwellTime(seconds: number): string {
-  if (!seconds || seconds <= 0) return "0s";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60);
-  if (mins === 0) return `${secs}s`;
-  return `${mins}m ${secs}s`;
 }
 
 export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
@@ -49,27 +51,31 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   const [selectedCampId, setSelectedCampId] = useState<string>(
     initialCampaignId ?? "all",
   );
-  const [exportFormat, setExportFormat] = useState<"xlsx" | "csv">("xlsx");
-
-  // Table view state: "participants" (Player Entries) or "summary" (Campaign Breakdown)
   const [tableViewMode, setTableViewMode] = useState<
     "participants" | "summary"
   >("participants");
 
-  // Search filter inside participants table
-  const [searchQuery, setSearchQuery] = useState("");
+  React.useEffect(() => {
+    if (initialCampaignId) {
+      setSelectedCampId(initialCampaignId);
+    }
+  }, [initialCampaignId]);
 
-  // Import state
+  // Pass selectedCampId into useAnalytics hook to trigger instant dynamic filtering
+  const { analytics, loading, error } = useAnalytics(selectedCampId);
+  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("xlsx");
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { analytics, loading, error } = useAnalytics(selectedCampId);
-
-  const selectedCampaign = analytics?.by_campaign.find(
-    (c) => c.campaign_id === selectedCampId,
+  const selectedCampaign = useMemo(
+    () =>
+      (analytics?.by_campaign ?? []).find(
+        (campaign) => campaign.campaign_id === selectedCampId,
+      ) ?? null,
+    [analytics, selectedCampId],
   );
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +87,15 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
     setImportError(null);
 
     try {
+      const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+      const rows = isExcel
+        ? await parseExcelFile<Record<string, unknown>>(file)
+        : await parseCSVFile<Record<string, unknown>>(file);
+
+      if (!rows || rows.length === 0) {
+        throw new Error("Import file is empty or could not be parsed.");
+      }
+
       const targetCampId =
         selectedCampId !== "all"
           ? selectedCampId
@@ -88,90 +103,49 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
       if (!targetCampId) {
         throw new Error(
-          "Please select or create a campaign before importing entries.",
+          "Please select or create at least one campaign before importing participant entries.",
         );
       }
 
-      let newEntries: any[] = [];
-
-      if (file.name.endsWith(".csv") || file.type.includes("csv")) {
-        const text = await file.text();
-        const lines = text
-          .split("\n")
-          .map((l) => l.trim())
-          .filter(Boolean);
-        if (lines.length <= 1) {
-          throw new Error("CSV file is empty or has no data rows.");
-        }
-        const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-        const nameIdx = headers.findIndex(
-          (h) => h.includes("name") || h.includes("participant"),
-        );
-        const phoneIdx = headers.findIndex(
-          (h) => h.includes("phone") || h.includes("mobile"),
-        );
-        const winIdx = headers.findIndex(
-          (h) => h.includes("win") || h.includes("outcome"),
-        );
-
-        for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(",").map((p) => p.trim());
-          if (parts.length < 1) continue;
-          newEntries.push({
-            campaign_id: targetCampId,
-            organization_id: organization.id,
-            participant_name: nameIdx !== -1 ? parts[nameIdx] : parts[0],
-            phone_number:
-              phoneIdx !== -1
-                ? parts[phoneIdx]
-                : parts[1] ||
-                  `06${Math.floor(10000000 + Math.random() * 89999999)}`,
-            is_winner:
-              winIdx !== -1
-                ? parts[winIdx]?.toLowerCase() === "true" ||
-                  parts[winIdx]?.toLowerCase() === "winner"
-                : false,
-          });
-        }
-      } else {
-        const XLSX = await import("xlsx");
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data);
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonRows: any[] = XLSX.utils.sheet_to_json(worksheet);
-
-        newEntries = jsonRows.map((row) => {
+      const newEntries = rows
+        .map((row) => {
           const keys = Object.keys(row);
-          const nameKey = keys.find(
-            (k) =>
-              k.toLowerCase().includes("name") ||
-              k.toLowerCase().includes("participant"),
-          );
-          const phoneKey = keys.find(
-            (k) =>
-              k.toLowerCase().includes("phone") ||
-              k.toLowerCase().includes("mobile"),
-          );
-          const winKey = keys.find(
-            (k) =>
-              k.toLowerCase().includes("win") ||
-              k.toLowerCase().includes("outcome"),
-          );
+          const phoneKey =
+            keys.find(
+              (k) =>
+                k.toLowerCase().includes("phone") ||
+                k.toLowerCase().includes("mobile") ||
+                k.toLowerCase().includes("tel"),
+            ) ?? keys[0];
+          const nameKey =
+            keys.find(
+              (k) =>
+                k.toLowerCase().includes("name") ||
+                k.toLowerCase().includes("participant") ||
+                k.toLowerCase().includes("user"),
+            ) ?? keys[1];
+
+          const rawPhone = String(row[phoneKey ?? ""] ?? "").trim();
+          const rawName = String(row[nameKey ?? ""] ?? "").trim();
+
+          const isWinnerVal = String(
+            row.is_winner ?? row["Winner"] ?? row["Status"] ?? "",
+          ).toLowerCase();
+          const isWinner =
+            isWinnerVal === "true" ||
+            isWinnerVal === "1" ||
+            isWinnerVal.includes("win");
 
           return {
             campaign_id: targetCampId,
             organization_id: organization.id,
-            participant_name: nameKey ? String(row[nameKey]) : "Imported User",
-            phone_number: phoneKey
-              ? String(row[phoneKey])
-              : `06${Math.floor(10000000 + Math.random() * 89999999)}`,
-            is_winner: winKey
-              ? String(row[winKey]).toLowerCase() === "true" ||
-                String(row[winKey]).toLowerCase() === "winner"
-              : false,
+            phone_number: rawPhone || "0500000000",
+            participant_name: rawName || null,
+            is_winner: isWinner,
+            created_at: new Date().toISOString(),
           };
-        });
-      }
+        })
+        .filter((entry) => entry.phone_number.length >= 8);
 
       if (newEntries.length === 0) {
         throw new Error("No valid participant entries found in file.");
@@ -273,6 +247,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
     if (!analytics) return;
 
     if (selectedCampId === "all") {
+      // Export Overview of All Campaigns
       const formattedRows = analytics.by_campaign.map((row) => ({
         "Campaign Name": row.campaign_name,
         Status: row.status,
@@ -306,6 +281,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         );
       }
     } else {
+      // Export Detailed Player Participants List for Selected Campaign
       const campName = selectedCampaign?.campaign_name ?? selectedCampId;
       const formattedRows = analytics.participants.map((p) => ({
         "Participant Name": p.participant_name || "Anonymous Player",
@@ -348,294 +324,444 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center bg-white rounded-3xl border border-slate-200 shadow-sm">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-          <span className="text-sm font-bold text-slate-700">
-            Loading Campaign Business Analytics...
-          </span>
-        </div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-accent border-t-transparent" />
       </div>
     );
   }
 
   if (error || !analytics) {
     return (
-      <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 font-semibold shadow-sm flex items-center gap-3">
-        <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
-        <span>{error || "Analytics desk unavailable right now."}</span>
+      <div className="glass-panel rounded-2xl p-4 text-red-400 font-medium">
+        {error || "Analytics unavailable right now."}
       </div>
     );
   }
 
-  // Filter participants by search query
-  const filteredParticipants = (analytics.participants ?? []).filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (p.participant_name && p.participant_name.toLowerCase().includes(q)) ||
-      (p.phone_number && p.phone_number.includes(q)) ||
-      (p.campaign_name && p.campaign_name.toLowerCase().includes(q)) ||
-      (p.prize_name && p.prize_name.toLowerCase().includes(q)) ||
-      (p.redeemed_coupon_value &&
-        p.redeemed_coupon_value.toLowerCase().includes(q))
-    );
-  });
-
   return (
-    <div id="analytics-center-root" className="space-y-8 text-slate-800 pb-12">
-      {/* 1. EXECUTIVE DASHBOARD HEADER */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-5">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Analytics Desk
-            </h1>
-            <span className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-extrabold px-3 py-0.5 rounded-full">
-              PostgreSQL RPC v2
+    <div id="analytics-center-root" className="space-y-6 text-brand-text">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-brand-text tracking-tight">
+          Advanced Statistics
+        </h1>
+        <button className="glass-panel px-3 py-1.5 rounded-2xl text-xs flex items-center gap-2 text-brand-textMuted hover:text-brand-text transition-colors shadow-sm cursor-pointer border-transparent">
+          All Time <i className="fa-solid fa-chevron-down text-[10px]"></i>
+        </button>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
+        <div className="relative">
+          <select
+            value={selectedCampId}
+            onChange={(e) => setSelectedCampId(e.target.value)}
+            className="glass-panel px-4 py-2 rounded-2xl text-sm flex items-center gap-2 text-brand-text hover:bg-card-bg-subtle outline-none appearance-none cursor-pointer pr-10"
+          >
+            <option value="all">All Campaigns Combined</option>
+            {analytics?.by_campaign.map((c) => (
+              <option key={c.campaign_id} value={c.campaign_id}>
+                {c.campaign_name || "Unnamed Campaign"}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-brand-textMuted">
+            <span className="material-symbols-outlined text-[16px]">
+              expand_more
             </span>
           </div>
-          <p className="text-slate-500 text-xs font-medium">
-            Real-time campaign engagement, conversion funnel, operator footprint
-            & participant records.
-          </p>
         </div>
 
-        {/* Action Controls Toolbar */}
-        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-          {/* Campaign Selector */}
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm">
-            <Filter className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0" />
-            <select
-              value={selectedCampId}
-              onChange={(e) => setSelectedCampId(e.target.value)}
-              className="bg-transparent text-xs text-slate-800 font-bold focus:outline-none cursor-pointer pr-2"
-            >
-              <option value="all">All Campaigns Combined</option>
-              {(analytics?.by_campaign ?? []).map((campaign) => (
-                <option key={campaign.campaign_id} value={campaign.campaign_id}>
-                  {campaign.campaign_name} ({campaign.status.toUpperCase()})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Export Format Toggle */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/70">
-            <button
-              onClick={() => setExportFormat("xlsx")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
-                exportFormat === "xlsx"
-                  ? "bg-white text-emerald-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              Excel
-            </button>
-            <button
-              onClick={() => setExportFormat("csv")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
-                exportFormat === "csv"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              CSV
-            </button>
-          </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportFile}
-            accept=".csv, .xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="hidden"
-          />
-
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
-            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-60"
-          >
-            {importing ? (
-              <div className="w-4 h-4 border-2 border-slate-600/30 border-t-slate-600 rounded-full animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4 text-slate-600" />
-            )}
-            <span>Import</span>
-          </button>
-
-          <button
+            className="glass-panel px-4 py-2 rounded-2xl text-sm flex items-center gap-2 text-brand-text hover:bg-card-bg-subtle cursor-pointer transition-colors"
             onClick={handleExportData}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
           >
-            {exportFormat === "xlsx" ? (
-              <FileSpreadsheet className="w-4 h-4" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            <span>
-              {selectedCampId === "all"
-                ? "Export Overview"
-                : "Export Player List"}
-            </span>
+            <i className="fa-solid fa-download text-brand-textMuted"></i> Export
+            Data
+          </button>
+          <button className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 hover:bg-blue-600/30 transition-colors cursor-pointer">
+            <i className="fa-regular fa-file-lines"></i> Report
           </button>
         </div>
       </div>
 
-      {/* Import Status Banners */}
-      {importSuccess && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs font-bold shadow-sm">
-          <Check className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <span>{importSuccess}</span>
+      <div className="grid grid-cols-12 gap-5 mb-5 relative">
+        {/* Left Column: KPIs & Win Rate */}
+        <div className="col-span-12 xl:col-span-8 flex flex-col gap-5">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-3 gap-5">
+            {/* Impressions */}
+            <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-36 group hover:bg-white/5 transition-all cursor-default">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+              <div className="relative z-10">
+                <h3 className="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                  <span className="material-symbols-outlined text-sm mr-1.5 align-middle text-brand-text/50">
+                    visibility
+                  </span>
+                  TOTAL IMPRESSIONS
+                </h3>
+                <div className="text-3xl font-bold text-brand-text mt-1">
+                  {analytics?.total_impressions.toLocaleString()}
+                </div>
+                <div className="text-xs text-brand-textMuted mt-1">
+                  Unique views
+                </div>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full h-16 z-0">
+                <svg
+                  className="w-full h-full preserve-3d"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 100 30"
+                >
+                  <defs>
+                    <linearGradient
+                      id="grad-green"
+                      x1="0%"
+                      x2="0%"
+                      y1="0%"
+                      y2="100%"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="rgba(74, 222, 128, 0.4)"
+                      ></stop>
+                      <stop
+                        offset="100%"
+                        stopColor="rgba(74, 222, 128, 0)"
+                      ></stop>
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,30 L0,25 C10,25 15,10 25,10 C35,10 40,20 50,20 C60,20 65,5 75,5 C85,5 90,15 100,15 L100,30 Z"
+                    fill="url(#grad-green)"
+                  ></path>
+                  <path
+                    className="sparkline sparkline-glow"
+                    d="M0,25 C10,25 15,10 25,10 C35,10 40,20 50,20 C60,20 65,5 75,5 C85,5 90,15 100,15"
+                    stroke="#4ade80"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+            {/* Entries */}
+            <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-36 group hover:bg-white/5 transition-all cursor-default">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+              <div className="relative z-10">
+                <h3 className="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                  <span className="material-symbols-outlined text-sm mr-1.5 align-middle text-brand-text/50">
+                    receipt_long
+                  </span>
+                  TOTAL ENTRIES
+                </h3>
+                <div className="text-3xl font-bold text-brand-text mt-1">
+                  {analytics?.total_entries.toLocaleString()}
+                </div>
+                <div className="text-xs text-brand-textMuted mt-1">
+                  Captured form
+                </div>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full h-16 z-0">
+                <svg
+                  className="w-full h-full preserve-3d"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 100 30"
+                >
+                  <defs>
+                    <linearGradient
+                      id="grad-blue"
+                      x1="0%"
+                      x2="0%"
+                      y1="0%"
+                      y2="100%"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="rgba(56, 189, 248, 0.4)"
+                      ></stop>
+                      <stop
+                        offset="100%"
+                        stopColor="rgba(56, 189, 248, 0)"
+                      ></stop>
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,30 L0,20 C15,20 20,25 30,25 C40,25 50,10 60,10 C70,10 80,18 90,18 C95,18 98,12 100,12 L100,30 Z"
+                    fill="url(#grad-blue)"
+                  ></path>
+                  <path
+                    className="sparkline sparkline-blue-glow"
+                    d="M0,20 C15,20 20,25 30,25 C40,25 50,10 60,10 C70,10 80,18 90,18 C95,18 98,12 100,12"
+                    stroke="#38bdf8"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+            {/* Conversion */}
+            <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-36 group hover:bg-white/5 transition-all cursor-default">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all"></div>
+              <div className="relative z-10">
+                <h3 className="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                  <span className="material-symbols-outlined text-sm mr-1.5 align-middle text-brand-text/50">
+                    trending_up
+                  </span>
+                  Conversion Rate
+                </h3>
+                <div className="text-3xl font-bold text-brand-text mt-1">
+                  {(analytics?.form_completion_rate || 0).toFixed(1)}%
+                </div>
+                <div className="text-xs text-brand-textMuted mt-1">
+                  Plays / Impa
+                </div>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full h-16 z-0">
+                <svg
+                  className="w-full h-full preserve-3d"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 100 30"
+                >
+                  <path
+                    d="M0,30 L0,15 C10,15 20,5 30,5 C40,5 45,20 55,20 C65,20 75,8 85,8 C90,8 95,15 100,15 L100,30 Z"
+                    fill="url(#grad-blue)"
+                  ></path>
+                  <path
+                    className="sparkline"
+                    d="M0,15 C10,15 20,5 30,5 C40,5 45,20 55,20 C65,20 75,8 85,8 C90,8 95,15 100,15"
+                    stroke="rgba(255,255,255,0.3)"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+          {/* Win Rate Chart */}
+          <div className="glass-panel rounded-2xl p-5 flex-1 relative min-h-[220px]">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-lg font-semibold text-brand-text">
+                Win Rate %
+              </h2>
+            </div>
+            <div className="absolute inset-0 pt-16 pb-6 px-6 flex items-end">
+              <div className="w-full h-full flex flex-col justify-between relative">
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                  <span className="absolute -left-6">100%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                  <span className="absolute -left-6">80%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                  <span className="absolute -left-6">60%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                  <span className="absolute -left-6">40%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                  <span className="absolute -left-6">20%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                  <span className="absolute -left-6">0%</span>
+                </div>
+
+                <div className="absolute inset-0 top-0 bottom-0 left-0 right-0 flex justify-between items-end px-2 pt-2">
+                  {[
+                    { day: "Sun", v1: 45, v2: 55 },
+                    { day: "Mon", v1: 50, v2: 50 },
+                    { day: "Tue", v1: 50, v2: 50 },
+                    { day: "Wed", v1: 45, v2: 55 },
+                    { day: "Thu", v1: 55, v2: 45 },
+                    { day: "Fri", v1: 50, v2: 50 },
+                    { day: "Sat", v1: 50, v2: 50 },
+                    { day: "Sun", v1: 50, v2: 50 },
+                  ].map((d, i) => (
+                    <div
+                      key={i}
+                      className="w-8 flex flex-col justify-end gap-0.5 relative"
+                      style={{ height: Math.random() * 40 + 50 + "%" }}
+                    >
+                      <div
+                        className="w-full bg-blue-500 rounded-t-sm"
+                        style={{ height: d.v1 + "%" }}
+                      ></div>
+                      <div
+                        className="w-full bg-blue-600 rounded-b-sm"
+                        style={{ height: d.v2 + "%" }}
+                      ></div>
+                      <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-brand-textMuted">
+                        {d.day}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="absolute inset-0 top-0 bottom-0 left-0 right-0 px-6 pt-2 pointer-events-none">
+                  <svg
+                    className="w-full h-full preserve-3d"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 100 100"
+                  >
+                    <path
+                      className="drop-shadow-[0_2px_4px_rgba(168,85,247,0.4)]"
+                      d="M4,25 L17,20 L31,55 L44,40 L58,35 L71,45 L85,25 L98,60"
+                      fill="none"
+                      stroke="#a855f7"
+                      strokeWidth="2"
+                    ></path>
+                    <circle cx="4" cy="25" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="17" cy="20" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="31" cy="55" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="44" cy="40" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="58" cy="35" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="71" cy="45" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="85" cy="25" fill="#a855f7" r="1.5"></circle>
+                    <circle cx="98" cy="60" fill="#a855f7" r="1.5"></circle>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      {importError && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-xs font-bold shadow-sm">
-          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <span>{importError}</span>
-        </div>
-      )}
-
-      {/* 2. PRIMARY EXECUTIVE KPI METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Metric 1: Total Visitors */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              Total Visitors
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <Eye className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              {analytics.total_impressions.toLocaleString()}
-            </div>
-            <p className="text-xs font-semibold text-slate-500 mt-1.5 flex items-center gap-1">
-              <span>Unique link views & landing page loads</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Metric 2: Game Conversion Rate */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              Game Conversion Rate
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-              <Sparkles className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              {analytics.game_play_rate}%
-            </div>
-            <p className="text-xs font-semibold text-slate-500 mt-1.5">
-              {analytics.total_entries} played / {analytics.total_impressions}{" "}
-              visitors
-            </p>
-          </div>
-        </div>
-
-        {/* Metric 3: Form Completion Rate */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              Form Completion Rate
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              {analytics.form_completion_rate}%
-            </div>
-            <p className="text-xs font-semibold text-slate-500 mt-1.5">
-              Entries captured / teaser plays
-            </p>
-          </div>
-        </div>
-
-        {/* Metric 4: Dwell Time */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              Brand Attention Dwell
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              {formatDwellTime(analytics.avg_dwell_time_seconds)}
-            </div>
-            <p className="text-xs font-semibold text-slate-500 mt-1.5">
-              Average player dwell time on screen
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. SECONDARY RATIOS (Win Rate, Quiz Pass, Coupon Claim) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <PercentageCircle
-          percentage={analytics.win_rate}
-          title="Win Rate %"
-          subtitle={`${analytics.total_wins} winners out of ${analytics.total_entries} recorded entries`}
-          color="#10B981"
-          badgeText="Win Outcome Rate"
-          icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
-        />
-        <PercentageCircle
-          percentage={analytics.game_play_rate}
-          title="Teaser Play Rate"
-          subtitle={`${analytics.total_entries} played out of ${analytics.total_impressions} landing views`}
-          color="#6366F1"
-          badgeText="Teaser Funnel"
-          icon={<Sparkles className="w-5 h-5 text-indigo-600" />}
-        />
-        <PercentageCircle
-          percentage={analytics.coupon_confirmation_rate ?? 0}
-          title="Coupon Claim Rate"
-          subtitle={`${analytics.coupon_confirmed ?? 0} confirmed out of ${analytics.coupon_total ?? 0} issued codes`}
-          color="#F59E0B"
-          badgeText="Coupon Claim"
-          icon={<HelpCircle className="w-5 h-5 text-amber-600" />}
-        />
-      </div>
-
-      {/* 4. CHARTS GRID (Histogram & Operator Split) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ParticipationHistogram
-          dailyData={analytics.daily_distribution}
-          hourlyData={analytics.hourly_distribution}
-        />
-        <CarrierBreakdownChart carrierData={analytics.carrier_distribution} />
-      </div>
-
-      {/* 5. DEVICE & INVENTORY EXHAUSTION GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OSDistributionChart osData={analytics.os_distribution} />
-        <PrizeBurnRateList prizes={analytics.prize_burn_rate} />
-      </div>
-
-      {/* 6. MODERN PLAYER PARTICIPANTS TABLE DESK */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        {/* Right Column: Line Percentage */}
+        <div className="col-span-12 xl:col-span-4 glass-panel rounded-2xl p-5 flex flex-col relative overflow-hidden pl-32 xl:pl-5">
           <div>
-            <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-lg font-semibold text-brand-text">
+              Line Percentage
+            </h2>
+            <p className="text-xs text-brand-textMuted">
+              User Engagement Goal Progress
+            </p>
+          </div>
+          <div className="flex-1 relative mt-6 mb-4 min-h-[180px]">
+            <div className="absolute inset-0 flex flex-col justify-between">
+              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                <span className="absolute -left-6 bottom-[-6px]">100%</span>
+              </div>
+              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                <span className="absolute -left-6 bottom-[-6px]">75%</span>
+              </div>
+              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                <span className="absolute -left-6 bottom-[-6px]">50%</span>
+              </div>
+              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                <span className="absolute -left-6 bottom-[-6px]">25%</span>
+              </div>
+              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                <span className="absolute -left-6 bottom-[-6px]">0%</span>
+              </div>
+            </div>
+            <div className="absolute inset-0 px-2">
+              <svg
+                className="w-full h-full preserve-3d"
+                preserveAspectRatio="none"
+                viewBox="0 0 100 100"
+              >
+                <path
+                  className="drop-shadow-[0_0_8px_rgba(103,232,249,0.6)]"
+                  d="M0,80 L15,65 L30,55 L45,30 L60,35 L75,20 L90,10"
+                  fill="none"
+                  stroke="#67e8f9"
+                  strokeWidth="1.5"
+                ></path>
+                <circle
+                  cx="0"
+                  cy="80"
+                  fill="#0b0e14"
+                  r="1.5"
+                  stroke="#67e8f9"
+                  strokeWidth="1"
+                ></circle>
+                <circle
+                  cx="15"
+                  cy="65"
+                  fill="#0b0e14"
+                  r="1.5"
+                  stroke="#67e8f9"
+                  strokeWidth="1"
+                ></circle>
+                <circle
+                  cx="30"
+                  cy="55"
+                  fill="#0b0e14"
+                  r="1.5"
+                  stroke="#67e8f9"
+                  strokeWidth="1"
+                ></circle>
+                <circle
+                  cx="45"
+                  cy="30"
+                  fill="#0b0e14"
+                  r="1.5"
+                  stroke="#67e8f9"
+                  strokeWidth="1"
+                ></circle>
+                <circle
+                  cx="60"
+                  cy="35"
+                  fill="#0b0e14"
+                  r="1.5"
+                  stroke="#67e8f9"
+                  strokeWidth="1"
+                ></circle>
+                <circle
+                  cx="75"
+                  cy="20"
+                  fill="#0b0e14"
+                  r="1.5"
+                  stroke="#67e8f9"
+                  strokeWidth="1"
+                ></circle>
+                <circle
+                  className="drop-shadow-[0_0_5px_rgba(103,232,249,1)]"
+                  cx="90"
+                  cy="10"
+                  fill="#67e8f9"
+                  r="2"
+                ></circle>
+              </svg>
+            </div>
+            <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between px-2 text-[10px] text-brand-textMuted">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-brand-border/30">
+            <div>
+              <div className="text-2xl font-bold text-brand-text">
+                {Math.round(analytics?.form_completion_rate || 78)}%
+              </div>
+              <div className="text-[10px] font-semibold text-brand-textMuted uppercase tracking-wider mt-1">
+                CURRENT
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-brand-text">65%</div>
+              <div className="text-[10px] text-brand-textMuted uppercase">
+                Previous
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-emerald-400">+13%</div>
+              <div className="text-[10px] text-brand-textMuted uppercase">
+                Growth
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* DYNAMIC PERFORMANCE TABLE: Switches based on Toggle Mode or Dropdown Selection */}
+      <div className="glass-panel rounded-2xl p-5 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-brand-text">
               {tableViewMode === "participants" ? (
                 <span>
-                  Player Participants & Gameplay Log{" "}
+                  Player Participants & Gameplay Times{" "}
                   {selectedCampId !== "all" && (
-                    <span className="text-indigo-600">
+                    <span className="text-blue-400">
                       for {selectedCampaign?.campaign_name ?? selectedCampId}
                     </span>
                   )}
@@ -643,97 +769,104 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
               ) : (
                 <span>Campaign Performance Breakdown</span>
               )}
-            </h3>
-            <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            </h2>
+            <p className="text-xs text-brand-textMuted">
               {tableViewMode === "participants"
                 ? "Real-time client player entries, game dwell times, and prize outcomes."
                 : "Aggregated campaign metrics across all active campaigns."}
             </p>
           </div>
 
-          {/* Right Toolbar: View Switcher & Table Search */}
-          <div className="flex flex-wrap items-center gap-3">
-            {tableViewMode === "participants" && (
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search player, phone, prize..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-indigo-500 w-48 sm:w-60"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/70">
-              <button
-                onClick={() => setTableViewMode("participants")}
-                className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs transition-all ${
-                  tableViewMode === "participants"
-                    ? "bg-white text-indigo-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Player Participants ({(analytics?.participants ?? []).length})
-              </button>
-              <button
-                onClick={() => setTableViewMode("summary")}
-                className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs transition-all ${
-                  tableViewMode === "summary"
-                    ? "bg-white text-indigo-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Campaign Breakdown ({(analytics?.by_campaign ?? []).length})
-              </button>
-            </div>
+          <div className="flex items-center glass-panel p-1 rounded-2xl text-xs flex-shrink-0">
+            <button
+              onClick={() => setTableViewMode("participants")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
+                tableViewMode === "participants"
+                  ? "bg-brand-accent/20 text-brand-accent shadow-sm"
+                  : "text-brand-textMuted hover:text-brand-text"
+              }`}
+            >
+              Participants ({analytics?.participants?.length ?? 0})
+            </button>
+            <button
+              onClick={() => setTableViewMode("summary")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
+                tableViewMode === "summary"
+                  ? "bg-brand-accent/20 text-brand-accent shadow-sm"
+                  : "text-brand-textMuted hover:text-brand-text"
+              }`}
+            >
+              Breakdown ({analytics?.by_campaign?.length ?? 0})
+            </button>
           </div>
         </div>
 
-        {/* Table Content */}
         <div className="overflow-x-auto">
           {tableViewMode === "summary" ? (
             /* MODE A: All Campaigns Summary Breakdown Table */
-            <table className="w-full border-collapse">
+            <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-extrabold text-[11px] uppercase tracking-wider">
-                  <th className="py-3.5 px-4 text-left">Campaign Name</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Total Entries</th>
-                  <th className="py-3.5 px-4 text-center">Winners</th>
-                  <th className="py-3.5 px-4 text-center">Win Rate</th>
-                  <th className="py-3.5 px-4 text-center">Quiz Pass Rate</th>
-                  <th className="py-3.5 px-4 text-right">Coupon Claim Rate</th>
+                <tr className="text-brand-textMuted border-b border-brand-border/50">
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Campaign
+                  </th>
+                  <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
+                    Status
+                  </th>
+                  <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
+                    Entries
+                  </th>
+                  <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
+                    Winners
+                  </th>
+                  <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
+                    Win Rate
+                  </th>
+                  <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
+                    Quiz Pass %
+                  </th>
+                  <th className="pb-3 px-4 text-right font-medium uppercase text-[10px] tracking-wider">
+                    Coupon Claim %
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {analytics.by_campaign.map((row) => (
+              <tbody className="divide-y divide-brand-border/30">
+                {(analytics?.by_campaign ?? []).map((row) => (
                   <tr
                     key={row.campaign_id}
-                    className="hover:bg-slate-50/70 transition-all"
+                    className="hover:bg-white/5 transition-colors cursor-pointer group"
+                    onClick={() => {
+                      setSelectedCampId(row.campaign_id);
+                      setTableViewMode("participants");
+                    }}
                   >
-                    <td className="py-4 px-4 font-bold text-slate-900">
+                    <td className="py-4 px-4 font-bold text-brand-text">
                       {row.campaign_name}
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] uppercase">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
+                          row.status === "active"
+                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            : "bg-white/5 text-brand-textMuted border-brand-border/30"
+                        }`}
+                      >
                         {row.status}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-center font-mono font-bold text-slate-800">
+                    <td className="py-4 px-4 text-center text-brand-textMuted">
                       {row.total_entries}
                     </td>
-                    <td className="py-4 px-4 text-center font-mono font-bold text-emerald-600">
+                    <td className="py-4 px-4 text-center text-emerald-400 font-bold">
                       {row.total_winners}
                     </td>
-                    <td className="py-4 px-4 text-center font-mono font-bold text-indigo-600">
+                    <td className="py-4 px-4 text-center text-brand-textMuted">
                       {row.win_rate}%
                     </td>
-                    <td className="py-4 px-4 text-center font-mono font-bold text-slate-700">
+                    <td className="py-4 px-4 text-center text-brand-textMuted">
                       {row.quiz_pass_rate}%
                     </td>
-                    <td className="py-4 px-4 text-right font-mono font-bold text-amber-600">
+                    <td className="py-4 px-4 text-right text-blue-400 font-bold">
                       {row.coupon_confirmation_rate}%
                     </td>
                   </tr>
@@ -742,101 +875,112 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
             </table>
           ) : (
             /* MODE B: Specific or All Campaign Player Participants Table */
-            <table className="w-full border-collapse">
+            <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-extrabold text-[11px] uppercase tracking-wider">
-                  <th className="py-3.5 px-4 text-left">Participant Name</th>
+                <tr className="text-brand-textMuted border-b border-brand-border/50">
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Participant Name
+                  </th>
                   {selectedCampId === "all" && (
-                    <th className="py-3.5 px-4 text-left">Campaign</th>
+                    <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                      Campaign
+                    </th>
                   )}
-                  <th className="py-3.5 px-4 text-center">Phone Number</th>
-                  <th className="py-3.5 px-4 text-center">Result / Prize</th>
-                  <th className="py-3.5 px-4 text-center">Game Dwell Time</th>
-                  <th className="py-3.5 px-4 text-center">Quiz Status</th>
-                  <th className="py-3.5 px-4 text-center">Coupon Code</th>
-                  <th className="py-3.5 px-4 text-right">Date Submitted</th>
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Phone Number
+                  </th>
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Result / Prize
+                  </th>
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Time Spent in Game
+                  </th>
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Quiz Status
+                  </th>
+                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
+                    Coupon Code
+                  </th>
+                  <th className="pb-3 px-4 text-right font-medium uppercase text-[10px] tracking-wider">
+                    Date Submitted
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {filteredParticipants.length === 0 ? (
+              <tbody className="divide-y divide-brand-border/30">
+                {(analytics?.participants ?? []).length === 0 ? (
                   <tr>
                     <td
                       colSpan={selectedCampId === "all" ? 8 : 7}
                       className="py-12 text-center"
                     >
                       <div className="flex flex-col items-center justify-center space-y-3">
-                        <Users className="w-10 h-10 text-slate-300" />
-                        <p className="text-sm font-extrabold text-slate-700">
-                          No player participations recorded in database yet.
-                        </p>
-                        <p className="text-xs text-slate-500 max-w-md">
-                          Entries will appear automatically when players use
-                          your shareable /play links, or you can import
-                          CSV/Excel records.
+                        <Users className="w-8 h-8 text-brand-textMuted/50" />
+                        <p className="text-sm font-semibold text-brand-textMuted">
+                          No player participations recorded in database yet for
+                          this selection.
                         </p>
                         <button
                           onClick={handleGenerateSampleData}
                           disabled={importing}
-                          className="mt-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-60"
+                          className="mt-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-2xl text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-60"
                         >
                           {importing ? (
-                            <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                            <div className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
                           ) : (
-                            <Sparkles className="w-4 h-4 text-indigo-600" />
+                            <Sparkles className="w-3.5 h-3.5" />
                           )}
-                          <span>Generate & Record Sample Database Entries</span>
+                          <span>Generate Sample Data</span>
                         </button>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  filteredParticipants.map((player) => (
+                  (analytics?.participants ?? []).map((player) => (
                     <tr
                       key={player.id}
-                      className="hover:bg-slate-50/70 transition-all"
+                      className="hover:bg-white/5 transition-colors group"
                     >
-                      <td className="py-4 px-4 font-extrabold text-slate-900">
+                      <td className="py-4 px-4 font-bold text-brand-text">
                         {player.participant_name || "Anonymous Player"}
                       </td>
                       {selectedCampId === "all" && (
-                        <td className="py-4 px-4 text-left font-bold text-indigo-700">
+                        <td className="py-4 px-4 text-blue-400">
                           {player.campaign_name || "Default Campaign"}
                         </td>
                       )}
-                      <td className="py-4 px-4 text-center font-mono font-bold text-slate-800">
+                      <td className="py-4 px-4 text-brand-textMuted">
                         {player.phone_number}
                       </td>
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-4 px-4">
                         {player.is_winner ? (
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/90 px-3 py-1 rounded-full font-extrabold text-[11px]">
-                            🏆 {player.prize_name || "WINNER"}
+                          <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-500/30 w-fit">
+                            <Trophy className="w-3 h-3" />{" "}
+                            {player.prize_name || "WINNER"}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
+                          <span className="bg-white/5 text-brand-textMuted text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-border/30 w-fit">
                             No Win
                           </span>
                         )}
                       </td>
-                      <td className="py-4 px-4 text-center font-mono font-bold text-amber-600">
+                      <td className="py-4 px-4 text-orange-400 font-medium">
                         {formatDwellTime(player.dwell_time_seconds)}
                       </td>
-                      <td className="py-4 px-4 text-center font-mono">
+                      <td className="py-4 px-4 text-brand-textMuted">
                         {player.quiz_passed === true ? (
-                          <span className="text-emerald-600 font-extrabold">
+                          <span className="text-emerald-400 font-bold">
                             Passed
                           </span>
                         ) : player.quiz_passed === false ? (
-                          <span className="text-red-500 font-extrabold">
-                            Failed
-                          </span>
+                          <span className="text-red-400 font-bold">Failed</span>
                         ) : (
-                          <span className="text-slate-400">N/A</span>
+                          <span className="text-brand-textMuted">N/A</span>
                         )}
                       </td>
-                      <td className="py-4 px-4 text-center font-mono text-indigo-600 font-extrabold">
+                      <td className="py-4 px-4 text-brand-textMuted">
                         {player.redeemed_coupon_value || "—"}
                       </td>
-                      <td className="py-4 px-4 text-right font-mono text-slate-500 text-xs">
+                      <td className="py-4 px-4 text-right text-brand-textMuted">
                         {new Date(player.created_at).toLocaleDateString(
                           "en-US",
                           {

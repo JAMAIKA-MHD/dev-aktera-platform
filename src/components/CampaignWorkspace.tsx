@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Campaign, LeadEntry, PrizeTemplate } from '../types';
+import React, { useMemo, useState } from "react";
+import { Campaign, LeadEntry, PrizeTemplate } from "../types";
 import {
   ArrowLeft,
   Calendar,
@@ -12,9 +12,15 @@ import {
   RefreshCw,
   Trophy,
   Users,
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { DEFAULT_CAMPAIGN_IMAGE_URL } from '../lib/defaultImages';
+  Box,
+  Check,
+  Sparkles,
+  HelpCircle,
+  Disc,
+} from "lucide-react";
+import { motion } from "motion/react";
+import { useTheme } from "../contexts/ThemeContext";
+import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../lib/defaultImages";
 
 interface CampaignWorkspaceProps {
   campaign: Campaign;
@@ -39,6 +45,8 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   onToggleStatus,
   onOpenAnalytics,
 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [copied, setCopied] = useState(false);
 
   const campaignEntries = useMemo(
@@ -47,15 +55,18 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   );
 
   const campaignLink = `${window.location.origin}/play/${campaign.slug}`;
-  const totalAllocated = campaign.prizes.reduce((sum, prize) => sum + prize.quantity, 0);
+  const totalAllocated = campaign.prizes.reduce(
+    (sum, prize) => sum + prize.quantity,
+    0,
+  );
 
   const enrichedPrizes = campaign.prizes.map((prize) => {
     const template = prizes.find((item) => item.id === prize.templateId);
     return {
       ...prize,
-      templateName: template?.name ?? 'Unknown reward',
-      category: template?.category ?? 'voucher',
-      faceValue: template?.itemValue ?? 'N/A',
+      templateName: template?.name ?? "Unknown reward",
+      category: template?.category ?? "voucher",
+      faceValue: template?.itemValue ?? "N/A",
       preparedValues: template?.filledValuesCount ?? 0,
     };
   });
@@ -70,303 +81,599 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
     }
   };
 
-  const statusClasses: Record<Campaign['status'], string> = {
-    active: 'bg-emerald-50 border-emerald-100 text-emerald-700',
-    paused: 'bg-amber-50 border-amber-100 text-amber-700',
-    draft: 'bg-blue-50 border-blue-100 text-blue-700',
-    archived: 'bg-slate-50 border-slate-100 text-slate-500',
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "N/A";
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  // State styling badge
+  const getStateBadge = () => {
+    switch (campaign.status) {
+      case "active":
+        return {
+          label: "Active",
+          text: "text-emerald-500",
+        };
+      case "paused":
+        return {
+          label: "Paused",
+          text: "text-amber-500",
+        };
+      case "archived":
+        return {
+          label: "Archived",
+          text: "text-red-500",
+        };
+      case "draft":
+      default:
+        return {
+          label: "Draft",
+          text: "text-blue-500",
+        };
+    }
+  };
+
+  const stateBadge = getStateBadge();
+
+  const getDetailsGameIcon = () => {
+    if (campaign.type === "quiz") {
+      return "/images/icons/quiz-icon-for-details.jpg";
+    }
+    return "/images/icons/spin-wheel-icon-free-vector.jpg";
   };
 
   return (
-    <div id="campaign-workspace-root" className="space-y-6 text-slate-800 pb-12">
-      <div className="flex items-center gap-3">
+    <div
+      id="campaign-workspace-root"
+      className="space-y-8 text-brand-text max-w-[1800px] mx-auto pb-16"
+    >
+      {/* Top Header Row with Back Button & Centered Campaign Name */}
+      <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+          className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer border ${
+            isDark
+              ? "bg-[#151E30] border-slate-800 text-white hover:bg-slate-800"
+              : "bg-white border-slate-200 text-slate-800 hover:bg-slate-100"
+          }`}
         >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to campaigns</span>
+          <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
+          <span>Back to Campaigns</span>
         </button>
+
+        <h1 className="text-2xl sm:text-3xl font-black text-brand-text tracking-tight text-center">
+          {campaign.name}
+        </h1>
+
+        <div className="w-28 hidden sm:block"></div>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${statusClasses[campaign.status]}`}>
-              {campaign.status}
-            </span>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">
-              {campaign.type.replace('_', ' ')}
-            </span>
-            {campaign.parentCampaignId ? (
-              <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-indigo-600">
-                Source lineage
-              </span>
-            ) : null}
-          </div>
-
-          <div>
-            <img
-              src={campaign.heroImageUrl || DEFAULT_CAMPAIGN_IMAGE_URL}
-              alt={`${campaign.name} visual`}
-              className="mb-3 h-28 w-full max-w-md rounded-2xl border border-slate-200 object-cover"
-              onError={(event) => {
-                event.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
-              }}
-            />
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">{campaign.name}</h2>
-            <p className="mt-1 text-sm text-slate-500" dir="auto">
-              {campaign.arabicName || 'No Arabic campaign copy configured yet.'}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-[10px] font-mono uppercase text-slate-400">Public path</p>
-              <p className="mt-1 font-semibold text-slate-800">/play/{campaign.slug}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-[10px] font-mono uppercase text-slate-400">Launch window</p>
-              <p className="mt-1 font-semibold text-slate-800">{campaign.startDate} to {campaign.endDate}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 xl:max-w-sm xl:justify-end">
-          {campaign.status === 'draft' ? (
-            <button
-              type="button"
-              onClick={() => onEditDraft(campaign)}
-              className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <Pencil className="h-4 w-4" />
-              <span>Edit draft</span>
-            </button>
-          ) : null}
-
-          {(campaign.status === 'active' || campaign.status === 'paused') ? (
-            <button
-              type="button"
-              onClick={() => onCreateUpdateDraft(campaign)}
-              className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100"
-            >
-              <Pencil className="h-4 w-4" />
-              <span>Create update draft</span>
-            </button>
-          ) : null}
-
-          {(campaign.status === 'active' || campaign.status === 'paused') ? (
-            <button
-              type="button"
-              onClick={() => onToggleStatus(campaign.id)}
-              className={`inline-flex min-h-12 items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm transition ${
-                campaign.status === 'active'
-                  ? 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
-                  : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              }`}
-            >
-              {campaign.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              <span>{campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}</span>
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => onRelaunch(campaign)}
-            className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+      {/* UPPER MAIN SECTION: Left Preview Card + Right Controls & KPI Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* LEFT COLUMN: Campaign Hero Preview Card with State Badge & Game Icon */}
+        <div className="lg:col-span-5 relative">
+          {/* Outer Card Container */}
+          <div
+            className={`rounded-[32px] p-6 sm:p-7 flex flex-col items-center justify-center min-h-[380px] sm:min-h-[420px] relative border shadow-md overflow-hidden ${
+              isDark
+                ? "bg-[#151E30] border-slate-800 text-white"
+                : "bg-white border-slate-200 text-slate-900"
+            }`}
           >
-            <RefreshCw className="h-4 w-4" />
-            <span>Prepare relaunch</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onOpenAnalytics(campaign.id)}
-            className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            <Users className="h-4 w-4" />
-            <span>Open analytics</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            <Copy className="h-4 w-4" />
-            <span>{copied ? 'Copied' : 'Copy link'}</span>
-          </button>
-
-          <a
-            href={campaignLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-          >
-            <ExternalLink className="h-4 w-4" />
-            <span>Open live page</span>
-          </a>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: 'Participants', value: campaign.participantsCount, desc: 'Entries recorded so far', icon: Users, tone: 'text-slate-900' },
-          { label: 'Prizes won', value: campaign.rewardsClaimed, desc: 'Winning entries in this campaign', icon: Trophy, tone: 'text-indigo-600' },
-          { label: 'Win probability', value: `${campaign.winProbability}%`, desc: 'Server-side win chance', icon: Gift, tone: 'text-emerald-600' },
-          { label: 'Allocated stock', value: totalAllocated, desc: 'Units reserved from templates', icon: Calendar, tone: 'text-amber-600' },
-        ].map((item) => (
-          <div key={item.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{item.label}</p>
-                <h3 className={`mt-3 text-3xl font-black ${item.tone}`}>{item.value}</h3>
-                <p className="mt-1 text-[11px] text-slate-500">{item.desc}</p>
+            {/* Top State Pill Tag + Circular Game Emblem Overhang */}
+            <div className="absolute top-4 right-4 flex items-center z-20">
+              {/* State Pill */}
+              <div
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-black text-xs shadow-md border ${
+                  isDark
+                    ? "bg-[#151E30] border-slate-700 text-slate-200"
+                    : "bg-white border-slate-200 text-slate-800"
+                }`}
+              >
+                <span className="text-brand-textMuted">State :</span>
+                <span className={`font-black ${stateBadge.text}`}>
+                  {stateBadge.label}
+                </span>
               </div>
-              <div className="rounded-xl bg-slate-50 p-2 text-slate-500">
-                <item.icon className="h-4 w-4" />
+
+              {/* Circular Game Emblem */}
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-emerald-500 bg-[#262A30] shadow-xl flex items-center justify-center shrink-0 -ml-2">
+                <img
+                  src={getDetailsGameIcon()}
+                  alt={campaign.type}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src =
+                      campaign.type === "quiz"
+                        ? "/images/icons/quiz-badge.svg"
+                        : "/images/icons/wheel-badge.svg";
+                  }}
+                />
               </div>
             </div>
-          </div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-base font-extrabold text-slate-900">Campaign configuration</h3>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-[10px] font-mono uppercase text-slate-400">Mechanic</p>
-                <p className="mt-1 font-semibold capitalize text-slate-800">{campaign.type.replace('_', ' ')}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-[10px] font-mono uppercase text-slate-400">Configured rewards</p>
-                <p className="mt-1 font-semibold text-slate-800">{campaign.prizes.length} prize slots</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-[10px] font-mono uppercase text-slate-400">Quiz questions</p>
-                <p className="mt-1 font-semibold text-slate-800">{campaign.questions.length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-[10px] font-mono uppercase text-slate-400">Lifecycle</p>
-                <p className="mt-1 font-semibold text-slate-800 capitalize">{campaign.status}</p>
-              </div>
-            </div>
-          </div>
+            {/* Campaign Visual / Hero Image / Interactive Game Canvas */}
+            <div className="w-full h-full flex-1 flex flex-col items-center justify-center relative min-h-[300px] rounded-2xl overflow-hidden border border-slate-700/60 shadow-inner bg-[#0B1120]">
+              {campaign.heroImageUrl ? (
+                <div className="relative w-full h-full min-h-[300px] flex items-center justify-center bg-slate-950 overflow-hidden">
+                  <img
+                    src={campaign.heroImageUrl}
+                    alt={campaign.name}
+                    className="w-full h-full object-cover rounded-xl"
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-5">
+                    <p className="text-white font-black text-xl drop-shadow-md">
+                      {campaign.name}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Rich Studio Game Theme Canvas (High contrast in all themes) */
+                <div
+                  className={`relative w-full h-full min-h-[300px] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden ${
+                    campaign.type === "quiz"
+                      ? "bg-gradient-to-br from-[#120D2C] via-[#0B1120] to-[#1E1242] text-white"
+                      : "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26] text-white"
+                  }`}
+                >
+                  {/* Decorative background ambient glow */}
+                  <div
+                    className={`absolute w-64 h-64 rounded-full blur-3xl opacity-40 pointer-events-none ${
+                      campaign.type === "quiz"
+                        ? "bg-purple-600"
+                        : "bg-emerald-500"
+                    }`}
+                  ></div>
 
-          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-extrabold text-slate-900">Allocated rewards</h3>
-              <span className="text-[10px] font-mono uppercase text-slate-400">{campaign.prizes.length} rows</span>
-            </div>
-            <div className="mt-4 space-y-3">
-              {enrichedPrizes.map((prize, index) => (
-                <div key={`${campaign.id}-${prize.templateId}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{prize.templateName}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {prize.category} • {prize.faceValue}
-                      </p>
+                  {/* Center Game Graphic Element */}
+                  <div className="relative z-10 flex flex-col items-center space-y-3.5">
+                    <div
+                      className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl border ${
+                        campaign.type === "quiz"
+                          ? "bg-indigo-600/25 border-indigo-500/50 text-indigo-400 shadow-indigo-500/20"
+                          : "bg-emerald-600/25 border-emerald-500/50 text-emerald-400 shadow-emerald-500/20"
+                      }`}
+                    >
+                      {campaign.type === "quiz" ? (
+                        <HelpCircle className="w-10 h-10 stroke-[2.2]" />
+                      ) : (
+                        <Disc className="w-10 h-10 stroke-[2.2] animate-spin-slow" />
+                      )}
                     </div>
-                    <div className="grid grid-cols-3 gap-3 text-center text-[11px]">
-                      <div>
-                        <p className="font-mono text-slate-400">Qty</p>
-                        <p className="mt-1 font-bold text-slate-800">{prize.quantity}</p>
-                      </div>
-                      <div>
-                        <p className="font-mono text-slate-400">Weight</p>
-                        <p className="mt-1 font-bold text-slate-800">{prize.weight}</p>
-                      </div>
-                      <div>
-                        <p className="font-mono text-slate-400">Prepared</p>
-                        <p className="mt-1 font-bold text-slate-800">{prize.preparedValues}</p>
-                      </div>
+
+                    <div className="space-y-1.5">
+                      <h3 className="text-2xl font-black tracking-tight text-white drop-shadow-md">
+                        {campaign.name}
+                      </h3>
+                      <span
+                        className={`inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
+                          campaign.type === "quiz"
+                            ? "bg-purple-500/20 border-purple-500/30 text-purple-300"
+                            : "bg-emerald-500/20 border-emerald-500/30 text-emerald-300"
+                        }`}
+                      >
+                        {campaign.type === "quiz"
+                          ? "Trivia Quiz Challenge"
+                          : "Lucky Spin Wheel"}
+                      </span>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {campaign.type === 'quiz' ? (
-            <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-base font-extrabold text-slate-900">Quiz setup</h3>
-              <div className="mt-4 space-y-3">
-                {campaign.questions.map((question, index) => (
-                  <div key={question.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-[10px] font-mono uppercase text-slate-400">Question {index + 1}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">{question.questionText}</p>
-                    <ul className="mt-3 space-y-2 text-[11px] text-slate-600">
-                      {question.options.map((option, optionIndex) => (
-                        <li
-                          key={`${question.id}-${optionIndex}`}
-                          className={`rounded-xl border px-3 py-2 ${
-                            optionIndex === question.correctIndex
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : 'border-slate-200 bg-white'
-                          }`}
-                          dir="auto"
-                        >
-                          {option}
-                        </li>
-                      ))}
-                    </ul>
+        {/* RIGHT COLUMN: Action Buttons Row + 5 KPI Metric Cards */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Row of 4 Action Buttons */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Prepare Relaunch */}
+            <button
+              type="button"
+              onClick={() => onRelaunch(campaign)}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
+                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              <RefreshCw className="h-4 w-4 stroke-[2.2] text-indigo-500" />
+              <span>Prepare relaunch</span>
+            </button>
+
+            {/* Copy Link */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
+                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              {copied ? (
+                <Check className="h-4 w-4 stroke-[2.5] text-emerald-500" />
+              ) : (
+                <Copy className="h-4 w-4 stroke-[2.2] text-slate-500" />
+              )}
+              <span>{copied ? "Copied!" : "Copy link"}</span>
+            </button>
+
+            {/* Open Analytics */}
+            <button
+              type="button"
+              onClick={() => onOpenAnalytics(campaign.id)}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
+                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              <span>Open analytics</span>
+            </button>
+
+            {/* Open Live Page */}
+            <a
+              href={campaignLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
+                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              <span>Open live page</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
+          {/* Metric Cards Grid (5 KPI Cards with light-mode friendly pastel icon badges) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* 1. Participants */}
+            <div
+              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-bold text-brand-textMuted">
+                    Participants
+                  </span>
+                  <h4 className="text-2xl sm:text-3xl font-black mt-1">
+                    {campaign.participantsCount}
+                  </h4>
+                </div>
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                    isDark
+                      ? "bg-slate-800 text-blue-400"
+                      : "bg-blue-50 text-blue-600 border border-blue-100"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-[11px] font-medium text-brand-textMuted mt-3">
+                Entries recorded so far
+              </p>
+            </div>
+
+            {/* 2. Prizes Won */}
+            <div
+              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-bold text-brand-textMuted">
+                    Prizes Won
+                  </span>
+                  <h4 className="text-2xl sm:text-3xl font-black mt-1">
+                    {campaign.rewardsClaimed}
+                  </h4>
+                </div>
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                    isDark
+                      ? "bg-slate-800 text-amber-400"
+                      : "bg-amber-50 text-amber-600 border border-amber-100"
+                  }`}
+                >
+                  <Trophy className="w-4 h-4" />
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div
+                className={`w-full h-2 rounded-full overflow-hidden mt-3 ${
+                  isDark ? "bg-slate-800" : "bg-slate-100"
+                }`}
+              >
+                <div
+                  className="bg-emerald-500 h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(
+                      totalAllocated > 0
+                        ? (campaign.rewardsClaimed / totalAllocated) * 100
+                        : 0,
+                      100,
+                    )}%`,
+                  }}
+                ></div>
+              </div>
+              <p className="text-[11px] font-medium text-brand-textMuted mt-1">
+                Winning entries in this campaign
+              </p>
+            </div>
+
+            {/* 3. Date */}
+            <div
+              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <h4 className="text-base font-black">Date</h4>
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                    isDark
+                      ? "bg-slate-800 text-purple-400"
+                      : "bg-purple-50 text-purple-600 border border-purple-100"
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="space-y-1 mt-2 text-xs font-bold">
+                <div className="flex items-center justify-between">
+                  <span className="text-brand-textMuted">start</span>
+                  <span className="font-black">
+                    {formatDate(campaign.startDate)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-brand-textMuted">end</span>
+                  <span className="font-black">
+                    {formatDate(campaign.endDate)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Win Probability */}
+            <div
+              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-bold text-brand-textMuted">
+                    Win Probability
+                  </span>
+                  <h4 className="text-2xl sm:text-3xl font-black text-emerald-500 mt-1">
+                    {campaign.winProbability}%
+                  </h4>
+                </div>
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                    isDark
+                      ? "bg-emerald-950/60 text-emerald-400"
+                      : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                  }`}
+                >
+                  <Gift className="w-4 h-4" />
+                </div>
+              </div>
+              <div
+                className={`w-full h-2 rounded-full overflow-hidden mt-3 ${
+                  isDark ? "bg-slate-800" : "bg-slate-100"
+                }`}
+              >
+                <div
+                  className="bg-emerald-500 h-full rounded-full"
+                  style={{
+                    width: `${Math.min(campaign.winProbability, 100)}%`,
+                  }}
+                ></div>
+              </div>
+              <p className="text-[11px] font-medium text-brand-textMuted mt-1">
+                Server-side win chance
+              </p>
+            </div>
+
+            {/* 5. Allocated Stock */}
+            <div
+              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
+                isDark
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-bold text-brand-textMuted">
+                    Allocated Stock
+                  </span>
+                  <h4 className="text-2xl sm:text-3xl font-black mt-1">
+                    {totalAllocated}
+                  </h4>
+                </div>
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                    isDark
+                      ? "bg-slate-800 text-indigo-400"
+                      : "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                  }`}
+                >
+                  <Box className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-[11px] font-medium text-brand-textMuted mt-3">
+                Units reserved from templates
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* LOWER SECTION: Allocated Rewards Card + Recent Participants Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Allocated Rewards Card */}
+        <div
+          className={`lg:col-span-6 rounded-[32px] p-6 sm:p-8 border shadow-sm space-y-4 ${
+            isDark
+              ? "bg-[#151E30] border-slate-800 text-white"
+              : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-black">Allocated Rewards</h3>
+            <span className="text-xs font-mono font-bold text-brand-textMuted uppercase">
+              {enrichedPrizes.length} ROWS
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {enrichedPrizes.map((prize, idx) => (
+              <div
+                key={idx}
+                className={`p-4 rounded-2xl flex items-center justify-between border ${
+                  isDark
+                    ? "bg-[#121929] border-slate-700/80 text-white"
+                    : "bg-slate-50/80 border-slate-200/80 text-slate-900"
+                }`}
+              >
+                <div>
+                  <h5 className="font-bold text-sm">{prize.templateName}</h5>
+                  <p className="text-xs text-brand-textMuted mt-0.5">
+                    {prize.category} • {prize.faceValue}
+                  </p>
+                </div>
+                <div className="flex items-center gap-6 text-xs text-center font-bold">
+                  <div>
+                    <span className="text-[10px] text-brand-textMuted uppercase font-mono block">
+                      Qty
+                    </span>
+                    <span className="font-black">{prize.quantity}</span>
                   </div>
-                ))}
+                  <div>
+                    <span className="text-[10px] text-brand-textMuted uppercase font-mono block">
+                      Weight
+                    </span>
+                    <span className="font-black">{prize.weight}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-brand-textMuted uppercase font-mono block">
+                      Prepared
+                    </span>
+                    <span className="font-black">{prize.preparedValues}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ) : null}
+            ))}
 
-          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-extrabold text-slate-900">Recent participants</h3>
-              <span className="text-[10px] font-mono uppercase text-slate-400">{campaignEntries.length} total</span>
-            </div>
-            {campaignEntries.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-slate-250 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                No participations yet for this campaign.
-              </div>
-            ) : (
-              <div className="mt-4 overflow-hidden rounded-[24px] border border-slate-200">
-                <table className="min-w-full">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    <tr>
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Phone</th>
-                      <th className="px-4 py-3">Prize</th>
-                      <th className="px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {campaignEntries.slice(0, 10).map((entry) => (
-                      <tr key={entry.id}>
-                        <td className="px-4 py-3 text-sm text-slate-800">{entry.playerName}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{entry.phoneNumber || '—'}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{entry.prizeWon || '—'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
-                              entry.status === 'confirmed'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {entry.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {enrichedPrizes.length === 0 && (
+              <div className="py-8 text-center text-xs text-brand-textMuted">
+                No reward templates allocated to this campaign.
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
+
+        {/* Recent Participants Card */}
+        <div
+          className={`lg:col-span-6 rounded-[32px] p-6 sm:p-8 border shadow-sm space-y-4 ${
+            isDark
+              ? "bg-[#151E30] border-slate-800 text-white"
+              : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-black">Recent Participants</h3>
+            <span className="text-xs font-mono font-bold text-brand-textMuted uppercase">
+              {campaignEntries.length} TOTAL
+            </span>
+          </div>
+
+          {campaignEntries.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center border border-dashed border-card-border rounded-2xl p-6">
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
+                  isDark
+                    ? "bg-slate-800 text-slate-500"
+                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                }`}
+              >
+                <Users className="w-6 h-6" />
+              </div>
+              <p className="text-xs sm:text-sm font-semibold text-brand-textMuted">
+                No participations yet for this campaign.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs text-left">
+                <thead className="border-b border-card-border text-brand-textMuted uppercase font-bold text-[10px]">
+                  <tr>
+                    <th className="py-2.5 px-3">Player</th>
+                    <th className="py-2.5 px-3">Phone</th>
+                    <th className="py-2.5 px-3">Prize</th>
+                    <th className="py-2.5 px-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-card-border">
+                  {campaignEntries.slice(0, 8).map((entry) => (
+                    <tr
+                      key={entry.id}
+                      className="hover:bg-card-bg-subtle transition-colors"
+                    >
+                      <td className="py-2.5 px-3 font-bold">
+                        {entry.playerName}
+                      </td>
+                      <td className="py-2.5 px-3 text-brand-textMuted">
+                        {entry.phoneNumber || "—"}
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-emerald-500">
+                        {entry.prizeWon || "—"}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            entry.status === "confirmed"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          {entry.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

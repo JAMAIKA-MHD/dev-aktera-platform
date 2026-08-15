@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 130" fill="none">
+  <!-- Motion tick marks around phone -->
+  <line x1="22" y1="46" x2="30" y2="46" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="22" y1="84" x2="30" y2="84" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="110" y1="46" x2="118" y2="46" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="110" y1="84" x2="118" y2="84" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Phone body -->
+  <rect x="36" y="16" width="68" height="98" rx="14" stroke="#000000" stroke-width="4.5" fill="none"/>
+  
+  <!-- Phone speaker notch -->
+  <line x1="62" y1="24" x2="78" y2="24" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Left: User avatar -->
+  <circle cx="50" cy="56" r="6" stroke="#000000" stroke-width="3" fill="none"/>
+  <path d="M41 72 C41 66 45 64 50 64 C55 64 59 66 59 72" stroke="#000000" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+  <!-- Center: Arrow => -->
+  <path d="M 64 61 L 76 61 M 71 56 L 77 61 L 71 66" stroke="#000000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right: Dollar circle ($) -->
+  <circle cx="90" cy="61" r="10" stroke="#000000" stroke-width="3" fill="none"/>
+  <text x="90" y="66" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="14" fill="#000000" text-anchor="middle">$</text>
+</svg>
