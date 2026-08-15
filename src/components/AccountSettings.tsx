@@ -68,11 +68,56 @@ export const AccountSettings: React.FC = () => {
     }
   }, [organization, profile]);
 
+  const [isDragging, setIsDragging] = useState(false);
+
+  const validateAndProcessAvatar = (file: File) => {
+    setError(null);
+    const validTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setError(
+        "Invalid file format. Please upload a PNG, JPEG, or WebP image.",
+      );
+      return;
+    }
+    const maxSizeBytes = 2 * 1024 * 1024; // 2MB limit
+    if (file.size > maxSizeBytes) {
+      setError("Image file size exceeds the 2MB limit.");
+      return;
+    }
+
+    // Generate local preview URL
+    const preview = URL.createObjectURL(file);
+    setAvatarUrl(preview);
+
+    // TODO(backend): wire to Supabase Storage + persist url to profile
+  };
+
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const preview = URL.createObjectURL(file);
-      setAvatarUrl(preview);
+      validateAndProcessAvatar(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      validateAndProcessAvatar(file);
     }
   };
 
@@ -250,7 +295,16 @@ export const AccountSettings: React.FC = () => {
         {activeTab === "Profile" && (
           <div className="space-y-8">
             {/* Avatar / Photo Upload Section */}
-            <div className="flex items-center gap-6 pb-8 border-b border-card-border">
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex items-center gap-6 p-4 rounded-3xl border-2 border-dashed transition-all ${
+                isDragging
+                  ? "border-blue-500 bg-blue-500/10 scale-[1.01]"
+                  : "border-transparent hover:border-card-border"
+              }`}
+            >
               {/* Circular Avatar */}
               <div
                 className={`w-20 h-20 rounded-full flex items-center justify-center overflow-hidden border-2 shrink-0 ${
@@ -290,7 +344,7 @@ export const AccountSettings: React.FC = () => {
                 <p className="text-[11px] text-brand-textMuted leading-tight">
                   {t(
                     "settings.uploadHint",
-                    "At least 800×800 px recommended. JPG or PNG is allowed.",
+                    "At least 800×800 px recommended. JPG, PNG or WebP is allowed (Max 2MB). Drag and drop supported.",
                   )}
                 </p>
               </div>
