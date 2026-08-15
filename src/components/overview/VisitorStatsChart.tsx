@@ -88,7 +88,7 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
   return (
     <div
       ref={containerRef}
-      className="bg-card-bg border border-card-border rounded-[32px] p-7 sm:p-8 transition-all duration-200 hover:shadow-lg flex flex-col justify-between h-full relative overflow-visible"
+      className="backdrop-blur-xl bg-card-bg/90 dark:bg-[#111726]/80 border border-card-border/80 dark:border-white/10 rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible"
     >
       {/* Top Header: Title, Subtitle, and More Details Button */}
       <div className="flex items-start justify-between mb-4">
@@ -105,7 +105,7 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
         {/* More Details Button */}
         <button
           onClick={onMoreDetails}
-          className="bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold text-xs sm:text-sm px-4 py-1.5 rounded-lg transition-all shadow-sm cursor-pointer"
+          className="bg-slate-400 hover:bg-slate-500 dark:bg-slate-700/80 dark:hover:bg-slate-600 text-white font-bold text-xs sm:text-sm px-4 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer border border-white/5"
         >
           More Details
         </button>
@@ -237,7 +237,7 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
             )}px`,
             top: `${mousePos.y > 140 ? mousePos.y - 90 : mousePos.y + 15}px`,
           }}
-          className="absolute z-50 bg-card-bg border border-card-border shadow-2xl rounded-2xl p-4 min-w-[200px] pointer-events-none transition-all duration-75 ease-out animate-in fade-in zoom-in-95"
+          className="absolute z-50 backdrop-blur-2xl bg-card-bg/95 dark:bg-[#151e30]/95 border border-card-border dark:border-white/15 shadow-2xl rounded-2xl p-4 min-w-[200px] pointer-events-none transition-all duration-75 ease-out animate-in fade-in zoom-in-95"
         >
           <div className="flex flex-col gap-1">
             <span className="text-sm font-black text-brand-text truncate">

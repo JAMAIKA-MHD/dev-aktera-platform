@@ -36,7 +36,7 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
   ];
 
   return (
-    <div className="bg-card-bg border border-card-border rounded-[32px] p-7 sm:p-8 transition-all duration-200 hover:shadow-lg flex flex-col justify-between h-full">
+    <div className="backdrop-blur-xl bg-card-bg/90 dark:bg-[#111726]/80 border border-card-border/80 dark:border-white/10 rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full">
       {/* Top Header: Title, Subtitle, and Filter Dropdown */}
       <div className="flex items-start justify-between mb-4">
         <div>
@@ -54,14 +54,14 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
         <div className="relative shrink-0">
           <button
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 dark:border-slate-700 bg-card-bg-subtle text-xs sm:text-sm font-semibold text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 dark:border-white/10 bg-card-bg-subtle/80 text-xs sm:text-sm font-semibold text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
           >
             <span className="truncate max-w-[120px]">{selectedChannel}</span>
             <ChevronDown className="w-4 h-4 opacity-70 shrink-0" />
           </button>
 
           {filterOpen && (
-            <div className="absolute right-0 mt-1 w-48 bg-card-bg border border-card-border rounded-xl shadow-lg z-30 py-1 overflow-hidden max-h-60 overflow-y-auto">
+            <div className="absolute right-0 mt-1 w-48 backdrop-blur-2xl bg-card-bg/95 dark:bg-[#151e30]/95 border border-card-border dark:border-white/15 rounded-2xl shadow-2xl z-30 py-1 overflow-hidden max-h-60 overflow-y-auto">
               {channelOptions.map((channel) => (
                 <button
                   key={channel}
@@ -69,7 +69,7 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
                     setSelectedChannel(channel);
                     setFilterOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-xs sm:text-sm text-brand-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate"
+                  className="w-full text-left px-4 py-2 text-xs sm:text-sm text-brand-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate cursor-pointer"
                 >
                   {channel}
                 </button>
