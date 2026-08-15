@@ -8,7 +8,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export const AccountSettings: React.FC = () => {
-  const { profile, organization, user, refreshProfile } = useAuth();
+  const { profile, organization, refreshProfile } = useAuth();
   const { theme } = useTheme();
   const { t } = useLanguage();
   const isDark = theme === "dark";
