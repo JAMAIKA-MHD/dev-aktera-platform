@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { Campaign } from "../../types";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAnalytics } from "../../hooks/useAnalytics";
 import { CAMPAIGN_INSIGHTS_DATA } from "./OverviewMockData";
 
 interface CampaignInsightsCardProps {
@@ -15,6 +16,7 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { analytics, loading } = useAnalytics();
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState("All channels");
@@ -131,9 +133,13 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
             Audience
           </span>
           <span className="text-2xl sm:text-3xl font-black text-brand-text tracking-tight text-center">
-            {popularCampaign && popularCampaign.participantsCount > 0
-              ? popularCampaign.participantsCount.toLocaleString()
-              : CAMPAIGN_INSIGHTS_DATA.audience}
+            {loading
+              ? "..."
+              : (
+                  analytics?.unique_participants ??
+                  analytics?.unique_users_count ??
+                  0
+                ).toLocaleString()}
           </span>
         </div>
 
@@ -175,9 +181,7 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
             Customer Conversion
           </span>
           <span className="text-2xl sm:text-3xl font-black text-brand-text tracking-tight text-center">
-            {popularCampaign && popularCampaign.rewardsClaimed > 0
-              ? `+${popularCampaign.rewardsClaimed.toLocaleString()}`
-              : CAMPAIGN_INSIGHTS_DATA.conversions}
+            {loading ? "..." : (analytics?.total_wins ?? 0).toLocaleString()}
           </span>
         </div>
       </div>

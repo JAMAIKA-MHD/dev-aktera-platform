@@ -3,6 +3,7 @@ import { TrendingUp, Activity } from "lucide-react";
 import { OVERVIEW_KPI_CARDS, KpiCardData } from "./OverviewMockData";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAnalytics } from "../../hooks/useAnalytics";
 
 interface OverviewKpiCardsProps {
   activeCampaignsCount?: number;
@@ -15,6 +16,28 @@ export const OverviewKpiCards: React.FC<OverviewKpiCardsProps> = () => {
   const { t } = useLanguage();
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { analytics, loading } = useAnalytics();
+
+  const getClicks = (card: KpiCardData) => {
+    if (card.id === "leads-captured") {
+      if (loading) return "...";
+      return (analytics?.total_entries ?? 0).toLocaleString();
+    }
+    if (card.id === "avg-win-rate") {
+      if (loading) return "...";
+      const rate = analytics?.win_rate ?? 0;
+      return `${rate}%`;
+    }
+    return card.clicks;
+  };
+
+  const getConversions = (card: KpiCardData) => {
+    if (card.id === "leads-captured") {
+      if (loading) return "...";
+      return (analytics?.total_wins ?? 0).toLocaleString();
+    }
+    return card.conversions;
+  };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -51,7 +74,7 @@ export const OverviewKpiCards: React.FC<OverviewKpiCardsProps> = () => {
                 <span>{t("overview.clicks", "Clicks")}</span>
               </div>
               <span className="text-2xl sm:text-3xl font-black text-brand-text tracking-tight">
-                {card.clicks}
+                {getClicks(card)}
               </span>
             </div>
 
@@ -62,7 +85,7 @@ export const OverviewKpiCards: React.FC<OverviewKpiCardsProps> = () => {
                 <span>{t("overview.conversions", "Conversions")}</span>
               </div>
               <span className="text-2xl sm:text-3xl font-black text-brand-text tracking-tight">
-                {card.conversions}
+                {getConversions(card)}
               </span>
             </div>
           </div>

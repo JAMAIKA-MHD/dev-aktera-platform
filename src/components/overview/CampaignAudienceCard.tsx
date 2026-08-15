@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { ChevronDown, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 import { CAMPAIGN_AUDIENCE_DATA, ChannelAudience } from "./OverviewMockData";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAnalytics } from "../../hooks/useAnalytics";
 
 export const CampaignAudienceCard: React.FC = () => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { analytics, loading } = useAnalytics();
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
 
@@ -75,7 +77,13 @@ export const CampaignAudienceCard: React.FC = () => {
         </p>
         <div className="flex items-center gap-4">
           <span className="text-4xl sm:text-5xl font-black text-brand-text tracking-tight">
-            {CAMPAIGN_AUDIENCE_DATA.totalAudience}
+            {loading
+              ? "..."
+              : (
+                  analytics?.unique_participants ??
+                  analytics?.unique_users_count ??
+                  0
+                ).toLocaleString()}
           </span>
           <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-bold">
             <TrendingUp className="w-4 h-4" />
