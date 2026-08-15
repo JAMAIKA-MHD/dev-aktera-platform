@@ -285,10 +285,13 @@ export const AccountSettings: React.FC = () => {
                   className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-5 py-2.5 rounded-full flex items-center gap-2 transition-all shadow-md shadow-blue-500/25 cursor-pointer hover:scale-102"
                 >
                   <CloudUpload className="w-4 h-4" />
-                  <span>Upload New Photo</span>
+                  <span>{t("settings.uploadPhoto", "Upload New Photo")}</span>
                 </button>
                 <p className="text-[11px] text-brand-textMuted leading-tight">
-                  At least 800×800 px recommended. JPG or PNG is allowed.
+                  {t(
+                    "settings.uploadHint",
+                    "At least 800×800 px recommended. JPG or PNG is allowed.",
+                  )}
                 </p>
               </div>
             </div>
@@ -296,14 +299,14 @@ export const AccountSettings: React.FC = () => {
             {/* Section 1: Organization Information */}
             <div className="space-y-5">
               <h3 className="text-base font-black text-brand-text tracking-tight">
-                Organization Information
+                {t("settings.orgInfo", "Organization Information")}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 {/* Organization Name */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Organization Name
+                    {t("settings.orgName", "Organization Name")}
                   </label>
                   <input
                     type="text"
@@ -322,7 +325,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Organization Contact Email */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Organization Contact Email
+                    {t("settings.orgEmail", "Organization Contact Email")}
                   </label>
                   <input
                     type="email"
@@ -341,7 +344,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Organization Phone Number */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Organization Phone Number
+                    {t("settings.orgPhone", "Organization Phone Number")}
                   </label>
                   <input
                     type="tel"
@@ -359,7 +362,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Tax Identification Number (NIF) */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Tax Identification Number (NIF)
+                    {t("settings.nif", "Tax Identification Number (NIF)")}
                   </label>
                   <input
                     type="text"
@@ -378,7 +381,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Commercial Register (RC) */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Commercial Register (RC)
+                    {t("settings.rc", "Commercial Register (RC)")}
                   </label>
                   <input
                     type="text"
@@ -396,7 +399,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Statistical Identification Number (NIS) */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Statistical Identification (NIS)
+                    {t("settings.nis", "Statistical Identification (NIS)")}
                   </label>
                   <input
                     type="text"
@@ -414,7 +417,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Article d'Imposition (AI) */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Article d'Imposition (AI)
+                    {t("settings.ai", "Article d'Imposition (AI)")}
                   </label>
                   <input
                     type="text"
@@ -432,7 +435,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Industry / Sector */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Industry & Sector
+                    {t("settings.industry", "Industry & Sector")}
                   </label>
                   <input
                     type="text"
@@ -450,7 +453,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Headquarters Address */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Headquarters Address
+                    {t("settings.address", "Headquarters Address")}
                   </label>
                   <input
                     type="text"
@@ -468,7 +471,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Wilaya / City */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Wilaya / Province
+                    {t("settings.wilaya", "Wilaya / Province")}
                   </label>
                   <input
                     type="text"
@@ -486,7 +489,7 @@ export const AccountSettings: React.FC = () => {
                 {/* Official Website */}
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Official Website (URL)
+                    {t("settings.website", "Official Website (URL)")}
                   </label>
                   <input
                     type="url"
@@ -506,13 +509,13 @@ export const AccountSettings: React.FC = () => {
             {/* Section 2: Account Representative Details */}
             <div className="space-y-5 pt-6 border-t border-card-border">
               <h3 className="text-base font-black text-brand-text tracking-tight">
-                Assigned Representative
+                {t("settings.assignedRep", "Assigned Representative")}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Representative Full Name
+                    {t("settings.repName", "Representative Full Name")}
                   </label>
                   <input
                     type="text"
@@ -529,7 +532,7 @@ export const AccountSettings: React.FC = () => {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Representative Role & Title
+                    {t("settings.repRole", "Representative Role & Title")}
                   </label>
                   <input
                     type="text"
@@ -552,14 +555,16 @@ export const AccountSettings: React.FC = () => {
         {activeTab === "Password" && (
           <div className="space-y-6">
             <p className="text-xs text-brand-textMuted">
-              Ensure your account is using a long, random password to stay
-              secure.
+              {t(
+                "settings.passwordHelp",
+                "Ensure your account is using a long, random password to stay secure.",
+              )}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
               <div className="flex flex-col gap-1.5 md:col-span-2">
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Current Password
+                  {t("settings.currentPassword", "Current Password")}
                 </label>
                 <input
                   type="password"
@@ -576,7 +581,7 @@ export const AccountSettings: React.FC = () => {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  New Password
+                  {t("settings.newPassword", "New Password")}
                 </label>
                 <input
                   type="password"
@@ -594,7 +599,7 @@ export const AccountSettings: React.FC = () => {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Confirm New Password
+                  {t("settings.confirmPassword", "Confirm New Password")}
                 </label>
                 <input
                   type="password"
@@ -617,13 +622,16 @@ export const AccountSettings: React.FC = () => {
         {activeTab === "Email" && (
           <div className="space-y-6">
             <p className="text-xs text-brand-textMuted">
-              Manage your primary login credentials and account access email.
+              {t(
+                "settings.emailHelp",
+                "Manage your primary login credentials and account access email.",
+              )}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Current Login Email
+                  {t("settings.currentEmail", "Current Login Email")}
                 </label>
                 <input
                   type="email"
@@ -639,7 +647,7 @@ export const AccountSettings: React.FC = () => {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  New Login Email
+                  {t("settings.newEmail", "New Login Email")}
                 </label>
                 <input
                   type="email"
@@ -782,7 +790,11 @@ export const AccountSettings: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 stroke-[2.5]" />
             )}
-            <span>{saving ? "Saving..." : "Save Configuration"}</span>
+            <span>
+              {saving
+                ? t("settings.saving", "Saving...")
+                : t("settings.saveConfig", "Save Configuration")}
+            </span>
           </button>
         </div>
       </form>

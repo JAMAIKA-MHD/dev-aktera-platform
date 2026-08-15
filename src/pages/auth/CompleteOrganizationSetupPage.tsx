@@ -12,9 +12,11 @@ import {
 import { supabase } from "../../lib/supabase";
 import { toFriendlyErrorMessage } from "../../lib/errorMessages";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 export default function CompleteOrganizationSetupPage() {
   const { user, refreshProfile, signOut } = useAuth();
+  const { t } = useLanguage();
   const [orgName, setOrgName] = useState("");
   const [fullName, setFullName] = useState(
     typeof user?.user_metadata?.full_name === "string"
@@ -33,7 +35,12 @@ export default function CompleteOrganizationSetupPage() {
     setError(null);
 
     if (!orgName.trim() || !fullName.trim()) {
-      setError("Organization name and full name are required.");
+      setError(
+        t(
+          "auth.requiredFields",
+          "Organization name and full name are required.",
+        ),
+      );
       return;
     }
 
@@ -73,11 +80,13 @@ export default function CompleteOrganizationSetupPage() {
             <Flame className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            Complete organization setup
+            {t("auth.setupTitle", "Complete organization setup")}
           </h1>
           <p className="text-slate-500 text-sm mt-1 text-center">
-            Your sign-in worked, but this account does not currently have an
-            organization profile.
+            {t(
+              "auth.setupSubtitle",
+              "Your sign-in worked, but this account does not currently have an organization profile.",
+            )}
           </p>
         </div>
 
@@ -93,7 +102,10 @@ export default function CompleteOrganizationSetupPage() {
             <div className="mb-5 flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl px-4 py-3 text-sm">
               <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Organization setup completed. Loading your dashboard...
+                {t(
+                  "auth.setupCompleted",
+                  "Organization setup completed. Loading your dashboard...",
+                )}
               </span>
             </div>
           )}
@@ -101,7 +113,7 @@ export default function CompleteOrganizationSetupPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                Organization Name
+                {t("auth.orgName", "Organization Name")}
               </label>
               <div className="relative flex items-center">
                 <Building2 className="absolute left-3.5 w-4 h-4 text-slate-400" />
@@ -119,7 +131,7 @@ export default function CompleteOrganizationSetupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                Your Full Name
+                {t("auth.fullName", "Your Full Name")}
               </label>
               <div className="relative flex items-center">
                 <User className="absolute left-3.5 w-4 h-4 text-slate-400" />
@@ -137,7 +149,7 @@ export default function CompleteOrganizationSetupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                Email
+                {t("auth.workEmail", "Email")}
               </label>
               <div className="relative flex items-center">
                 <Mail className="absolute left-3.5 w-4 h-4 text-slate-400" />
@@ -152,9 +164,9 @@ export default function CompleteOrganizationSetupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                Phone{" "}
+                {t("auth.phone", "Phone")}{" "}
                 <span className="text-slate-400 normal-case font-normal">
-                  (optional)
+                  {t("auth.optional", "(optional)")}
                 </span>
               </label>
               <div className="relative flex items-center">
@@ -178,10 +190,10 @@ export default function CompleteOrganizationSetupPage() {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Saving organization...</span>
+                  <span>{t("auth.saving", "Saving organization...")}</span>
                 </>
               ) : (
-                "Continue to Dashboard"
+                t("auth.completeSetup", "Continue to Dashboard")
               )}
             </button>
           </form>
@@ -192,7 +204,7 @@ export default function CompleteOrganizationSetupPage() {
             className="w-full mt-4 border border-slate-200 hover:border-slate-300 text-slate-600 font-semibold rounded-xl py-3 text-sm transition-all min-h-12 cursor-pointer flex items-center justify-center gap-2"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign out</span>
+            <span>{t("nav.signOut", "Sign out")}</span>
           </button>
         </div>
       </div>

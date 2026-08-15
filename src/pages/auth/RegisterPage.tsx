@@ -10,10 +10,12 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { toFriendlyErrorMessage } from "../../lib/errorMessages";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [orgName, setOrgName] = useState("");
   const [fullName, setFullName] = useState("");
@@ -30,12 +32,17 @@ export default function RegisterPage() {
 
     if (!orgName.trim() || !fullName.trim() || !email.trim() || !password) {
       setError(
-        "Organization name, full name, email, and password are required.",
+        t(
+          "auth.requiredFields",
+          "Organization name, full name, email, and password are required.",
+        ),
       );
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(
+        t("auth.minPassword", "Password must be at least 8 characters."),
+      );
       return;
     }
 
@@ -129,12 +136,16 @@ export default function RegisterPage() {
 
           <div className="max-w-lg">
             <h1 className="text-4xl lg:text-[52px] font-extrabold mb-8 leading-[1.15] text-white tracking-tight">
-              Start transforming your brand engagement today.
+              {t(
+                "auth.heroRegisterTitle",
+                "Start transforming your brand engagement today.",
+              )}
             </h1>
             <p className="text-xl text-blue-200/95 leading-relaxed mb-12 font-normal">
-              Launch high-converting gamified promotional campaigns, collect
-              verified customer leads, and scale your brand reach across
-              Algeria.
+              {t(
+                "auth.heroRegisterSubtitle",
+                "Launch high-converting gamified promotional campaigns, collect verified customer leads, and scale your brand reach across Algeria.",
+              )}
             </p>
           </div>
         </div>
@@ -157,10 +168,13 @@ export default function RegisterPage() {
               />
             </div>
             <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2.5">
-              Register Organization
+              {t("auth.registerTitle", "Register Organization")}
             </h2>
             <p className="text-base text-slate-500 dark:text-slate-400 font-medium">
-              Create an operator account for your enterprise.
+              {t(
+                "auth.registerSubtitle",
+                "Create an operator account for your enterprise.",
+              )}
             </p>
           </div>
 
@@ -177,7 +191,7 @@ export default function RegisterPage() {
             {/* Organization Name */}
             <div className="space-y-2">
               <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Organization Name
+                {t("auth.orgName", "Organization Name")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -197,7 +211,7 @@ export default function RegisterPage() {
             {/* Representative Full Name */}
             <div className="space-y-2">
               <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Your Full Name
+                {t("auth.fullName", "Your Full Name")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -217,7 +231,7 @@ export default function RegisterPage() {
             {/* Work Email */}
             <div className="space-y-2">
               <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Work Email
+                {t("auth.workEmail", "Work Email")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -238,9 +252,9 @@ export default function RegisterPage() {
             {/* Phone */}
             <div className="space-y-2">
               <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Phone Number{" "}
+                {t("auth.phone", "Phone Number")}{" "}
                 <span className="text-slate-400 normal-case font-normal">
-                  (optional)
+                  {t("auth.optional", "(optional)")}
                 </span>
               </label>
               <div className="relative">
@@ -260,7 +274,7 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="space-y-2">
               <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Password
+                {t("auth.password", "Password")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -287,10 +301,12 @@ export default function RegisterPage() {
               {loading ? (
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Creating organization...</span>
+                  <span>
+                    {t("auth.creatingAccount", "Creating account...")}
+                  </span>
                 </div>
               ) : (
-                "Create Organization"
+                t("auth.createAccount", "Create Enterprise Account")
               )}
             </button>
           </form>
@@ -298,12 +314,12 @@ export default function RegisterPage() {
           {/* Footer Link */}
           <div className="pt-2 text-center">
             <p className="text-base text-slate-500 dark:text-slate-400 font-medium">
-              Already have an account?{" "}
+              {t("auth.alreadyHaveAccount", "Already have an account?")}{" "}
               <Link
                 to="/login"
                 className="font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
               >
-                Sign in
+                {t("auth.signInHere", "Sign in here")}
               </Link>
             </p>
           </div>

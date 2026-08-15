@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { toFriendlyErrorMessage } from "../../lib/errorMessages";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -20,7 +22,7 @@ export default function LoginPage() {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError("Email and password are required.");
+      setError(t("auth.requiredFields", "Email and password are required."));
       return;
     }
 
@@ -57,11 +59,16 @@ export default function LoginPage() {
 
           <div className="max-w-lg">
             <h1 className="text-4xl lg:text-[52px] font-extrabold mb-8 leading-[1.15] text-white tracking-tight">
-              Welcome to the future of enterprise engagement.
+              {t(
+                "auth.welcomeTitle",
+                "Welcome to the future of enterprise engagement.",
+              )}
             </h1>
             <p className="text-xl text-blue-200/95 leading-relaxed mb-12 font-normal">
-              Advanced analytics, seamless workflows, and secure access—all in
-              one unified platform designed for modern teams.
+              {t(
+                "auth.welcomeSubtitle",
+                "Advanced analytics, seamless workflows, and secure access—all in one unified platform designed for modern teams.",
+              )}
             </p>
           </div>
         </div>
@@ -85,10 +92,13 @@ export default function LoginPage() {
               />
             </div>
             <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2.5">
-              Sign In
+              {t("auth.signIn", "Sign In")}
             </h2>
             <p className="text-base text-slate-500 dark:text-slate-400 font-medium">
-              Enter your credentials to access your account.
+              {t(
+                "auth.signInSubtitle",
+                "Enter your credentials to access your account.",
+              )}
             </p>
           </div>
 
@@ -108,7 +118,7 @@ export default function LoginPage() {
                 className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200"
                 htmlFor="login-email"
               >
-                Email Address
+                {t("auth.emailAddress", "Email Address")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -134,7 +144,7 @@ export default function LoginPage() {
                 className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200"
                 htmlFor="login-password"
               >
-                Password
+                {t("auth.password", "Password")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -176,14 +186,14 @@ export default function LoginPage() {
                   className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500 cursor-pointer accent-blue-600"
                 />
                 <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-slate-300">
-                  Remember me
+                  {t("auth.rememberMe", "Remember me")}
                 </span>
               </label>
               <a
                 href="#"
                 className="text-sm sm:text-base font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
               >
-                Forgot password?
+                {t("auth.forgotPassword", "Forgot password?")}
               </a>
             </div>
 
@@ -196,10 +206,10 @@ export default function LoginPage() {
               {loading ? (
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Signing in...</span>
+                  <span>{t("auth.signingIn", "Signing in...")}</span>
                 </div>
               ) : (
-                "Sign In"
+                t("auth.signIn", "Sign In")
               )}
             </button>
           </form>
@@ -211,7 +221,7 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase tracking-widest">
               <span className="px-3 bg-white dark:bg-[#0e1422] text-slate-400 dark:text-slate-400 font-black">
-                Or sign in with
+                {t("auth.orSignInWith", "Or sign in with")}
               </span>
             </div>
           </div>
@@ -259,12 +269,12 @@ export default function LoginPage() {
           {/* Footer Link */}
           <div className="pt-2 text-center">
             <p className="text-base text-slate-500 dark:text-slate-400 font-medium">
-              Don't have an account?{" "}
+              {t("auth.dontHaveAccount", "Don't have an account?")}{" "}
               <Link
                 to="/register"
                 className="font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
               >
-                Register your organization
+                {t("auth.registerOrg", "Register your organization")}
               </Link>
             </p>
           </div>
