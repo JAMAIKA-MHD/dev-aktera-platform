@@ -25,9 +25,9 @@ export const CampaignInsightsCard: React.FC<CampaignInsightsCardProps> = ({
   const popularCampaign = useMemo(() => {
     if (!campaigns || campaigns.length === 0) return null;
     const sorted = [...campaigns].sort(
-      (a, b) => b.participantsCount - a.participantsCount,
+      (a, b) => (b?.participantsCount ?? 0) - (a?.participantsCount ?? 0),
     );
-    return sorted[0] || campaigns[0];
+    return sorted[0] || campaigns[0] || null;
   }, [campaigns]);
 
   const channelOptions = [

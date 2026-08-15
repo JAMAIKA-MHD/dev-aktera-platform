@@ -16,11 +16,13 @@ interface DashboardHomeProps {
 }
 
 export const DashboardHome: React.FC<DashboardHomeProps> = ({
-  campaigns,
-  leads,
+  campaigns = [],
+  leads = [],
   onNavigate,
 }) => {
-  const activeCampaigns = campaigns.filter((c) => c.status === "active");
+  const activeCampaigns = (campaigns ?? []).filter(
+    (c) => c.status === "active",
+  );
 
   return (
     <div
@@ -30,7 +32,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       {/* 1. TOP 4 KPI CARDS */}
       <OverviewKpiCards
         activeCampaignsCount={activeCampaigns.length}
-        leadsCount={leads.length}
+        leadsCount={(leads ?? []).length}
       />
 
       {/* 2. MAIN 2-COLUMN SECTION */}
