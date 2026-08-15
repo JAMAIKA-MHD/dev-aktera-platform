@@ -57,11 +57,26 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
+const DEFAULT_AVATAR =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuDRIrzL2B44jQOBHs_8Mr5_T7olxzgM6b1g4gWw22aervyasCXua96W9EMGfBs3Hbv_9zNL7W6q68Dap-kyXlJCTapI9qT3WCgI9tFHlCAB92gCphYgPX17Qnu4U6HxnVUGbl8sbA-ULs79sQ5zlbr2TisGtCtC1Qmq1DEjMvqaAg-AbaNcSw2caRxs0HgZ7kySWhAeALg1mGqNgflVBbIxNxh8gNLhxlFARs8RHBYpYaBpFsMgMw-h";
+
 export default function App() {
-  const { organization, signOut } = useAuth();
+  const { organization, profile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t, isRtl } = useLanguage();
   const orgId = organization?.id ?? null;
+
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => {
+    return localStorage.getItem("user-avatar-preview") || DEFAULT_AVATAR;
+  });
+
+  useEffect(() => {
+    if (profile?.avatar_url) {
+      setAvatarUrl(profile.avatar_url);
+    } else if (organization?.logo_url) {
+      setAvatarUrl(organization.logo_url);
+    }
+  }, [profile?.avatar_url, organization?.logo_url]);
 
   // Real Supabase data
   const {
@@ -596,11 +611,15 @@ export default function App() {
             </button>
 
             {/* User Avatar */}
-            <div className="relative cursor-pointer">
+            <div
+              onClick={() => handleSidebarNavigate("account")}
+              className="relative cursor-pointer hover:opacity-90 transition-opacity"
+              title="Account Settings"
+            >
               <img
                 alt="User profile"
                 className="w-10 h-10 rounded-full object-cover border border-brand-border shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRIrzL2B44jQOBHs_8Mr5_T7olxzgM6b1g4gWw22aervyasCXua96W9EMGfBs3Hbv_9zNL7W6q68Dap-kyXlJCTapI9qT3WCgI9tFHlCAB92gCphYgPX17Qnu4U6HxnVUGbl8sbA-ULs79sQ5zlbr2TisGtCtC1Qmq1DEjMvqaAg-AbaNcSw2caRxs0HgZ7kySWhAeALg1mGqNgflVBbIxNxh8gNLhxlFARs8RHBYpYaBpFsMgMw-h"
+                src={avatarUrl || DEFAULT_AVATAR}
               />
             </div>
           </div>
@@ -750,7 +769,7 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <AccountSettings />
+                <AccountSettings onAvatarChange={setAvatarUrl} />
               </motion.div>
             )}
           </AnimatePresence>

@@ -7,7 +7,13 @@ import { toFriendlyErrorMessage } from "../lib/errorMessages";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage } from "../contexts/LanguageContext";
 
-export const AccountSettings: React.FC = () => {
+interface AccountSettingsProps {
+  onAvatarChange?: (url: string) => void;
+}
+
+export const AccountSettings: React.FC<AccountSettingsProps> = ({
+  onAvatarChange,
+}) => {
   const { profile, organization, refreshProfile } = useAuth();
   const { theme } = useTheme();
   const { t } = useLanguage();
@@ -38,7 +44,9 @@ export const AccountSettings: React.FC = () => {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [jobTitle, setJobTitle] = useState("Marketing & Growth Lead");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
+    return localStorage.getItem("user-avatar-preview") || null;
+  });
 
   // Password Fields
   const [currentPassword, setCurrentPassword] = useState("");
@@ -66,6 +74,14 @@ export const AccountSettings: React.FC = () => {
       setContactName(profile.full_name);
       setContactEmail(profile.email);
     }
+    const savedPreview = localStorage.getItem("user-avatar-preview");
+    if (savedPreview) {
+      setAvatarUrl(savedPreview);
+    } else if (profile?.avatar_url) {
+      setAvatarUrl(profile.avatar_url);
+    } else if (organization?.logo_url) {
+      setAvatarUrl(organization.logo_url);
+    }
   }, [organization, profile]);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -88,6 +104,8 @@ export const AccountSettings: React.FC = () => {
     // Generate local preview URL
     const preview = URL.createObjectURL(file);
     setAvatarUrl(preview);
+    localStorage.setItem("user-avatar-preview", preview);
+    onAvatarChange?.(preview);
 
     // TODO(backend): wire to Supabase Storage + persist url to profile
   };
