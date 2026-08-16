@@ -78,36 +78,36 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
   return (
     <div
       ref={containerRef}
-      className={`rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
+      className={`rounded-[24px] p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
         isDark
           ? "bg-[#151E30] border-slate-800 text-white"
           : "bg-white border-slate-200 text-slate-900 shadow-sm"
       }`}
     >
       {/* Header with Title, Subtitle, and Legend */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4.5">
         <div>
-          <h3 className="font-bold text-xl sm:text-2xl text-brand-text">
+          <h3 className="font-bold text-[19px] sm:text-[22.8px] text-brand-text">
             Campaign Agenda
           </h3>
-          <p className="text-xs sm:text-sm text-brand-textMuted mt-1">
+          <p className="text-[11.4px] sm:text-[13.3px] text-brand-textMuted mt-0.5">
             number of campaigns that has been lunched
           </p>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-5 text-xs sm:text-sm font-bold text-brand-text">
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 shrink-0"></span>
+        <div className="flex items-center gap-3.5 text-[11.4px] sm:text-[13.3px] font-bold text-brand-text">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-emerald-600 shrink-0"></span>
             <span>5+</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-emerald-300 shrink-0"></span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-emerald-300 shrink-0"></span>
             <span>3-</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span
-              className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+              className={`w-3 h-3 rounded-full shrink-0 ${
                 isDark ? "bg-slate-700" : "bg-slate-200"
               }`}
             ></span>
@@ -118,13 +118,13 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
 
       {/* Heatmap Grid */}
       <div className="w-full overflow-x-auto relative">
-        <div className="min-w-[550px]">
+        <div className="min-w-[500px]">
           {/* Hour labels row */}
-          <div className="grid grid-cols-12 gap-1 mb-2 pl-14">
+          <div className="grid grid-cols-12 gap-1 mb-1.5 pl-11">
             {AGENDA_TIME_LABELS.map((label, idx) => (
               <span
                 key={idx}
-                className="text-[10px] sm:text-xs font-bold text-brand-textMuted text-center select-none"
+                className="text-[9.5px] sm:text-[11.4px] font-bold text-brand-textMuted text-center select-none"
               >
                 {label}
               </span>
@@ -132,19 +132,19 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
           </div>
 
           {/* Grid rows by day */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {CAMPAIGN_AGENDA_GRID.map((daySchedule) => (
               <div
                 key={daySchedule.day}
-                className="flex items-center gap-2 group/row"
+                className="flex items-center gap-1.5 group/row"
               >
                 {/* Day label */}
-                <span className="w-12 text-xs sm:text-sm font-bold text-brand-text select-none text-left">
+                <span className="w-9 sm:w-10 text-[11.4px] sm:text-[13.3px] font-bold text-brand-text select-none text-left">
                   {daySchedule.day}
                 </span>
 
-                {/* 12-Slot grid cells */}
-                <div className="grid grid-cols-12 gap-1.5 flex-1">
+                {/* 12-Slot grid cells (25% smaller height) */}
+                <div className="grid grid-cols-12 gap-1 flex-1">
                   {daySchedule.slots.map((slot, sIdx) => {
                     const cellClass = getCellClass(slot.intensity);
                     return (
@@ -157,7 +157,7 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
                           handleMouseMove(e, daySchedule.day, slot)
                         }
                         onMouseLeave={handleMouseLeave}
-                        className={`h-7 sm:h-8 rounded-lg cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
+                        className={`h-5 sm:h-6 rounded-md cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
                       />
                     );
                   })}

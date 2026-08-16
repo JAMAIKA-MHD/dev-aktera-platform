@@ -29,13 +29,13 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
   // Hardcoded histogram data representing the example visitor distribution
   const data: VisitorHistogramBar[] = VISITOR_HISTOGRAM_DATA;
 
-  // SVG Chart Dimensions
+  // SVG Chart Dimensions (25% reduced height)
   const width = 720;
-  const height = 310;
-  const paddingLeft = 70;
-  const paddingRight = 40;
-  const paddingTop = 30;
-  const paddingBottom = 45;
+  const height = 232;
+  const paddingLeft = 55;
+  const paddingRight = 30;
+  const paddingTop = 22;
+  const paddingBottom = 34;
 
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
@@ -88,19 +88,19 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`rounded-[32px] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
+      className={`rounded-[24px] p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
         isDark
           ? "bg-[#151E30] border-slate-800 text-white"
           : "bg-white border-slate-200 text-slate-900 shadow-sm"
       }`}
     >
       {/* Top Header: Title, Subtitle, and More Details Button */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="font-bold text-xl sm:text-2xl text-brand-text">
+          <h3 className="font-bold text-[19px] sm:text-[22.8px] text-brand-text">
             Visitors Stats
           </h3>
-          <div className="text-xs font-bold text-brand-text mt-1 leading-tight">
+          <div className="text-[11.4px] font-bold text-brand-text mt-0.5 leading-tight">
             <div>number of</div>
             <div>visitors</div>
           </div>
@@ -109,7 +109,7 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
         {/* More Details Button */}
         <button
           onClick={onMoreDetails}
-          className={`font-bold text-xs sm:text-sm px-4 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer border ${
+          className={`font-bold text-[11.4px] sm:text-[13.3px] px-3.5 py-1 rounded-xl transition-all shadow-sm cursor-pointer border ${
             isDark
               ? "bg-slate-700/80 hover:bg-slate-600 text-white border-white/5"
               : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"

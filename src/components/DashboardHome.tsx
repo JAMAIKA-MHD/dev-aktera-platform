@@ -27,7 +27,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   return (
     <div
       id="b2b-dashboard-home"
-      className="space-y-8 text-brand-text max-w-[1800px] mx-auto pb-10"
+      className="space-y-6 text-brand-text max-w-[1440px] mx-auto pb-8"
     >
       {/* 1. TOP 4 KPI CARDS */}
       <OverviewKpiCards
@@ -36,26 +36,26 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       />
 
       {/* 2. MAIN 2-COLUMN SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* LEFT COLUMN (Visitor Stats & Campaign Agenda) */}
-        <div className="lg:col-span-7 flex flex-col gap-8">
-          <div className="flex-1 min-h-[350px]">
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="flex-1 min-h-[265px]">
             <VisitorStatsChart
               campaigns={campaigns}
               onMoreDetails={() => onNavigate("analytics")}
             />
           </div>
-          <div className="flex-1 min-h-[350px]">
+          <div className="flex-1 min-h-[265px]">
             <CampaignAgendaGrid campaigns={campaigns} />
           </div>
         </div>
 
         {/* RIGHT COLUMN (Campaign Audience & Campaign Insights) */}
-        <div className="lg:col-span-5 flex flex-col gap-8">
-          <div className="flex-1 min-h-[350px]">
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="flex-1 min-h-[265px]">
             <CampaignAudienceCard />
           </div>
-          <div className="flex-1 min-h-[350px]">
+          <div className="flex-1 min-h-[265px]">
             <CampaignInsightsCard
               campaigns={campaigns}
               onSeeDetails={() => onNavigate("analytics")}
