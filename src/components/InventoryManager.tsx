@@ -460,28 +460,28 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   <div
                     key={p.id}
                     onClick={() => openValuesModal(p)}
-                    className="bg-card-bg border border-brand-border/30 rounded-[16px] p-4 shadow-sm flex flex-col gap-4 hover:border-blue-500/30 transition-colors cursor-pointer group"
+                    className="bg-card-bg border border-brand-border/30 rounded-[12px] p-3 shadow-sm flex flex-col gap-3 hover:border-blue-500/30 transition-colors cursor-pointer group"
                   >
                     {/* TOP SECTION */}
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-900/40 border border-blue-500/20 flex items-center justify-center shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-900/40 border border-blue-500/20 flex items-center justify-center shrink-0">
                           {p.category === "voucher" ? (
-                            <FileSpreadsheet className="w-4 h-4 text-blue-400" />
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400" />
                           ) : (
-                            <Database className="w-4 h-4 text-emerald-400" />
+                            <Database className="w-3.5 h-3.5 text-emerald-400" />
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="font-extrabold text-white text-sm leading-tight line-clamp-1">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <h3 className="font-extrabold text-white text-xs leading-tight line-clamp-1">
                               {p.name}
                             </h3>
-                            <span className="bg-blue-900/30 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider shrink-0">
+                            <span className="bg-blue-900/30 text-blue-400 border border-blue-500/20 px-1 py-0.25 rounded text-[6px] font-bold uppercase tracking-wider shrink-0">
                               {p.category}
                             </span>
                           </div>
-                          <span className="text-[9px] font-mono text-brand-textMuted">
+                          <span className="text-[8px] font-mono text-brand-textMuted">
                             ID:{" "}
                             <span className="text-brand-textMuted/70">
                               {p.id.slice(0, 8)}...
@@ -490,43 +490,43 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className="font-mono text-blue-400 font-bold text-xs">
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="font-mono text-blue-400 font-bold text-[10px]">
                           {p.itemValue} DA
                         </span>
                         <div
-                          className="flex items-center gap-1 bg-white/5 p-0.5 rounded-md border border-white/10"
+                          className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded border border-white/10"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
                             onClick={() => handleAdjustStock(p.id, true)}
-                            className="w-5 h-5 rounded-[4px] bg-blue-600 flex items-center justify-center hover:bg-blue-500 text-white transition-colors"
+                            className="w-4 h-4 rounded bg-blue-600 flex items-center justify-center hover:bg-blue-500 text-white transition-colors"
                           >
-                            <Plus className="w-2.5 h-2.5" />
+                            <Plus className="w-2 h-2" />
                           </button>
                           <button
                             onClick={() => handleAdjustStock(p.id, false)}
-                            className="w-5 h-5 rounded-[4px] bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-colors"
+                            className="w-4 h-4 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-colors"
                           >
-                            <Minus className="w-2.5 h-2.5" />
+                            <Minus className="w-2 h-2" />
                           </button>
                         </div>
                       </div>
                     </div>
 
                     {/* BOTTOM SECTION */}
-                    <div className="bg-card-bg-subtle rounded-xl p-3 flex flex-col gap-4">
+                    <div className="bg-card-bg-subtle rounded-lg p-2.5 flex flex-col gap-3">
                       {/* Distribution Chart (Mock) */}
                       <div className="w-full">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[8px] font-bold text-brand-textMuted uppercase">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[7px] font-bold text-brand-textMuted uppercase">
                             Dist
                           </span>
-                          <span className="text-[8px] font-bold text-white uppercase">
+                          <span className="text-[7px] font-bold text-white uppercase">
                             Total: {p.totalStock.toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-end gap-1 h-8 w-full border-b border-blue-600 pb-0.5">
+                        <div className="flex items-end gap-0.5 h-6 w-full border-b border-blue-600 pb-0.5">
                           <div className="w-1/6 bg-blue-600/30 h-[20%] rounded-t-[2px] transition-all group-hover:h-[25%]" />
                           <div className="w-1/6 bg-blue-600/30 h-[30%] rounded-t-[2px] transition-all group-hover:h-[40%]" />
                           <div className="w-1/6 bg-blue-600/50 h-[50%] rounded-t-[2px] transition-all group-hover:h-[60%]" />
@@ -537,37 +537,37 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
 
                       {/* Progress & Stats */}
-                      <div className="flex gap-4 items-center justify-between border-t border-brand-border/40 pt-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full border-[3px] border-blue-600 flex items-center justify-center relative bg-black/20 shrink-0">
-                            <span className="font-bold text-white text-[10px]">
+                      <div className="flex gap-3 items-center justify-between border-t border-brand-border/40 pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full border-2 border-blue-600 flex items-center justify-center relative bg-black/20 shrink-0">
+                            <span className="font-bold text-white text-[8px]">
                               {stockPercentage}%
                             </span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[8px] font-bold text-brand-textMuted uppercase">
+                            <span className="text-[7px] font-bold text-brand-textMuted uppercase">
                               Available
                             </span>
-                            <span className="text-[10px] font-bold text-blue-400">
+                            <span className="text-[8px] font-bold text-blue-400">
                               {p.availableStock.toLocaleString()}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-1 items-end border-l border-brand-border/40 pl-3">
-                          <span className="text-[8px] font-bold text-brand-textMuted uppercase">
+                        <div className="flex flex-col gap-0.5 items-end border-l border-brand-border/40 pl-2">
+                          <span className="text-[7px] font-bold text-brand-textMuted uppercase">
                             Active
                           </span>
-                          <span className="text-xs font-bold text-white">
+                          <span className="text-[10px] font-bold text-white">
                             {p.campaignUsageCount || 0}
                           </span>
                         </div>
 
-                        <div className="flex flex-col gap-1 items-end border-l border-brand-border/40 pl-3">
-                          <span className="text-[8px] font-bold text-brand-textMuted uppercase">
+                        <div className="flex flex-col gap-0.5 items-end border-l border-brand-border/40 pl-2">
+                          <span className="text-[7px] font-bold text-brand-textMuted uppercase">
                             Reserved
                           </span>
-                          <span className="text-xs font-bold text-orange-400">
+                          <span className="text-[10px] font-bold text-orange-400">
                             {p.allocatedStock.toLocaleString()}
                           </span>
                         </div>

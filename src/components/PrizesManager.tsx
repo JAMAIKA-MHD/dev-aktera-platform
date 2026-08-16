@@ -604,8 +604,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         />
       </div>
 
-      {/* TICKET CARDS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 items-start">
+      {/* TICKET CARDS GRID (Scaled 25% smaller) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5 sm:gap-6 items-start">
         {filteredPrizes.map((prize) => {
           const isDeleteBlocked = (prize.campaignUsageCount ?? 0) > 0;
           const isExpanded = expandedPrizeId === prize.id;
@@ -633,7 +633,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
               onClick={() => handleOpenCodesModal(prize)}
-              className={`rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer ${
+              className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer ${
                 isDark
                   ? "bg-[#151E30] border-slate-800 text-white hover:border-emerald-500/50"
                   : "bg-white border-slate-200 text-slate-900 hover:border-emerald-500/50"
@@ -644,8 +644,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                 {/* 1. LEFT MAIN COLUMN */}
                 <div className="flex-1 flex flex-col justify-between">
                   {/* Left Green Header */}
-                  <div className="bg-emerald-600 text-white px-5 py-3 select-none border-b border-emerald-700/40">
-                    <span className="font-black text-base sm:text-lg tracking-wide block truncate">
+                  <div className="bg-emerald-600 text-white px-3.5 py-2 select-none border-b border-emerald-700/40">
+                    <span className="font-black text-xs sm:text-sm tracking-wide block truncate">
                       Reward Library{" "}
                       {prize.category === "voucher" ? "Voucher" : "Item"}
                     </span>
@@ -653,7 +653,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                   {/* Left Card Body */}
                   <div
-                    className={`flex-1 p-5 sm:p-6 flex flex-col justify-between space-y-4 ${
+                    className={`flex-1 p-3.5 sm:p-4.5 flex flex-col justify-between space-y-3 ${
                       isDark ? "bg-[#151E30]" : "bg-white"
                     }`}
                   >
@@ -661,7 +661,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     <div className="flex items-start justify-between">
                       <div>
                         <h4
-                          className={`font-black text-sm sm:text-base tracking-wider uppercase ${
+                          className={`font-black text-xs sm:text-sm tracking-wider uppercase ${
                             isDark ? "text-slate-200" : "text-slate-800"
                           }`}
                         >
@@ -670,7 +670,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                             : "PHYSICAL"}
                         </h4>
                         <p
-                          className={`text-xs sm:text-sm font-bold uppercase mt-0.5 ${
+                          className={`text-[10px] sm:text-xs font-bold uppercase mt-0.5 ${
                             isDark ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
@@ -680,7 +680,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                       {/* Action Buttons Row */}
                       <div
-                        className="flex items-center gap-1.5"
+                        className="flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Eye Toggle Button */}
@@ -689,7 +689,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                             e.stopPropagation();
                             setExpandedPrizeId(isExpanded ? null : prize.id);
                           }}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
                             isExpanded
                               ? "bg-emerald-500/20 text-emerald-500 ring-2 ring-emerald-500/40"
                               : isDark
@@ -703,9 +703,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                           }
                         >
                           {isExpanded ? (
-                            <EyeOff className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
+                            <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
                           ) : (
-                            <Eye className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
+                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
                           )}
                         </button>
 
@@ -715,14 +715,14 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                             e.stopPropagation();
                             openCreator(prize);
                           }}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
                             isDark
                               ? "text-slate-300 hover:text-emerald-400 hover:bg-slate-800"
                               : "text-slate-600 hover:text-emerald-600 hover:bg-slate-100"
                           }`}
                           title="Edit reward template"
                         >
-                          <Pencil className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
+                          <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
                         </button>
 
                         {/* Delete Button */}
@@ -732,7 +732,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                             void handleDelete(prize);
                           }}
                           disabled={isDeleteBlocked}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
                             isDeleteBlocked
                               ? "opacity-20 cursor-not-allowed text-slate-400"
                               : isDark
@@ -745,7 +745,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                               : "Delete reward"
                           }
                         >
-                          <Trash2 className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
+                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
                         </button>
                       </div>
                     </div>
@@ -753,14 +753,14 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     {/* Reward Name */}
                     <div>
                       <h3
-                        className={`font-black text-lg sm:text-xl lg:text-2xl uppercase leading-tight truncate ${
+                        className={`font-black text-sm sm:text-base lg:text-lg uppercase leading-tight truncate ${
                           isDark ? "text-white" : "text-slate-900"
                         }`}
                       >
                         {prize.name}
                       </h3>
                       <span
-                        className={`text-xs font-bold uppercase tracking-wider block mt-0.5 ${
+                        className={`text-[9px] font-bold uppercase tracking-wider block mt-0.5 ${
                           isDark ? "text-slate-400" : "text-slate-500"
                         }`}
                       >
@@ -770,20 +770,20 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                     {/* Stock Metrics (Total & Available) */}
                     <div
-                      className={`flex items-center justify-between pt-2 border-t ${
+                      className={`flex items-center justify-between pt-1.5 border-t ${
                         isDark ? "border-slate-800" : "border-slate-100"
                       }`}
                     >
                       <div>
                         <span
-                          className={`text-[11px] sm:text-xs font-black uppercase tracking-widest block ${
+                          className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest block ${
                             isDark ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
                           TOTAL STOCK
                         </span>
                         <span
-                          className={`text-base sm:text-lg font-black mt-0.5 block ${
+                          className={`text-xs sm:text-sm font-black mt-0.5 block ${
                             isDark ? "text-white" : "text-slate-900"
                           }`}
                         >
@@ -793,13 +793,13 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                       <div>
                         <span
-                          className={`text-[11px] sm:text-xs font-black uppercase tracking-widest block ${
+                          className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest block ${
                             isDark ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
                           AVAILABLE
                         </span>
-                        <span className="text-base sm:text-lg font-black text-emerald-500 mt-0.5 block">
+                        <span className="text-xs sm:text-sm font-black text-emerald-500 mt-0.5 block">
                           {prize.availableStock.toLocaleString()}
                         </span>
                       </div>
@@ -807,9 +807,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   </div>
                 </div>
 
-                {/* 2. RIGHT STUB COLUMN */}
+                {/* 2. RIGHT STUB COLUMN (Scaled 25% smaller) */}
                 <div
-                  className={`w-28 sm:w-32 flex flex-col justify-between select-none border-l-2 border-dashed relative ${
+                  className={`w-21 sm:w-24 flex flex-col justify-between select-none border-l-2 border-dashed relative ${
                     isDark
                       ? "border-slate-700 bg-slate-900/50"
                       : "border-slate-300 bg-slate-50"
@@ -817,35 +817,35 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                 >
                   {/* Top Notch Cutout */}
                   <div
-                    className={`absolute -top-5 -left-5 w-10 h-10 rounded-full z-30 pointer-events-none ${
+                    className={`absolute -top-3.5 -left-3.5 w-7 h-7 rounded-full z-30 pointer-events-none ${
                       isDark ? "bg-[#0b0e14]" : "bg-[#f4f7fb]"
                     }`}
                   ></div>
 
                   {/* Bottom Notch Cutout */}
                   <div
-                    className={`absolute -bottom-5 -left-5 w-10 h-10 rounded-full z-30 pointer-events-none ${
+                    className={`absolute -bottom-3.5 -left-3.5 w-7 h-7 rounded-full z-30 pointer-events-none ${
                       isDark ? "bg-[#0b0e14]" : "bg-[#f4f7fb]"
                     }`}
                   ></div>
 
                   {/* Right Green Stub Header */}
-                  <div className="bg-emerald-700/40 text-white px-3 py-3 flex items-center justify-center gap-1.5 text-xs sm:text-sm font-black uppercase tracking-wider border-b border-emerald-700/40">
-                    <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                      <Droplet className="w-3 h-3 fill-white text-white" />
+                  <div className="bg-emerald-700/40 text-white px-2 py-2 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider border-b border-emerald-700/40">
+                    <div className="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
+                      <Droplet className="w-2 h-2 fill-white text-white" />
                     </div>
                     <span>Aktera</span>
                   </div>
 
                   {/* Right Stub Body */}
-                  <div className="flex-1 p-4 sm:p-5 flex flex-col items-center justify-between text-center">
+                  <div className="flex-1 p-3 sm:p-3.5 flex flex-col items-center justify-between text-center">
                     {/* Big Stock Number */}
                     <div className="my-auto text-center">
-                      <h3 className="text-4xl sm:text-5xl font-black text-emerald-500 leading-none">
+                      <h3 className="text-3xl sm:text-4xl font-black text-emerald-500 leading-none">
                         {prize.availableStock > 0 ? prize.availableStock : "0"}
                       </h3>
                       <span
-                        className={`text-xs sm:text-sm font-black uppercase tracking-wider block mt-1.5 ${
+                        className={`text-[10px] sm:text-xs font-black uppercase tracking-wider block mt-1 ${
                           isDark ? "text-slate-400" : "text-slate-500"
                         }`}
                       >
@@ -854,13 +854,11 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     </div>
 
                     {/* Realistic SVG Barcode */}
-                    <div className="w-full mt-2 flex flex-col items-center">
+                    <div className="w-full mt-1.5 flex flex-col items-center">
                       <svg
                         viewBox="0 0 80 28"
-                        className={`w-full h-8 fill-current ${
-                          isDark
-                            ? "text-slate-300 opacity-90"
-                            : "text-slate-800 opacity-95"
+                        className={`w-full h-6 fill-current ${
+                          isDark ? "text-slate-400" : "text-slate-800"
                         }`}
                       >
                         <rect x="0" y="0" width="3" height="28" />
@@ -898,18 +896,18 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     onClick={(e) => e.stopPropagation()}
-                    className={`border-t px-6 py-5 space-y-4 ${
+                    className={`border-t px-4.5 py-3.5 space-y-3 ${
                       isDark
                         ? "border-slate-800 bg-[#121929]"
                         : "border-slate-100 bg-[#FAFCFF]"
                     }`}
                   >
                     {/* Available Stock Progress Bar */}
-                    <div className="flex items-center gap-4">
-                      <span className="w-24 text-sm font-bold text-brand-text shrink-0">
+                    <div className="flex items-center gap-3">
+                      <span className="w-20 text-xs font-bold text-brand-text shrink-0">
                         Available
                       </span>
-                      <div className="flex-1 bg-slate-200 dark:bg-slate-800 h-3.5 sm:h-4 rounded-full overflow-hidden p-0.5">
+                      <div className="flex-1 bg-slate-200 dark:bg-slate-800 h-2.5 sm:h-3 rounded-full overflow-hidden p-0.5">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{
@@ -919,17 +917,17 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                           className="h-full bg-emerald-500 rounded-full"
                         ></motion.div>
                       </div>
-                      <span className="text-xs font-mono font-bold text-emerald-500 shrink-0 w-12 text-right">
+                      <span className="text-[10px] font-mono font-bold text-emerald-500 shrink-0 w-10 text-right">
                         {prize.availableStock}
                       </span>
                     </div>
 
                     {/* Used Stock Progress Bar */}
-                    <div className="flex items-center gap-4">
-                      <span className="w-24 text-sm font-bold text-brand-text shrink-0">
+                    <div className="flex items-center gap-3">
+                      <span className="w-20 text-xs font-bold text-brand-text shrink-0">
                         Used
                       </span>
-                      <div className="flex-1 bg-slate-200 dark:bg-slate-800 h-3.5 sm:h-4 rounded-full overflow-hidden p-0.5">
+                      <div className="flex-1 bg-slate-200 dark:bg-slate-800 h-2.5 sm:h-3 rounded-full overflow-hidden p-0.5">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{
@@ -939,31 +937,31 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                           className="h-full bg-slate-400 dark:bg-slate-600 rounded-full"
                         ></motion.div>
                       </div>
-                      <span className="text-xs font-mono font-bold text-brand-textMuted shrink-0 w-12 text-right">
+                      <span className="text-[10px] font-mono font-bold text-brand-textMuted shrink-0 w-10 text-right">
                         {usedStock}
                       </span>
                     </div>
 
                     {/* Linked Campaigns Section */}
-                    <div className="flex items-start gap-4 pt-2">
-                      <span className="w-24 text-sm font-bold text-brand-text shrink-0 mt-1">
+                    <div className="flex items-start gap-3 pt-1.5">
+                      <span className="w-20 text-xs font-bold text-brand-text shrink-0 mt-0.5">
                         Campaigns
                       </span>
-                      <div className="flex-1 flex flex-wrap gap-2.5">
+                      <div className="flex-1 flex flex-wrap gap-2">
                         {linkedCampaigns.length > 0 ? (
                           linkedCampaigns.map((camp) => (
                             <div
                               key={camp.id}
-                              className={`p-3 rounded-2xl border text-center flex-1 min-w-[120px] max-w-[180px] shadow-sm transition-all hover:scale-102 ${
+                              className={`p-2 rounded-xl border text-center flex-1 min-w-[100px] max-w-[150px] shadow-sm transition-all hover:scale-102 ${
                                 isDark
                                   ? "bg-[#152033] border-slate-700 text-white"
                                   : "bg-blue-50/80 border-blue-100 text-slate-900"
                               }`}
                             >
-                              <p className="text-xs font-bold truncate">
+                              <p className="text-[10px] font-bold truncate">
                                 {camp.name}
                               </p>
-                              <div className="flex items-center justify-center gap-1 mt-1">
+                              <div className="flex items-center justify-center gap-1 mt-0.5">
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full ${
                                     camp.status === "active"
@@ -973,7 +971,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                                         : "bg-slate-400"
                                   }`}
                                 ></span>
-                                <span className="text-[10px] text-brand-textMuted uppercase font-mono">
+                                <span className="text-[9px] text-brand-textMuted uppercase font-mono">
                                   {camp.status}
                                 </span>
                               </div>
@@ -981,7 +979,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                           ))
                         ) : (
                           <div
-                            className={`p-3 rounded-2xl border text-center flex-1 text-xs font-medium text-brand-textMuted ${
+                            className={`p-2 rounded-xl border text-center flex-1 text-[10px] font-medium text-brand-textMuted ${
                               isDark
                                 ? "bg-slate-900/40 border-slate-800"
                                 : "bg-slate-50 border-slate-200"
