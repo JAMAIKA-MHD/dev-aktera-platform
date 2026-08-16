@@ -117,10 +117,10 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
       </div>
 
       {/* Heatmap Grid */}
-      <div className="w-full overflow-x-auto relative">
-        <div className="min-w-[500px]">
+      <div className="w-full relative">
+        <div className="w-full min-w-[320px]">
           {/* Hour labels row */}
-          <div className="grid grid-cols-12 gap-1 mb-1.5 pl-11">
+          <div className="grid grid-cols-12 gap-1 sm:gap-1.5 mb-1.5 pl-8 sm:pl-9">
             {AGENDA_TIME_LABELS.map((label, idx) => (
               <span
                 key={idx}
@@ -132,19 +132,19 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
           </div>
 
           {/* Grid rows by day */}
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {CAMPAIGN_AGENDA_GRID.map((daySchedule) => (
               <div
                 key={daySchedule.day}
-                className="flex items-center gap-1.5 group/row"
+                className="flex items-center gap-2 group/row"
               >
                 {/* Day label */}
-                <span className="w-7 sm:w-8 text-[9.1px] sm:text-[10.6px] font-bold text-brand-text select-none text-left">
+                <span className="w-6 sm:w-7 text-[9.1px] sm:text-[10.6px] font-bold text-brand-text select-none text-left shrink-0">
                   {daySchedule.day}
                 </span>
 
                 {/* 12-Slot grid cells */}
-                <div className="grid grid-cols-12 gap-0.5 flex-1">
+                <div className="grid grid-cols-12 gap-1 sm:gap-1.5 flex-1">
                   {daySchedule.slots.map((slot, sIdx) => {
                     const cellClass = getCellClass(slot.intensity);
                     return (
