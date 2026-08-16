@@ -156,44 +156,44 @@ export const BillingUsage: React.FC = () => {
   return (
     <div
       id="billing-usage-root"
-      className="space-y-8 text-brand-text max-w-[1800px] mx-auto pb-16 pt-2"
+      className="space-y-6 text-brand-text max-w-[1800px] mx-auto pb-16 pt-2"
     >
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-brand-text">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-brand-text">
             {t("billing.title", "Billing & Quota Room")}
           </h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className={`px-5 py-3 rounded-2xl font-bold text-base transition-all flex items-center gap-2.5 cursor-pointer border ${
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer border ${
               isDark
                 ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
                 : "bg-white border-slate-200 text-slate-800 hover:bg-slate-100"
             }`}
           >
-            <Settings className="w-5 h-5 stroke-[2.2]" />
+            <Settings className="w-4 h-4 stroke-[2.2]" />
             <span>{t("billing.managePlan", "Manage Plan")}</span>
           </button>
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold text-base transition-all flex items-center gap-2.5 shadow-lg shadow-blue-500/25 cursor-pointer hover:scale-102"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-blue-500/25 cursor-pointer hover:scale-102"
           >
-            <Upload className="w-5 h-5 stroke-[2.2]" />
+            <Upload className="w-4 h-4 stroke-[2.2]" />
             <span>{t("billing.upgradeTier", "Upgrade Tier")}</span>
           </button>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* LEFT COLUMN: Current Active Tier Box with Big Text & Neon Upgrade Button */}
         <div
-          className={`rounded-[32px] p-8 sm:p-9 flex flex-col justify-between shadow-sm border ${
+          className={`rounded-[24px] p-6 sm:p-7 flex flex-col justify-between shadow-sm border ${
             isDark
               ? "bg-[#151E30] border-slate-800 text-white"
               : "bg-white border-slate-200 text-slate-900"
@@ -201,43 +201,43 @@ export const BillingUsage: React.FC = () => {
         >
           <div>
             {/* Tier Header */}
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="font-black text-2xl tracking-tight">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-black text-xl tracking-tight">
                 {t("billing.currentTier", "Current Active Tier")}
               </h2>
-              <span className="bg-blue-600 px-3.5 py-1.5 rounded-full text-xs font-black text-white uppercase tracking-wider shadow-sm">
+              <span className="bg-blue-600 px-3 py-1 rounded-full text-[11px] font-black text-white uppercase tracking-wider shadow-sm">
                 {currentPlanKey}
               </span>
             </div>
 
             {/* Price & Billing Cycle */}
-            <div className="text-center mb-8 pb-8 border-b border-card-border">
-              <div className="flex items-baseline justify-center gap-1.5">
-                <span className="text-5xl sm:text-6xl font-black tracking-tight">
+            <div className="text-center mb-6 pb-6 border-b border-card-border">
+              <div className="flex items-baseline justify-center gap-1">
+                <span className="text-4xl sm:text-5xl font-black tracking-tight">
                   {currentPlan.price}
                 </span>
                 {currentPlan.price !== "Custom" &&
                   currentPlan.price !== "Free" && (
-                    <span className="text-brand-textMuted font-bold text-xl">
+                    <span className="text-brand-textMuted font-bold text-base">
                       /mo
                     </span>
                   )}
               </div>
-              <p className="text-brand-textMuted text-sm font-semibold mt-3">
+              <p className="text-brand-textMuted text-xs font-semibold mt-2.5">
                 Next billing date: {formatDate(records[0]?.period_end)}
               </p>
             </div>
 
             {/* Features List */}
-            <div className="space-y-4">
-              <h3 className="font-mono text-base font-black text-brand-textMuted uppercase tracking-wider mb-5">
+            <div className="space-y-3">
+              <h3 className="font-mono text-sm font-black text-brand-textMuted uppercase tracking-wider mb-4">
                 {t("billing.includedFeatures", "Included Features:")}
               </h3>
-              <ul className="space-y-4">
+              <ul className="space-y-3">
                 {currentPlan.features.map((feat, i) => (
-                  <li key={i} className="flex items-center gap-3.5">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 stroke-[2.5]" />
-                    <span className="text-base font-semibold leading-snug">
+                  <li key={i} className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 stroke-[2.5]" />
+                    <span className="text-sm font-semibold leading-snug">
                       {feat}
                     </span>
                   </li>
@@ -247,7 +247,7 @@ export const BillingUsage: React.FC = () => {
           </div>
 
           {/* Glowing Neon Upgrade Plan Button (adapted to width of the box) */}
-          <div className="pt-8 mt-6">
+          <div className="pt-6 mt-5">
             <button
               type="button"
               className="shadow__btn"
@@ -258,43 +258,43 @@ export const BillingUsage: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Quota Metrics & Invoice History (25% bigger) */}
-        <div className="lg:col-span-2 flex flex-col gap-8">
+        {/* RIGHT COLUMN: Quota Metrics & Invoice History */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Top Quota Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Metric 1: Monthly Captured Leads */}
             <div
-              className={`rounded-[32px] p-7 sm:p-8 shadow-sm flex flex-col justify-between min-h-[190px] border ${
+              className={`rounded-[24px] p-5 sm:p-6 shadow-sm flex flex-col justify-between min-h-[150px] border ${
                 isDark
                   ? "bg-[#151E30] border-slate-800 text-white"
                   : "bg-white border-slate-200 text-slate-900"
               }`}
             >
               <div className="flex justify-between items-start">
-                <h3 className="font-black text-lg tracking-tight">
+                <h3 className="font-black text-base tracking-tight">
                   Monthly Captured Leads
                 </h3>
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                     isDark
                       ? "bg-slate-800 text-blue-400"
                       : "bg-blue-50 text-blue-600 border border-blue-100"
                   }`}
                 >
-                  <Users className="w-6 h-6 stroke-[2.2]" />
+                  <Users className="w-5 h-5 stroke-[2.2]" />
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-4xl sm:text-5xl font-black">
+              <div className="mt-3">
+                <div className="flex items-baseline gap-1.5 mb-2.5">
+                  <span className="text-3xl sm:text-4xl font-black">
                     {totalEntries.toLocaleString()}
                   </span>
-                  <span className="text-brand-textMuted text-lg font-bold">
+                  <span className="text-brand-textMuted text-base font-bold">
                     / {currentPlan.quota.toLocaleString()}
                   </span>
                 </div>
                 <div
-                  className={`w-full rounded-full h-3 overflow-hidden mb-3 ${
+                  className={`w-full rounded-full h-2 overflow-hidden mb-2.5 ${
                     isDark ? "bg-slate-800" : "bg-slate-100"
                   }`}
                 >
@@ -303,7 +303,7 @@ export const BillingUsage: React.FC = () => {
                     style={{ width: `${usagePercent}%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center text-sm text-brand-textMuted font-mono font-bold">
+                <div className="flex justify-between items-center text-xs text-brand-textMuted font-mono font-bold">
                   <span>{Math.round(usagePercent)}% Used</span>
                   <span>
                     {Math.max(
@@ -318,35 +318,35 @@ export const BillingUsage: React.FC = () => {
 
             {/* Metric 2: API Requests Daily */}
             <div
-              className={`rounded-[32px] p-7 sm:p-8 shadow-sm flex flex-col justify-between min-h-[190px] border ${
+              className={`rounded-[24px] p-5 sm:p-6 shadow-sm flex flex-col justify-between min-h-[150px] border ${
                 isDark
                   ? "bg-[#151E30] border-slate-800 text-white"
                   : "bg-white border-slate-200 text-slate-900"
               }`}
             >
               <div className="flex justify-between items-start">
-                <h3 className="font-black text-lg tracking-tight">
+                <h3 className="font-black text-base tracking-tight">
                   API Requests (Daily)
                 </h3>
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                     isDark
                       ? "bg-slate-800 text-emerald-400"
                       : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                   }`}
                 >
-                  <Cpu className="w-6 h-6 stroke-[2.2]" />
+                  <Cpu className="w-5 h-5 stroke-[2.2]" />
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-4xl sm:text-5xl font-black">4,102</span>
-                  <span className="text-brand-textMuted text-lg font-bold">
+              <div className="mt-3">
+                <div className="flex items-baseline gap-1.5 mb-2.5">
+                  <span className="text-3xl sm:text-4xl font-black">4,102</span>
+                  <span className="text-brand-textMuted text-base font-bold">
                     / 10,000
                   </span>
                 </div>
                 <div
-                  className={`w-full rounded-full h-3 overflow-hidden mb-3 ${
+                  className={`w-full rounded-full h-2 overflow-hidden mb-2.5 ${
                     isDark ? "bg-slate-800" : "bg-slate-100"
                   }`}
                 >
@@ -355,7 +355,7 @@ export const BillingUsage: React.FC = () => {
                     style={{ width: `41%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center text-sm text-brand-textMuted font-mono font-bold">
+                <div className="flex justify-between items-center text-xs text-brand-textMuted font-mono font-bold">
                   <span>41% Used</span>
                   <span>Resets in 8h 12m</span>
                 </div>
@@ -365,21 +365,21 @@ export const BillingUsage: React.FC = () => {
 
           {/* Invoice Table Container */}
           <div
-            className={`rounded-[32px] p-8 sm:p-9 shadow-sm flex-1 flex flex-col border ${
+            className={`rounded-[24px] p-6 sm:p-7 shadow-sm flex-1 flex flex-col border ${
               isDark
                 ? "bg-[#151E30] border-slate-800 text-white"
                 : "bg-white border-slate-200 text-slate-900"
             }`}
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="font-black text-2xl tracking-tight">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="font-black text-xl tracking-tight">
                 Invoice History
               </h2>
               <button
                 type="button"
-                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline font-mono text-sm font-bold transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs font-bold transition-colors cursor-pointer"
               >
-                <Download className="w-5 h-5 stroke-[2.2]" />
+                <Download className="w-4 h-4 stroke-[2.2]" />
                 <span>Download All</span>
               </button>
             </div>
@@ -387,7 +387,7 @@ export const BillingUsage: React.FC = () => {
             <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[550px]">
                 <thead>
-                  <tr className="border-b border-card-border text-xs text-brand-textMuted uppercase font-mono font-black tracking-wider">
+                  <tr className="border-b border-card-border text-[11px] text-brand-textMuted uppercase font-mono font-black tracking-wider">
                     <th className="pb-4 px-3">Date</th>
                     <th className="pb-4 px-3">Invoice #</th>
                     <th className="pb-4 px-3">Amount</th>

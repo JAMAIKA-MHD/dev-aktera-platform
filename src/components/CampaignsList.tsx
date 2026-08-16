@@ -101,37 +101,37 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
   return (
     <div
       id="campaigns-list-root"
-      className="space-y-6 text-brand-text max-w-[1800px] mx-auto pb-16"
+      className="space-y-5 text-brand-text max-w-[1800px] mx-auto pb-16"
     >
       {/* Header section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3.5">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-brand-text">
+          <h2 className="text-2xl font-black tracking-tight text-brand-text">
             {t("campaigns.title", "Campaign Radios")}
           </h2>
-          <p className="text-brand-textMuted text-sm font-medium mt-0.5">
+          <p className="text-brand-textMuted text-xs font-medium mt-0.5">
             check all your campaign and games that you will be sharing
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
           <button
             onClick={onOpenWizard}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-md shadow-blue-500/25 cursor-pointer text-xs sm:text-sm hover:scale-102 shrink-0"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/25 cursor-pointer text-xs hover:scale-102 shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>{t("campaigns.createNew", "Launch Campaign Wizard")}</span>
           </button>
 
           {/* Search input with pill styling */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3.5 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-3 w-3.5 h-3.5 text-brand-textMuted top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search campaigns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full rounded-full pl-9 pr-4 py-2 text-xs transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm border ${
+              className={`w-full rounded-full pl-8 pr-3.5 py-1.5 text-xs transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm border ${
                 isDark
                   ? "bg-[#151E30] border-slate-800 text-white placeholder-slate-500"
                   : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
@@ -141,29 +141,29 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
         </div>
       </div>
 
-      {/* MAIN UNIFIED ROW: Left Filter Box + Campaign Cards (All identically sized at w-[240px] and aligned) */}
-      <div className="flex flex-wrap items-stretch gap-5 pt-2">
-        {/* 1. LEFT FILTERS BOX (Matching w-[240px] width) */}
+      {/* MAIN UNIFIED ROW: Left Filter Box + Campaign Cards (All identically sized at w-[195px] and aligned) */}
+      <div className="flex flex-wrap items-stretch gap-4 pt-1.5">
+        {/* 1. LEFT FILTERS BOX (Matching w-[195px] width) */}
         <div
-          className={`w-full sm:w-[240px] shrink-0 rounded-[24px] p-5 border shadow-sm flex flex-col justify-between select-none ${
+          className={`w-full sm:w-[195px] shrink-0 rounded-[18px] p-4 border shadow-sm flex flex-col justify-between select-none ${
             isDark
               ? "bg-[#151E30] border-slate-800 text-white"
               : "bg-white border-slate-200 text-slate-900"
           }`}
         >
-          <div className="space-y-5">
+          <div className="space-y-4">
             {/* Header */}
-            <div className="flex items-center gap-2 text-sm font-black tracking-tight border-b border-card-border pb-3">
-              <Filter className="w-4 h-4 text-brand-textMuted" />
+            <div className="flex items-center gap-1.5 text-xs font-black tracking-tight border-b border-card-border pb-2.5">
+              <Filter className="w-3.5 h-3.5 text-brand-textMuted" />
               <span>Filters</span>
             </div>
 
             {/* STATUS FILTER SECTION */}
-            <div className="space-y-2.5">
-              <span className="text-[10px] font-black uppercase tracking-wider block text-slate-400 dark:text-slate-500">
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-wider block text-slate-400 dark:text-slate-500">
                 {t("campaigns.filterStatus", "STATUS")}
               </span>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {[
                   { id: "active", label: t("campaigns.active", "Active") },
                   { id: "paused", label: t("campaigns.paused", "Paused") },
@@ -177,13 +177,13 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   return (
                     <label
                       key={item.id}
-                      className="flex items-center gap-2.5 text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-2 text-[11px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleStatus(item.id)}
-                        className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-blue-600"
+                        className="w-3 h-3 rounded text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-blue-600"
                       />
                       <span
                         className={
@@ -206,11 +206,11 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             <div className="border-t border-card-border"></div>
 
             {/* CAMPAIGN TYPE SECTION */}
-            <div className="space-y-2.5">
-              <span className="text-[10px] font-black uppercase tracking-wider block text-slate-400 dark:text-slate-500">
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-wider block text-slate-400 dark:text-slate-500">
                 {t("campaigns.filterType", "CAMPAIGN TYPE")}
               </span>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {[
                   {
                     id: "lucky_wheel",
@@ -229,13 +229,13 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   return (
                     <label
                       key={item.id}
-                      className="flex items-center gap-2.5 text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-2 text-[11px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleType(item.id)}
-                        className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-blue-600"
+                        className="w-3 h-3 rounded text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-blue-600"
                       />
                       <span
                         className={
@@ -256,7 +256,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
           </div>
         </div>
 
-        {/* 2. CAMPAIGN CARDS (Each matching w-[240px] width) */}
+        {/* 2. CAMPAIGN CARDS (Each matching w-[195px] width) */}
         {filteredCampaigns.map((camp) => {
           const isActive = camp.status === "active";
           const isArchived = camp.status === "archived";
@@ -284,15 +284,15 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => onSelectCampaign(camp.id)}
-              className={`w-full sm:w-[240px] shrink-0 rounded-[24px] p-5 flex flex-col justify-between transition-all duration-200 relative group cursor-pointer ${
+              className={`w-full sm:w-[195px] shrink-0 rounded-[18px] p-4 flex flex-col justify-between transition-all duration-200 relative group cursor-pointer ${
                 isArchived
                   ? isDark
                     ? "bg-[#0e1422] border border-slate-800 text-slate-300 opacity-80"
                     : "bg-[#EDEDED] border border-slate-300 text-slate-800 opacity-90"
                   : isActive
                     ? isDark
-                      ? "bg-[#151E30] border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.25)] text-white hover:shadow-[0_0_30px_rgba(52,211,153,0.35)]"
-                      : "bg-white border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.2)] text-slate-900 hover:shadow-[0_0_30px_rgba(52,211,153,0.3)]"
+                      ? "bg-[#151E30] border-2 border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.25)] text-white hover:shadow-[0_0_24px_rgba(52,211,153,0.35)]"
+                      : "bg-white border-2 border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.2)] text-slate-900 hover:shadow-[0_0_24px_rgba(52,211,153,0.3)]"
                     : isDark
                       ? "bg-[#151E30] border border-slate-800 text-white shadow-sm hover:shadow-md"
                       : "bg-white border border-slate-200 text-slate-900 shadow-sm hover:shadow-md"
@@ -301,10 +301,10 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
               {/* Lightning Corner Accents on Active Cards */}
               {isActive && (
                 <>
-                  <span className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-emerald-400 rounded-tl-lg shadow-[0_0_8px_#34d399] pointer-events-none"></span>
-                  <span className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-emerald-400 rounded-tr-lg shadow-[0_0_8px_#34d399] pointer-events-none"></span>
-                  <span className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-emerald-400 rounded-bl-lg shadow-[0_0_8px_#34d399] pointer-events-none"></span>
-                  <span className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-emerald-400 rounded-br-lg shadow-[0_0_8px_#34d399] pointer-events-none"></span>
+                  <span className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-emerald-400 rounded-tl shadow-[0_0_6px_#34d399] pointer-events-none"></span>
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-emerald-400 rounded-tr shadow-[0_0_6px_#34d399] pointer-events-none"></span>
+                  <span className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-emerald-400 rounded-bl shadow-[0_0_6px_#34d399] pointer-events-none"></span>
+                  <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-emerald-400 rounded-br shadow-[0_0_6px_#34d399] pointer-events-none"></span>
                 </>
               )}
 
@@ -313,40 +313,40 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 <div>
                   {isActive && (
                     <div
-                      className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase ${
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
                         isDark
                           ? "bg-emerald-950/60 border border-emerald-500/40 text-emerald-400"
                           : "bg-emerald-100 border border-emerald-300 text-emerald-800"
                       }`}
                     >
-                      <span className="relative flex h-2 w-2">
+                      <span className="relative flex h-1.5 w-1.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_6px_#10b981]"></span>
                       </span>
                       <span>ACTIVE</span>
                     </div>
                   )}
 
                   {isPaused && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
+                    <div className="flex items-center gap-1">
+                      <span className="relative flex h-1.5 w-1.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_8px_#f59e0b]"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500 shadow-[0_0_6px_#f59e0b]"></span>
                       </span>
-                      <span className="font-black text-[11px] text-amber-500 tracking-wider uppercase">
+                      <span className="font-black text-[10px] text-amber-500 tracking-wider uppercase">
                         PAUSED
                       </span>
                     </div>
                   )}
 
                   {isArchived && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="relative flex h-2.5 w-2.5">
+                    <div className="flex items-center gap-1">
+                      <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 shadow-[0_0_8px_#dc2626]"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600 shadow-[0_0_6px_#dc2626]"></span>
                       </span>
                       <span
-                        className={`font-black text-sm tracking-tight ${
+                        className={`font-black text-xs tracking-tight ${
                           isDark ? "text-red-400" : "text-red-700"
                         }`}
                       >
@@ -356,12 +356,12 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   )}
 
                   {isDraft && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
+                    <div className="flex items-center gap-1">
+                      <span className="relative flex h-1.5 w-1.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500 shadow-[0_0_8px_#3b82f6]"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500 shadow-[0_0_6px_#3b82f6]"></span>
                       </span>
-                      <span className="font-black text-[11px] text-blue-500 tracking-wider uppercase">
+                      <span className="font-black text-[10px] text-blue-500 tracking-wider uppercase">
                         DRAFT
                       </span>
                     </div>
@@ -370,9 +370,9 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
               </div>
 
               {/* MAIN CONTENT: Campaign Name & Subtitle */}
-              <div className="my-4 space-y-0.5">
+              <div className="my-3 space-y-0.5">
                 <h3
-                  className={`text-xl font-black tracking-tight leading-snug truncate ${
+                  className={`text-base font-black tracking-tight leading-snug truncate ${
                     isArchived
                       ? isDark
                         ? "text-slate-300"
@@ -385,7 +385,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   {camp.name}
                 </h3>
                 <p
-                  className={`text-xs font-medium truncate ${
+                  className={`text-[10px] font-medium truncate ${
                     isDark ? "text-slate-400" : "text-slate-500"
                   }`}
                 >
@@ -394,11 +394,11 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
               </div>
 
               {/* METRICS ROW: Total Entries + Conv. Rate */}
-              <div className="grid grid-cols-2 gap-2 my-3">
+              <div className="grid grid-cols-2 gap-1.5 my-2.5">
                 {/* Total Entries */}
                 <div>
                   <h4
-                    className={`text-2xl font-black leading-none ${
+                    className={`text-lg font-black leading-none ${
                       isArchived
                         ? isDark
                           ? "text-slate-300"
@@ -411,7 +411,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     {formatEntriesCount(camp.participantsCount)}
                   </h4>
                   <span
-                    className={`text-[10px] font-bold uppercase tracking-wider block mt-1 ${
+                    className={`text-[9px] font-bold uppercase tracking-wider block mt-0.5 ${
                       isDark ? "text-slate-400" : "text-slate-500"
                     }`}
                   >
@@ -421,12 +421,12 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
 
                 {/* Conv. Rate / Win Rate */}
                 <div>
-                  <div className="flex items-center gap-1 text-emerald-500 font-black text-base leading-none">
-                    <TrendingUp className="w-3 h-3 stroke-[2.5]" />
+                  <div className="flex items-center gap-0.5 text-emerald-500 font-black text-xs leading-none">
+                    <TrendingUp className="w-2.5 h-2.5 stroke-[2.5]" />
                     <span>{camp.winProbability}%</span>
                   </div>
                   <span
-                    className={`text-[10px] font-bold uppercase tracking-wider block mt-1 ${
+                    className={`text-[9px] font-bold uppercase tracking-wider block mt-0.5 ${
                       isDark ? "text-slate-400" : "text-slate-500"
                     }`}
                   >
@@ -437,7 +437,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
 
               {/* DAILY GOAL PROGRESS INSET */}
               <div
-                className={`mt-2 p-3 rounded-2xl border space-y-2 ${
+                className={`mt-1.5 p-2.5 rounded-xl border space-y-1.5 ${
                   isArchived
                     ? isDark
                       ? "bg-[#0b101c] border-slate-800"
@@ -447,7 +447,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                       : "bg-[#F8FAFC] border-slate-200"
                 }`}
               >
-                <div className="flex items-center justify-between text-[11px] font-bold">
+                <div className="flex items-center justify-between text-[9.5px] font-bold">
                   <span
                     className={isDark ? "text-slate-400" : "text-slate-500"}
                   >
@@ -464,7 +464,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
 
                 {/* Progress Bar */}
                 <div
-                  className={`w-full h-1.5 rounded-full overflow-hidden ${
+                  className={`w-full h-1 rounded-full overflow-hidden ${
                     isDark ? "bg-slate-800" : "bg-slate-200"
                   }`}
                 >
@@ -481,7 +481,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
 
               {/* DIRECT ACTION BUTTONS TOOLBAR ROW */}
               <div
-                className="flex items-center justify-between pt-3 mt-3 border-t border-card-border"
+                className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-card-border"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* 1. View Workspace */}
@@ -490,14 +490,14 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     e.stopPropagation();
                     onSelectCampaign(camp.id);
                   }}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                     isDark
                       ? "text-slate-400 hover:text-blue-400 hover:bg-slate-800"
                       : "text-slate-500 hover:text-blue-600 hover:bg-slate-100"
                   }`}
                   title="View campaign workspace"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3 h-3" />
                 </button>
 
                 {/* 2. Edit / Update Draft */}
@@ -510,14 +510,14 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                       onCreateUpdateDraft?.(camp);
                     }
                   }}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                     isDark
                       ? "text-slate-400 hover:text-blue-400 hover:bg-slate-800"
                       : "text-slate-500 hover:text-blue-600 hover:bg-slate-100"
                   }`}
                   title="Edit campaign"
                 >
-                  <Pencil className="w-3.5 h-3.5" />
+                  <Pencil className="w-3 h-3" />
                 </button>
 
                 {/* 3. Analytics */}
@@ -527,14 +527,14 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                       e.stopPropagation();
                       onOpenAnalytics(camp.id);
                     }}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                    className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                       isDark
                         ? "text-slate-400 hover:text-emerald-400 hover:bg-slate-800"
                         : "text-slate-500 hover:text-emerald-600 hover:bg-slate-100"
                     }`}
                     title="Open analytics desk"
                   >
-                    <BarChart3 className="w-3.5 h-3.5" />
+                    <BarChart3 className="w-3 h-3" />
                   </button>
                 )}
 
@@ -545,82 +545,78 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                       e.stopPropagation();
                       onToggleStatus(camp.id);
                     }}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                    className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                       camp.status === "active"
                         ? isDark
-                          ? "text-slate-400 hover:text-amber-400 hover:bg-slate-800"
-                          : "text-slate-500 hover:text-amber-600 hover:bg-slate-100"
+                          ? "text-amber-400 hover:bg-amber-400/10"
+                          : "text-amber-600 hover:bg-amber-50"
                         : isDark
-                          ? "text-slate-400 hover:text-emerald-400 hover:bg-slate-800"
-                          : "text-slate-500 hover:text-emerald-600 hover:bg-slate-100"
+                          ? "text-emerald-400 hover:bg-emerald-400/10"
+                          : "text-emerald-600 hover:bg-emerald-50"
                     }`}
                     title={
                       camp.status === "active"
                         ? "Pause campaign"
-                        : "Resume campaign"
+                        : "Activate campaign"
                     }
                   >
                     {camp.status === "active" ? (
-                      <Pause className="w-3.5 h-3.5" />
+                      <Pause className="w-3 h-3" />
                     ) : (
-                      <Play className="w-3.5 h-3.5" />
+                      <Play className="w-3 h-3" />
                     )}
                   </button>
                 )}
 
-                {/* 5. Relaunch Duplicate */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRelaunch(camp);
-                  }}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                    isDark
-                      ? "text-slate-400 hover:text-purple-400 hover:bg-slate-800"
-                      : "text-slate-500 hover:text-purple-600 hover:bg-slate-100"
-                  }`}
-                  title="Relaunch duplicate campaign"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-
-                {/* 6. Archive */}
+                {/* 5. Archive Campaign */}
                 {camp.status !== "archived" && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(camp.id);
                     }}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                    className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                       isDark
-                        ? "text-slate-400 hover:text-red-400 hover:bg-slate-800"
-                        : "text-slate-500 hover:text-red-600 hover:bg-slate-100"
+                        ? "text-slate-400 hover:text-amber-400 hover:bg-slate-800"
+                        : "text-slate-500 hover:text-amber-600 hover:bg-slate-100"
                     }`}
                     title="Archive campaign"
                   >
-                    <Archive className="w-3.5 h-3.5" />
+                    <Archive className="w-3 h-3" />
                   </button>
                 )}
 
-                {/* 7. Delete (for draft or archived) */}
-                {(camp.status === "draft" || camp.status === "archived") && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Delete this campaign permanently?")) {
-                        onDelete(camp.id);
-                      }
-                    }}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                      isDark
-                        ? "text-slate-400 hover:text-red-400 hover:bg-slate-800"
-                        : "text-slate-500 hover:text-red-600 hover:bg-slate-100"
-                    }`}
-                    title="Delete permanently"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                {/* 6. Relaunch / Clone */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRelaunch(camp);
+                  }}
+                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                    isDark
+                      ? "text-slate-400 hover:text-purple-400 hover:bg-slate-800"
+                      : "text-slate-500 hover:text-purple-600 hover:bg-slate-100"
+                  }`}
+                  title="Relaunch campaign with new parameters"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+
+                {/* 7. Permanent Delete */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(camp.id);
+                  }}
+                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                    isDark
+                      ? "text-slate-400 hover:text-red-400 hover:bg-slate-800"
+                      : "text-slate-500 hover:text-red-600 hover:bg-slate-100"
+                  }`}
+                  title="Delete campaign permanently"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </div>
             </motion.div>
           );

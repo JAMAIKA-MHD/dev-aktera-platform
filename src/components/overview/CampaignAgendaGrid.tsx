@@ -78,36 +78,36 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
   return (
     <div
       ref={containerRef}
-      className={`rounded-[24px] p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
+      className={`rounded-[18px] p-4 sm:p-5 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/30 flex flex-col justify-between h-full relative overflow-visible border ${
         isDark
           ? "bg-[#151E30] border-slate-800 text-white"
           : "bg-white border-slate-200 text-slate-900 shadow-sm"
       }`}
     >
       {/* Header with Title, Subtitle, and Legend */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5">
         <div>
-          <h3 className="font-bold text-[19px] sm:text-[22.8px] text-brand-text">
+          <h3 className="font-bold text-[15.2px] sm:text-[18.2px] text-brand-text">
             Campaign Agenda
           </h3>
-          <p className="text-[11.4px] sm:text-[13.3px] text-brand-textMuted mt-0.5">
+          <p className="text-[9.1px] sm:text-[10.6px] text-brand-textMuted mt-0.5">
             number of campaigns that has been lunched
           </p>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-3.5 text-[11.4px] sm:text-[13.3px] font-bold text-brand-text">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-600 shrink-0"></span>
+        <div className="flex items-center gap-3 text-[9.1px] sm:text-[10.6px] font-bold text-brand-text">
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
             <span>5+</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-300 shrink-0"></span>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 shrink-0"></span>
             <span>3-</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <span
-              className={`w-3 h-3 rounded-full shrink-0 ${
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                 isDark ? "bg-slate-700" : "bg-slate-200"
               }`}
             ></span>
@@ -132,19 +132,19 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
           </div>
 
           {/* Grid rows by day */}
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {CAMPAIGN_AGENDA_GRID.map((daySchedule) => (
               <div
                 key={daySchedule.day}
                 className="flex items-center gap-1.5 group/row"
               >
                 {/* Day label */}
-                <span className="w-9 sm:w-10 text-[11.4px] sm:text-[13.3px] font-bold text-brand-text select-none text-left">
+                <span className="w-7 sm:w-8 text-[9.1px] sm:text-[10.6px] font-bold text-brand-text select-none text-left">
                   {daySchedule.day}
                 </span>
 
-                {/* 12-Slot grid cells (25% smaller height) */}
-                <div className="grid grid-cols-12 gap-1 flex-1">
+                {/* 12-Slot grid cells */}
+                <div className="grid grid-cols-12 gap-0.5 flex-1">
                   {daySchedule.slots.map((slot, sIdx) => {
                     const cellClass = getCellClass(slot.intensity);
                     return (
@@ -157,7 +157,7 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
                           handleMouseMove(e, daySchedule.day, slot)
                         }
                         onMouseLeave={handleMouseLeave}
-                        className={`h-5 sm:h-6 rounded-md cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
+                        className={`h-4 sm:h-5 rounded-[4px] cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
                       />
                     );
                   })}

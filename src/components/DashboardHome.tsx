@@ -17,50 +17,42 @@ interface DashboardHomeProps {
 
 export const DashboardHome: React.FC<DashboardHomeProps> = ({
   campaigns = [],
-  leads = [],
   onNavigate,
 }) => {
-  const activeCampaigns = (campaigns ?? []).filter(
-    (c) => c.status === "active",
-  );
-
   return (
     <div
-      id="b2b-dashboard-home"
-      className="space-y-6 text-brand-text max-w-[1440px] mx-auto pb-8"
+      id="dashboard-home-root"
+      className="space-y-5 text-brand-text max-w-[1300px] mx-auto pb-12 transition-colors duration-300"
     >
-      {/* 1. TOP 4 KPI CARDS */}
-      <OverviewKpiCards
-        activeCampaignsCount={activeCampaigns.length}
-        leadsCount={(leads ?? []).length}
-      />
+      {/* 1. TOP ROW: KPI Metrics Cards */}
+      <OverviewKpiCards />
 
-      {/* 2. MAIN 2-COLUMN SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* LEFT COLUMN (Visitor Stats & Campaign Agenda) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="flex-1 min-h-[265px]">
-            <VisitorStatsChart
-              campaigns={campaigns}
-              onMoreDetails={() => onNavigate("analytics")}
-            />
-          </div>
-          <div className="flex-1 min-h-[265px]">
-            <CampaignAgendaGrid campaigns={campaigns} />
-          </div>
+      {/* 2. MIDDLE ROW: Main Visitor Traffic Chart + Side Agenda Calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left: Visitor Traffic Area Chart (8 Cols) */}
+        <div className="lg:col-span-8 flex flex-col min-h-[212px]">
+          <VisitorStatsChart />
         </div>
 
-        {/* RIGHT COLUMN (Campaign Audience & Campaign Insights) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="flex-1 min-h-[265px]">
-            <CampaignAudienceCard />
-          </div>
-          <div className="flex-1 min-h-[265px]">
-            <CampaignInsightsCard
-              campaigns={campaigns}
-              onSeeDetails={() => onNavigate("analytics")}
-            />
-          </div>
+        {/* Right: Campaign Agenda Heatmap (4 Cols) */}
+        <div className="lg:col-span-4 flex flex-col min-h-[212px]">
+          <CampaignAgendaGrid campaigns={campaigns} />
+        </div>
+      </div>
+
+      {/* 3. BOTTOM ROW: Campaign Audience Breakdown + Campaign Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left: Audience Channels & Demographics (5 Cols) */}
+        <div className="lg:col-span-5 flex flex-col min-h-[212px]">
+          <CampaignAudienceCard />
+        </div>
+
+        {/* Right: Campaign Insights & Conversion Stats (7 Cols) */}
+        <div className="lg:col-span-7 flex flex-col min-h-[212px]">
+          <CampaignInsightsCard
+            campaigns={campaigns}
+            onSeeDetails={() => onNavigate?.("analytics")}
+          />
         </div>
       </div>
     </div>

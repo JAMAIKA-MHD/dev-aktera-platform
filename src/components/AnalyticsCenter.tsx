@@ -141,23 +141,23 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   }
 
   return (
-    <div id="analytics-center-root" className="space-y-6 text-brand-text">
+    <div id="analytics-center-root" className="space-y-5 text-brand-text">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-brand-text tracking-tight">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-5">
+        <h1 className="text-xl font-bold text-brand-text tracking-tight">
           Advanced Statistics
         </h1>
-        <button className="glass-panel px-3 py-1.5 rounded-2xl text-xs flex items-center gap-2 text-brand-textMuted hover:text-brand-text transition-colors shadow-sm cursor-pointer border-transparent">
-          All Time <i className="fa-solid fa-chevron-down text-[10px]"></i>
+        <button className="glass-panel px-2.5 py-1 rounded-xl text-[11px] flex items-center gap-1.5 text-brand-textMuted hover:text-brand-text transition-colors shadow-sm cursor-pointer border-transparent">
+          All Time <i className="fa-solid fa-chevron-down text-[9px]"></i>
         </button>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-5">
         <div className="relative">
           <select
             value={selectedCampId}
             onChange={(e) => setSelectedCampId(e.target.value)}
-            className="glass-panel px-4 py-2 rounded-2xl text-sm flex items-center gap-2 text-brand-text hover:bg-card-bg-subtle outline-none appearance-none cursor-pointer pr-10"
+            className="glass-panel px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-text hover:bg-card-bg-subtle outline-none appearance-none cursor-pointer pr-8"
           >
             <option value="all">All Campaigns Combined</option>
             {analytics?.by_campaign.map((c) => (
@@ -166,50 +166,50 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-brand-textMuted">
-            <span className="material-symbols-outlined text-[16px]">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-brand-textMuted">
+            <span className="material-symbols-outlined text-[14px]">
               expand_more
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
-            className="glass-panel px-4 py-2 rounded-2xl text-sm flex items-center gap-2 text-brand-text hover:bg-card-bg-subtle cursor-pointer transition-colors"
+            className="glass-panel px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-text hover:bg-card-bg-subtle cursor-pointer transition-colors"
             onClick={handleExportData}
           >
             <i className="fa-solid fa-download text-brand-textMuted"></i> Export
             Data
           </button>
-          <button className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 hover:bg-blue-600/30 transition-colors cursor-pointer">
+          <button className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:bg-blue-600/30 transition-colors cursor-pointer">
             <i className="fa-regular fa-file-lines"></i> Report
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-5 mb-5 relative">
+      <div className="grid grid-cols-12 gap-4 mb-4 relative">
         {/* Left Column: KPIs & Win Rate */}
-        <div className="col-span-12 xl:col-span-8 flex flex-col gap-5">
+        <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
           {/* KPI Cards */}
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-3 gap-4">
             {/* Impressions */}
-            <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-36 group hover:bg-white/5 transition-all cursor-default">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+            <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
+              <div className="absolute -right-5 -top-5 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
               <div className="relative z-10">
-                <h3 className="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider">
-                  <span className="material-symbols-outlined text-sm mr-1.5 align-middle text-brand-text/50">
+                <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                  <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
                     visibility
                   </span>
                   TOTAL IMPRESSIONS
                 </h3>
-                <div className="text-3xl font-bold text-brand-text mt-1">
+                <div className="text-2xl font-bold text-brand-text mt-0.5">
                   {analytics?.total_impressions.toLocaleString()}
                 </div>
-                <div className="text-xs text-brand-textMuted mt-1">
+                <div className="text-[10px] text-brand-textMuted mt-0.5">
                   Unique views
                 </div>
               </div>
-              <div className="absolute bottom-0 left-0 w-full h-16 z-0">
+              <div className="absolute bottom-0 left-0 w-full h-12 z-0">
                 <svg
                   className="w-full h-full preserve-3d"
                   preserveAspectRatio="none"
@@ -246,23 +246,23 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
               </div>
             </div>
             {/* Entries */}
-            <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-36 group hover:bg-white/5 transition-all cursor-default">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+            <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
+              <div className="absolute -right-5 -top-5 w-20 h-20 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
               <div className="relative z-10">
-                <h3 className="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider">
-                  <span className="material-symbols-outlined text-sm mr-1.5 align-middle text-brand-text/50">
+                <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                  <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
                     receipt_long
                   </span>
                   TOTAL ENTRIES
                 </h3>
-                <div className="text-3xl font-bold text-brand-text mt-1">
+                <div className="text-2xl font-bold text-brand-text mt-0.5">
                   {analytics?.total_entries.toLocaleString()}
                 </div>
-                <div className="text-xs text-brand-textMuted mt-1">
+                <div className="text-[10px] text-brand-textMuted mt-0.5">
                   Captured form
                 </div>
               </div>
-              <div className="absolute bottom-0 left-0 w-full h-16 z-0">
+              <div className="absolute bottom-0 left-0 w-full h-12 z-0">
                 <svg
                   className="w-full h-full preserve-3d"
                   preserveAspectRatio="none"
@@ -299,23 +299,23 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
               </div>
             </div>
             {/* Conversion */}
-            <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-36 group hover:bg-white/5 transition-all cursor-default">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all"></div>
+            <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
+              <div className="absolute -right-5 -top-5 w-20 h-20 bg-white/5 rounded-full blur-xl group-hover:bg-white/10 transition-all"></div>
               <div className="relative z-10">
-                <h3 className="text-[10px] uppercase font-semibold text-brand-textMuted tracking-wider">
-                  <span className="material-symbols-outlined text-sm mr-1.5 align-middle text-brand-text/50">
+                <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                  <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
                     trending_up
                   </span>
                   Conversion Rate
                 </h3>
-                <div className="text-3xl font-bold text-brand-text mt-1">
+                <div className="text-2xl font-bold text-brand-text mt-0.5">
                   {(analytics?.form_completion_rate || 0).toFixed(1)}%
                 </div>
-                <div className="text-xs text-brand-textMuted mt-1">
+                <div className="text-[10px] text-brand-textMuted mt-0.5">
                   Plays / Impa
                 </div>
               </div>
-              <div className="absolute bottom-0 left-0 w-full h-16 z-0">
+              <div className="absolute bottom-0 left-0 w-full h-12 z-0">
                 <svg
                   className="w-full h-full preserve-3d"
                   preserveAspectRatio="none"
@@ -335,9 +335,9 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
             </div>
           </div>
           {/* Win Rate Chart */}
-          <div className="glass-panel rounded-2xl p-5 flex-1 relative min-h-[220px]">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-lg font-semibold text-brand-text">
+          <div className="glass-panel rounded-xl p-4 flex-1 relative min-h-[180px]">
+            <div className="flex justify-between items-start mb-3">
+              <h2 className="text-base font-semibold text-brand-text">
                 Win Rate %
               </h2>
             </div>
@@ -529,24 +529,24 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
               <span>Sun</span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-brand-border/30">
+          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-brand-border/30">
             <div>
-              <div className="text-2xl font-bold text-brand-text">
+              <div className="text-xl font-bold text-brand-text">
                 {Math.round(analytics?.form_completion_rate || 78)}%
               </div>
-              <div className="text-[10px] font-semibold text-brand-textMuted uppercase tracking-wider mt-1">
+              <div className="text-[8px] font-semibold text-brand-textMuted uppercase tracking-wider mt-0.5">
                 CURRENT
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-brand-text">65%</div>
-              <div className="text-[10px] text-brand-textMuted uppercase">
+              <div className="text-xl font-bold text-brand-text">65%</div>
+              <div className="text-[8px] text-brand-textMuted uppercase">
                 Previous
               </div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-emerald-400">+13%</div>
-              <div className="text-[10px] text-brand-textMuted uppercase">
+              <div className="text-xl font-bold text-emerald-400">+13%</div>
+              <div className="text-[8px] text-brand-textMuted uppercase">
                 Growth
               </div>
             </div>
@@ -555,10 +555,10 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
       </div>
 
       {/* DYNAMIC PERFORMANCE TABLE: Switches based on Toggle Mode or Dropdown Selection */}
-      <div className="glass-panel rounded-2xl p-5 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="glass-panel rounded-xl p-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-5">
           <div>
-            <h2 className="text-lg font-semibold text-brand-text">
+            <h2 className="text-base font-semibold text-brand-text">
               {tableViewMode === "participants" ? (
                 <span>
                   Player Participants & Gameplay Times{" "}
@@ -572,17 +572,17 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                 <span>Campaign Performance Breakdown</span>
               )}
             </h2>
-            <p className="text-xs text-brand-textMuted">
+            <p className="text-[11px] text-brand-textMuted">
               {tableViewMode === "participants"
                 ? "Real-time client player entries, game dwell times, and prize outcomes."
                 : "Aggregated campaign metrics across all active campaigns."}
             </p>
           </div>
 
-          <div className="flex items-center glass-panel p-1 rounded-2xl text-xs flex-shrink-0">
+          <div className="flex items-center glass-panel p-0.5 rounded-xl text-[11px] flex-shrink-0">
             <button
               onClick={() => setTableViewMode("participants")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
+              className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full cursor-pointer transition-colors ${
                 tableViewMode === "participants"
                   ? "bg-brand-accent/20 text-brand-accent shadow-sm"
                   : "text-brand-textMuted hover:text-brand-text"
@@ -592,7 +592,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
             </button>
             <button
               onClick={() => setTableViewMode("summary")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
+              className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full cursor-pointer transition-colors ${
                 tableViewMode === "summary"
                   ? "bg-brand-accent/20 text-brand-accent shadow-sm"
                   : "text-brand-textMuted hover:text-brand-text"
