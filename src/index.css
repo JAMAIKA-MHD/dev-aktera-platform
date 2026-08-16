@@ -148,35 +148,35 @@
 
 /* Neon Glow Upgrade Button */
 .shadow__btn {
-  padding: 14px 28px;
+  padding: 11px 22px;
   border: none;
-  font-size: 16px;
+  font-size: 13.5px;
   color: #fff;
-  border-radius: 14px;
-  letter-spacing: 3px;
+  border-radius: 12px;
+  letter-spacing: 2.2px;
   font-weight: 800;
   text-transform: uppercase;
   transition: all 0.4s ease;
   background: rgb(0, 140, 255);
   box-shadow:
-    0 0 10px rgb(0, 140, 255),
-    0 0 30px rgba(0, 140, 255, 0.85),
-    0 0 45px rgba(0, 140, 255, 0.45);
+    0 0 8px rgb(0, 140, 255),
+    0 0 24px rgba(0, 140, 255, 0.85),
+    0 0 36px rgba(0, 140, 255, 0.45);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
 }
 
 .shadow__btn:hover {
   background: rgb(15, 150, 255);
   box-shadow:
-    0 0 8px rgb(0, 140, 255),
-    0 0 25px rgb(0, 140, 255),
-    0 0 55px rgb(0, 140, 255),
-    0 0 95px rgb(0, 140, 255);
+    0 0 7px rgb(0, 140, 255),
+    0 0 20px rgb(0, 140, 255),
+    0 0 45px rgb(0, 140, 255),
+    0 0 75px rgb(0, 140, 255);
   transform: translateY(-1px);
 }
 
