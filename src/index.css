@@ -1,21 +1,194 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: 'Poppins', 'Noto Sans Arabic', sans-serif;
+  --font-sans: "Hanken Grotesk", "Poppins", "Noto Sans Arabic", sans-serif;
+  --color-brand-dark: var(--theme-bg);
+  --color-brand-surface: var(--theme-surface);
+  --color-brand-border: var(--theme-border);
+  --color-brand-primary: #4ade80;
+  --color-brand-accent: #3b82f6;
+  --color-brand-text: var(--theme-text);
+  --color-brand-text-muted: var(--theme-text-muted);
+  --color-card-bg: var(--theme-card);
+  --color-card-bg-subtle: var(--theme-card-subtle);
+  --color-card-border: var(--theme-card-border);
+  --color-card-hover: var(--theme-card-hover);
+  --color-kpi-card: var(--theme-kpi-card);
+  --color-kpi-border: var(--theme-kpi-border);
 }
 
-/* Customized scrollbar design for the phone viewport */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 5px;
+:root {
+  --theme-bg: #f4f7fb;
+  --theme-surface: rgba(255, 255, 255, 0.85);
+  --theme-border: rgba(0, 0, 0, 0.08);
+  --theme-text: #0f172a;
+  --theme-text-muted: #64748b;
+  --theme-card: #ffffff;
+  --theme-card-subtle: #f8fafc;
+  --theme-card-border: #e2e8f0;
+  --theme-card-hover: #f1f5f9;
+  --theme-kpi-card: #ffffff;
+  --theme-kpi-border: #e2e8f0;
 }
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.15);
+
+[data-theme="dark"] {
+  --theme-bg: #0b0e14;
+  --theme-surface: rgba(23, 28, 40, 0.75);
+  --theme-border: rgba(255, 255, 255, 0.08);
+  --theme-text: #e2e8f0;
+  --theme-text-muted: #94a3b8;
+  --theme-card: #111726;
+  --theme-card-subtle: #162035;
+  --theme-card-border: rgba(255, 255, 255, 0.08);
+  --theme-card-hover: #1a233a;
+  --theme-kpi-card: #151e30;
+  --theme-kpi-border: rgba(59, 130, 246, 0.25);
 }
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
+
+@layer base {
+  body {
+    background-color: var(--color-brand-dark);
+    color: var(--color-brand-text);
+    background-image:
+      radial-gradient(
+        circle at 15% 50%,
+        rgba(59, 130, 246, 0.05),
+        transparent 25%
+      ),
+      radial-gradient(
+        circle at 85% 30%,
+        rgba(74, 222, 128, 0.05),
+        transparent 25%
+      );
+  }
 }
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+
+@layer components {
+  .glass-panel {
+    background: var(--theme-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .glass-panel-highlight {
+    background: var(--theme-surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow:
+      0 0 40px rgba(56, 189, 248, 0.15),
+      inset 0 0 20px rgba(255, 255, 255, 0.02);
+  }
+}
+
+/* Customized scrollbar design for the phone viewport & global */
+.scrollbar-thin::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: var(--theme-border);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-muted);
+}
+
+/* Sparkline SVG Styles */
+.sparkline {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sparkline-glow {
+  filter: drop-shadow(0 4px 6px rgba(74, 222, 128, 0.4));
+}
+.sparkline-blue-glow {
+  filter: drop-shadow(0 4px 6px rgba(56, 189, 248, 0.4));
+}
+
+/* Circular Progress */
+.circular-progress {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+.circular-progress svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+.circular-progress circle {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+.circular-progress .track {
+  stroke: var(--theme-border);
+}
+.circular-progress .progress {
+  stroke: url(#gradient);
+  stroke-dasharray: 600;
+  stroke-dashoffset: 132;
+  transition: stroke-dashoffset 1s ease;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
+}
+
+/* Neon Glow Upgrade Button */
+.shadow__btn {
+  padding: 11px 22px;
+  border: none;
+  font-size: 13.5px;
+  color: #fff;
+  border-radius: 12px;
+  letter-spacing: 2.2px;
+  font-weight: 800;
+  text-transform: uppercase;
+  transition: all 0.4s ease;
+  background: rgb(0, 140, 255);
+  box-shadow:
+    0 0 8px rgb(0, 140, 255),
+    0 0 24px rgba(0, 140, 255, 0.85),
+    0 0 36px rgba(0, 140, 255, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+}
+
+.shadow__btn:hover {
+  background: rgb(15, 150, 255);
+  box-shadow:
+    0 0 7px rgb(0, 140, 255),
+    0 0 20px rgb(0, 140, 255),
+    0 0 45px rgb(0, 140, 255),
+    0 0 75px rgb(0, 140, 255);
+  transform: translateY(-1px);
+}
+
+.grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  z-index: 2;
+  pointer-events: none;
 }

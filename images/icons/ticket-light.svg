@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" fill="none">
+  <g transform="rotate(-15 70 60)">
+    <!-- Back ticket layer -->
+    <path d="M 22 28 L 118 28 L 118 42 C 112 42 108 46 108 52 C 108 58 112 62 118 62 L 118 76 L 22 76 L 22 62 C 28 62 32 58 32 52 C 32 46 28 42 22 42 Z" stroke="#000000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Front ticket main body with notched sides -->
+    <path d="M 12 42 L 108 42 L 108 56 C 102 56 98 60 98 66 C 98 72 102 76 108 76 L 108 90 L 12 90 L 12 76 C 18 76 22 72 22 66 C 22 60 18 56 12 56 Z" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Inner rectangular frame -->
+    <rect x="24" y="50" width="72" height="32" rx="2" stroke="#000000" stroke-width="2.5" fill="none"/>
+    
+    <!-- Ticket text -->
+    <text x="60" y="72" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="14" fill="#000000" text-anchor="middle" letter-spacing="1">TICKET</text>
+  </g>
+</svg>
