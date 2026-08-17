@@ -18,8 +18,9 @@ import { PlayerLanding } from "./components/PlayerLanding";
 import { PlayerGame } from "./components/PlayerGame";
 import { PlayerResult } from "./components/PlayerResult";
 
-// Auth + data hooks
 import { useAuth } from "./contexts/AuthContext";
+import { useTheme } from "./contexts/ThemeContext";
+import { useLanguage } from "./contexts/LanguageContext";
 import { useCampaigns } from "./hooks/useCampaigns";
 import { usePrizeTemplates } from "./hooks/usePrizeTemplates";
 import { useEntries } from "./hooks/useEntries";
@@ -56,9 +57,26 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
+const DEFAULT_AVATAR =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuDRIrzL2B44jQOBHs_8Mr5_T7olxzgM6b1g4gWw22aervyasCXua96W9EMGfBs3Hbv_9zNL7W6q68Dap-kyXlJCTapI9qT3WCgI9tFHlCAB92gCphYgPX17Qnu4U6HxnVUGbl8sbA-ULs79sQ5zlbr2TisGtCtC1Qmq1DEjMvqaAg-AbaNcSw2caRxs0HgZ7kySWhAeALg1mGqNgflVBbIxNxh8gNLhxlFARs8RHBYpYaBpFsMgMw-h";
+
 export default function App() {
-  const { organization, signOut } = useAuth();
+  const { organization, profile, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { t, isRtl } = useLanguage();
   const orgId = organization?.id ?? null;
+
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => {
+    return localStorage.getItem("user-avatar-preview") || DEFAULT_AVATAR;
+  });
+
+  useEffect(() => {
+    if (profile?.avatar_url) {
+      setAvatarUrl(profile.avatar_url);
+    } else if (organization?.logo_url) {
+      setAvatarUrl(organization.logo_url);
+    }
+  }, [profile?.avatar_url, organization?.logo_url]);
 
   // Real Supabase data
   const {
@@ -100,6 +118,7 @@ export default function App() {
     consent: false,
   });
   const [sandboxSelectedPrize, setSandboxSelectedPrize] = useState<any>(null);
+  const [isSidebarHovered, setIsSidebarHovered] = useState<boolean>(false);
 
   // Auto-select first loaded campaign for the sandbox
   useEffect(() => {
@@ -408,152 +427,222 @@ export default function App() {
   return (
     <div
       id="saas-app-root"
-      className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between relative font-sans overflow-x-hidden select-none"
+      className="h-screen flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
     >
-      {/* BACKGROUND EFFECTS */}
-      <div
-        id="bg-spotlight-indigo"
-        className="absolute top-0 left-0 w-[50vw] h-[50vw] rounded-full bg-indigo-500/5 filter blur-[150px] pointer-events-none z-0"
-      />
-      <div
-        id="bg-spotlight-violet"
-        className="absolute bottom-0 right-0 w-[40vw] h-[40vw] rounded-full bg-violet-500/5 filter blur-[180px] pointer-events-none z-0"
-      />
-
-      {/* TOP HEADER STATUS */}
-      <header
-        id="saas-header-nav"
-        className="w-full bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between relative z-20 backdrop-blur-md shadow-sm"
+      {/* SIDEBAR NAVIGATION (Dynamic auto-shrinking & auto-expanding on hover) */}
+      <aside
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        className={`hidden lg:flex flex-col h-full z-20 flex-shrink-0 relative glass-panel border-r border-brand-border transition-all duration-300 ease-in-out ${
+          isSidebarHovered ? "w-64" : "w-20"
+        }`}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-md">
-            <Flame className="w-6 h-6 text-white" />
+        {/* Brand Header */}
+        <div className="p-5 flex items-center gap-3.5 border-b border-brand-border/50 overflow-hidden whitespace-nowrap">
+          <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151E30] p-1.5 flex items-center justify-center shrink-0 shadow-md border border-brand-border/60">
+            <img
+              src="/aktera-logo.png"
+              alt="Aktera"
+              className="w-full h-full object-contain dark:invert"
+            />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-base font-extrabold tracking-tight text-slate-900">
-                DZENGAGE
-              </h1>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-600 font-mono font-bold">
-                B2B SaaS
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-500 font-mono">
-              Algerian Consumer Activation Desk
-            </p>
-          </div>
+          <span
+            className={`font-black text-xl tracking-wider text-brand-text transition-opacity duration-200 ${
+              isSidebarHovered
+                ? "opacity-100"
+                : "opacity-0 w-0 pointer-events-none"
+            }`}
+          >
+            Aktera
+          </span>
         </div>
 
-        {/* Live Preview trigger button + Signout */}
-        <div className="flex items-center gap-2">
-          {organization && (
-            <span className="hidden sm:block text-xs text-slate-500 font-mono truncate max-w-[120px]">
-              {organization.name}
-            </span>
-          )}
-          <button
-            onClick={() => setShowSandbox(!showSandbox)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer min-h-11 shadow-sm hover:shadow"
+        {/* Navigation Items */}
+        <div className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1.5 overflow-x-hidden">
+          {[
+            {
+              id: "home",
+              label: t("nav.overview", "Overview"),
+              icon: "fa-solid fa-border-all",
+            },
+            {
+              id: "campaigns",
+              label: t("nav.campaigns", "Campaign Radios"),
+              icon: "fa-solid fa-list-ul",
+            },
+            {
+              id: "prizes",
+              label: t("nav.rewards", "Reward Library"),
+              icon: "fa-solid fa-gift",
+            },
+            {
+              id: "analytics",
+              label: t("nav.analytics", "Analytics Desk"),
+              icon: "fa-solid fa-chart-line",
+            },
+            {
+              id: "billing",
+              label: t("nav.billing", "Billing & Quota"),
+              icon: "fa-solid fa-file-invoice-dollar",
+            },
+            {
+              id: "account",
+              label: t("nav.organization", "Organization"),
+              icon: "fa-regular fa-user",
+            },
+          ].map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleSidebarNavigate(item.id as TabType)}
+                title={!isSidebarHovered ? item.label : undefined}
+                className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 cursor-pointer overflow-hidden whitespace-nowrap ${
+                  isActive
+                    ? "bg-blue-600/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)] font-bold"
+                    : "text-brand-textMuted hover:text-brand-text hover:bg-black/5 dark:hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <div className="w-6 flex items-center justify-center shrink-0 text-base">
+                  <i className={item.icon}></i>
+                </div>
+                <span
+                  className={`transition-opacity duration-200 text-sm ${
+                    isSidebarHovered
+                      ? "opacity-100"
+                      : "opacity-0 w-0 pointer-events-none"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-3 border-t border-brand-border/50 space-y-1.5 overflow-hidden whitespace-nowrap">
+          <a
+            className="flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
+            href="#"
+            title={
+              !isSidebarHovered
+                ? t("nav.docs", "Full documentation")
+                : undefined
+            }
           >
-            <Smartphone className="w-4 h-4 text-white" />
-            <span className="hidden sm:inline">Interactive Player Sandbox</span>
-          </button>
+            <div className="w-6 flex items-center justify-center shrink-0">
+              <i className="fa-solid fa-book"></i>
+            </div>
+            <span
+              className={`transition-opacity duration-200 ${
+                isSidebarHovered
+                  ? "opacity-100"
+                  : "opacity-0 w-0 pointer-events-none"
+              }`}
+            >
+              {t("nav.docs", "Full documentation")}
+            </span>
+          </a>
           <button
             onClick={signOut}
-            title="Sign out"
-            className="p-2.5 border border-slate-200 rounded-xl text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all cursor-pointer min-h-11"
+            title={!isSidebarHovered ? t("nav.signOut", "Sign out") : undefined}
+            className="w-full flex items-center gap-3.5 px-3 py-2.5 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 text-xs transition-colors rounded-xl cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
+            <div className="w-6 flex items-center justify-center shrink-0">
+              <i className="fa-solid fa-sign-out-alt"></i>
+            </div>
+            <span
+              className={`transition-opacity duration-200 font-bold ${
+                isSidebarHovered
+                  ? "opacity-100"
+                  : "opacity-0 w-0 pointer-events-none"
+              }`}
+            >
+              {t("nav.signOut", "Sign out")}
+            </span>
           </button>
         </div>
-      </header>
+      </aside>
 
-      {/* Inline action error banner (shown below header) */}
-      {actionError && (
-        <div className="w-full bg-red-50 border-b border-red-100 px-6 py-2.5 flex items-center justify-between gap-3 z-20 relative">
-          <div className="flex items-center gap-2 text-sm text-red-700">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            <span>{actionError}</span>
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* TOPBAR */}
+        <header className="h-18 sm:h-20 flex items-center justify-between px-7 z-40 shrink-0 border-b border-brand-border/20 relative">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() =>
+                document
+                  .getElementById("mobile-nav-bar")
+                  ?.classList.toggle("hidden")
+              }
+              className="lg:hidden w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-colors shadow-sm"
+            >
+              <i className="fa-solid fa-bars"></i>
+            </button>
           </div>
-          <button
-            onClick={() => setActionError(null)}
-            className="text-red-400 hover:text-red-600 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+          <div className="flex items-center gap-4 ml-auto">
+            {/* Interactive Player Sandbox Pill button */}
+            <button
+              onClick={() => setShowSandbox(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:scale-105 cursor-pointer"
+            >
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 animate-pulse"></div>
+              <span>Interactive Player Sandbox</span>
+            </button>
 
-      {/* MAIN LAYOUT */}
-      <div
-        id="saas-main-layout"
-        className="flex-1 flex max-w-7xl w-full mx-auto relative z-10 px-4 sm:px-6 py-6 gap-6 min-h-0"
-      >
-        {/* SIDEBAR NAVIGATION */}
-        <aside
-          id="saas-sidebar"
-          className="hidden lg:flex flex-col gap-1 w-64 bg-white border border-slate-200 rounded-3xl p-4 h-[calc(100vh-140px)] sticky top-[90px] overflow-y-auto shadow-sm"
-        >
-          {[
-            { id: "home", label: "Overview", icon: LayoutDashboard },
-            { id: "campaigns", label: "Campaign Radios", icon: Sliders },
-            { id: "prizes", label: "Reward Library", icon: Gift },
-            { id: "inventory", label: "Stock Room", icon: Database },
-            { id: "analytics", label: "Analytics Desk", icon: BarChart3 },
-            { id: "billing", label: "Billing & Quotas", icon: CreditCard },
-            { id: "account", label: "Organization Settings", icon: User },
-          ].map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSidebarNavigate(item.id as TabType)}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-12 ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
-                }`}
-              >
-                <item.icon className="w-4.5 h-4.5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </aside>
+            {/* Theme toggle circular button */}
+            <button
+              onClick={toggleTheme}
+              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            >
+              <i
+                className={`fa-solid ${theme === "dark" ? "fa-sun text-amber-400 text-base" : "fa-moon text-slate-700 text-base"}`}
+              ></i>
+            </button>
 
-        {/* RESPONSIVE MOBILE NAVIGATION RAIL */}
-        <div
-          id="mobile-nav-bar"
-          className="lg:hidden fixed bottom-4 left-4 right-4 bg-white border border-slate-200 rounded-2xl p-2 flex justify-between items-center z-50 shadow-lg"
-        >
-          {[
-            { id: "home", label: "Home", icon: LayoutDashboard },
-            { id: "campaigns", label: "Portals", icon: Sliders },
-            { id: "prizes", label: "Rewards", icon: Gift },
-            { id: "inventory", label: "Stocks", icon: Database },
-            { id: "analytics", label: "Stats", icon: BarChart3 },
-          ].map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSidebarNavigate(item.id as TabType)}
-                className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl text-[9px] font-bold transition-all ${
-                  isActive ? "text-indigo-600 bg-slate-100" : "text-slate-500"
-                }`}
-              >
-                <item.icon className="w-4 h-4 mb-1" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+            {/* Notifications circular button */}
+            <button
+              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
+              title="Notifications"
+            >
+              <i className="fa-regular fa-bell text-base"></i>
+            </button>
 
-        {/* WORKSPACE AREA */}
-        <main
-          id="saas-workspace-content"
-          className="flex-1 min-w-0 pb-16 lg:pb-0"
-        >
+            {/* User Avatar */}
+            <div
+              onClick={() => handleSidebarNavigate("account")}
+              className="relative cursor-pointer hover:opacity-90 transition-opacity"
+              title="Account Settings"
+            >
+              <img
+                alt="User profile"
+                className="w-10 h-10 rounded-full object-cover border border-brand-border shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                src={avatarUrl || DEFAULT_AVATAR}
+              />
+            </div>
+          </div>
+        </header>
+
+        {/* Action error banner */}
+        {actionError && (
+          <div className="w-full bg-red-900/20 border-b border-red-500/30 px-6 py-2.5 flex items-center justify-between gap-3 z-20 shrink-0">
+            <div className="flex items-center gap-2 text-sm text-red-400">
+              <i className="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
+              <span>{actionError}</span>
+            </div>
+            <button
+              onClick={() => setActionError(null)}
+              className="text-red-400 hover:text-red-300 cursor-pointer"
+            >
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        )}
+
+        {/* DASHBOARD CONTENT */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 z-10 scroll-smooth">
           <AnimatePresence mode="wait">
             {activeTab === "home" && (
               <motion.div
@@ -641,24 +730,11 @@ export default function App() {
               >
                 <PrizesManager
                   prizes={prizes}
+                  campaigns={campaigns}
+                  organizationId={orgId}
                   onAddPrize={handleAddPrize}
                   onUpdatePrize={handleUpdatePrize}
                   onDeletePrize={handleDeletePrize}
-                />
-              </motion.div>
-            )}
-
-            {activeTab === "inventory" && (
-              <motion.div
-                key="inventory"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <InventoryManager
-                  prizes={prizes}
-                  organizationId={orgId}
-                  onUpdateStock={handleUpdateStock}
                   onRefreshPrizes={refetchPrizes}
                 />
               </motion.div>
@@ -693,12 +769,12 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <AccountSettings />
+                <AccountSettings onAvatarChange={setAvatarUrl} />
               </motion.div>
             )}
           </AnimatePresence>
-        </main>
-      </div>
+        </div>
+      </main>
 
       {/* PORTAL SIMULATOR SLIDE-OUT OVERLAY DRAWER */}
       <AnimatePresence>
@@ -712,58 +788,51 @@ export default function App() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="w-full max-w-[540px] bg-slate-900 border-l border-slate-800 h-full flex flex-col p-6 overflow-y-auto relative shadow-2xl text-white"
+              className="w-full max-w-[390px] sm:max-w-[410px] bg-slate-900 border-l border-slate-800 h-full max-h-screen flex flex-col p-3 sm:p-4 overflow-hidden relative shadow-2xl text-white"
             >
-              {/* Header */}
-              <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
-                <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-indigo-450" />
-                    <span>Interactive Player Sandbox</span>
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Preview live lucky wheels/quizzes on mobile viewports
-                  </p>
+              {/* Minimal Top Header with Campaign Selector & Close Button */}
+              <div className="flex items-center justify-between gap-3 pb-2.5 mb-2 border-b border-slate-800 shrink-0">
+                {/* Campaign Switcher Dropdown in the Header */}
+                <div className="flex-1 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <select
+                    value={sandboxCampaignId}
+                    onChange={(e) => {
+                      setSandboxCampaignId(e.target.value);
+                      handleSandboxRestart();
+                    }}
+                    className="w-full bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 min-h-9 cursor-pointer transition-colors"
+                  >
+                    {campaigns.map((c) => (
+                      <option
+                        key={c.id}
+                        value={c.id}
+                        className="bg-slate-950 text-white"
+                      >
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <button
                   onClick={() => setShowSandbox(false)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                  title="Close sandbox"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Selector */}
-              <div className="space-y-1.5 mb-6">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                  Select Active Campaign to Simulate
-                </label>
-                <select
-                  value={sandboxCampaignId}
-                  onChange={(e) => {
-                    setSandboxCampaignId(e.target.value);
-                    handleSandboxRestart();
-                  }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none min-h-11 cursor-pointer"
-                >
-                  {campaigns.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-slate-950">
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sandbox Smartphone shell */}
-              <div className="flex-1 flex items-center justify-center">
+              {/* Sandbox Smartphone shell - fills maximum vertical screen space */}
+              <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
                 {!sandboxBrandPreset ? (
                   <div className="text-center text-slate-500 text-xs font-mono py-10">
                     <div className="w-6 h-6 border-2 border-slate-700 border-t-slate-400 rounded-full animate-spin mx-auto mb-3" />
                     No active campaigns yet — create one first.
                   </div>
                 ) : (
-                  <PhoneFrame>
+                  <PhoneFrame compact={true}>
                     <AnimatePresence mode="wait">
                       {sandboxScreen === "landing" && (
                         <motion.div
@@ -822,25 +891,6 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* FOOTER */}
-      <footer
-        id="saas-footer-credits"
-        className="w-full border-t border-slate-200 py-4 text-center text-[11px] text-slate-500 font-sans tracking-wide relative z-10 bg-white"
-      >
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-          <p>
-            © 2026 DZENGAGE. Handcrafted with precision for Algerian Enterprise
-            Brands.
-          </p>
-          <div className="flex items-center gap-1.5 text-[10px] font-mono">
-            <span>Powered by</span>
-            <span className="text-indigo-600 font-bold">
-              DZ Gamification Marketing Suite
-            </span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

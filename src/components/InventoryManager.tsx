@@ -3,6 +3,7 @@ import { PrizeTemplate } from "../types";
 import {
   AlertTriangle,
   Check,
+  Code,
   Database,
   Download,
   FileSpreadsheet,
@@ -10,6 +11,7 @@ import {
   List,
   Loader2,
   Minus,
+  MousePointerClick,
   Pencil,
   Plus,
   Search,
@@ -292,75 +294,66 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   };
 
   return (
-    <div id="inventory-manager-root" className="space-y-6 text-slate-800">
-      <div className="bg-indigo-900 text-slate-100 p-4 rounded-3xl shadow-md border border-indigo-950 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span className="text-[10px] font-mono font-bold bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded-full uppercase tracking-widest">
-            Stock Room Logic
-          </span>
-          <h2 className="text-sm font-extrabold mt-1 text-white">
-            Template stock + per-item value preparation
+    <div id="inventory-manager-root" className="space-y-6 text-brand-text">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="max-w-xl">
+          <h2 className="text-2xl font-bold tracking-tight text-white mb-2">
+            Stock Room & Vault
           </h2>
-          <p className="text-xs text-slate-300 max-w-2xl mt-0.5">
-            Open a specific reward to prepare voucher codes or optional
-            physical-item references. Bulk CSV import now lives inside each
-            reward room.
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <span className="text-[10px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Prize-specific values enabled</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6">
-        <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
-            Stock Room & Voucher Vault
-          </h2>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Manage stock, then open a reward room to enter manual values or
-            import CSV values for that exact template.
+          <p className="text-brand-textMuted text-xs leading-relaxed">
+            Centrally manage your inventory across all active campaigns. Select
+            a specific reward template to securely configure its value pool or
+            import bulk data via CSV.
           </p>
         </div>
 
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-              viewMode === "grid"
-                ? "bg-white text-slate-800 shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-            title="Grid View"
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span className="hidden md:inline">Visual Cards</span>
-          </button>
-          <button
-            onClick={() => setViewMode("table")}
-            className={`p-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-              viewMode === "table"
-                ? "bg-white text-slate-800 shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-            title="Table View"
-          >
-            <List className="w-4 h-4" />
-            <span className="hidden md:inline">Compact Table</span>
-          </button>
+        <div className="flex items-center gap-4">
+          <div className="relative w-64">
+            <Search className="absolute left-3 w-3.5 h-3.5 text-brand-textMuted top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search templates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white/5 hover:bg-white/10 border-transparent focus:bg-white/10 focus:border-blue-500/50 rounded-lg pl-9 pr-3 text-xs text-white placeholder-brand-textMuted min-h-[36px] focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center bg-white/5 border border-white/5 p-1 rounded-lg">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === "grid"
+                  ? "bg-white/10 text-white"
+                  : "text-brand-textMuted hover:text-white"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === "table"
+                  ? "bg-white/10 text-white"
+                  : "text-brand-textMuted hover:text-white"
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>List</span>
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* MESSAGES */}
       {successMsg && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-sm"
+          className="p-4 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-sm"
         >
-          <Check className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+          <Check className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
           <span>{successMsg}</span>
         </motion.div>
       )}
@@ -369,299 +362,214 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-sm"
+          className="p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-sm"
         >
-          <AlertTriangle className="w-4.5 h-4.5 text-red-600 shrink-0" />
+          <AlertTriangle className="w-4.5 h-4.5 text-red-400 shrink-0" />
           <span>{errorMsg}</span>
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-[24px] p-5 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">
-              Total Stock Pool
-            </span>
-            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-              <Database className="w-4 h-4" />
-            </div>
+      {/* TOP STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="bg-card-bg border border-brand-border/30 p-3 rounded-[16px] flex items-center gap-3 group">
+          <div className="bg-white/5 w-8 h-8 rounded-lg flex items-center justify-center text-white/50 border border-white/10 shrink-0">
+            <Database className="w-3.5 h-3.5" />
           </div>
-          <h4 className="text-3xl font-black mt-3 mb-1 text-slate-900">
-            {totalStockInPool.toLocaleString()}
-          </h4>
-          <p className="text-[11px] text-slate-500">
-            All units across reward templates
-          </p>
+          <div className="flex flex-col justify-center">
+            <span className="text-[9px] font-extrabold font-mono text-brand-textMuted uppercase tracking-widest mb-0.5">
+              Total Stock
+            </span>
+            <span className="text-base font-black text-white leading-none">
+              {totalStockInPool.toLocaleString()}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[24px] p-5 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">
-              Reserved in Campaigns
-            </span>
-            <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+        <div className="bg-card-bg border border-brand-border/30 p-3 rounded-[16px] flex items-center gap-3 group">
+          <div className="bg-orange-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-orange-400 border border-orange-500/20 shrink-0">
+            <ShieldCheck className="w-3.5 h-3.5" />
           </div>
-          <h4 className="text-3xl font-black mt-3 mb-1 text-amber-700">
-            {totalAllocated.toLocaleString()}
-          </h4>
-          <p className="text-[11px] text-slate-500">
-            Committed to active/draft prize pools
-          </p>
+          <div className="flex flex-col justify-center">
+            <span className="text-[9px] font-extrabold font-mono text-brand-textMuted uppercase tracking-widest mb-0.5">
+              Reserved
+            </span>
+            <span className="text-base font-black text-orange-400 leading-none">
+              {totalAllocated.toLocaleString()}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[24px] p-5 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">
-              Prepared Values
-            </span>
-            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-              <Pencil className="w-4 h-4" />
-            </div>
+        <div className="bg-card-bg border border-brand-border/30 p-3 rounded-[16px] flex items-center gap-3 group">
+          <div className="bg-emerald-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-emerald-400 border border-emerald-500/20 shrink-0">
+            <Pencil className="w-3.5 h-3.5" />
           </div>
-          <h4 className="text-3xl font-black mt-3 mb-1 text-emerald-700">
-            {totalPreparedValues.toLocaleString()}
-          </h4>
-          <p className="text-[11px] text-slate-500">
-            Voucher codes / references entered
-          </p>
+          <div className="flex flex-col justify-center">
+            <span className="text-[9px] font-extrabold font-mono text-brand-textMuted uppercase tracking-widest mb-0.5">
+              Prepared
+            </span>
+            <span className="text-base font-black text-emerald-400 leading-none">
+              {totalPreparedValues.toLocaleString()}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[24px] p-5 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">
-              Ready & Available
-            </span>
-            <div
-              className={`p-2 rounded-lg ${lowStockCount > 0 ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-400"}`}
-            >
-              <AlertTriangle className="w-4 h-4" />
-            </div>
+        <div className="bg-card-bg border border-brand-border/30 p-3 rounded-[16px] flex items-center gap-3 group">
+          <div
+            className={`${lowStockCount > 0 ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-white/5 text-white/50 border-white/10"} w-8 h-8 rounded-lg flex items-center justify-center border shrink-0`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
           </div>
-          <h4 className="text-3xl font-black mt-3 mb-1 text-slate-900">
-            {totalAvailable.toLocaleString()}
-          </h4>
-          <p className="text-[11px] text-slate-500">
-            {lowStockCount} templates below 50 available units
-          </p>
+          <div className="flex flex-col justify-center">
+            <span className="text-[9px] font-extrabold font-mono text-brand-textMuted uppercase tracking-widest mb-0.5">
+              Available
+            </span>
+            <span className="text-base font-black text-white leading-none">
+              {totalAvailable.toLocaleString()}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[24px] p-5 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">
-              Distributed / Won
-            </span>
-            <div className="p-2 bg-sky-50 rounded-lg text-sky-600">
-              <Check className="w-4 h-4" />
-            </div>
+        <div className="bg-card-bg border border-brand-border/30 p-3 rounded-[16px] flex items-center gap-3 group">
+          <div className="bg-sky-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-sky-400 border border-sky-500/20 shrink-0">
+            <Check className="w-3.5 h-3.5" />
           </div>
-          <h4 className="text-3xl font-black mt-3 mb-1 text-sky-700">
-            {totalDistributed.toLocaleString()}
-          </h4>
-          <p className="text-[11px] text-slate-500">
-            {totalCampaignBindings.toLocaleString()} live/draft campaign
-            bindings across templates
-          </p>
+          <div className="flex flex-col justify-center">
+            <span className="text-[9px] font-extrabold font-mono text-brand-textMuted uppercase tracking-widest mb-0.5">
+              Distributed
+            </span>
+            <span className="text-base font-black text-sky-400 leading-none">
+              {totalDistributed.toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* MAIN BODY */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3.5 w-4 h-4 text-slate-400 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search templates by name, value, or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-slate-200 hover:border-slate-400 focus:border-indigo-500 rounded-xl pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 min-h-[44px] focus:outline-none"
-            />
-          </div>
-
+        {/* LEFT COLUMN: LIST */}
+        <div className="lg:col-span-2">
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               {filteredPrizes.map((p) => {
-                const isLow = p.availableStock < 50;
-                const reservedPct =
+                const stockPercentage =
                   p.totalStock > 0
-                    ? (p.allocatedStock / p.totalStock) * 100
-                    : 0;
-                const availablePct =
-                  p.totalStock > 0
-                    ? (p.availableStock / p.totalStock) * 100
-                    : 0;
-                const preparedPct =
-                  p.totalStock > 0
-                    ? ((p.filledValuesCount ?? 0) / p.totalStock) * 100
-                    : 0;
-                const distributedPct =
-                  p.totalStock > 0
-                    ? (Math.min(p.quantityWonCount ?? 0, p.totalStock) /
-                        p.totalStock) *
-                      100
+                    ? Math.round((p.availableStock / p.totalStock) * 100)
                     : 0;
 
                 return (
                   <div
                     key={p.id}
-                    className={`bg-white border rounded-3xl p-5 shadow-sm flex flex-col justify-between ${
-                      isLow
-                        ? "border-amber-200 ring-2 ring-amber-500/5"
-                        : "border-slate-200"
-                    }`}
+                    onClick={() => openValuesModal(p)}
+                    className="bg-card-bg border border-brand-border/30 rounded-[12px] p-3 shadow-sm flex flex-col gap-3 hover:border-blue-500/30 transition-colors cursor-pointer group"
                   >
-                    <div>
-                      <div className="flex justify-between items-start gap-2 mb-3">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase border ${
-                            p.category === "voucher"
-                              ? "bg-indigo-50 border-indigo-100 text-indigo-700"
-                              : "bg-emerald-50 border-emerald-100 text-emerald-700"
-                          }`}
-                        >
-                          {p.category}
-                        </span>
-                        <span className="text-xs font-black text-indigo-700 font-mono">
-                          {p.itemValue}
-                        </span>
-                      </div>
-
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <img
-                            src={p.image || DEFAULT_PRIZE_IMAGE_URL}
-                            alt={`${p.name} visual`}
-                            className="h-14 w-14 rounded-xl border border-slate-200 object-cover"
-                            onError={(event) => {
-                              event.currentTarget.src = DEFAULT_PRIZE_IMAGE_URL;
-                            }}
-                          />
-                          <div>
-                            <h4 className="font-extrabold text-sm text-slate-800 leading-tight">
-                              {p.name}
-                            </h4>
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                              Template ID: {p.id}
-                            </p>
-                          </div>
+                    {/* TOP SECTION */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-900/40 border border-blue-500/20 flex items-center justify-center shrink-0">
+                          {p.category === "voucher" ? (
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400" />
+                          ) : (
+                            <Database className="w-3.5 h-3.5 text-emerald-400" />
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => void openValuesModal(p)}
-                          className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100"
-                          title="Open value room"
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <h3 className="font-extrabold text-white text-xs leading-tight line-clamp-1">
+                              {p.name}
+                            </h3>
+                            <span className="bg-blue-900/30 text-blue-400 border border-blue-500/20 px-1 py-0.25 rounded text-[6px] font-bold uppercase tracking-wider shrink-0">
+                              {p.category}
+                            </span>
+                          </div>
+                          <span className="text-[8px] font-mono text-brand-textMuted">
+                            ID:{" "}
+                            <span className="text-brand-textMuted/70">
+                              {p.id.slice(0, 8)}...
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="font-mono text-blue-400 font-bold text-[10px]">
+                          {p.itemValue} DA
+                        </span>
+                        <div
+                          className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded border border-white/10"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed line-clamp-2">
-                        {p.description}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
-                      <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">Prepared values:</span>
-                        <span className="text-slate-700 font-bold">
-                          {p.filledValuesCount ?? 0} / {p.totalStock}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-full"
-                          style={{ width: `${preparedPct}%` }}
-                        />
-                      </div>
-
-                      <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">
-                          Inventory distribution:
-                        </span>
-                        <span className="text-slate-700 font-bold">
-                          Total: {p.totalStock}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden flex">
-                        <div
-                          className="bg-amber-500 h-full"
-                          style={{ width: `${reservedPct}%` }}
-                        />
-                        <div
-                          className="bg-indigo-600 h-full"
-                          style={{ width: `${availablePct}%` }}
-                        />
-                      </div>
-
-                      <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">
-                          Historically won:
-                        </span>
-                        <span className="text-slate-700 font-bold">
-                          {p.quantityWonCount ?? 0}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-sky-500 h-full"
-                          style={{ width: `${distributedPct}%` }}
-                        />
-                      </div>
-
-                      <div className="flex justify-between items-center pt-1">
-                        <span
-                          className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
-                            isLow
-                              ? "text-amber-600 bg-amber-50 border-amber-200"
-                              : "text-emerald-600 bg-emerald-50 border-emerald-100"
-                          }`}
-                        >
-                          {isLow ? "Low stock warning" : "Ready & loaded"}
-                        </span>
-
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="Qty"
-                            value={adjustments[p.id] || ""}
-                            onChange={(e) =>
-                              setAdjustments((current) => ({
-                                ...current,
-                                [p.id]: e.target.value,
-                              }))
-                            }
-                            className="w-12 bg-white border border-slate-200 rounded-lg py-1 px-1.5 text-center text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          />
                           <button
                             onClick={() => handleAdjustStock(p.id, true)}
-                            title="Add supply"
-                            className="p-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded text-indigo-700 cursor-pointer"
+                            className="w-4 h-4 rounded bg-blue-600 flex items-center justify-center hover:bg-blue-500 text-white transition-colors"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-2 h-2" />
                           </button>
                           <button
                             onClick={() => handleAdjustStock(p.id, false)}
-                            title="Deduct supply"
-                            className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-slate-700 cursor-pointer"
+                            className="w-4 h-4 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-colors"
                           >
-                            <Minus className="w-3.5 h-3.5" />
+                            <Minus className="w-2 h-2" />
                           </button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-[10px]">
-                        <div>
-                          <p className="text-slate-400">Campaigns</p>
-                          <p className="mt-1 font-bold text-slate-800">
-                            {p.campaignUsageCount ?? 0}
-                          </p>
+                    </div>
+
+                    {/* BOTTOM SECTION */}
+                    <div className="bg-card-bg-subtle rounded-lg p-2.5 flex flex-col gap-3">
+                      {/* Distribution Chart (Mock) */}
+                      <div className="w-full">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[7px] font-bold text-brand-textMuted uppercase">
+                            Dist
+                          </span>
+                          <span className="text-[7px] font-bold text-white uppercase">
+                            Total: {p.totalStock.toLocaleString()}
+                          </span>
                         </div>
-                        <div>
-                          <p className="text-slate-400">Reserved</p>
-                          <p className="mt-1 font-bold text-slate-800">
-                            {p.allocatedStock}
-                          </p>
+                        <div className="flex items-end gap-0.5 h-6 w-full border-b border-blue-600 pb-0.5">
+                          <div className="w-1/6 bg-blue-600/30 h-[20%] rounded-t-[2px] transition-all group-hover:h-[25%]" />
+                          <div className="w-1/6 bg-blue-600/30 h-[30%] rounded-t-[2px] transition-all group-hover:h-[40%]" />
+                          <div className="w-1/6 bg-blue-600/50 h-[50%] rounded-t-[2px] transition-all group-hover:h-[60%]" />
+                          <div className="w-1/6 bg-blue-600 h-[70%] rounded-t-[2px] transition-all group-hover:h-[90%]" />
+                          <div className="w-1/6 bg-blue-600/80 h-[100%] rounded-t-[2px] transition-all group-hover:h-[80%]" />
+                          <div className="w-1/6 bg-blue-600 h-[80%] rounded-t-[2px] transition-all group-hover:h-[100%]" />
+                        </div>
+                      </div>
+
+                      {/* Progress & Stats */}
+                      <div className="flex gap-3 items-center justify-between border-t border-brand-border/40 pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full border-2 border-blue-600 flex items-center justify-center relative bg-black/20 shrink-0">
+                            <span className="font-bold text-white text-[8px]">
+                              {stockPercentage}%
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[7px] font-bold text-brand-textMuted uppercase">
+                              Available
+                            </span>
+                            <span className="text-[8px] font-bold text-blue-400">
+                              {p.availableStock.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-0.5 items-end border-l border-brand-border/40 pl-2">
+                          <span className="text-[7px] font-bold text-brand-textMuted uppercase">
+                            Active
+                          </span>
+                          <span className="text-[10px] font-bold text-white">
+                            {p.campaignUsageCount || 0}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-0.5 items-end border-l border-brand-border/40 pl-2">
+                          <span className="text-[7px] font-bold text-brand-textMuted uppercase">
+                            Reserved
+                          </span>
+                          <span className="text-[10px] font-bold text-orange-400">
+                            {p.allocatedStock.toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -670,23 +578,23 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               })}
 
               {filteredPrizes.length === 0 && (
-                <div className="col-span-full text-center py-12 bg-white border border-slate-200 rounded-[32px]">
-                  <Database className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <h4 className="text-sm font-bold text-slate-800">
+                <div className="col-span-full text-center py-12 bg-card-bg border border-brand-border/30 rounded-[20px]">
+                  <Database className="w-8 h-8 text-brand-textMuted/50 mx-auto mb-2" />
+                  <h4 className="text-sm font-bold text-white">
                     No matching stocks found
                   </h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-brand-textMuted mt-1">
                     Try refining your search text or clear filters.
                   </p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm">
+            <div className="bg-card-bg border border-brand-border/30 rounded-[20px] p-6 shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-150 text-[10px] font-mono text-slate-400 uppercase">
+                    <tr className="border-b border-brand-border/30 text-[10px] font-mono text-brand-textMuted uppercase">
                       <th className="pb-3 pl-1 font-semibold">Reward Title</th>
                       <th className="pb-3 font-semibold text-center">
                         Category
@@ -707,19 +615,20 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       <th className="pb-3 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
+                  <tbody className="divide-y divide-brand-border/30 text-xs text-brand-text">
                     {filteredPrizes.map((p) => {
                       const isLow = p.availableStock < 50;
                       return (
                         <tr
                           key={p.id}
-                          className="hover:bg-slate-50/60 transition-all duration-150"
+                          className="hover:bg-white/5 transition-all duration-150 cursor-pointer"
+                          onClick={() => openValuesModal(p)}
                         >
                           <td className="py-3.5 pl-1">
-                            <p className="font-bold text-slate-800 leading-tight">
+                            <p className="font-bold text-white leading-tight">
                               {p.name}
                             </p>
-                            <span className="text-[9px] text-slate-400 font-mono">
+                            <span className="text-[9px] text-brand-textMuted font-mono">
                               ID: {p.id}
                             </span>
                           </td>
@@ -727,72 +636,55 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                             <span
                               className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                                 p.category === "voucher"
-                                  ? "bg-indigo-50 text-indigo-700"
-                                  : "bg-emerald-50 text-emerald-700"
+                                  ? "bg-blue-500/20 text-blue-400"
+                                  : "bg-emerald-500/20 text-emerald-400"
                               }`}
                             >
                               {p.category}
                             </span>
                           </td>
-                          <td className="py-3.5 text-center font-mono text-slate-700">
+                          <td className="py-3.5 text-center font-mono text-white">
                             {p.filledValuesCount ?? 0} / {p.totalStock}
                           </td>
-                          <td className="py-3.5 text-center font-mono text-slate-700">
+                          <td className="py-3.5 text-center font-mono text-white">
                             {p.allocatedStock}
                           </td>
-                          <td className="py-3.5 text-center font-mono text-sky-700">
+                          <td className="py-3.5 text-center font-mono text-sky-400">
                             {p.quantityWonCount ?? 0}
                           </td>
-                          <td className="py-3.5 text-center font-mono text-slate-700">
+                          <td className="py-3.5 text-center font-mono text-white">
                             {p.campaignUsageCount ?? 0}
                           </td>
                           <td className="py-3.5 text-center">
                             <span
-                              className={`inline-flex items-center gap-1.5 font-bold font-mono ${isLow ? "text-amber-600" : "text-slate-700"}`}
+                              className={`inline-flex items-center gap-1.5 font-bold font-mono ${isLow ? "text-orange-400" : "text-white"}`}
                             >
-                              {isLow ? (
-                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                              ) : null}
+                              {isLow && (
+                                <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+                              )}
                               <span>
                                 {p.availableStock} / {p.totalStock}
                               </span>
                             </span>
                           </td>
-                          <td className="py-3.5 text-right">
+                          <td
+                            className="py-3.5 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex items-center gap-1 justify-end">
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="+/-"
-                                value={adjustments[p.id] || ""}
-                                onChange={(e) =>
-                                  setAdjustments((current) => ({
-                                    ...current,
-                                    [p.id]: e.target.value,
-                                  }))
-                                }
-                                className="w-14 bg-white border border-slate-200 rounded-lg py-1 text-center text-[11px] focus:outline-none"
-                              />
                               <button
                                 onClick={() => handleAdjustStock(p.id, true)}
-                                className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 p-1.5 rounded-lg cursor-pointer"
+                                className="bg-blue-600 hover:bg-blue-500 border border-transparent text-white p-1.5 rounded-lg cursor-pointer transition-colors"
                                 title="Restock"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleAdjustStock(p.id, false)}
-                                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-lg cursor-pointer"
+                                className="bg-white/5 hover:bg-white/10 border border-transparent text-brand-textMuted hover:text-white p-1.5 rounded-lg cursor-pointer transition-colors"
                                 title="Deduct"
                               >
                                 <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => void openValuesModal(p)}
-                                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-lg cursor-pointer"
-                                title="Prepare values"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -806,73 +698,89 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           )}
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
-              <Database className="w-4 h-4 text-indigo-700" />
-              <span>Per-Reward Value Room</span>
-            </h3>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Bulk CSV import is no longer global. Open a specific reward
-              template first, then add values manually or import CSV inside that
-              reward room.
-            </p>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[11px] text-slate-600 space-y-2">
-              <p>
-                <strong className="text-slate-800">Voucher templates:</strong>{" "}
-                enter the real coupon / pin / code for each unit.
-              </p>
-              <p>
-                <strong className="text-slate-800">Physical templates:</strong>{" "}
-                reference / serial / warehouse ID is optional for each unit.
-              </p>
-              <p>
-                <strong className="text-slate-800">CSV format:</strong>{" "}
-                <code className="px-1 py-0.5 rounded bg-white border border-slate-200">
-                  item_index,item_value
-                </code>
-              </p>
-              <p>
-                <strong className="text-slate-800">Historical rows:</strong> if
-                stock was reduced later, older item rows stay preserved for
-                audit and past coupon history.
-              </p>
-            </div>
-            {selectedTemplate ? (
-              <button
-                type="button"
-                onClick={() => void openValuesModal(selectedTemplate)}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer min-h-12"
-              >
-                <Pencil className="w-4 h-4" />
-                <span>Continue editing {selectedTemplate.name}</span>
-              </button>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-250 bg-slate-50 p-4 text-center text-[11px] text-slate-500">
-                Choose any reward card or table row to open its value room.
+        {/* RIGHT COLUMN: VALUE ROOM PANEL */}
+        <div className="lg:col-span-1 hidden lg:block">
+          <div className="sticky top-6 bg-card-bg border border-brand-border/30 rounded-[20px] p-6 shadow-sm flex flex-col gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                <FileSpreadsheet className="w-4 h-4" />
               </div>
-            )}
+              <h3 className="font-extrabold text-white text-lg">Value Room</h3>
+            </div>
+
+            <p className="text-[11px] font-semibold text-brand-textMuted leading-relaxed">
+              Bulk CSV import is securely scoped per template. Select a reward
+              card first to securely enter manual codes or import your CSV pool.
+            </p>
+
+            <div className="flex flex-col gap-5 mt-2">
+              <div className="flex gap-3">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-white">
+                    Voucher templates:
+                  </span>
+                  <span className="text-[10px] text-brand-textMuted leading-relaxed">
+                    Provide the actual pin/code for each unit to be distributed.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Database className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-white">
+                    Physical items:
+                  </span>
+                  <span className="text-[10px] text-brand-textMuted leading-relaxed">
+                    Reference/warehouse IDs are optional per unit.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Code className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1 w-full">
+                  <span className="text-xs font-bold text-white">
+                    Required CSV Structure:
+                  </span>
+                  <div className="bg-black/50 border border-brand-border/50 p-2 rounded-lg mt-1 w-full flex items-center justify-center">
+                    <span className="text-[10px] font-mono text-blue-300">
+                      Item_Index,Item_value
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border border-dashed border-brand-border/60 rounded-xl p-4 mt-2 flex flex-col items-center justify-center text-center gap-2 bg-card-bg-subtle/30">
+              <MousePointerClick className="w-5 h-5 text-brand-textMuted opacity-70" />
+              <span className="text-[10px] font-semibold text-brand-textMuted leading-relaxed max-w-[200px]">
+                Select any reward card from the list to access its secure Value
+                Room.
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[32px] bg-white">
-            <div className="flex flex-col gap-4 border-b border-slate-200/80 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-background/80 backdrop-blur-sm p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[32px] glass-panel border-brand-border/30 shadow-2xl">
+            <div className="flex flex-col gap-4 border-b border-brand-border/30 px-6 py-5 sm:flex-row sm:items-start sm:justify-between bg-black/20">
               <div>
                 <img
                   src={selectedTemplate.image || DEFAULT_PRIZE_IMAGE_URL}
                   alt={`${selectedTemplate.name} preview`}
-                  className="mb-3 h-20 w-28 rounded-xl border border-slate-200 object-cover"
+                  className="mb-3 h-20 w-28 rounded-2xl border border-brand-border/30 object-cover"
                   onError={(event) => {
                     event.currentTarget.src = DEFAULT_PRIZE_IMAGE_URL;
                   }}
                 />
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-white">
                   Reward room — {selectedTemplate.name}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-brand-textMuted">
                   {selectedTemplate.category === "voucher"
                     ? "Enter the real voucher / coupon code for each unit."
                     : "Enter an optional serial, reference, or warehouse ID for each physical unit."}
@@ -881,7 +789,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <button
                 type="button"
                 onClick={closeValuesModal}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-2.5 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                className="rounded-2xl glass-panel hover:bg-white/10 p-2.5 text-brand-textMuted transition hover:text-white border-transparent"
                 aria-label="Close values modal"
               >
                 <X className="h-5 w-5" />
@@ -890,19 +798,19 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
             <div className="space-y-4 p-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[10px] font-mono uppercase text-slate-400">
+                <div className="rounded-2xl bg-white/5 border border-brand-border/30 px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase text-brand-textMuted">
                     Category
                   </p>
-                  <p className="mt-1 text-sm font-bold text-slate-800">
+                  <p className="mt-1 text-sm font-bold text-white">
                     {selectedTemplate.category}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[10px] font-mono uppercase text-slate-400">
+                <div className="rounded-2xl bg-white/5 border border-brand-border/30 px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase text-brand-textMuted">
                     Prepared
                   </p>
-                  <p className="mt-1 text-sm font-bold text-slate-800">
+                  <p className="mt-1 text-sm font-bold text-white">
                     {
                       activeTemplateItems.filter((item) =>
                         item.item_value?.trim(),
@@ -911,29 +819,29 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                     / {selectedTemplate.totalStock}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[10px] font-mono uppercase text-slate-400">
+                <div className="rounded-2xl bg-white/5 border border-brand-border/30 px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase text-brand-textMuted">
                     Face value
                   </p>
-                  <p className="mt-1 text-sm font-bold text-slate-800">
+                  <p className="mt-1 text-sm font-bold text-white">
                     {selectedTemplate.itemValue}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[10px] font-mono uppercase text-slate-400">
+                <div className="rounded-2xl bg-white/5 border border-brand-border/30 px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase text-brand-textMuted">
                     Reserved / Won
                   </p>
-                  <p className="mt-1 text-sm font-bold text-slate-800">
+                  <p className="mt-1 text-sm font-bold text-white">
                     {selectedTemplate.allocatedStock} reserved •{" "}
                     {selectedTemplate.quantityWonCount ?? 0} won
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] text-slate-600">
+              <div className="rounded-2xl bg-black/20 border border-brand-border/30 px-4 py-3 text-[11px] text-brand-textMuted">
                 <p>
                   Active campaign usage:{" "}
-                  <strong className="text-slate-800">
+                  <strong className="text-white">
                     {selectedTemplate.campaignUsageCount ?? 0}
                   </strong>{" "}
                   campaign(s). Available stock shown in this room excludes
@@ -943,7 +851,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               </div>
 
               {overflowTemplateItems.length > 0 && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-800">
+                <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-[11px] text-orange-400">
                   Stock was reduced after this template had more item rows. The
                   extra historical rows are preserved below for audit and past
                   coupon tracing, but they are no longer part of the active
@@ -951,20 +859,20 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-black/20 border border-brand-border/30 p-4 rounded-2xl">
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={downloadBulkTemplate}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-2xl glass-panel px-3.5 py-2.5 text-xs font-semibold text-brand-textMuted shadow-sm transition hover:text-white hover:bg-white/10 border-transparent cursor-pointer"
                   >
-                    <Download className="h-4 w-4 text-slate-500" />
+                    <Download className="h-4 w-4" />
                     <span>Download Template</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => modalFileInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-500 cursor-pointer"
                   >
                     <Upload className="h-4 w-4" />
                     <span>Import Excel / CSV Values</span>
@@ -986,19 +894,19 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => exportCurrentValues("xlsx")}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 cursor-pointer shadow-sm"
+                    className="inline-flex items-center gap-1.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/20 px-3 py-2 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/30 cursor-pointer shadow-sm"
                     title="Export current values to Excel (.xlsx)"
                   >
-                    <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                    <FileSpreadsheet className="h-4 w-4" />
                     <span>Export Excel</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => exportCurrentValues("csv")}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 cursor-pointer shadow-sm"
+                    className="inline-flex items-center gap-1.5 rounded-2xl glass-panel border-transparent px-3 py-2 text-xs font-bold text-brand-textMuted transition hover:bg-white/10 hover:text-white cursor-pointer shadow-sm"
                     title="Export current values to CSV"
                   >
-                    <Download className="h-4 w-4 text-slate-500" />
+                    <Download className="h-4 w-4" />
                     <span>Export CSV</span>
                   </button>
                 </div>
@@ -1006,12 +914,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
               {itemsLoading ? (
                 <div className="flex h-40 items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-[24px] border border-slate-200">
+                <div className="overflow-hidden rounded-[24px] border border-brand-border/30">
                   <table className="min-w-full">
-                    <thead className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <thead className="border-b border-brand-border/30 bg-black/20 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-textMuted">
                       <tr>
                         <th className="px-4 py-3">Item</th>
                         <th className="px-4 py-3">Value / Reference</th>
@@ -1019,15 +927,15 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                         <th className="px-4 py-3 text-right">Source</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-brand-border/30 bg-white/5">
                       {activeTemplateItems.map((instance) => {
                         const hasValue = !!instance.item_value?.trim();
                         return (
                           <tr
                             key={instance.id}
-                            className="hover:bg-slate-50/60 transition-all"
+                            className="hover:bg-white/10 transition-all"
                           >
-                            <td className="px-4 py-3 text-sm font-mono font-bold text-slate-600">
+                            <td className="px-4 py-3 text-sm font-mono font-bold text-brand-textMuted">
                               #{instance.item_index}
                             </td>
                             <td className="px-4 py-3">
@@ -1051,15 +959,15 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                     event.target.value,
                                   )
                                 }
-                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white min-h-12 font-mono"
+                                className="w-full rounded-2xl glass-panel border-transparent focus:border-blue-500/50 hover:bg-white/5 px-4 py-3 text-sm text-white placeholder-brand-textMuted outline-none transition focus:bg-white/10 min-h-12 font-mono"
                               />
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
                                   hasValue
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                    : "bg-white/5 text-brand-textMuted border border-transparent"
                                 }`}
                               >
                                 {hasValue ? "Prepared" : "Empty"}
@@ -1069,8 +977,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize ${
                                   instance.source_type === "bulk"
-                                    ? "bg-indigo-50 text-indigo-700"
-                                    : "bg-slate-100 text-slate-600"
+                                    ? "bg-blue-500/20 text-blue-400"
+                                    : "bg-white/10 text-brand-textMuted"
                                 }`}
                               >
                                 {instance.source_type}
@@ -1085,34 +993,34 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               )}
 
               {overflowTemplateItems.length > 0 && (
-                <div className="overflow-hidden rounded-[24px] border border-amber-200">
-                  <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
-                    <h3 className="text-sm font-bold text-amber-900">
+                <div className="overflow-hidden rounded-[24px] border border-orange-500/30">
+                  <div className="border-b border-orange-500/30 bg-orange-500/10 px-4 py-3">
+                    <h3 className="text-sm font-bold text-orange-400">
                       Historical rows outside current stock
                     </h3>
-                    <p className="mt-1 text-[11px] text-amber-800">
+                    <p className="mt-1 text-[11px] text-orange-400/80">
                       These rows remain read-only because the template stock was
                       reduced after they were created.
                     </p>
                   </div>
                   <table className="min-w-full">
-                    <thead className="border-b border-amber-200 bg-amber-50/60 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-700">
+                    <thead className="border-b border-orange-500/30 bg-orange-500/5 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-400">
                       <tr>
                         <th className="px-4 py-3">Item</th>
                         <th className="px-4 py-3">Stored value / reference</th>
                         <th className="px-4 py-3">Source</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-amber-100 bg-white">
+                    <tbody className="divide-y divide-orange-500/10 bg-black/20">
                       {overflowTemplateItems.map((instance) => (
                         <tr key={instance.id}>
-                          <td className="px-4 py-3 text-sm text-slate-600">
+                          <td className="px-4 py-3 text-sm text-brand-textMuted">
                             #{instance.item_index}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-800">
+                          <td className="px-4 py-3 text-sm text-white">
                             {instance.item_value?.trim() || "—"}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-500 capitalize">
+                          <td className="px-4 py-3 text-sm text-brand-textMuted capitalize">
                             {instance.source_type}
                           </td>
                         </tr>
@@ -1123,7 +1031,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               )}
 
               {itemsSaving && (
-                <p className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600">
+                <p className="inline-flex items-center gap-2 text-sm font-medium text-blue-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Saving changes...</span>
                 </p>

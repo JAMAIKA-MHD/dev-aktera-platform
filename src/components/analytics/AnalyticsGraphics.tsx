@@ -2,6 +2,8 @@ import React from "react";
 import {
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -10,6 +12,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 import {
   HourlyDistributionItem,
@@ -113,7 +116,7 @@ interface ParticipationHistogramProps {
 }
 
 /**
- * Recharts Histogram (Bar Chart) for Daily and Hourly Activity
+ * Professional Area Chart / Bar Chart for Trends
  */
 export const ParticipationHistogram: React.FC<ParticipationHistogramProps> = ({
   dailyData,
@@ -133,49 +136,135 @@ export const ParticipationHistogram: React.FC<ParticipationHistogramProps> = ({
   const hasData = chartData.some((d) => d.entries > 0);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+    <div className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-sm h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h3 className="font-bold text-sm text-slate-900">
-            Participation Histogram
-          </h3>
-          <p className="text-[11px] text-slate-500">
+          <h3 className="font-bold text-[15px] text-slate-900 mb-1">
             {viewMode === "daily"
-              ? "Real daily entries & winning activity timeline."
-              : "Real Algerian 24-hour peak volume distribution."}
+              ? "Daily Participation Trend"
+              : "Hourly Volume Distribution"}
+          </h3>
+          <p className="text-[12px] text-slate-500">
+            {viewMode === "daily"
+              ? "Compare total entries vs unique winners over the last 14 days."
+              : "Analyze peak activity windows throughout a 24-hour cycle."}
           </p>
         </div>
 
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60 text-xs self-start sm:self-auto">
+        <div className="flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-200 text-xs self-start sm:self-auto">
           <button
             onClick={() => setViewMode("daily")}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-2xl font-bold transition-all ${
               viewMode === "daily"
-                ? "bg-white text-indigo-600 shadow-sm"
+                ? "bg-white text-indigo-600 shadow-sm border border-slate-200/60"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            Daily Trend
+            Daily
           </button>
           <button
             onClick={() => setViewMode("hourly")}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-2xl font-bold transition-all ${
               viewMode === "hourly"
-                ? "bg-white text-indigo-600 shadow-sm"
+                ? "bg-white text-indigo-600 shadow-sm border border-slate-200/60"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            24H Hourly
+            Hourly
           </button>
         </div>
       </div>
 
-      {!hasData ? (
-        <div className="h-64 flex items-center justify-center text-slate-400 text-xs italic bg-slate-50/50 rounded-2xl">
-          No participant activity recorded for this timeline yet.
-        </div>
-      ) : (
-        <div className="h-72 w-full pt-2">
+      <div className="flex-1 w-full min-h-[300px]">
+        {!hasData ? (
+          <div className="h-full w-full flex items-center justify-center text-slate-400 text-xs italic bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            No participant activity recorded yet.
+          </div>
+        ) : viewMode === "daily" ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorEntries" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorWinners" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f1f5f9"
+              />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#ffffff",
+                  borderColor: "#e2e8f0",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                }}
+                itemStyle={{
+                  color: "#334155",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                }}
+                labelStyle={{
+                  color: "#64748b",
+                  fontSize: "12px",
+                  marginBottom: "4px",
+                }}
+              />
+              <Legend
+                verticalAlign="top"
+                height={36}
+                iconType="circle"
+                wrapperStyle={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#475569",
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="entries"
+                name="Total Entries"
+                stroke="#6366F1"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorEntries)"
+                activeDot={{ r: 6, strokeWidth: 0 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="winners"
+                name="Winners"
+                stroke="#10B981"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorWinners)"
+                activeDot={{ r: 6, strokeWidth: 0 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
@@ -184,47 +273,68 @@ export const ParticipationHistogram: React.FC<ParticipationHistogramProps> = ({
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
-                stroke="#E2E8F0"
+                stroke="#f1f5f9"
               />
               <XAxis
                 dataKey="date"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#64748B", fontSize: 11 }}
+                tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+                dy={10}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#64748B", fontSize: 11 }}
+                tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
                 allowDecimals={false}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#0F172A",
-                  borderColor: "#1E293B",
+                  backgroundColor: "#ffffff",
+                  borderColor: "#e2e8f0",
                   borderRadius: "12px",
-                  color: "#FFFFFF",
-                  fontSize: "12px",
-                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                itemStyle={{ color: "#F8FAFC" }}
+                itemStyle={{
+                  color: "#334155",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                }}
+                labelStyle={{
+                  color: "#64748b",
+                  fontSize: "12px",
+                  marginBottom: "4px",
+                }}
+                cursor={{ fill: "#f8fafc" }}
+              />
+              <Legend
+                verticalAlign="top"
+                height={36}
+                iconType="circle"
+                wrapperStyle={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#475569",
+                }}
               />
               <Bar
                 dataKey="entries"
                 name="Total Entries"
                 fill="#6366F1"
-                radius={[6, 6, 0, 0]}
+                radius={[4, 4, 0, 0]}
+                barSize={32}
               />
               <Bar
                 dataKey="winners"
                 name="Winners"
                 fill="#10B981"
-                radius={[6, 6, 0, 0]}
+                radius={[4, 4, 0, 0]}
+                barSize={32}
               />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

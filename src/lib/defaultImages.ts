@@ -1,4 +1,9 @@
-const buildSvgDataUrl = (title: string, subtitle: string, primary: string, secondary: string) => {
+const buildSvgDataUrl = (
+  title: string,
+  subtitle: string,
+  primary: string,
+  secondary: string,
+) => {
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="${title}">
   <defs>
@@ -17,15 +22,15 @@ const buildSvgDataUrl = (title: string, subtitle: string, primary: string, secon
 };
 
 export const DEFAULT_CAMPAIGN_IMAGE_URL = buildSvgDataUrl(
-  'YOUENGAGE Campaign',
-  'Interactive zero-party data experience',
-  '#4F46E5',
-  '#7C3AED'
+  "Aktera Campaign",
+  "Interactive zero-party data experience",
+  "#4F46E5",
+  "#7C3AED",
 );
 
 export const DEFAULT_PRIZE_IMAGE_URL = buildSvgDataUrl(
-  'YOUENGAGE Reward',
-  'Voucher or physical item template',
-  '#0EA5E9',
-  '#2563EB'
+  "Aktera Reward",
+  "Voucher or physical item template",
+  "#0EA5E9",
+  "#2563EB",
 );

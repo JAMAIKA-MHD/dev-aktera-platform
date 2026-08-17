@@ -114,10 +114,16 @@ export function useAnalytics(selectedCampaignId?: string) {
       setError(null);
 
       try {
-        const { summary, participants } = await fetchAnalyticsSummaryService(
+        const result = await fetchAnalyticsSummaryService(
           organization?.id ?? null,
           selectedCampaignId ?? null,
         );
+
+        if (!result || !result.summary) {
+          return;
+        }
+
+        const { summary, participants } = result;
 
         const byCampaignList = Array.isArray(summary.by_campaign)
           ? summary.by_campaign
@@ -185,9 +191,10 @@ export function useAnalytics(selectedCampaignId?: string) {
     }, 10000);
 
     // 2. Supabase Realtime channel subscription listening to live player participations
+    const channelId = Math.random().toString(36).substring(2, 9);
     const channelName = organization?.id
-      ? `analytics_realtime_${organization.id}`
-      : "analytics_realtime_global";
+      ? `analytics_realtime_${organization.id}_${channelId}`
+      : `analytics_realtime_global_${channelId}`;
 
     const channel = supabase
       .channel(channelName)
