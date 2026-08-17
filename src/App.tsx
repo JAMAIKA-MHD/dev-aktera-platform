@@ -788,31 +788,31 @@ export default function App() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="w-full max-w-[540px] bg-slate-900 border-l border-slate-800 h-full flex flex-col p-6 overflow-y-auto relative shadow-2xl text-white"
+              className="w-full max-w-[460px] sm:max-w-[480px] bg-slate-900 border-l border-slate-800 h-full max-h-screen flex flex-col p-3.5 sm:p-4 overflow-hidden relative shadow-2xl text-white"
             >
               {/* Header */}
-              <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2.5 mb-2.5 shrink-0">
                 <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-indigo-450" />
+                  <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-indigo-400" />
                     <span>Interactive Player Sandbox</span>
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-[10.5px] text-slate-400">
                     Preview live lucky wheels/quizzes on mobile viewports
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowSandbox(false)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Selector */}
-              <div className="space-y-1.5 mb-6">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+              <div className="space-y-1 mb-2.5 shrink-0">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
                   Select Active Campaign to Simulate
                 </label>
                 <select
@@ -821,7 +821,7 @@ export default function App() {
                     setSandboxCampaignId(e.target.value);
                     handleSandboxRestart();
                   }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none min-h-11 cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-1 text-xs text-slate-200 focus:outline-none min-h-9 cursor-pointer"
                 >
                   {campaigns.map((c) => (
                     <option key={c.id} value={c.id} className="bg-slate-950">
@@ -832,14 +832,14 @@ export default function App() {
               </div>
 
               {/* Sandbox Smartphone shell */}
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
                 {!sandboxBrandPreset ? (
                   <div className="text-center text-slate-500 text-xs font-mono py-10">
                     <div className="w-6 h-6 border-2 border-slate-700 border-t-slate-400 rounded-full animate-spin mx-auto mb-3" />
                     No active campaigns yet — create one first.
                   </div>
                 ) : (
-                  <PhoneFrame>
+                  <PhoneFrame compact={true}>
                     <AnimatePresence mode="wait">
                       {sandboxScreen === "landing" && (
                         <motion.div

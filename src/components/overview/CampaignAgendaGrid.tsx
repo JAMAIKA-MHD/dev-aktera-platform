@@ -119,8 +119,8 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
       {/* Heatmap Grid - Fully fills available space */}
       <div className="w-full flex-1 flex flex-col justify-between pt-1">
         <div className="w-full flex-1 flex flex-col justify-between">
-          {/* Hour labels row */}
-          <div className="grid grid-cols-12 gap-1 sm:gap-1.5 mb-1 pl-9 sm:pl-10">
+          {/* Hour labels row (8 slots) */}
+          <div className="grid grid-cols-8 gap-2 sm:gap-3 mb-1.5 pl-8 sm:pl-9">
             {AGENDA_TIME_LABELS.map((label, idx) => (
               <span
                 key={idx}
@@ -131,20 +131,20 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
             ))}
           </div>
 
-          {/* Grid rows by day - stretch across full height */}
-          <div className="flex-1 flex flex-col justify-between gap-1 sm:gap-1.5 py-0.5">
+          {/* Grid rows by day - stretch across full height and width */}
+          <div className="flex-1 flex flex-col justify-between gap-1.5 sm:gap-2 py-0.5">
             {CAMPAIGN_AGENDA_GRID.map((daySchedule) => (
               <div
                 key={daySchedule.day}
-                className="flex-1 flex items-center gap-2 group/row min-h-[20px] sm:min-h-[24px]"
+                className="flex-1 flex items-center gap-2 group/row min-h-[22px] sm:min-h-[26px]"
               >
                 {/* Day label */}
-                <span className="w-7 sm:w-8 text-[9.5px] sm:text-[11px] font-bold text-brand-text select-none text-left shrink-0">
+                <span className="w-6 sm:w-7 text-[9.5px] sm:text-[11px] font-bold text-brand-text select-none text-left shrink-0">
                   {daySchedule.day}
                 </span>
 
-                {/* 12-Slot grid cells */}
-                <div className="grid grid-cols-12 gap-1 sm:gap-1.5 flex-1 h-full items-stretch">
+                {/* 8-Slot grid cells spanning 100% of the box width */}
+                <div className="grid grid-cols-8 gap-2 sm:gap-3 flex-1 h-full items-stretch">
                   {daySchedule.slots.map((slot, sIdx) => {
                     const cellClass = getCellClass(slot.intensity);
                     return (
@@ -157,7 +157,7 @@ export const CampaignAgendaGrid: React.FC<CampaignAgendaGridProps> = () => {
                           handleMouseMove(e, daySchedule.day, slot)
                         }
                         onMouseLeave={handleMouseLeave}
-                        className={`h-full min-h-[20px] sm:min-h-[24px] max-h-[34px] rounded-[5px] cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
+                        className={`h-full min-h-[22px] sm:min-h-[26px] max-h-[36px] rounded-[6px] cursor-pointer transition-all duration-150 transform hover:scale-105 ${cellClass}`}
                       />
                     );
                   })}

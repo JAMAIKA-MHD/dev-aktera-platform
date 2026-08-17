@@ -31,11 +31,11 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
 
   // SVG Chart Dimensions (Reduced by 20%)
   const width = 720;
-  const height = 185;
+  const height = 205;
   const paddingLeft = 50;
   const paddingRight = 25;
   const paddingTop = 18;
-  const paddingBottom = 28;
+  const paddingBottom = 38;
 
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
@@ -222,13 +222,22 @@ export const VisitorStatsChart: React.FC<VisitorStatsChartProps> = ({
             );
           })}
 
-          {/* Bottom Right "campaigns" Axis Label */}
+          {/* Bottom Right "number of campaigns" Axis Label */}
           <text
             x={width - paddingRight}
-            y={paddingTop + chartHeight + 32}
+            y={paddingTop + chartHeight + 18}
             textAnchor="end"
             fill={textFill}
-            className="text-[13px] font-extrabold select-none tracking-tight"
+            className="text-[10px] sm:text-[11px] font-bold select-none tracking-tight"
+          >
+            number of
+          </text>
+          <text
+            x={width - paddingRight}
+            y={paddingTop + chartHeight + 31}
+            textAnchor="end"
+            fill={textFill}
+            className="text-[10px] sm:text-[11px] font-bold select-none tracking-tight"
           >
             campaigns
           </text>
