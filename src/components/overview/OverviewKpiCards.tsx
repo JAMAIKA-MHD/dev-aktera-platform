@@ -57,9 +57,13 @@ export const OverviewKpiCards: React.FC<OverviewKpiCardsProps> = () => {
             </span>
             <div
               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.1px] font-bold shrink-0 ${
-                card.badge.isPositive
-                  ? "bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
-                  : "bg-red-100/90 dark:bg-red-950/60 text-red-600 dark:text-red-400"
+                isDark
+                  ? card.badge.isPositive
+                    ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40"
+                    : "bg-red-950/80 text-red-400 border border-red-800/40"
+                  : card.badge.isPositive
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
               }`}
             >
               <TrendingUp className="w-3 h-3" />

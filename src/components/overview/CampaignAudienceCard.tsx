@@ -85,7 +85,13 @@ export const CampaignAudienceCard: React.FC = () => {
                   0
                 ).toLocaleString()}
           </span>
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[9.1px] sm:text-[10.6px] font-bold">
+          <div
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.1px] sm:text-[10.6px] font-bold ${
+              isDark
+                ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40"
+                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+            }`}
+          >
             <TrendingUp className="w-3 h-3" />
             <span>{CAMPAIGN_AUDIENCE_DATA.growthBadge}</span>
           </div>
