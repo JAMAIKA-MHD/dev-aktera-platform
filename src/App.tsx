@@ -788,7 +788,7 @@ export default function App() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="w-full max-w-[480px] sm:max-w-[520px] bg-slate-900 border-l border-slate-800 h-full max-h-screen flex flex-col p-3 sm:p-4 overflow-hidden relative shadow-2xl text-white"
+              className="w-full max-w-[440px] sm:max-w-[460px] bg-slate-900 border-l border-slate-800 h-full max-h-screen flex flex-col p-3 sm:p-4 overflow-hidden relative shadow-2xl text-white"
             >
               {/* Minimal Top Header with Campaign Selector & Close Button */}
               <div className="flex items-center justify-between gap-3 pb-2.5 mb-2 border-b border-slate-800 shrink-0">
