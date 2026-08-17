@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Users, Trophy } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { exportToCSV, exportToExcel } from "../lib/exportUtils";
 
 const formatDwellTime = (seconds: number): string => {
@@ -20,6 +21,8 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
 }) => {
   const { organization: _organization } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [selectedCampId, setSelectedCampId] = useState<string>(
     initialCampaignId ?? "all",
   );
@@ -181,8 +184,15 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
             <i className="fa-solid fa-download text-brand-textMuted"></i> Export
             Data
           </button>
-          <button className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:bg-blue-600/30 transition-colors cursor-pointer">
-            <i className="fa-regular fa-file-lines"></i> Report
+          <button
+            className={`px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 font-bold transition-all cursor-pointer border shadow-sm ${
+              isDark
+                ? "bg-black text-white border-slate-700 hover:bg-black/80"
+                : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+            }`}
+            onClick={handleExportData}
+          >
+            <i className="fa-regular fa-file-lines text-xs"></i> Report
           </button>
         </div>
       </div>
