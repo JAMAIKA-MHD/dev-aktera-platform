@@ -31,7 +31,10 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Left: Visitor Traffic Area Chart (8 Cols) */}
         <div className="lg:col-span-8 flex flex-col min-h-[212px]">
-          <VisitorStatsChart />
+          <VisitorStatsChart
+            campaigns={campaigns}
+            onMoreDetails={() => onNavigate?.("analytics")}
+          />
         </div>
 
         {/* Right: Campaign Insights & Conversion Stats (4 Cols) */}
