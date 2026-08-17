@@ -29,7 +29,7 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
       id="phone-frame-container"
       className={
         compact
-          ? "relative flex items-center justify-center p-0 w-full max-w-[365px] sm:max-w-[395px] mx-auto h-full min-h-0"
+          ? "relative flex items-center justify-center p-0 w-full max-w-[320px] sm:max-w-[335px] mx-auto h-full min-h-0"
           : "relative flex items-center justify-center p-0 md:p-6 lg:p-8 xl:p-10 w-full max-w-[500px] mx-auto"
       }
     >
@@ -38,7 +38,7 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
         id="phone-device-shell"
         className={
           compact
-            ? "relative w-full h-[640px] max-h-[calc(100vh-80px)] bg-[#09090F] border-[6px] sm:border-[8px] border-[#1E1E2E] rounded-[38px] shadow-[0_0_50px_rgba(124,58,237,0.18)] flex flex-col overflow-hidden transition-all duration-300 ease-out"
+            ? "relative w-full h-[650px] max-h-[calc(100vh-70px)] bg-[#09090F] border-[7px] sm:border-[8px] border-[#1E1E2E] rounded-[40px] shadow-[0_0_40px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden transition-all duration-300 ease-out"
             : "relative w-full h-[880px] max-h-[92vh] md:max-h-[880px] bg-[#09090F] border-4 border-[#2D2D3F]/70 rounded-[48px] shadow-[0_0_80px_rgba(124,58,237,0.15)] flex flex-col overflow-hidden transition-all duration-500 ease-out md:border-[12px] md:border-[#1E1E2E]"
         }
       >
