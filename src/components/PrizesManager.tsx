@@ -7,7 +7,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  FileSpreadsheet,
   FileText,
   Loader2,
   PackageSearch,
@@ -19,10 +18,10 @@ import {
   Upload,
   X,
   Droplet,
+  Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Campaign, PrizeTemplate } from "../types";
-import { DEFAULT_PRIZE_IMAGE_URL } from "../lib/defaultImages";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
 import { useInventoryManager } from "../hooks/useInventoryManager";
@@ -32,6 +31,10 @@ import {
   exportToCSV,
   exportToExcel,
 } from "../lib/exportUtils";
+import {
+  ImportMode,
+  ImportValidationResult,
+} from "../services/inventoryService";
 
 type PrizeTemplatePayload = Omit<
   PrizeTemplate,
@@ -79,6 +82,15 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const [bulkPasteText, setBulkPasteText] = useState("");
   const [copiedAll, setCopiedAll] = useState(false);
 
+  // Import mode and validation state
+  const [importMode, setImportMode] = useState<ImportMode>("append");
+  const [activeValidationResult, setActiveValidationResult] =
+    useState<ImportValidationResult | null>(null);
+  const [conflictFixInputs, setConflictFixInputs] = useState<
+    Record<number, string>
+  >({});
+  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
+
   const [editingTemplate, setEditingTemplate] = useState<PrizeTemplate | null>(
     null,
   );
@@ -102,10 +114,16 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     setTemplateItems,
     loading: codesLoading,
     saving: codesSaving,
-    error: codesHookError,
+    error: _codesHookError,
+    unresolvedConflicts,
+    clearUnresolvedConflicts,
     loadTemplateItems,
     updateSingleItemValue,
-    saveAllItemsBulk,
+    validateImport,
+    resolveConflict,
+    executeImport,
+    generateRandomCodes,
+    fillEmptySlotsWithRandom,
   } = useInventoryManager(organizationId);
 
   const filteredPrizes = useMemo(
@@ -301,35 +319,42 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         ? await parseExcelFile<Record<string, unknown>>(file)
         : await parseCSVFile<Record<string, unknown>>(file);
 
-      const parsedValues = rows
-        .map((r) => {
-          const val =
-            r["Code"] ||
-            r["code"] ||
-            r["Voucher / Reference Value"] ||
-            r["item_value"] ||
-            r["Value"] ||
-            Object.values(r)[0];
-          return typeof val === "string" || typeof val === "number"
-            ? String(val).trim()
-            : "";
-        })
-        .filter((v) => v.length > 0);
-
-      if (parsedValues.length === 0) {
-        alert("No codes could be parsed from the uploaded file.");
+      if (!rows || rows.length === 0) {
+        alert("Import file is empty or could not be parsed.");
         return;
       }
 
-      // Map over existing items
-      const itemsToSave = templateItems.map((item, idx) => ({
-        id: item.id,
-        item_value: parsedValues[idx] || item.item_value || null,
-      }));
+      const validation = validateImport(
+        importMode,
+        { rawRows: rows },
+        activeCodesTemplate.totalStock,
+      );
 
-      await saveAllItemsBulk(activeCodesTemplate, itemsToSave);
-      onRefreshPrizes?.();
-      showSuccess(`Successfully imported ${parsedValues.length} code(s).`);
+      if (validation.overflow) {
+        alert(
+          validation.errorMessage ||
+            "Import rejected: code count exceeds available slots.",
+        );
+        return;
+      }
+
+      if (!validation.success && validation.conflicts.length > 0) {
+        const initialFixes: Record<number, string> = {};
+        validation.conflicts.forEach((c) => {
+          initialFixes[c.lineNumber] = "";
+        });
+        setConflictFixInputs(initialFixes);
+        setActiveValidationResult(validation);
+        return;
+      }
+
+      const success = await executeImport(activeCodesTemplate, validation);
+      if (success) {
+        onRefreshPrizes?.();
+        showSuccess(
+          `Successfully imported ${validation.importedCount} code(s) in ${importMode === "append" ? "Append" : "Replace All"} mode.`,
+        );
+      }
     } catch (err) {
       alert(
         `Import failed: ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -348,16 +373,98 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
     if (lines.length === 0) return;
 
-    const itemsToSave = templateItems.map((item, idx) => ({
-      id: item.id,
-      item_value: lines[idx] || item.item_value || null,
-    }));
+    const validation = validateImport(
+      importMode,
+      { rawLines: lines },
+      activeCodesTemplate.totalStock,
+    );
 
-    await saveAllItemsBulk(activeCodesTemplate, itemsToSave);
-    setShowBulkPaste(false);
-    setBulkPasteText("");
-    onRefreshPrizes?.();
-    showSuccess(`Applied ${lines.length} code(s) successfully.`);
+    if (validation.overflow) {
+      alert(
+        validation.errorMessage ||
+          "Import rejected: code count exceeds available slots.",
+      );
+      return;
+    }
+
+    if (!validation.success && validation.conflicts.length > 0) {
+      const initialFixes: Record<number, string> = {};
+      validation.conflicts.forEach((c) => {
+        initialFixes[c.lineNumber] = "";
+      });
+      setConflictFixInputs(initialFixes);
+      setActiveValidationResult(validation);
+      return;
+    }
+
+    const success = await executeImport(activeCodesTemplate, validation);
+    if (success) {
+      setShowBulkPaste(false);
+      setBulkPasteText("");
+      onRefreshPrizes?.();
+      showSuccess(
+        `Applied ${validation.importedCount} code(s) in ${importMode === "append" ? "Append" : "Replace All"} mode.`,
+      );
+    }
+  };
+
+  const handleApplyConflictFix = (lineNumber: number) => {
+    if (!activeValidationResult || !activeCodesTemplate) return;
+    const replacement = (conflictFixInputs[lineNumber] || "").trim();
+    if (!replacement) return;
+
+    const updatedValidation = resolveConflict(
+      activeValidationResult,
+      lineNumber,
+      replacement,
+      activeCodesTemplate.totalStock,
+    );
+
+    setActiveValidationResult(updatedValidation);
+  };
+
+  const handleProceedWithConflicts = async () => {
+    if (!activeValidationResult || !activeCodesTemplate) return;
+    const success = await executeImport(
+      activeCodesTemplate,
+      activeValidationResult,
+      true,
+    );
+    if (success) {
+      setActiveValidationResult(null);
+      setShowBulkPaste(false);
+      setBulkPasteText("");
+      onRefreshPrizes?.();
+      showSuccess(
+        `Imported ${activeValidationResult.importedCount} codes with duplicate warnings retained.`,
+      );
+    }
+  };
+
+  const handleFillRandomSlots = async () => {
+    if (!activeCodesTemplate) return;
+    setIsGeneratingRandom(true);
+    try {
+      const success = await fillEmptySlotsWithRandom(activeCodesTemplate);
+      if (success) {
+        onRefreshPrizes?.();
+        showSuccess(
+          "Filled empty slots with collision-free random 8-character uppercase codes.",
+        );
+      }
+    } finally {
+      setIsGeneratingRandom(false);
+    }
+  };
+
+  const handleGenerateSingleRandom = async (itemId: string) => {
+    if (!activeCodesTemplate) return;
+    const gen = generateRandomCodes(1);
+    if (gen.success && gen.codes[0]) {
+      await updateSingleItemValue(itemId, gen.codes[0]);
+      onRefreshPrizes?.();
+      showSuccess(`Generated code: ${gen.codes[0]}`);
+    }
   };
 
   // Filtered items in the modal table
@@ -1054,10 +1161,30 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                 </button>
               </div>
 
+              {/* Persistent Duplicate Conflicts Alert */}
+              {unresolvedConflicts.length > 0 && (
+                <div className="mx-6 mt-4 p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/15 flex items-center justify-between text-xs text-amber-300">
+                  <div className="flex items-center gap-2.5">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                    <span>
+                      <strong>Warning:</strong> {unresolvedConflicts.length}{" "}
+                      duplicate voucher code(s) exist in this template.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearUnresolvedConflicts}
+                    className="px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
               {/* Action Toolbar */}
               <div className="p-4 sm:px-7 bg-card-bg-subtle border-b border-card-border flex flex-wrap items-center justify-between gap-3 shrink-0">
                 {/* Search in codes */}
-                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
                   <Search className="absolute left-3.5 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
@@ -1068,25 +1195,67 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   />
                 </div>
 
-                {/* Toolbar Buttons: Copy All, Import, Export, Bulk Paste */}
+                {/* Import Mode Selector + Action Buttons */}
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Import Mode Selector */}
+                  <div className="flex items-center bg-card-bg p-1 rounded-xl border border-card-border">
+                    <button
+                      type="button"
+                      onClick={() => setImportMode("append")}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        importMode === "append"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-brand-textMuted hover:text-brand-text"
+                      }`}
+                      title="Preserves existing codes and fills next empty slots"
+                    >
+                      Append
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImportMode("replace")}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        importMode === "replace"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-brand-textMuted hover:text-brand-text"
+                      }`}
+                      title="Overwrites existing codes from slot 1"
+                    >
+                      Replace All
+                    </button>
+                  </div>
+
+                  {/* Auto-Fill Random Codes */}
+                  <button
+                    type="button"
+                    onClick={handleFillRandomSlots}
+                    disabled={isGeneratingRandom || codesSaving}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition-all shadow-sm disabled:opacity-50"
+                    title="Auto-fills all empty slots with unique 8-character uppercase alphanumeric codes"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>
+                      {isGeneratingRandom ? "Generating..." : "Auto-Fill Empty"}
+                    </span>
+                  </button>
+
                   {/* Copy All */}
                   <button
                     onClick={handleCopyAllCodes}
-                    className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
+                    className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
                   >
                     {copiedAll ? (
                       <ClipboardCheck className="w-4 h-4 text-emerald-500" />
                     ) : (
                       <Clipboard className="w-4 h-4 text-slate-500" />
                     )}
-                    <span>{copiedAll ? "Copied All!" : "Copy All"}</span>
+                    <span>{copiedAll ? "Copied" : "Copy"}</span>
                   </button>
 
                   {/* Bulk Paste Toggle */}
                   <button
                     onClick={() => setShowBulkPaste(!showBulkPaste)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border cursor-pointer transition-all shadow-sm ${
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border cursor-pointer transition-all shadow-sm ${
                       showBulkPaste
                         ? "bg-blue-600 text-white border-blue-600"
                         : "border-card-border bg-card-bg hover:bg-card-bg-subtle"
@@ -1099,10 +1268,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   {/* Export CSV */}
                   <button
                     onClick={() => handleExportCodes("csv")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
+                    className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
                   >
                     <Download className="w-4 h-4 text-slate-500" />
-                    <span>Export CSV</span>
+                    <span>Export</span>
                   </button>
 
                   {/* Import File (Hidden file input) */}
@@ -1118,7 +1287,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all shadow-sm"
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all shadow-sm"
                   >
                     <Upload className="w-4 h-4" />
                     <span>Import File</span>
@@ -1140,7 +1309,15 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         Paste codes line-by-line (one per row):
                       </span>
                       <span className="text-[11px] text-brand-textMuted">
-                        Lines will replace empty slots in order
+                        Mode:{" "}
+                        <strong className="text-emerald-500 uppercase">
+                          {importMode}
+                        </strong>{" "}
+                        (
+                        {importMode === "append"
+                          ? "Fills empty slots sequentially"
+                          : "Overwrites from slot 1"}
+                        )
                       </span>
                     </div>
                     <textarea
@@ -1162,7 +1339,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         disabled={!bulkPasteText.trim() || codesSaving}
                         className="px-5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer transition-all"
                       >
-                        {codesSaving ? "Saving..." : "Apply Codes"}
+                        {codesSaving
+                          ? "Saving..."
+                          : `Apply (${importMode === "append" ? "Append" : "Replace All"})`}
                       </button>
                     </div>
                   </motion.div>
@@ -1194,70 +1373,109 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-card-border">
-                        {displayedModalItems.map((item) => (
-                          <tr
-                            key={item.id}
-                            className="hover:bg-card-bg-subtle/50 transition-colors"
-                          >
-                            <td className="py-3 px-4 font-mono font-bold text-brand-textMuted">
-                              {item.item_index}
-                            </td>
-                            <td className="py-2 px-4">
-                              <input
-                                type="text"
-                                value={item.item_value ?? ""}
-                                placeholder="Click to enter code..."
-                                onChange={(e) => {
-                                  const newVal = e.target.value;
-                                  setTemplateItems((current) =>
-                                    current.map((t) =>
-                                      t.id === item.id
-                                        ? { ...t, item_value: newVal }
-                                        : t,
-                                    ),
-                                  );
-                                }}
-                                onBlur={(e) => {
-                                  void updateSingleItemValue(
-                                    item.id,
-                                    e.target.value,
-                                  );
-                                  onRefreshPrizes?.();
-                                }}
-                                className="w-full bg-transparent border-none font-mono text-xs font-bold text-brand-text focus:outline-none focus:bg-card-bg focus:ring-1 focus:ring-emerald-500 rounded-lg px-2 py-1"
-                              />
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                  item.item_value &&
-                                  item.item_value.trim().length > 0
-                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400"
-                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                                }`}
-                              >
-                                {item.item_value &&
-                                item.item_value.trim().length > 0
-                                  ? "Prepared"
-                                  : "Empty"}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              {item.item_value && (
-                                <button
-                                  onClick={async () => {
-                                    await updateSingleItemValue(item.id, "");
+                        {displayedModalItems.map((item) => {
+                          const isRedeemed = Boolean(
+                            item.is_redeemed || item.is_used,
+                          );
+                          const hasValue = Boolean(
+                            item.item_value &&
+                            item.item_value.trim().length > 0,
+                          );
+
+                          return (
+                            <tr
+                              key={item.id}
+                              className={`transition-colors ${
+                                isRedeemed
+                                  ? "bg-red-500/10 hover:bg-red-500/15 border-l-4 border-l-red-500"
+                                  : "hover:bg-card-bg-subtle/50"
+                              }`}
+                            >
+                              <td className="py-3 px-4 font-mono font-bold text-brand-textMuted">
+                                {item.item_index}
+                              </td>
+                              <td className="py-2 px-4">
+                                <input
+                                  type="text"
+                                  disabled={isRedeemed}
+                                  value={item.item_value ?? ""}
+                                  placeholder={
+                                    isRedeemed
+                                      ? "Redeemed by player"
+                                      : "Click to enter code..."
+                                  }
+                                  onChange={(e) => {
+                                    const newVal = e.target.value;
+                                    setTemplateItems((current) =>
+                                      current.map((t) =>
+                                        t.id === item.id
+                                          ? { ...t, item_value: newVal }
+                                          : t,
+                                      ),
+                                    );
+                                  }}
+                                  onBlur={(e) => {
+                                    void updateSingleItemValue(
+                                      item.id,
+                                      e.target.value,
+                                    );
                                     onRefreshPrizes?.();
                                   }}
-                                  className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                  title="Clear code"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                  className={`w-full font-mono text-xs font-bold rounded-lg px-2 py-1 outline-none transition-all ${
+                                    isRedeemed
+                                      ? "bg-red-500/15 text-red-500 dark:text-red-400 font-black line-through cursor-not-allowed border border-red-500/40"
+                                      : "bg-transparent border-none text-brand-text focus:bg-card-bg focus:ring-1 focus:ring-emerald-500"
+                                  }`}
+                                />
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                {isRedeemed ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40"
+                                    title={`Redeemed at: ${item.redeemed_at || "N/A"}`}
+                                  >
+                                    <Lock className="w-3 h-3 text-red-500" />
+                                    Redeemed
+                                  </span>
+                                ) : hasValue ? (
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400">
+                                    Prepared
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                    Empty
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {!isRedeemed && !hasValue && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleGenerateSingleRandom(item.id)
+                                    }
+                                    className="text-purple-400 hover:text-purple-300 p-1 cursor-pointer"
+                                    title="Generate 8-char random alphanumeric code"
+                                  >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                                {!isRedeemed && hasValue && (
+                                  <button
+                                    onClick={async () => {
+                                      await updateSingleItemValue(item.id, "");
+                                      onRefreshPrizes?.();
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                    title="Clear code"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1280,6 +1498,120 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
+      {/* CONFLICT RESOLUTION MODAL */}
+      <AnimatePresence>
+        {activeValidationResult &&
+          activeValidationResult.conflicts.length > 0 && (
+            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-card-bg border border-card-border rounded-3xl w-full max-w-2xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden"
+              >
+                <div className="p-5 border-b border-card-border bg-amber-500/10 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-brand-text">
+                        Duplicate Codes Detected (
+                        {activeValidationResult.conflicts.length})
+                      </h3>
+                      <p className="text-xs text-amber-300/80">
+                        Some codes in this batch collide with existing template
+                        codes or appear multiple times.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveValidationResult(null)}
+                    className="text-brand-textMuted hover:text-brand-text cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                  <p className="text-xs text-brand-textMuted">
+                    You can provide replacement codes inline below, or proceed
+                    with warnings retained:
+                  </p>
+
+                  <div className="space-y-2.5">
+                    {activeValidationResult.conflicts.map((conflict, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-2xl bg-card-bg-subtle border border-card-border space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-mono font-bold text-brand-text">
+                            Line #{conflict.lineNumber}:{" "}
+                            <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                              {conflict.code}
+                            </code>
+                          </span>
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                            {conflict.reason === "batch_duplicate"
+                              ? "Duplicate in Batch"
+                              : "Already Exists in Template"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="Enter new unique code..."
+                            value={conflictFixInputs[conflict.lineNumber] ?? ""}
+                            onChange={(e) =>
+                              setConflictFixInputs({
+                                ...conflictFixInputs,
+                                [conflict.lineNumber]: e.target.value,
+                              })
+                            }
+                            className="flex-1 bg-card-bg border border-card-border rounded-xl px-3 py-1.5 text-xs font-mono text-brand-text focus:outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleApplyConflictFix(conflict.lineNumber)
+                            }
+                            disabled={
+                              !conflictFixInputs[conflict.lineNumber]?.trim()
+                            }
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition disabled:opacity-40 cursor-pointer"
+                          >
+                            Fix
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 border-t border-card-border bg-card-bg-subtle flex items-center justify-between shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveValidationResult(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer"
+                  >
+                    Cancel Import
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleProceedWithConflicts}
+                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+                  >
+                    Proceed Anyway (Keep Warnings)
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
       </AnimatePresence>
     </div>
   );

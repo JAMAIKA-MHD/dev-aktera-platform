@@ -764,6 +764,8 @@ CREATE TABLE IF NOT EXISTS public.prize_template_items (
   item_index integer NOT NULL CHECK (item_index > 0),
   item_value text,
   source_type text NOT NULL DEFAULT 'manual' CHECK (source_type IN ('manual', 'bulk')),
+  is_used boolean DEFAULT false,
+  redeemed_at timestamptz NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (prize_template_id, item_index)
@@ -771,6 +773,10 @@ CREATE TABLE IF NOT EXISTS public.prize_template_items (
 
 CREATE INDEX IF NOT EXISTS idx_prize_template_items_template
 ON public.prize_template_items(prize_template_id);
+
+CREATE INDEX IF NOT EXISTS idx_prize_template_items_available
+ON public.prize_template_items(prize_template_id, is_used, item_index)
+WHERE is_used = false;
 
 CREATE INDEX IF NOT EXISTS idx_prize_template_items_org
 ON public.prize_template_items(organization_id);
@@ -925,6 +931,81 @@ DO $$ BEGIN
     );
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Atomically claim unique prize coupon code for winning entry
+CREATE OR REPLACE FUNCTION public.claim_campaign_prize_coupon(
+  p_prize_id uuid,
+  p_entry_id uuid
+)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_prize_template_id uuid;
+  v_item_id uuid;
+  v_coupon_code text;
+BEGIN
+  SELECT prize_template_id INTO v_prize_template_id
+  FROM public.prizes
+  WHERE id = p_prize_id;
+
+  IF v_prize_template_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT pti.id, pti.item_value
+  INTO v_item_id, v_coupon_code
+  FROM public.prize_template_items pti
+  WHERE pti.prize_template_id = v_prize_template_id
+    AND pti.item_value IS NOT NULL
+    AND trim(pti.item_value) <> ''
+    AND NOT EXISTS (
+      SELECT 1 FROM public.coupon_redemptions cr
+      WHERE cr.prize_template_item_id = pti.id
+    )
+  ORDER BY pti.item_index ASC
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED;
+
+  IF v_item_id IS NOT NULL AND v_coupon_code IS NOT NULL THEN
+    INSERT INTO public.coupon_redemptions (
+      entry_id,
+      prize_template_item_id,
+      coupon_value,
+      redeemed_by_player
+    ) VALUES (
+      p_entry_id,
+      v_item_id,
+      v_coupon_code,
+      false
+    )
+    ON CONFLICT (prize_template_item_id) DO NOTHING;
+
+    UPDATE public.entries
+    SET redeemed_coupon_value = v_coupon_code
+    WHERE id = p_entry_id;
+
+    RETURN v_coupon_code;
+  END IF;
+
+  SELECT pt.item_value INTO v_coupon_code
+  FROM public.prize_templates pt
+  WHERE pt.id = v_prize_template_id;
+
+  IF v_coupon_code IS NOT NULL AND trim(v_coupon_code) <> '' THEN
+    UPDATE public.entries
+    SET redeemed_coupon_value = trim(v_coupon_code)
+    WHERE id = p_entry_id;
+    RETURN trim(v_coupon_code);
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.claim_campaign_prize_coupon(uuid, uuid) TO anon, authenticated, service_role;
 
 -- ---- 20260706091000_restore_api_grants_and_add_org_recovery.sql ----
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;

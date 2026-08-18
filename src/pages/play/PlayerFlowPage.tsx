@@ -80,6 +80,9 @@ interface DbCampaignRow {
     name: string;
     is_active: boolean;
     win_message: string | null;
+    quantity?: number;
+    quantity_won?: number;
+    prize_template_id?: string | null;
   }>;
   quiz_questions: Array<{
     id: string;
@@ -162,7 +165,7 @@ export default function PlayerFlowPage() {
     const { data, error } = await supabase
       .from("campaigns")
       .select(
-        "id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message), quiz_questions(id, question, options, correct_option_index, position, is_active)",
+        "id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
       )
       .eq("slug", slug)
       .single();
@@ -172,11 +175,69 @@ export default function PlayerFlowPage() {
       return;
     }
 
-    const row = data as unknown as DbCampaignRow;
+    const row = data as unknown as DbCampaignRow & {
+      prizes: Array<{
+        id: string;
+        name: string;
+        is_active: boolean;
+        win_message: string | null;
+        quantity?: number;
+        quantity_won?: number;
+        prize_template_id?: string | null;
+      }>;
+    };
 
     if (row.status !== "active") {
       setScreen("inactive");
       return;
+    }
+
+    // Check if campaign stock or voucher codes are depleted (0 available left)
+    try {
+      const activeDbPrizes = (row.prizes ?? []).filter((p) => p.is_active);
+      const totalAllocatedStock = activeDbPrizes.reduce(
+        (acc, p) => acc + (p.quantity ?? 0),
+        0,
+      );
+
+      // 1. Total winners in this campaign
+      const { count: totalWinnersCount } = await supabase
+        .from("entries")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", row.id)
+        .eq("is_winner", true);
+
+      const totalWinners = totalWinnersCount ?? 0;
+
+      // If total winners reached or exceeded total allocated prize stock (e.g. 10/10)
+      if (totalAllocatedStock > 0 && totalWinners >= totalAllocatedStock) {
+        setScreen("inactive");
+        return;
+      }
+
+      // 2. Check total prepared voucher codes in database
+      const winningTemplateIds = activeDbPrizes
+        .map((p) => p.prize_template_id)
+        .filter((id): id is string => Boolean(id));
+
+      if (winningTemplateIds.length > 0) {
+        const { count: totalPreparedCodes } = await supabase
+          .from("prize_template_items")
+          .select("id", { count: "exact", head: true })
+          .in("prize_template_id", winningTemplateIds)
+          .not("item_value", "is", null);
+
+        if (
+          totalPreparedCodes !== null &&
+          totalPreparedCodes > 0 &&
+          totalWinners >= totalPreparedCodes
+        ) {
+          setScreen("inactive");
+          return;
+        }
+      }
+    } catch {
+      // Non-fatal stock check fallback
     }
 
     // Map DB prizes → UI Prize[] with indexed colors
@@ -336,16 +397,22 @@ export default function PlayerFlowPage() {
         const invokeMessage = error
           ? await extractInvokeErrorMessage(error)
           : String(result?.error ?? "").toLowerCase();
+
         if (
+          result?.code === "ALREADY_PARTICIPATED" ||
           invokeMessage.includes("already participated") ||
           invokeMessage.includes("maximum entries")
         ) {
           setScreen("duplicate");
           return;
         }
+
         if (
+          result?.code === "CAMPAIGN_CLOSED" ||
           invokeMessage.includes("not active") ||
-          invokeMessage.includes("not found")
+          invokeMessage.includes("not found") ||
+          invokeMessage.includes("closed") ||
+          invokeMessage.includes("claimed")
         ) {
           setScreen("inactive");
           return;
@@ -370,21 +437,48 @@ export default function PlayerFlowPage() {
               .select("organization_id, win_probability")
               .eq("id", campaignId)
               .single();
+            // Query winning entries count vs total allocated stock
+            const { count: priorWinnersCount } = await supabase
+              .from("entries")
+              .select("id", { count: "exact", head: true })
+              .eq("campaign_id", campaignId)
+              .eq("is_winner", true);
+
+            const winnersSoFar = priorWinnersCount ?? 0;
+
+            const { data: dbPrizes } = await supabase
+              .from("prizes")
+              .select("id, quantity, quantity_won, prize_template_id")
+              .eq("campaign_id", campaignId)
+              .eq("is_active", true);
+
+            const totalAllocated = (dbPrizes ?? []).reduce(
+              (acc, p) => acc + (p.quantity ?? 0),
+              0,
+            );
+
+            // If total prize stock is fully claimed, player cannot win any prize
+            const hasAvailableStock =
+              totalAllocated > 0 ? winnersSoFar < totalAllocated : true;
 
             const winProb = Number(campData?.win_probability ?? 0.3);
-            const rolledWin = Math.random() <= winProb;
+            const rolledWin = hasAvailableStock && Math.random() <= winProb;
 
             let chosenPrize = LOSER_SLOT;
+            let fallbackCouponCode: string | null = null;
+
             if (rolledWin && brandPreset?.prizes) {
               const winnablePrizes = brandPreset.prizes.filter((p) => p.isWin);
               if (winnablePrizes.length > 0) {
-                chosenPrize =
+                const picked =
                   winnablePrizes[
                     Math.floor(Math.random() * winnablePrizes.length)
                   ];
+                chosenPrize = { ...picked };
               }
             }
 
+            // Insert entry
             const { data: insertedEntry } = await supabase
               .from("entries")
               .insert({
@@ -397,10 +491,124 @@ export default function PlayerFlowPage() {
                   chosenPrize.isWin && chosenPrize.id !== "__loser__"
                     ? chosenPrize.id
                     : null,
+                redeemed_coupon_value: null,
                 quiz_passed: quizPassed,
               })
               .select("id")
               .single();
+
+            // If player won a prize, track quantity_won and claim unique voucher code
+            if (
+              chosenPrize.isWin &&
+              chosenPrize.id &&
+              chosenPrize.id !== "__loser__" &&
+              insertedEntry?.id
+            ) {
+              try {
+                // Increment prize quantity_won counter
+                const { data: pCurrent } = await supabase
+                  .from("prizes")
+                  .select("quantity_won")
+                  .eq("id", chosenPrize.id)
+                  .single();
+
+                if (pCurrent) {
+                  await supabase
+                    .from("prizes")
+                    .update({
+                      quantity_won: (pCurrent.quantity_won ?? 0) + 1,
+                    })
+                    .eq("id", chosenPrize.id);
+                }
+              } catch {
+                // Non-fatal
+              }
+
+              try {
+                // Method 1: Database RPC function (Atomic, SKIP LOCKED, works for anon)
+                const { data: rpcCode, error: rpcError } = await supabase.rpc(
+                  "claim_campaign_prize_coupon",
+                  {
+                    p_prize_id: chosenPrize.id,
+                    p_entry_id: insertedEntry.id,
+                  },
+                );
+
+                if (!rpcError && rpcCode && typeof rpcCode === "string") {
+                  fallbackCouponCode = rpcCode.trim();
+                }
+              } catch {
+                // RPC fallback
+              }
+
+              // Method 2: Sequential offset fallback using previous winning entries count
+              if (!fallbackCouponCode) {
+                try {
+                  const { data: pData } = await supabase
+                    .from("prizes")
+                    .select("prize_template_id")
+                    .eq("id", chosenPrize.id)
+                    .single();
+
+                  if (pData?.prize_template_id) {
+                    // Count how many winners already won this prize in this campaign
+                    const { count: priorWinnersCount } = await supabase
+                      .from("entries")
+                      .select("id", { count: "exact", head: true })
+                      .eq("campaign_id", campaignId)
+                      .eq("prize_id", chosenPrize.id)
+                      .neq("id", insertedEntry.id);
+
+                    const offset = priorWinnersCount ?? 0;
+
+                    const { data: itemRows } = await supabase
+                      .from("prize_template_items")
+                      .select("id, item_value, item_index")
+                      .eq("prize_template_id", pData.prize_template_id)
+                      .not("item_value", "is", null)
+                      .order("item_index", { ascending: true })
+                      .range(offset, offset + 10);
+
+                    const assignedItem =
+                      (itemRows ?? []).find(
+                        (i) => i.item_value && i.item_value.trim().length > 0,
+                      ) || itemRows?.[0];
+
+                    if (assignedItem?.item_value) {
+                      fallbackCouponCode = assignedItem.item_value.trim();
+
+                      // Update entries table with this coupon code
+                      await supabase
+                        .from("entries")
+                        .update({ redeemed_coupon_value: fallbackCouponCode })
+                        .eq("id", insertedEntry.id);
+                    } else {
+                      const { data: tData } = await supabase
+                        .from("prize_templates")
+                        .select("item_value")
+                        .eq("id", pData.prize_template_id)
+                        .single();
+                      if (tData?.item_value?.trim()) {
+                        fallbackCouponCode = tData.item_value.trim();
+                        await supabase
+                          .from("entries")
+                          .update({ redeemed_coupon_value: fallbackCouponCode })
+                          .eq("id", insertedEntry.id);
+                      }
+                    }
+                  }
+                } catch {
+                  // Fallback query silent catch
+                }
+              }
+
+              if (fallbackCouponCode) {
+                chosenPrize = {
+                  ...chosenPrize,
+                  couponCode: fallbackCouponCode,
+                };
+              }
+            }
 
             const fallbackId = insertedEntry?.id ?? null;
             setEntryId(fallbackId);
@@ -427,12 +635,15 @@ export default function PlayerFlowPage() {
 
       // Determine the UI prize to land on
       let resolvedPrize: Prize;
+      const returnedCouponCode =
+        result.coupon?.code || result.entry?.redeemed_coupon_value || undefined;
+
       if (result.prize && brandPreset) {
         const matched = brandPreset.prizes.find(
           (p) => p.id === result.prize.id || p.name === result.prize.name,
         );
         resolvedPrize = matched
-          ? { ...matched, couponCode: result.coupon?.code ?? undefined }
+          ? { ...matched, couponCode: returnedCouponCode }
           : { ...LOSER_SLOT, isWin: false };
       } else {
         resolvedPrize = LOSER_SLOT;
@@ -550,16 +761,24 @@ export default function PlayerFlowPage() {
   if (screen === "inactive") {
     return (
       <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center px-6 text-center">
-        <div>
-          <AlertTriangle className="w-12 h-12 text-amber-500/60 mx-auto mb-4" />
-          <h1 className="text-lg font-bold text-zinc-200">Campaign Closed</h1>
-          <p className="text-sm text-zinc-500 mt-2 font-sans">
-            This campaign is no longer active. Check back later for new
-            promotions! 🇩🇿
+        <div className="max-w-md w-full p-8 rounded-3xl bg-[#171727] border border-white/10 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto mb-5">
+            <AlertTriangle className="w-8 h-8 text-rose-500" />
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight">
+            This Campaign is Closed
+          </h1>
+          <p className="text-sm text-zinc-400 mt-3 font-sans leading-relaxed">
+            All voucher rewards for this campaign have been claimed or the
+            campaign has ended. Thank you for your interest! Stay tuned for new
+            promotions. 🇩🇿
           </p>
-          <p dir="auto" className="text-xs text-zinc-600 mt-1">
-            الحملة غير نشطة حالياً. تابعونا للحملات القادمة!
-          </p>
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <p dir="auto" className="text-xs text-zinc-500 leading-relaxed">
+              تم استنفاد جميع جوائز وقسائم هذه الحملة أو انتهت صلاحيتها. شكراً
+              جزيلاً لمشاركتكم! تابعونا للحملات والجوائز القادمة.
+            </p>
+          </div>
         </div>
       </div>
     );

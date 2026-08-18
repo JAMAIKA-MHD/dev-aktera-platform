@@ -176,46 +176,57 @@ export const PlayerResult: React.FC<PlayerResultProps> = ({
 
             {/* SERIAL / BARCODE SECTION */}
             <div className="px-6 pb-4 pt-1 text-center relative z-10">
-              {/* Barcode representation */}
-              <div className="flex h-10 w-full justify-center gap-[2px] opacity-80 overflow-hidden mb-3">
-                {couponCode
-                  .replace(/-/g, "")
-                  .substring(0, 16)
-                  .padEnd(16, "A")
-                  .split("")
-                  .map((char, i) => (
-                    <React.Fragment key={i}>
-                      <div
-                        className={`h-full bg-slate-900 ${char.charCodeAt(0) % 2 === 0 ? "w-1" : "w-[2px]"}`}
-                      />
-                      <div
-                        className={`h-full bg-slate-900 ${char.charCodeAt(0) % 3 === 0 ? "w-0.5" : "w-[3px]"}`}
-                      />
-                      <div
-                        className={`h-full bg-slate-900 ${char.charCodeAt(0) % 5 === 0 ? "w-1" : "w-[1px]"}`}
-                        style={{
-                          opacity: char.charCodeAt(0) % 2 === 0 ? 0.7 : 1,
-                        }}
-                      />
-                    </React.Fragment>
-                  ))}
-              </div>
+              {couponCode ? (
+                <>
+                  {/* Barcode representation */}
+                  <div className="flex h-10 w-full justify-center gap-[2px] opacity-80 overflow-hidden mb-3">
+                    {couponCode
+                      .replace(/-/g, "")
+                      .substring(0, 16)
+                      .padEnd(16, "A")
+                      .split("")
+                      .map((char, i) => (
+                        <React.Fragment key={i}>
+                          <div
+                            className={`h-full bg-slate-900 ${char.charCodeAt(0) % 2 === 0 ? "w-1" : "w-[2px]"}`}
+                          />
+                          <div
+                            className={`h-full bg-slate-900 ${char.charCodeAt(0) % 3 === 0 ? "w-0.5" : "w-[3px]"}`}
+                          />
+                          <div
+                            className={`h-full bg-slate-900 ${char.charCodeAt(0) % 5 === 0 ? "w-1" : "w-[1px]"}`}
+                            style={{
+                              opacity: char.charCodeAt(0) % 2 === 0 ? 0.7 : 1,
+                            }}
+                          />
+                        </React.Fragment>
+                      ))}
+                  </div>
 
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-[11px] font-mono font-bold text-slate-900 uppercase tracking-widest">
-                  {couponCode}
-                </span>
-                <button
-                  onClick={handleCopy}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xs sm:text-sm font-mono font-black text-slate-900 uppercase tracking-wider bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+                      {couponCode}
+                    </span>
+                    <button
+                      onClick={handleCopy}
+                      className="text-slate-400 hover:text-slate-700 transition-colors p-1 cursor-pointer"
+                      title="Copy code"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="py-2 text-center">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Present your registered phone number to claim
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         ) : (

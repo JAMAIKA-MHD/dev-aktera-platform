@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import { PrizeTemplate } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
+import { PrizeTemplate } from "../types";
 
 interface DbTemplate {
   id: string;
@@ -23,6 +23,7 @@ interface DbPrizeAllocation {
 interface DbCampaignStatus {
   id: string;
   status: string;
+  source_campaign_id: string | null;
 }
 
 interface DbTemplateItemCount {
@@ -46,35 +47,63 @@ export function usePrizeTemplates(organizationId: string | null) {
     setError(null);
 
     try {
-      const [{ data: templates, error: tErr }, { data: allPrizes }, { data: campaigns }, { data: templateItems }] =
-        await Promise.all([
-          supabase
-            .from('prize_templates')
-            .select('id, name, description, category, value, stock_quantity, image_url, created_at')
-            .eq('organization_id', organizationId)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('prizes')
-            .select('prize_template_id, quantity, quantity_won, campaign_id')
-            .eq('organization_id', organizationId),
-          supabase
-            .from('campaigns')
-            .select('id, status')
-            .eq('organization_id', organizationId),
-          supabase
-            .from('prize_template_items')
-            .select('prize_template_id, item_index')
-            .eq('organization_id', organizationId)
-            .not('item_value', 'is', null),
-        ]);
+      const [
+        { data: templates, error: tErr },
+        { data: allPrizes },
+        { data: campaigns },
+        { data: templateItems },
+      ] = await Promise.all([
+        supabase
+          .from("prize_templates")
+          .select(
+            "id, name, description, category, value, stock_quantity, image_url, created_at",
+          )
+          .eq("organization_id", organizationId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("prizes")
+          .select("prize_template_id, quantity, quantity_won, campaign_id")
+          .eq("organization_id", organizationId),
+        supabase
+          .from("campaigns")
+          .select("id, status, source_campaign_id")
+          .eq("organization_id", organizationId),
+        supabase
+          .from("prize_template_items")
+          .select("prize_template_id, item_index")
+          .eq("organization_id", organizationId)
+          .not("item_value", "is", null),
+      ]);
 
       if (tErr) throw tErr;
 
-      // Campaigns consuming stock are those in draft/active/paused states
+      // Active and paused campaigns that consume stock
+      const activeOrPausedCampIds = new Set(
+        ((campaigns ?? []) as DbCampaignStatus[])
+          .filter((c) => ["active", "paused"].includes(c.status))
+          .map((c) => c.id),
+      );
+
+      // Campaigns consuming stock:
+      // 1. All active & paused campaigns
+      // 2. Standalone draft campaigns (drafts without a live/paused parent campaign)
+      // Drafts with source_campaign_id pointing to active/paused parents are update-drafts and do NOT double-count against parent stock
       const activeCampIds = new Set(
         ((campaigns ?? []) as DbCampaignStatus[])
-          .filter((c) => ['draft', 'active', 'paused'].includes(c.status))
-          .map((c) => c.id)
+          .filter((c) => {
+            if (["active", "paused"].includes(c.status)) return true;
+            if (c.status === "draft") {
+              if (
+                c.source_campaign_id &&
+                activeOrPausedCampIds.has(c.source_campaign_id)
+              ) {
+                return false;
+              }
+              return true;
+            }
+            return false;
+          })
+          .map((c) => c.id),
       );
 
       // Sum allocated quantity per template (only from active campaigns)
@@ -85,11 +114,14 @@ export function usePrizeTemplates(organizationId: string | null) {
       for (const p of (allPrizes ?? []) as DbPrizeAllocation[]) {
         campaignIdsByTemplate[p.prize_template_id] ??= new Set<string>();
         campaignIdsByTemplate[p.prize_template_id].add(p.campaign_id);
-        campaignUsageMap[p.prize_template_id] = campaignIdsByTemplate[p.prize_template_id].size;
-        winningMap[p.prize_template_id] = (winningMap[p.prize_template_id] ?? 0) + Number(p.quantity_won ?? 0);
+        campaignUsageMap[p.prize_template_id] =
+          campaignIdsByTemplate[p.prize_template_id].size;
+        winningMap[p.prize_template_id] =
+          (winningMap[p.prize_template_id] ?? 0) + Number(p.quantity_won ?? 0);
 
         if (activeCampIds.has(p.campaign_id)) {
-          allocatedMap[p.prize_template_id] = (allocatedMap[p.prize_template_id] ?? 0) + p.quantity;
+          allocatedMap[p.prize_template_id] =
+            (allocatedMap[p.prize_template_id] ?? 0) + p.quantity;
         }
       }
 
@@ -102,37 +134,44 @@ export function usePrizeTemplates(organizationId: string | null) {
       for (const item of (templateItems ?? []) as DbTemplateItemCount[]) {
         const templateStock = templateStockMap[item.prize_template_id] ?? 0;
         if (item.item_index <= templateStock) {
-          filledValuesMap[item.prize_template_id] = (filledValuesMap[item.prize_template_id] ?? 0) + 1;
+          filledValuesMap[item.prize_template_id] =
+            (filledValuesMap[item.prize_template_id] ?? 0) + 1;
         }
       }
 
-      const mapped: PrizeTemplate[] = ((templates ?? []) as DbTemplate[]).map((t) => {
-        const totalStock = t.stock_quantity;
-        const allocatedStock = allocatedMap[t.id] ?? 0;
-        const availableStock = Math.max(0, totalStock - allocatedStock);
+      const mapped: PrizeTemplate[] = ((templates ?? []) as DbTemplate[]).map(
+        (t) => {
+          const totalStock = t.stock_quantity;
+          const allocatedStock = allocatedMap[t.id] ?? 0;
+          const availableStock = Math.max(0, totalStock - allocatedStock);
 
-        return {
-          id: t.id,
-          name: t.name,
-          category: (t.category === 'physical' ? 'physical' : 'voucher') as 'voucher' | 'physical',
-          description: t.description ?? '',
-          totalStock,
-          availableStock,
-          allocatedStock,
-          filledValuesCount: filledValuesMap[t.id] ?? 0,
-          campaignUsageCount: campaignUsageMap[t.id] ?? 0,
-          quantityWonCount: winningMap[t.id] ?? 0,
-          // DB value is numeric (e.g. 500), display as "500 DA"
-          itemValue: Number(t.value) > 0 ? `${Number(t.value).toLocaleString()} DA` : '',
-          image: t.image_url ?? undefined,
-          createdAt: t.created_at,
-        };
-      });
+          return {
+            id: t.id,
+            name: t.name,
+            category: (t.category === "physical" ? "physical" : "voucher") as
+              "voucher" | "physical",
+            description: t.description ?? "",
+            totalStock,
+            availableStock,
+            allocatedStock,
+            filledValuesCount: filledValuesMap[t.id] ?? 0,
+            campaignUsageCount: campaignUsageMap[t.id] ?? 0,
+            quantityWonCount: winningMap[t.id] ?? 0,
+            // DB value is numeric (e.g. 500), display as "500 DA"
+            itemValue:
+              Number(t.value) > 0
+                ? `${Number(t.value).toLocaleString()} DA`
+                : "",
+            image: t.image_url ?? undefined,
+            createdAt: t.created_at,
+          };
+        },
+      );
 
       setPrizes(mapped);
     } catch (err) {
-      setError('Failed to load prize templates.');
-      console.error('[usePrizeTemplates]', err);
+      setError("Failed to load prize templates.");
+      console.error("[usePrizeTemplates]", err);
     } finally {
       setLoading(false);
     }

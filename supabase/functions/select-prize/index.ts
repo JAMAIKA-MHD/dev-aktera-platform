@@ -207,6 +207,7 @@ serve(async (req) => {
         JSON.stringify({
           ok: false,
           error: "You have already participated in this campaign.",
+          code: "ALREADY_PARTICIPATED",
         }),
         {
           status: 400,
@@ -215,9 +216,46 @@ serve(async (req) => {
       );
     }
 
-    // 3. Determine if Campaign is Wheel or Quiz
-    // If it's a quiz campaign, is_winner and prize are decided either for participation or based on pass status
-    // Per rules: "For quiz campaigns, record participation as a valid entry without using random instant-win logic."
+    // 3. Check if all campaign prizes / voucher stock have been completely claimed
+    const { data: campaignPrizes } = await supabaseAdmin
+      .from("prizes")
+      .select(
+        "id, name, weight, win_message, quantity, quantity_won, prize_template_id, prize_inventory(id, remaining)",
+      )
+      .eq("campaign_id", campaign_id)
+      .eq("is_active", true);
+
+    const totalAllocatedPrizes = (campaignPrizes ?? []).reduce(
+      (sum, p) => sum + Number(p.quantity || 0),
+      0,
+    );
+
+    const { count: winningEntriesCount } = await supabaseAdmin
+      .from("entries")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaign_id)
+      .eq("is_winner", true);
+
+    const totalWinnersSoFar = winningEntriesCount ?? 0;
+    const isCampaignFullyClaimed =
+      totalAllocatedPrizes > 0 && totalWinnersSoFar >= totalAllocatedPrizes;
+
+    if (isCampaignFullyClaimed) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error:
+            "This campaign is closed. All voucher rewards have been claimed.",
+          code: "CAMPAIGN_CLOSED",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // 4. Determine if Campaign is Wheel or Quiz
     const isQuizCampaign = campaign.require_quiz;
 
     let isWinner = false;
@@ -238,7 +276,7 @@ serve(async (req) => {
         const { data: activePrizes, error: prizesError } = await supabaseAdmin
           .from("prizes")
           .select(
-            "id, name, weight, win_message, prize_inventory(id, remaining)",
+            "id, name, weight, win_message, quantity, quantity_won, prize_inventory(id, remaining)",
           )
           .eq("campaign_id", campaign_id)
           .eq("is_active", true);
@@ -249,18 +287,25 @@ serve(async (req) => {
 
         if (!prizesError && activePrizes && activePrizes.length > 0) {
           // Filter prizes that have stock remaining (> 0)
-          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter(
-            (p) => {
-              const inventory = Array.isArray(p.prize_inventory)
-                ? p.prize_inventory[0]
-                : p.prize_inventory;
-              const remaining = inventory?.remaining ?? 0;
-              console.log(
-                `[select-prize] prize=${p.id} name="${p.name}" remaining=${remaining} inventoryRaw=${JSON.stringify(p.prize_inventory)}`,
-              );
-              return remaining > 0;
-            },
-          );
+          const stockPrizes = (
+            activePrizes as (ActivePrizePayload & {
+              quantity?: number;
+              quantity_won?: number;
+            })[]
+          ).filter((p) => {
+            const inventory = Array.isArray(p.prize_inventory)
+              ? p.prize_inventory[0]
+              : p.prize_inventory;
+            const remaining =
+              inventory?.remaining ??
+              (p.quantity
+                ? Math.max(0, p.quantity - (p.quantity_won || 0))
+                : 0);
+            console.log(
+              `[select-prize] prize=${p.id} name="${p.name}" remaining=${remaining}`,
+            );
+            return remaining > 0;
+          });
 
           console.log(`[select-prize] stockPrizes count=${stockPrizes.length}`);
 
@@ -278,6 +323,24 @@ serve(async (req) => {
                   selectedPrizeId = p.id;
                   selectedPrize = p;
                   isWinner = true;
+
+                  // Decrement prize_inventory remaining & increment prizes quantity_won
+                  const inv = Array.isArray(p.prize_inventory)
+                    ? p.prize_inventory[0]
+                    : p.prize_inventory;
+                  if (inv?.id) {
+                    await supabaseAdmin
+                      .from("prize_inventory")
+                      .update({
+                        remaining: Math.max(0, (inv.remaining ?? 1) - 1),
+                      })
+                      .eq("id", inv.id);
+                  }
+                  await supabaseAdmin
+                    .from("prizes")
+                    .update({ quantity_won: (p.quantity_won ?? 0) + 1 })
+                    .eq("id", p.id);
+
                   console.log(
                     `[select-prize] Selected prize="${p.name}" id=${p.id}`,
                   );
@@ -305,20 +368,28 @@ serve(async (req) => {
         const { data: activePrizes, error: prizesError } = await supabaseAdmin
           .from("prizes")
           .select(
-            "id, name, weight, win_message, prize_inventory(id, remaining)",
+            "id, name, weight, win_message, quantity, quantity_won, prize_inventory(id, remaining)",
           )
           .eq("campaign_id", campaign_id)
           .eq("is_active", true);
 
         if (!prizesError && activePrizes && activePrizes.length > 0) {
-          const stockPrizes = (activePrizes as ActivePrizePayload[]).filter(
-            (p) => {
-              const inventory = Array.isArray(p.prize_inventory)
-                ? p.prize_inventory[0]
-                : p.prize_inventory;
-              return (inventory?.remaining ?? 0) > 0;
-            },
-          );
+          const stockPrizes = (
+            activePrizes as (ActivePrizePayload & {
+              quantity?: number;
+              quantity_won?: number;
+            })[]
+          ).filter((p) => {
+            const inventory = Array.isArray(p.prize_inventory)
+              ? p.prize_inventory[0]
+              : p.prize_inventory;
+            const remaining =
+              inventory?.remaining ??
+              (p.quantity
+                ? Math.max(0, p.quantity - (p.quantity_won || 0))
+                : 0);
+            return remaining > 0;
+          });
 
           if (stockPrizes.length > 0) {
             const totalWeight = stockPrizes.reduce(
@@ -333,6 +404,23 @@ serve(async (req) => {
                   selectedPrizeId = p.id;
                   selectedPrize = p;
                   isWinner = true;
+
+                  const inv = Array.isArray(p.prize_inventory)
+                    ? p.prize_inventory[0]
+                    : p.prize_inventory;
+                  if (inv?.id) {
+                    await supabaseAdmin
+                      .from("prize_inventory")
+                      .update({
+                        remaining: Math.max(0, (inv.remaining ?? 1) - 1),
+                      })
+                      .eq("id", inv.id);
+                  }
+                  await supabaseAdmin
+                    .from("prizes")
+                    .update({ quantity_won: (p.quantity_won ?? 0) + 1 })
+                    .eq("id", p.id);
+
                   console.log(
                     `[select-prize] QUIZ Selected prize="${p.name}" id=${p.id}`,
                   );
@@ -408,12 +496,12 @@ serve(async (req) => {
       }
     }
 
-    // 5. If winner, fetch and reserve a coupon code
+    // 5. If winner, fetch and reserve a coupon code from prize_template_items
     let couponCode: string | null = null;
     let couponItemId: string | null = null;
 
     if (isWinner && selectedPrizeId) {
-      // Fetch the prize template to get coupon items
+      // Fetch the prize to get prize_template_id
       const { data: prizeData, error: prizeError } = await supabaseAdmin
         .from("prizes")
         .select("prize_template_id")
@@ -426,29 +514,64 @@ serve(async (req) => {
           .from("coupon_redemptions")
           .select("prize_template_item_id");
 
-        const usedIds: string[] = (usedRows ?? []).map(
-          (r: { prize_template_item_id: string }) => r.prize_template_item_id,
+        const usedIds = new Set<string>(
+          (usedRows ?? [])
+            .map(
+              (r: { prize_template_item_id?: string | null }) =>
+                r.prize_template_item_id,
+            )
+            .filter((id): id is string => Boolean(id)),
         );
 
-        // Step B: fetch an available (unused) coupon code
-        let couponQuery = supabaseAdmin
+        // Step B: fetch all items for this prize template ordered by item_index ASC
+        const { data: templateItems, error: itemsError } = await supabaseAdmin
           .from("prize_template_items")
-          .select("id, item_value")
+          .select("id, item_value, item_index")
           .eq("prize_template_id", prizeData.prize_template_id)
           .not("item_value", "is", null)
-          .limit(1);
+          .order("item_index", { ascending: true });
 
-        // Exclude already-used items only if there are any
-        if (usedIds.length > 0) {
-          couponQuery = couponQuery.not("id", "in", `(${usedIds.join(",")})`);
+        if (!itemsError && templateItems && templateItems.length > 0) {
+          const availableItem = templateItems.find(
+            (item: { id: string; item_value: string | null }) =>
+              item.item_value &&
+              item.item_value.trim().length > 0 &&
+              !usedIds.has(item.id),
+          );
+
+          if (availableItem && availableItem.item_value) {
+            couponCode = availableItem.item_value.trim();
+            couponItemId = availableItem.id;
+
+            // Safely attempt to mark this voucher code as used on prize_template_items
+            try {
+              await supabaseAdmin
+                .from("prize_template_items")
+                .update({
+                  is_used: true,
+                  redeemed_at: new Date().toISOString(),
+                })
+                .eq("id", couponItemId);
+            } catch {
+              // Ignore if is_used column not present
+            }
+          }
         }
 
-        const { data: couponItem, error: couponError } =
-          await couponQuery.single();
+        // Step C: Fallback to prize_templates default item_value if no individual item row
+        if (!couponCode) {
+          const { data: templateData } = await supabaseAdmin
+            .from("prize_templates")
+            .select("item_value")
+            .eq("id", prizeData.prize_template_id)
+            .single();
 
-        if (!couponError && couponItem?.item_value) {
-          couponCode = couponItem.item_value;
-          couponItemId = couponItem.id;
+          if (
+            templateData?.item_value &&
+            templateData.item_value.trim().length > 0
+          ) {
+            couponCode = templateData.item_value.trim();
+          }
         }
       }
     }
