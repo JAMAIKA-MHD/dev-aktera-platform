@@ -178,21 +178,28 @@ export async function createOrUpdateCampaignFullService(
   }
 
   const existingDraftAllocations = new Map<string, number>();
+  const campaignIdsToCredit = new Set<string>();
   if (newCamp.mode === "edit" && newCamp.id) {
-    const { data: existingDraftPrizes, error: existingDraftPrizesError } =
-      await supabase
-        .from("prizes")
-        .select("prize_template_id, quantity")
-        .eq("campaign_id", newCamp.id)
-        .eq("is_active", true);
-    if (existingDraftPrizesError) throw existingDraftPrizesError;
+    campaignIdsToCredit.add(newCamp.id);
+  }
+  if (newCamp.parentCampaignId) {
+    campaignIdsToCredit.add(newCamp.parentCampaignId);
+  }
 
-    for (const draftPrize of existingDraftPrizes ?? []) {
+  if (campaignIdsToCredit.size > 0) {
+    const { data: existingPrizes, error: existingPrizesError } = await supabase
+      .from("prizes")
+      .select("prize_template_id, quantity")
+      .in("campaign_id", Array.from(campaignIdsToCredit))
+      .eq("is_active", true);
+    if (existingPrizesError) throw existingPrizesError;
+
+    for (const prize of existingPrizes ?? []) {
       const current =
-        existingDraftAllocations.get(draftPrize.prize_template_id) ?? 0;
+        existingDraftAllocations.get(prize.prize_template_id) ?? 0;
       existingDraftAllocations.set(
-        draftPrize.prize_template_id,
-        current + draftPrize.quantity,
+        prize.prize_template_id,
+        current + prize.quantity,
       );
     }
   }
@@ -210,11 +217,14 @@ export async function createOrUpdateCampaignFullService(
 
     const editableExistingQuantity =
       existingDraftAllocations.get(templateId) ?? 0;
-    const maxAllowedQuantity =
-      template.availableStock + editableExistingQuantity;
+    // Real available stock is credited back with what this campaign / parent already had, capped at total stock ceiling
+    const maxAllowedQuantity = Math.min(
+      template.totalStock,
+      template.availableStock + editableExistingQuantity,
+    );
     if (requestedQuantity > maxAllowedQuantity) {
       throw new Error(
-        `Reward allocation exceeds available stock for "${template.name}". Requested ${requestedQuantity}, available ${maxAllowedQuantity}.`,
+        `Reward allocation exceeds available stock for "${template.name}". Requested ${requestedQuantity}, available ${maxAllowedQuantity} (Total stock: ${template.totalStock}).`,
       );
     }
   }
@@ -374,7 +384,10 @@ export async function createOrUpdateCampaignFullService(
       .single();
     if (sourceCampaignError) throw sourceCampaignError;
 
-    if (sourceCampaign && sourceCampaign.status === "active") {
+    if (
+      sourceCampaign &&
+      ["active", "paused"].includes(sourceCampaign.status)
+    ) {
       const { error: endError } = await supabase
         .from("campaigns")
         .update({ status: "ended" })

@@ -225,7 +225,9 @@ export default function App() {
     try {
       const submitStatus = newCamp.submitStatus ?? newCamp.status;
       const isPublishingUpdate =
-        newCamp.mode === "update" && submitStatus === "active";
+        (newCamp.mode === "update" ||
+          (newCamp.mode === "edit" && Boolean(newCamp.parentCampaignId))) &&
+        submitStatus === "active";
 
       await createOrUpdateCampaignFullService(
         {

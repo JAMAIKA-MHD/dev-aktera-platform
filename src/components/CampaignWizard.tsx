@@ -238,6 +238,23 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     });
   };
 
+  const getEffectiveAvailableStock = (template: PrizeTemplate) => {
+    let existingAllocated = 0;
+    if (isEditMode && editingCampaign) {
+      existingAllocated = editingCampaign.prizes
+        .filter((p) => p.templateId === template.id)
+        .reduce((sum, p) => sum + p.quantity, 0);
+    } else if (isUpdateDraftMode && updateDraftSource) {
+      existingAllocated = updateDraftSource.prizes
+        .filter((p) => p.templateId === template.id)
+        .reduce((sum, p) => sum + p.quantity, 0);
+    }
+    return Math.min(
+      template.totalStock,
+      template.availableStock + existingAllocated,
+    );
+  };
+
   const totalWeightSum = allocatedPrizes.reduce(
     (sum, p) => sum + Number(p.weight),
     0,
@@ -715,11 +732,14 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                           — Create prize templates first —
                         </option>
                       ) : (
-                        prizes.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.itemValue} - Stock: {p.availableStock})
-                          </option>
-                        ))
+                        prizes.map((p) => {
+                          const effStock = getEffectiveAvailableStock(p);
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.itemValue} - Stock: {effStock})
+                            </option>
+                          );
+                        })
                       )}
                     </select>
                   </div>
@@ -732,7 +752,11 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                     <input
                       type="number"
                       min="1"
-                      max={selectedItem ? selectedItem.availableStock : 100}
+                      max={
+                        selectedItem
+                          ? getEffectiveAvailableStock(selectedItem)
+                          : 100
+                      }
                       value={ap.quantity}
                       onChange={(e) =>
                         handleUpdatePrizeLine(
