@@ -1499,7 +1499,6 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
           </div>
         )}
       </AnimatePresence>
-
       {/* CONFLICT RESOLUTION MODAL */}
       <AnimatePresence>
         {activeValidationResult &&

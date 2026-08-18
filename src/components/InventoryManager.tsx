@@ -69,7 +69,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     setTemplateItems,
     loading: itemsLoading,
     saving: itemsSaving,
-    error: hookError,
+    error: _hookError,
     unresolvedConflicts,
     clearUnresolvedConflicts,
     loadTemplateItems,
@@ -90,15 +90,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     (acc, p) => acc + (p.filledValuesCount ?? 0),
     0,
   );
-  const totalDistributed = prizes.reduce(
-    (acc, p) => acc + (p.quantityWonCount ?? 0),
-    0,
-  );
-  const totalCampaignBindings = prizes.reduce(
-    (acc, p) => acc + (p.campaignUsageCount ?? 0),
-    0,
-  );
-  const lowStockCount = prizes.filter((p) => p.availableStock < 50).length;
 
   const filteredPrizes = useMemo(
     () =>
@@ -674,7 +665,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           })}
         </div>
       ) : (
-        /* Inventory Table View */
         <div className="bg-card-bg border border-card-border rounded-3xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">

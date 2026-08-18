@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BrandPreset, Prize } from "../types";
-import { Gift, Copy, Check, MessageCircle, RotateCcw } from "lucide-react";
+import { Copy, Check, MessageCircle, RotateCcw } from "lucide-react";
 import { motion } from "motion/react";
 
 interface PlayerResultProps {
@@ -19,7 +19,7 @@ export const PlayerResult: React.FC<PlayerResultProps> = ({
   prize,
   onRestart,
   playerName,
-  entryId,
+  entryId: _entryId,
   onCouponConfirmed,
 }) => {
   const [copied, setCopied] = useState(false);
