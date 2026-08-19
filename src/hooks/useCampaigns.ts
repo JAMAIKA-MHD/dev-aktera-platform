@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import { Campaign } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
+import { Campaign } from "../types";
 
 // ── DB row shapes ────────────────────────────────────────────────────────────
 
@@ -8,6 +8,7 @@ interface DbPrizeRow {
   id: string;
   prize_template_id: string;
   quantity: number;
+  quantity_won?: number;
   weight: number;
   is_active: boolean;
 }
@@ -42,26 +43,37 @@ interface DbCampaignRow {
 
 // ── Mapping ──────────────────────────────────────────────────────────────────
 
-function mapToUi(row: DbCampaignRow, entryCount: number, winnerCount: number): Campaign {
-  let status = row.status as Campaign['status'];
+function mapToUi(
+  row: DbCampaignRow,
+  entryCount: number,
+  winnerCount: number,
+): Campaign {
+  let status = row.status as Campaign["status"];
   // DB has 'ended'; map to 'archived' for UI display
-  if ((status as string) === 'ended') status = 'archived';
+  if ((status as string) === "ended") status = "archived";
 
   return {
     id: row.id,
     organizationId: row.organization_id,
     name: row.name,
-    arabicName: row.arabic_name ?? '',
+    arabicName: row.arabic_name ?? "",
     heroImageUrl: row.hero_image_url ?? undefined,
     slug: row.slug,
-    type: row.require_quiz ? 'quiz' : 'lucky_wheel',
+    type: row.require_quiz ? "quiz" : "lucky_wheel",
     status,
     // DB stores 0-1 decimal, UI expects 0-100 integer percentage
     winProbability: Math.round(Number(row.win_probability) * 100),
-    maxEntries: row.max_entries === 2 ? '2' : row.max_entries === 0 ? 'unlimited' : '1',
+    maxEntries:
+      row.max_entries === 2 ? "2" : row.max_entries === 0 ? "unlimited" : "1",
     prizes: (row.prizes ?? [])
       .filter((p) => p.is_active)
-      .map((p) => ({ templateId: p.prize_template_id, quantity: p.quantity, weight: p.weight })),
+      .map((p) => ({
+        id: p.id,
+        templateId: p.prize_template_id,
+        quantity: p.quantity,
+        quantity_won: p.quantity_won ?? 0,
+        weight: p.weight,
+      })),
     questions: (row.quiz_questions ?? [])
       .filter((q) => q.is_active)
       .sort((a, b) => a.position - b.position)
@@ -73,8 +85,8 @@ function mapToUi(row: DbCampaignRow, entryCount: number, winnerCount: number): C
       })),
     participantsCount: entryCount,
     rewardsClaimed: winnerCount,
-    startDate: row.start_date.split('T')[0],
-    endDate: row.end_date.split('T')[0],
+    startDate: row.start_date.split("T")[0],
+    endDate: row.end_date.split("T")[0],
     parentCampaignId: row.source_campaign_id ?? undefined,
     createdAt: row.created_at,
   };
@@ -99,12 +111,12 @@ export function useCampaigns(organizationId: string | null) {
 
     try {
       const { data: rows, error: campErr } = await supabase
-        .from('campaigns')
+        .from("campaigns")
         .select(
-          'id, organization_id, name, arabic_name, hero_image_url, slug, status, start_date, end_date, win_probability, max_entries, require_quiz, source_campaign_id, created_at, prizes(id, prize_template_id, quantity, weight, is_active), quiz_questions(id, question, options, correct_option_index, position, is_active)'
+          "id, organization_id, name, arabic_name, hero_image_url, slug, status, start_date, end_date, win_probability, max_entries, require_quiz, source_campaign_id, created_at, prizes(id, prize_template_id, quantity, quantity_won, weight, is_active), quiz_questions(id, question, options, correct_option_index, position, is_active)",
         )
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false });
 
       if (campErr) throw campErr;
       if (!rows || rows.length === 0) {
@@ -115,25 +127,26 @@ export function useCampaigns(organizationId: string | null) {
       // Fetch entry counts for all campaigns in one query
       const campIds = (rows as DbCampaignRow[]).map((r) => r.id);
       const { data: entryRows } = await supabase
-        .from('entries')
-        .select('campaign_id, is_winner')
-        .in('campaign_id', campIds);
+        .from("entries")
+        .select("campaign_id, is_winner")
+        .in("campaign_id", campIds);
 
       const entryCounts: Record<string, number> = {};
       const winnerCounts: Record<string, number> = {};
       for (const e of entryRows ?? []) {
         entryCounts[e.campaign_id] = (entryCounts[e.campaign_id] ?? 0) + 1;
-        if (e.is_winner) winnerCounts[e.campaign_id] = (winnerCounts[e.campaign_id] ?? 0) + 1;
+        if (e.is_winner)
+          winnerCounts[e.campaign_id] = (winnerCounts[e.campaign_id] ?? 0) + 1;
       }
 
       setCampaigns(
         (rows as DbCampaignRow[]).map((r) =>
-          mapToUi(r, entryCounts[r.id] ?? 0, winnerCounts[r.id] ?? 0)
-        )
+          mapToUi(r, entryCounts[r.id] ?? 0, winnerCounts[r.id] ?? 0),
+        ),
       );
     } catch (err) {
-      setError('Failed to load campaigns.');
-      console.error('[useCampaigns]', err);
+      setError("Failed to load campaigns.");
+      console.error("[useCampaigns]", err);
     } finally {
       setLoading(false);
     }

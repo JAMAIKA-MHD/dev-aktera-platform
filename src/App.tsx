@@ -103,8 +103,6 @@ export default function App() {
   const [relaunchDraftCampaign, setRelaunchDraftCampaign] =
     useState<Campaign | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
-  const [updateDraftSourceCampaign, setUpdateDraftSourceCampaign] =
-    useState<Campaign | null>(null);
 
   // Player Preview Sandbox state (pure visual preview — does NOT write to DB)
   const [showSandbox, setShowSandbox] = useState<boolean>(false);
@@ -216,39 +214,38 @@ export default function App() {
     },
   ) => {
     if (!orgId) {
-      setActionError(
-        "Organization not loaded. Please refresh the page and try again.",
-      );
-      return;
+      const msg =
+        "Organization not loaded. Please refresh the page and try again.";
+      setActionError(msg);
+      throw new Error(msg);
     }
     setActionError(null);
-    try {
-      const submitStatus = newCamp.submitStatus ?? newCamp.status;
-      const isPublishingUpdate =
-        (newCamp.mode === "update" ||
-          (newCamp.mode === "edit" && Boolean(newCamp.parentCampaignId))) &&
-        submitStatus === "active";
+    const submitStatus = newCamp.submitStatus ?? newCamp.status;
 
-      await createOrUpdateCampaignFullService(
-        {
-          orgId,
-          newCamp,
-          submitStatus,
-          isPublishingUpdate,
-        },
-        prizes,
-      );
+    const result = await createOrUpdateCampaignFullService(
+      {
+        orgId,
+        newCamp,
+        submitStatus,
+      },
+      prizes,
+    );
 
-      setRelaunchDraftCampaign(null);
-      setEditingCampaign(null);
-      setUpdateDraftSourceCampaign(null);
-      setSelectedCampaignId(null);
-      await refetchCampaigns();
-      await refetchPrizes();
-      setActiveTab("campaigns");
-    } catch (err) {
-      setActionError(toFriendlyErrorMessage(err, "Failed to save campaign."));
+    if (!result.success) {
+      const errorMsg =
+        result.errors && result.errors.length > 0
+          ? result.errors.map((e) => e.message).join(" ")
+          : "Failed to save campaign.";
+      setActionError(errorMsg);
+      throw new Error(errorMsg);
     }
+
+    setRelaunchDraftCampaign(null);
+    setEditingCampaign(null);
+    setSelectedCampaignId(null);
+    await refetchCampaigns();
+    await refetchPrizes();
+    setActiveTab("campaigns");
   };
 
   const handleToggleCampaignStatus = async (id: string) => {
@@ -307,22 +304,14 @@ export default function App() {
   // Handler: Relaunch Campaign pre-fill
   const handleRelaunchTrigger = (camp: Campaign) => {
     setEditingCampaign(null);
-    setUpdateDraftSourceCampaign(null);
     setRelaunchDraftCampaign(camp);
     setActiveTab("creator");
   };
 
-  const handleEditDraftTrigger = (camp: Campaign) => {
+  // Handler: In-place edit trigger for all campaigns
+  const handleEditCampaignTrigger = (camp: Campaign) => {
     setRelaunchDraftCampaign(null);
-    setUpdateDraftSourceCampaign(null);
     setEditingCampaign(camp);
-    setActiveTab("creator");
-  };
-
-  const handleUpdateDraftTrigger = (camp: Campaign) => {
-    setEditingCampaign(null);
-    setRelaunchDraftCampaign(null);
-    setUpdateDraftSourceCampaign(camp);
     setActiveTab("creator");
   };
 
@@ -408,7 +397,6 @@ export default function App() {
     setSelectedCampaignId(null);
     setEditingCampaign(null);
     setRelaunchDraftCampaign(null);
-    setUpdateDraftSourceCampaign(null);
     setActiveTab(tab);
   };
 
@@ -677,9 +665,8 @@ export default function App() {
                     prizes={prizes}
                     leads={leads}
                     onBack={() => setSelectedCampaignId(null)}
-                    onEditDraft={handleEditDraftTrigger}
+                    onEditCampaign={handleEditCampaignTrigger}
                     onRelaunch={handleRelaunchTrigger}
-                    onCreateUpdateDraft={handleUpdateDraftTrigger}
                     onToggleStatus={handleToggleCampaignStatus}
                     onOpenAnalytics={handleOpenAnalyticsDesk}
                   />
@@ -687,9 +674,8 @@ export default function App() {
                   <CampaignsList
                     campaigns={campaigns}
                     onSelectCampaign={handleCampaignFocus}
-                    onEditDraft={handleEditDraftTrigger}
+                    onEditCampaign={handleEditCampaignTrigger}
                     onRelaunch={handleRelaunchTrigger}
-                    onCreateUpdateDraft={handleUpdateDraftTrigger}
                     onToggleStatus={handleToggleCampaignStatus}
                     onArchive={handleArchiveCampaign}
                     onDelete={handleDeleteCampaign}
@@ -702,7 +688,7 @@ export default function App() {
 
             {activeTab === "creator" && (
               <motion.div
-                key={`creator-${editingCampaign?.id ?? updateDraftSourceCampaign?.id ?? relaunchDraftCampaign?.id ?? "new"}`}
+                key={`creator-${editingCampaign?.id ?? relaunchDraftCampaign?.id ?? "new"}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -713,12 +699,10 @@ export default function App() {
                   onCancel={() => {
                     setEditingCampaign(null);
                     setRelaunchDraftCampaign(null);
-                    setUpdateDraftSourceCampaign(null);
                     setActiveTab("campaigns");
                   }}
                   relaunchDraft={relaunchDraftCampaign}
                   editingCampaign={editingCampaign}
-                  updateDraftSource={updateDraftSourceCampaign}
                 />
               </motion.div>
             )}
