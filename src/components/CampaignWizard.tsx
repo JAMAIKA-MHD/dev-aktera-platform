@@ -97,6 +97,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   const [winProbability, setWinProbability] = useState(
     baseCampaign ? baseCampaign.winProbability : 60,
   );
+  const [autoPacePrizes, setAutoPacePrizes] = useState<boolean>(
+    baseCampaign?.autoPacePrizes ?? false,
+  );
   const [maxEntries, setMaxEntries] = useState<"1" | "2" | "unlimited">(
     baseCampaign?.maxEntries ?? "1",
   );
@@ -235,6 +238,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         type,
         status: submitStatus,
         winProbability,
+        autoPacePrizes,
         maxEntries,
         prizes: validPrizes,
         questions: type === "quiz" ? quizQuestions : [],
@@ -623,30 +627,153 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           </div>
 
           <div className="space-y-6">
+            {/* Auto-Paced Daily Voucher Distribution Card */}
+            {(() => {
+              const startMs = new Date(startDate + "T00:00:00Z").getTime();
+              const endMs = new Date(endDate + "T23:59:59Z").getTime();
+              const calculatedDays = Math.max(
+                1,
+                Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24)),
+              );
+              const totalAllocatedQty = allocatedPrizes.reduce(
+                (sum, p) => sum + (Number(p.quantity) || 0),
+                0,
+              );
+              const dailyVouchersEst = (
+                totalAllocatedQty / calculatedDays
+              ).toFixed(1);
+
+              return (
+                <div
+                  className={`p-5 rounded-2xl border transition-all ${
+                    autoPacePrizes
+                      ? isDark
+                        ? "bg-blue-950/20 border-blue-500/50 shadow-lg shadow-blue-950/20"
+                        : "bg-blue-50/70 border-blue-300 shadow-sm"
+                      : isDark
+                        ? "bg-[#0e1422] border-slate-800"
+                        : "bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          autoPacePrizes
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
+                            : isDark
+                              ? "bg-slate-800 text-slate-400"
+                              : "bg-slate-200 text-slate-500"
+                        }`}
+                      >
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`text-sm font-black tracking-tight ${
+                              isDark ? "text-white" : "text-slate-900"
+                            }`}
+                          >
+                            Auto-Paced Daily Voucher Distribution
+                          </span>
+                          {autoPacePrizes && (
+                            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                              Active Pacer
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-brand-textMuted mt-1 leading-relaxed max-w-xl">
+                          Evenly distribute your allocated vouchers across the
+                          campaign duration ({calculatedDays} days). When
+                          enabled, the server dynamically controls daily winning
+                          limits, and manual win percentage is locked.
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
+                      <input
+                        type="checkbox"
+                        checked={autoPacePrizes}
+                        onChange={(e) => setAutoPacePrizes(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  {autoPacePrizes && (
+                    <div className="mt-4 pt-4 border-t border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                        <span>
+                          Estimated Daily Budget: ~{dailyVouchersEst}{" "}
+                          vouchers/day
+                        </span>
+                      </div>
+                      <span className="text-brand-textMuted font-mono text-[11px]">
+                        Total: {totalAllocatedQty} vouchers ÷ {calculatedDays}{" "}
+                        days
+                      </span>
+                    </div>
+                  )}
+
+                  {isLiveCampaign &&
+                    !baseCampaign?.autoPacePrizes &&
+                    autoPacePrizes && (
+                      <div className="mt-3 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center gap-2 text-xs text-amber-500">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                        <span>
+                          Enabling pacing mid-campaign calculates daily limits
+                          from today forward using remaining un-won stock.
+                        </span>
+                      </div>
+                    )}
+                </div>
+              );
+            })()}
+
             {/* Win probability slider */}
             <div
-              className={`p-5 rounded-2xl space-y-3 border ${
-                isDark
-                  ? "bg-[#0e1422] border-slate-800"
-                  : "bg-slate-50 border-slate-200"
+              className={`p-5 rounded-2xl space-y-3 border transition-all ${
+                autoPacePrizes
+                  ? "opacity-60 bg-slate-100/50 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-800"
+                  : isDark
+                    ? "bg-[#0e1422] border-slate-800"
+                    : "bg-slate-50 border-slate-200"
               }`}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <span
-                    className={`text-xs font-black uppercase tracking-wider block ${
-                      isDark ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    Average Spin Win Probability
-                  </span>
-                  <span className="text-xs text-brand-textMuted mt-0.5">
-                    Determines the ratio of "no prize" outcomes for non-priority
-                    spins
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-black uppercase tracking-wider block ${
+                        isDark ? "text-white" : "text-slate-900"
+                      }`}
+                    >
+                      Average Spin Win Probability
+                    </span>
+                    {autoPacePrizes && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        Locked by Auto-Pacer
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-brand-textMuted mt-0.5 block">
+                    {autoPacePrizes
+                      ? "Win rate is dynamically determined by daily prize quota pacing."
+                      : 'Determines the ratio of "no prize" outcomes for non-priority spins'}
                   </span>
                 </div>
-                <span className="text-3xl font-black text-emerald-500 font-mono">
-                  {winProbability}%
+                <span
+                  className={`text-3xl font-black font-mono ${
+                    autoPacePrizes
+                      ? "text-slate-400 dark:text-slate-600 line-through text-2xl"
+                      : "text-emerald-500"
+                  }`}
+                >
+                  {autoPacePrizes ? "AUTO" : `${winProbability}%`}
                 </span>
               </div>
               <input
@@ -654,9 +781,14 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 min="5"
                 max="100"
                 step="5"
+                disabled={autoPacePrizes}
                 value={winProbability}
                 onChange={(e) => setWinProbability(Number(e.target.value))}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-blue-600 bg-slate-200 dark:bg-slate-700"
+                className={`w-full h-2 rounded-full appearance-none ${
+                  autoPacePrizes
+                    ? "cursor-not-allowed bg-slate-300 dark:bg-slate-800"
+                    : "cursor-pointer accent-blue-600 bg-slate-200 dark:bg-slate-700"
+                }`}
               />
               <div className="flex justify-between text-[11px] text-brand-textMuted font-mono">
                 <span>5% (Strict/Sparing)</span>
@@ -1125,9 +1257,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 </p>
                 <p>
                   <strong>Win Chance:</strong>{" "}
-                  <span className="text-emerald-500 font-black">
-                    {winProbability}%
-                  </span>
+                  {autoPacePrizes ? (
+                    <span className="text-blue-500 dark:text-blue-400 font-black">
+                      Auto-Paced Daily Distribution
+                    </span>
+                  ) : (
+                    <span className="text-emerald-500 font-black">
+                      {winProbability}%
+                    </span>
+                  )}
                 </p>
                 <p>
                   <strong>Rate Limit:</strong> 1 Play per phone number

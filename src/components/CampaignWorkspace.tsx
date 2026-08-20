@@ -480,17 +480,27 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-xs font-bold text-brand-textMuted">
-                    Win Probability
+                    {campaign.autoPacePrizes
+                      ? "Prize Distribution"
+                      : "Win Probability"}
                   </span>
-                  <h4 className="text-2xl sm:text-3xl font-black text-emerald-500 mt-1">
-                    {campaign.winProbability}%
+                  <h4
+                    className={`text-2xl sm:text-3xl font-black mt-1 ${campaign.autoPacePrizes ? "text-blue-500 dark:text-blue-400" : "text-emerald-500"}`}
+                  >
+                    {campaign.autoPacePrizes
+                      ? "Auto-Paced"
+                      : `${campaign.winProbability}%`}
                   </h4>
                 </div>
                 <div
                   className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    isDark
-                      ? "bg-emerald-950/60 text-emerald-400"
-                      : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                    campaign.autoPacePrizes
+                      ? isDark
+                        ? "bg-blue-950/60 text-blue-400"
+                        : "bg-blue-50 text-blue-600 border border-blue-100"
+                      : isDark
+                        ? "bg-emerald-950/60 text-emerald-400"
+                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                   }`}
                 >
                   <Gift className="w-4 h-4" />
@@ -502,14 +512,18 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                 }`}
               >
                 <div
-                  className="bg-emerald-500 h-full rounded-full"
+                  className={`h-full rounded-full ${campaign.autoPacePrizes ? "bg-blue-500" : "bg-emerald-500"}`}
                   style={{
-                    width: `${Math.min(campaign.winProbability, 100)}%`,
+                    width: campaign.autoPacePrizes
+                      ? "100%"
+                      : `${Math.min(campaign.winProbability, 100)}%`,
                   }}
                 ></div>
               </div>
               <p className="text-[11px] font-medium text-brand-textMuted mt-1">
-                Server-side win chance
+                {campaign.autoPacePrizes
+                  ? "Dynamic daily quota pacing"
+                  : "Server-side win chance"}
               </p>
             </div>
 

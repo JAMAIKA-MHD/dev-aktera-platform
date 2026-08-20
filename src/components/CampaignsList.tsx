@@ -419,16 +419,22 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
 
                 {/* Conv. Rate / Win Rate */}
                 <div>
-                  <div className="flex items-center gap-0.5 text-emerald-500 font-black text-xs leading-none">
+                  <div
+                    className={`flex items-center gap-0.5 font-black text-xs leading-none ${camp.autoPacePrizes ? "text-blue-500 dark:text-blue-400" : "text-emerald-500"}`}
+                  >
                     <TrendingUp className="w-2.5 h-2.5 stroke-[2.5]" />
-                    <span>{camp.winProbability}%</span>
+                    <span>
+                      {camp.autoPacePrizes
+                        ? "Paced"
+                        : `${camp.winProbability}%`}
+                    </span>
                   </div>
                   <span
                     className={`text-[9px] font-bold uppercase tracking-wider block mt-0.5 ${
                       isDark ? "text-slate-400" : "text-slate-500"
                     }`}
                   >
-                    Conv. Rate
+                    {camp.autoPacePrizes ? "Pacing Mode" : "Conv. Rate"}
                   </span>
                 </div>
               </div>

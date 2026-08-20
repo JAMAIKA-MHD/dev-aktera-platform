@@ -255,245 +255,56 @@ serve(async (req) => {
       );
     }
 
-    // 4. Determine if Campaign is Wheel or Quiz
-    const isQuizCampaign = campaign.require_quiz;
-
+    // 4. Atomic Prize Selection & Inventory Claim (Server-side & Auto-Paced)
     let isWinner = false;
     let selectedPrizeId: string | null = null;
     let selectedPrize: ActivePrizePayload | null = null;
 
-    if (!isQuizCampaign) {
-      // WHEEL GAME MECHANICS (Instant win logic with probability + weights)
-      const roll = Math.random(); // 0 to 1
-      const campaignProb = Number(campaign.win_probability);
+    const { data: drawResult, error: drawError } = await supabaseAdmin.rpc(
+      "draw_and_claim_campaign_prize",
+      {
+        p_campaign_id: campaign_id,
+        p_quiz_passed: isQuizCampaign ? quiz_passed === true : null,
+      },
+    );
 
-      console.log(
-        `[select-prize] campaign=${campaign_id} roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`,
+    if (drawError) {
+      console.error(
+        "[select-prize] draw_and_claim_campaign_prize error:",
+        drawError.message,
       );
-
-      if (roll <= campaignProb) {
-        // Winner rolled! Fetch eligible active prizes with stock remaining
-        const { data: activePrizes, error: prizesError } = await supabaseAdmin
-          .from("prizes")
-          .select(
-            "id, name, weight, win_message, quantity, quantity_won, prize_inventory(id, remaining)",
-          )
-          .eq("campaign_id", campaign_id)
-          .eq("is_active", true);
-
-        console.log(
-          `[select-prize] activePrizes count=${activePrizes?.length ?? 0} prizesError=${prizesError?.message ?? "none"}`,
-        );
-
-        if (!prizesError && activePrizes && activePrizes.length > 0) {
-          // Filter prizes that have stock remaining (> 0)
-          const stockPrizes = (
-            activePrizes as (ActivePrizePayload & {
-              quantity?: number;
-              quantity_won?: number;
-            })[]
-          ).filter((p) => {
-            const inventory = Array.isArray(p.prize_inventory)
-              ? p.prize_inventory[0]
-              : p.prize_inventory;
-            const remaining =
-              inventory?.remaining ??
-              (p.quantity
-                ? Math.max(0, p.quantity - (p.quantity_won || 0))
-                : 0);
-            console.log(
-              `[select-prize] prize=${p.id} name="${p.name}" remaining=${remaining}`,
-            );
-            return remaining > 0;
-          });
-
-          console.log(`[select-prize] stockPrizes count=${stockPrizes.length}`);
-
-          if (stockPrizes.length > 0) {
-            // Weighted random selection
-            const totalWeight = stockPrizes.reduce(
-              (sum, p) => sum + Number(p.weight || 0),
-              0,
-            );
-            if (totalWeight > 0) {
-              let targetRoll = Math.random() * totalWeight;
-              for (const p of stockPrizes) {
-                targetRoll -= Number(p.weight || 0);
-                if (targetRoll <= 0) {
-                  selectedPrizeId = p.id;
-                  selectedPrize = p;
-                  isWinner = true;
-
-                  // Decrement prize_inventory remaining & increment prizes quantity_won
-                  const inv = Array.isArray(p.prize_inventory)
-                    ? p.prize_inventory[0]
-                    : p.prize_inventory;
-                  if (inv?.id) {
-                    await supabaseAdmin
-                      .from("prize_inventory")
-                      .update({
-                        remaining: Math.max(0, (inv.remaining ?? 1) - 1),
-                      })
-                      .eq("id", inv.id);
-                  }
-                  await supabaseAdmin
-                    .from("prizes")
-                    .update({ quantity_won: (p.quantity_won ?? 0) + 1 })
-                    .eq("id", p.id);
-
-                  console.log(
-                    `[select-prize] Selected prize="${p.name}" id=${p.id}`,
-                  );
-                  break;
-                }
-              }
-            }
-          } else {
-            console.log(
-              "[select-prize] No prizes with stock remaining — converting winner to loser",
-            );
-          }
-        }
-      }
-    } else if (quiz_passed === true) {
-      // QUIZ CAMPAIGN: player passed the quiz — run the same wheel probability logic
-      const roll = Math.random();
-      const campaignProb = Number(campaign.win_probability);
-
-      console.log(
-        `[select-prize] QUIZ campaign=${campaign_id} passed=true roll=${roll.toFixed(4)} prob=${campaignProb} willWin=${roll <= campaignProb}`,
-      );
-
-      if (roll <= campaignProb) {
-        const { data: activePrizes, error: prizesError } = await supabaseAdmin
-          .from("prizes")
-          .select(
-            "id, name, weight, win_message, quantity, quantity_won, prize_inventory(id, remaining)",
-          )
-          .eq("campaign_id", campaign_id)
-          .eq("is_active", true);
-
-        if (!prizesError && activePrizes && activePrizes.length > 0) {
-          const stockPrizes = (
-            activePrizes as (ActivePrizePayload & {
-              quantity?: number;
-              quantity_won?: number;
-            })[]
-          ).filter((p) => {
-            const inventory = Array.isArray(p.prize_inventory)
-              ? p.prize_inventory[0]
-              : p.prize_inventory;
-            const remaining =
-              inventory?.remaining ??
-              (p.quantity
-                ? Math.max(0, p.quantity - (p.quantity_won || 0))
-                : 0);
-            return remaining > 0;
-          });
-
-          if (stockPrizes.length > 0) {
-            const totalWeight = stockPrizes.reduce(
-              (sum, p) => sum + Number(p.weight || 0),
-              0,
-            );
-            if (totalWeight > 0) {
-              let targetRoll = Math.random() * totalWeight;
-              for (const p of stockPrizes) {
-                targetRoll -= Number(p.weight || 0);
-                if (targetRoll <= 0) {
-                  selectedPrizeId = p.id;
-                  selectedPrize = p;
-                  isWinner = true;
-
-                  const inv = Array.isArray(p.prize_inventory)
-                    ? p.prize_inventory[0]
-                    : p.prize_inventory;
-                  if (inv?.id) {
-                    await supabaseAdmin
-                      .from("prize_inventory")
-                      .update({
-                        remaining: Math.max(0, (inv.remaining ?? 1) - 1),
-                      })
-                      .eq("id", inv.id);
-                  }
-                  await supabaseAdmin
-                    .from("prizes")
-                    .update({ quantity_won: (p.quantity_won ?? 0) + 1 })
-                    .eq("id", p.id);
-
-                  console.log(
-                    `[select-prize] QUIZ Selected prize="${p.name}" id=${p.id}`,
-                  );
-                  break;
-                }
-              }
-            }
-          }
-        }
-      }
-    } else {
-      // Quiz campaign + quiz_passed=false → always loser, no prize draw
-      console.log(
-        `[select-prize] QUIZ campaign=${campaign_id} passed=false — assigning loser`,
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Failed to process prize draw.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    // 4. Atomic inventory claim (if winner)
-    if (isWinner && selectedPrizeId) {
-      const { data: claimedRows, error: claimInventoryError } =
-        await supabaseAdmin.rpc("claim_prize_inventory", {
-          p_prize_id: selectedPrizeId,
-        });
-
-      if (claimInventoryError) {
-        console.error(
-          "[select-prize] claim_prize_inventory error:",
-          claimInventoryError.message,
-        );
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: "Failed to reserve prize inventory.",
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      if (
-        !claimedRows ||
-        (claimedRows as ClaimPrizeInventoryRow[]).length === 0
-      ) {
-        // Stock was exhausted by concurrent winners.
-        console.log(
-          "[select-prize] claim_prize_inventory returned empty — stock exhausted by concurrent winner",
-        );
-        isWinner = false;
-        selectedPrizeId = null;
-        selectedPrize = null;
-      } else {
-        console.log(
-          "[select-prize] Inventory claimed successfully, row:",
-          JSON.stringify(claimedRows),
-        );
-        const { error: quantityWonError } = await supabaseAdmin.rpc(
-          "increment_prize_winner_count",
-          { p_prize_id: selectedPrizeId },
-        );
-
-        if (quantityWonError) {
-          console.error(
-            "[select-prize] increment_prize_winner_count error:",
-            quantityWonError.message,
-            "— converting winner to loser (inventory already claimed!)",
-          );
-          isWinner = false;
-          selectedPrizeId = null;
-          selectedPrize = null;
-        }
-      }
+    if (drawResult?.ok && drawResult?.is_winner && drawResult?.prize_id) {
+      isWinner = true;
+      selectedPrizeId = drawResult.prize_id;
+      selectedPrize = {
+        id: drawResult.prize_id,
+        name: drawResult.prize_name || "Prize",
+        win_message: drawResult.win_message || null,
+        weight: null,
+        prize_inventory: null,
+      };
+      console.log(
+        `[select-prize] Winner selected atomically: prize="${drawResult.prize_name}" id=${drawResult.prize_id}`,
+      );
+    } else {
+      isWinner = false;
+      selectedPrizeId = null;
+      selectedPrize = null;
+      console.log(
+        `[select-prize] Non-winner outcome determined atomically for campaign ${campaign_id}.`,
+      );
     }
 
     // 5. If winner, fetch and reserve a coupon code from prize_template_items

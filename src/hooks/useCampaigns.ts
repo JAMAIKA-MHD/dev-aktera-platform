@@ -35,6 +35,8 @@ interface DbCampaignRow {
   win_probability: string | number;
   max_entries: number | null;
   require_quiz: boolean;
+  auto_pace_prizes?: boolean;
+  auto_pace_enabled_at?: string | null;
   source_campaign_id: string | null;
   prizes: DbPrizeRow[];
   quiz_questions: DbQuestionRow[];
@@ -63,6 +65,8 @@ function mapToUi(
     status,
     // DB stores 0-1 decimal, UI expects 0-100 integer percentage
     winProbability: Math.round(Number(row.win_probability) * 100),
+    autoPacePrizes: Boolean(row.auto_pace_prizes),
+    autoPaceEnabledAt: row.auto_pace_enabled_at ?? null,
     maxEntries:
       row.max_entries === 2 ? "2" : row.max_entries === 0 ? "unlimited" : "1",
     prizes: (row.prizes ?? [])

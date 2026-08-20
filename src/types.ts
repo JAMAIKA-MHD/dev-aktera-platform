@@ -135,6 +135,8 @@ export interface Campaign {
   rewardsClaimed: number;
   startDate: string;
   endDate: string;
+  autoPacePrizes?: boolean;
+  autoPaceEnabledAt?: string | null;
   parentCampaignId?: string; // Lineage pointer for updates or relaunch flows
   createdAt?: string;
 }
