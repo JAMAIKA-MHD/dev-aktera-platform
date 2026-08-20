@@ -125,7 +125,25 @@ npm run build
 
 ---
 
-## 7) Supabase operational notes
+## 7) Sample Data & Local Seeding
+
+To quickly populate realistic sample data for local development (2 demo organizations, 8 campaigns, prize inventory, and 125 realistic entries with Algerian mobile numbers across the last 14 days):
+
+```bash
+npm run db:seed
+```
+
+Or when running a full database reset via the Supabase CLI:
+
+```bash
+supabase db reset
+```
+
+For full details on seed data structure and test URLs, see [`supabase/SEED.md`](supabase/SEED.md).
+
+---
+
+## 8) Supabase operational notes
 
 - Database migrations are in `supabase/migrations`.
 - Full reset reference is in `supabase/FULL_RESET.sql`.
