@@ -125,9 +125,9 @@ npm run build
 
 ---
 
-## 7) Sample Data & Local Seeding
+## 7) Sample Data, Seeding & Testing
 
-To quickly populate realistic sample data for local development (2 demo organizations, 8 campaigns, prize inventory, and 125 realistic entries with Algerian mobile numbers across the last 14 days):
+To quickly populate realistic sample data for local development (seeded organizations, unified franchise campaigns, prize inventory, and realistic entries with Algerian mobile numbers across the last 14 days):
 
 ```bash
 npm run db:seed
@@ -139,7 +139,8 @@ Or when running a full database reset via the Supabase CLI:
 supabase db reset
 ```
 
-For full details on seed data structure and test URLs, see [`supabase/SEED.md`](supabase/SEED.md).
+- **Full Developer & Testing Reference**: [`docs/DATABASE_AND_TESTING_GUIDE.md`](docs/DATABASE_AND_TESTING_GUIDE.md)
+- **Seed Data Inventory & Details**: [`supabase/SEED.md`](supabase/SEED.md)
 
 ---
 
