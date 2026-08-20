@@ -17,10 +17,12 @@ import {
   Sparkles,
   HelpCircle,
   Disc,
+  FlaskConical,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
 import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../lib/defaultImages";
+import { CampaignTestModal } from "./CampaignTestModal";
 
 interface CampaignWorkspaceProps {
   campaign: Campaign;
@@ -46,6 +48,7 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [copied, setCopied] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
 
   const campaignEntries = useMemo(
     () => leads.filter((entry) => entry.campaignId === campaign.id),
@@ -331,6 +334,16 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               }`}
             >
               <span>Open analytics</span>
+            </button>
+
+            {/* Test & Simulate Plays Console */}
+            <button
+              type="button"
+              onClick={() => setIsTestModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-black shadow-sm transition-all hover:scale-102 cursor-pointer border bg-purple-600 hover:bg-purple-700 text-white border-purple-600 shadow-purple-500/25"
+            >
+              <FlaskConical className="h-4 w-4 stroke-[2.5]" />
+              <span>Simulate Plays</span>
             </button>
 
             {/* Open Live Page */}
@@ -701,6 +714,16 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
           )}
         </div>
       </div>
+
+      <CampaignTestModal
+        campaign={campaign}
+        prizes={prizes}
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        onDataInjected={() => {
+          onOpenAnalytics(campaign.id);
+        }}
+      />
     </div>
   );
 };
