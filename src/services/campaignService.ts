@@ -136,6 +136,7 @@ export interface SaveCampaignInput {
     startDate: string;
     endDate: string;
     winProbability: number;
+    autoPacePrizes?: boolean;
     maxEntries?: "1" | "2" | "unlimited";
     parentCampaignId?: string;
     prizes: { templateId?: string; quantity: number; weight: number }[];
@@ -206,6 +207,7 @@ export async function createOrUpdateCampaignFullService(
     p_require_quiz: newCamp.type === "quiz",
     p_prizes: prizesPayload,
     p_questions: questionsPayload,
+    p_auto_pace_prizes: Boolean(newCamp.autoPacePrizes),
   };
 
   const { data, error } = await supabase.rpc(
