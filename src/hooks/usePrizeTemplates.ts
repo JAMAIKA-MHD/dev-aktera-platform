@@ -77,32 +77,10 @@ export function usePrizeTemplates(organizationId: string | null) {
 
       if (tErr) throw tErr;
 
-      // Active and paused campaigns that consume stock
-      const activeOrPausedCampIds = new Set(
-        ((campaigns ?? []) as DbCampaignStatus[])
-          .filter((c) => ["active", "paused"].includes(c.status))
-          .map((c) => c.id),
-      );
-
-      // Campaigns consuming stock:
-      // 1. All active & paused campaigns
-      // 2. Standalone draft campaigns (drafts without a live/paused parent campaign)
-      // Drafts with source_campaign_id pointing to active/paused parents are update-drafts and do NOT double-count against parent stock
+      // Campaigns consuming stock: all active, paused, and draft campaigns
       const activeCampIds = new Set(
         ((campaigns ?? []) as DbCampaignStatus[])
-          .filter((c) => {
-            if (["active", "paused"].includes(c.status)) return true;
-            if (c.status === "draft") {
-              if (
-                c.source_campaign_id &&
-                activeOrPausedCampIds.has(c.source_campaign_id)
-              ) {
-                return false;
-              }
-              return true;
-            }
-            return false;
-          })
+          .filter((c) => ["active", "paused", "draft"].includes(c.status))
           .map((c) => c.id),
       );
 

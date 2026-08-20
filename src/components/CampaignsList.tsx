@@ -21,9 +21,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 interface CampaignsListProps {
   campaigns: Campaign[];
   onSelectCampaign: (id: string) => void;
-  onEditDraft?: (camp: Campaign) => void;
+  onEditCampaign?: (camp: Campaign) => void;
   onRelaunch: (camp: Campaign) => void;
-  onCreateUpdateDraft: (camp: Campaign) => void;
   onToggleStatus: (id: string) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
@@ -34,9 +33,8 @@ interface CampaignsListProps {
 export const CampaignsList: React.FC<CampaignsListProps> = ({
   campaigns,
   onSelectCampaign,
-  onEditDraft,
+  onEditCampaign,
   onRelaunch,
-  onCreateUpdateDraft,
   onToggleStatus,
   onArchive,
   onDelete,
@@ -500,15 +498,11 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   <Eye className="w-3 h-3" />
                 </button>
 
-                {/* 2. Edit / Update Draft */}
+                {/* 2. Edit Campaign */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (camp.status === "draft") {
-                      onEditDraft?.(camp);
-                    } else {
-                      onCreateUpdateDraft?.(camp);
-                    }
+                    onEditCampaign?.(camp);
                   }}
                   className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                     isDark

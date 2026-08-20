@@ -11,9 +11,11 @@ import {
   Plus,
   Trash2,
   Globe,
+  AlertTriangle,
+  AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
-import { motion } from "motion/react";
-import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../lib/defaultImages";
+import { motion, AnimatePresence } from "motion/react";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -24,11 +26,10 @@ interface CampaignWizardProps {
       mode?: "create" | "edit" | "relaunch" | "update";
       submitStatus?: "draft" | "active";
     },
-  ) => void;
+  ) => Promise<void> | void;
   onCancel: () => void;
   relaunchDraft?: Campaign | null;
   editingCampaign?: Campaign | null;
-  updateDraftSource?: Campaign | null;
 }
 
 export const CampaignWizard: React.FC<CampaignWizardProps> = ({
@@ -37,31 +38,34 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   onCancel,
   relaunchDraft,
   editingCampaign,
-  updateDraftSource,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
   const [step, setStep] = useState(1);
-  const baseCampaign =
-    editingCampaign ?? updateDraftSource ?? relaunchDraft ?? null;
+  const baseCampaign = editingCampaign ?? relaunchDraft ?? null;
   const isEditMode = Boolean(editingCampaign);
-  const isEditingUpdateDraft = Boolean(editingCampaign?.parentCampaignId);
-  const isUpdateDraftMode = Boolean(updateDraftSource) && !editingCampaign;
+  const isLiveCampaign =
+    isEditMode &&
+    (editingCampaign?.status === "active" ||
+      editingCampaign?.status === "paused");
   const isRelaunchMode = Boolean(relaunchDraft) && !editingCampaign;
 
-  const buildUpdateSlug = (baseSlug: string) =>
-    `${baseSlug}-update-${Date.now().toString().slice(-5)}`;
+  const [validationErrors, setValidationErrors] = useState<
+    { field: string; message: string }[]
+  >([]);
+  const [showLiveConfirmModal, setShowLiveConfirmModal] = useState<
+    "draft" | "active" | null
+  >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form Fields
   const [name, setName] = useState(
     editingCampaign
       ? editingCampaign.name
-      : updateDraftSource
-        ? `${updateDraftSource.name} (Update Draft)`
-        : relaunchDraft
-          ? `${relaunchDraft.name} (Relaunch)`
-          : "",
+      : relaunchDraft
+        ? `${relaunchDraft.name} (Relaunch)`
+        : "",
   );
   const [arabicName, setArabicName] = useState(
     baseCampaign ? baseCampaign.arabicName : "",
@@ -72,11 +76,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   const [slug, setSlug] = useState(
     editingCampaign
       ? editingCampaign.slug
-      : updateDraftSource
-        ? buildUpdateSlug(updateDraftSource.slug)
-        : relaunchDraft
-          ? `${relaunchDraft.slug}-relaunch`
-          : "",
+      : relaunchDraft
+        ? `${relaunchDraft.slug}-relaunch`
+        : "",
   );
   const [type, setType] = useState<"lucky_wheel" | "quiz">(
     baseCampaign ? baseCampaign.type : "lucky_wheel",
@@ -138,59 +140,49 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     setArabicName("سجل في المسابقة واربح هدايا فورية قيمة من اختيارك! 🎁");
   };
 
-  // Add prize allocation line
   const handleAddPrizeLine = () => {
-    const unallocated = prizes.find(
-      (p) => !allocatedPrizes.some((ap) => ap.templateId === p.id),
-    );
-    setAllocatedPrizes([
-      ...allocatedPrizes,
-      {
-        templateId: unallocated?.id || prizes[0]?.id || "",
-        quantity: 50,
-        weight: 10,
-      },
+    const defaultTemplateId = prizes[0]?.id || "";
+    setAllocatedPrizes((prev) => [
+      ...prev,
+      { templateId: defaultTemplateId, quantity: 50, weight: 50 },
     ]);
   };
 
-  const handleRemovePrizeLine = (idx: number) => {
-    if (allocatedPrizes.length <= 1) return;
-    setAllocatedPrizes(allocatedPrizes.filter((_, i) => i !== idx));
+  const handleRemovePrizeLine = (index: number) => {
+    setAllocatedPrizes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpdatePrizeLine = (
-    idx: number,
+    index: number,
     field: "templateId" | "quantity" | "weight",
-    value: any,
+    value: string | number,
   ) => {
-    const updated = [...allocatedPrizes];
-    updated[idx] = {
-      ...updated[idx],
-      [field]: value,
-    };
-    setAllocatedPrizes(updated);
+    setAllocatedPrizes((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
   };
 
-  // Quiz helper functions
   const handleAddQuestion = () => {
-    setQuizQuestions([
-      ...quizQuestions,
+    setQuizQuestions((prev) => [
+      ...prev,
       {
         id: `q_${Date.now()}`,
-        questionText: "Enter your custom Darija quiz question...",
-        options: ["Option A", "Option B", "Option C", "Option D"],
+        questionText: "",
+        options: ["", "", "", ""],
         correctIndex: 0,
       },
     ]);
   };
 
-  const handleRemoveQuestion = (idx: number) => {
-    setQuizQuestions(quizQuestions.filter((_, i) => i !== idx));
+  const handleRemoveQuestion = (qIdx: number) => {
+    setQuizQuestions((prev) => prev.filter((_, i) => i !== qIdx));
   };
 
   const handleUpdateQuestion = (
     qIdx: number,
-    field: string,
+    field: "questionText" | "correctIndex" | "option",
     value: any,
     optIdx?: number,
   ) => {
@@ -205,47 +197,79 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     setQuizQuestions(updated);
   };
 
-  const handleSave = (submitStatus: "draft" | "active") => {
+  const executeSave = async (submitStatus: "draft" | "active") => {
+    setValidationErrors([]);
     const validPrizes = allocatedPrizes.filter((ap) => ap.templateId !== "");
-    if (validPrizes.length === 0) return;
-    onSave({
-      id: editingCampaign?.id ?? "",
-      name,
-      arabicName,
-      heroImageUrl: heroImageUrl || undefined,
-      slug,
-      type,
-      status: submitStatus,
-      winProbability,
-      maxEntries,
-      prizes: validPrizes,
-      questions: type === "quiz" ? quizQuestions : [],
-      startDate,
-      endDate,
-      parentCampaignId: isUpdateDraftMode
-        ? updateDraftSource?.id
-        : isEditingUpdateDraft
-          ? editingCampaign?.parentCampaignId
-          : undefined,
-      mode: isEditMode
-        ? "edit"
-        : isUpdateDraftMode
-          ? "update"
-          : isRelaunchMode
-            ? "relaunch"
-            : "create",
-      submitStatus,
-    });
+    if (validPrizes.length === 0) {
+      setValidationErrors([
+        {
+          field: "prizes",
+          message: "At least one prize allocation is required.",
+        },
+      ]);
+      return;
+    }
+
+    const totalWeight = validPrizes.reduce(
+      (sum, p) => sum + Number(p.weight || 0),
+      0,
+    );
+    if (totalWeight <= 0) {
+      setValidationErrors([
+        {
+          field: "weights",
+          message: "Total wheel sector weight must be greater than 0.",
+        },
+      ]);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        id: editingCampaign?.id ?? "",
+        name,
+        arabicName,
+        heroImageUrl: heroImageUrl || undefined,
+        slug,
+        type,
+        status: submitStatus,
+        winProbability,
+        maxEntries,
+        prizes: validPrizes,
+        questions: type === "quiz" ? quizQuestions : [],
+        startDate,
+        endDate,
+        mode: isEditMode ? "edit" : isRelaunchMode ? "relaunch" : "create",
+        submitStatus,
+      });
+    } catch (err: any) {
+      setValidationErrors([
+        {
+          field: "general",
+          message:
+            err?.message ||
+            "Failed to save campaign. Please check the fields and retry.",
+        },
+      ]);
+    } finally {
+      setIsSubmitting(false);
+      setShowLiveConfirmModal(null);
+    }
+  };
+
+  const handleSaveTrigger = (submitStatus: "draft" | "active") => {
+    if (isLiveCampaign) {
+      setShowLiveConfirmModal(submitStatus);
+    } else {
+      executeSave(submitStatus);
+    }
   };
 
   const getEffectiveAvailableStock = (template: PrizeTemplate) => {
     let existingAllocated = 0;
     if (isEditMode && editingCampaign) {
       existingAllocated = editingCampaign.prizes
-        .filter((p) => p.templateId === template.id)
-        .reduce((sum, p) => sum + p.quantity, 0);
-    } else if (isUpdateDraftMode && updateDraftSource) {
-      existingAllocated = updateDraftSource.prizes
         .filter((p) => p.templateId === template.id)
         .reduce((sum, p) => sum + p.quantity, 0);
     }
@@ -256,15 +280,30 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   };
 
   const totalWeightSum = allocatedPrizes.reduce(
-    (sum, p) => sum + Number(p.weight),
+    (sum, p) => sum + Number(p.weight || 0),
     0,
   );
 
   return (
     <div
       id="campaign-wizard-root"
-      className="max-w-4xl mx-auto space-y-6 text-brand-text pb-16"
+      className="max-w-4xl mx-auto space-y-6 text-brand-text pb-16 relative"
     >
+      {/* Validation Errors Banner */}
+      {validationErrors.length > 0 && (
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-500 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="space-y-1 text-xs">
+            <p className="font-bold">Please fix the following before saving:</p>
+            <ul className="list-disc list-inside space-y-0.5 font-medium">
+              {validationErrors.map((err, idx) => (
+                <li key={idx}>{err.message}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Header bar */}
       <div className="flex justify-between items-center border-b border-card-border pb-5">
         <div className="flex items-center gap-3">
@@ -284,31 +323,32 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 isDark ? "text-white" : "text-slate-900"
               }`}
             >
-              Campaign Builder Wizard
+              {isEditMode ? "Edit Campaign" : "Campaign Builder Wizard"}
             </h2>
             <p className="text-xs text-brand-textMuted mt-0.5">
-              {isEditMode
-                ? "Edit your saved draft before publishing it live."
-                : isUpdateDraftMode
-                  ? "Prepare a safe update draft derived from a live campaign without interrupting the current live version."
+              {isLiveCampaign
+                ? "Direct in-place edit for live campaign. Changes take effect immediately."
+                : isEditMode
+                  ? "Edit campaign details and configuration."
                   : "Launch optimized brand activation campaigns in 4 easy steps"}
             </p>
           </div>
         </div>
 
-        {isUpdateDraftMode && updateDraftSource && (
-          <span className="text-xs bg-orange-500/15 border border-orange-500/30 text-orange-500 px-3.5 py-1.5 rounded-2xl font-mono font-bold">
-            Update Draft Mode: {updateDraftSource.name}
+        {isLiveCampaign && editingCampaign && (
+          <span className="text-xs bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 px-3.5 py-1.5 rounded-2xl font-mono font-bold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live In-Place Edit: {editingCampaign.name}
+          </span>
+        )}
+        {isEditMode && !isLiveCampaign && editingCampaign && (
+          <span className="text-xs bg-blue-500/15 border border-blue-500/30 text-blue-500 px-3.5 py-1.5 rounded-2xl font-mono font-bold">
+            Draft Edit: {editingCampaign.name}
           </span>
         )}
         {isRelaunchMode && (
-          <span className="text-xs bg-blue-500/15 border border-blue-500/30 text-blue-500 px-3.5 py-1.5 rounded-2xl font-mono font-bold">
-            Relaunch Mode: {relaunchDraft.name}
-          </span>
-        )}
-        {isEditMode && editingCampaign && (
-          <span className="text-xs bg-blue-500/15 border border-blue-500/30 text-blue-500 px-3.5 py-1.5 rounded-2xl font-mono font-bold">
-            Draft Edit Mode: {editingCampaign.name}
+          <span className="text-xs bg-purple-500/15 border border-purple-500/30 text-purple-500 px-3.5 py-1.5 rounded-2xl font-mono font-bold">
+            Relaunch: {relaunchDraft.name}
           </span>
         )}
       </div>
@@ -331,25 +371,38 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           return (
             <button
               key={s.stepNum}
+              type="button"
               onClick={() => setStep(s.stepNum)}
-              className={`py-3 px-2 rounded-2xl text-center flex flex-col items-center justify-center transition-all cursor-pointer border ${
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
                 isCurrent
                   ? isDark
-                    ? "bg-blue-600/20 border-blue-500 text-blue-400 font-black shadow-sm"
-                    : "bg-blue-50 border-2 border-blue-500 text-blue-700 font-black shadow-sm"
+                    ? "bg-blue-600/20 text-blue-400 font-black border border-blue-500/30"
+                    : "bg-blue-50 text-blue-700 font-black border border-blue-200"
                   : isPassed
                     ? isDark
-                      ? "bg-slate-800/60 border-slate-700 text-white font-bold"
-                      : "bg-slate-100 border-slate-200 text-slate-800 font-bold"
-                    : isDark
-                      ? "border-transparent text-slate-500 hover:text-slate-300"
-                      : "border-transparent text-slate-400 hover:text-slate-700"
+                      ? "text-slate-300 font-bold"
+                      : "text-slate-700 font-bold"
+                    : "text-brand-textMuted font-medium"
               }`}
             >
-              <span className="text-xs font-mono font-black uppercase tracking-wider block">
-                Step {s.stepNum}
-              </span>
-              <span className="text-[11px] font-medium hidden md:inline mt-0.5">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
+                  isCurrent
+                    ? "bg-blue-600 text-white font-black"
+                    : isPassed
+                      ? "bg-emerald-500 text-white font-bold"
+                      : isDark
+                        ? "bg-slate-800 text-slate-400"
+                        : "bg-slate-200 text-slate-600"
+                }`}
+              >
+                {isPassed ? (
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                ) : (
+                  s.stepNum
+                )}
+              </div>
+              <span className="text-xs truncate hidden sm:inline">
                 {s.label}
               </span>
             </button>
@@ -357,218 +410,222 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         })}
       </div>
 
-      {/* STEP 1: BASICS */}
+      {/* STEP 1: BASICS & DARIJA LOCALIZATION */}
       {step === 1 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`space-y-5 rounded-[28px] p-6 sm:p-7 shadow-sm border ${
+          className={`space-y-6 rounded-[28px] p-6 sm:p-7 shadow-sm border ${
             isDark
               ? "bg-[#151E30] border-slate-800 text-white"
               : "bg-white border-slate-200 text-slate-900"
           }`}
         >
-          <h3 className="font-black text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
-            <Globe className="w-5 h-5 stroke-[2.5]" />
-            <span>Step 1: Campaign Basics & Algerian Translation</span>
-          </h3>
+          <div>
+            <h3 className="font-black text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
+              <Globe className="w-5 h-5 stroke-[2.5]" />
+              <span>Step 1: Campaign Identity & Localization</span>
+            </h3>
+            <p className="text-xs text-brand-textMuted mt-0.5">
+              Set campaign name, unique portal slug, visual identity and
+              Algerian Darija translations.
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Name */}
+          <div className="space-y-5">
+            {/* Campaign Name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-textMuted uppercase tracking-wider">
-                Campaign Display Title (English)
+              <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                Internal Campaign Name *
               </label>
               <input
                 type="text"
-                placeholder="e.g. Djezzy Super Ramadan Wheel"
                 value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setSlug(
-                    e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                  );
-                }}
-                className={`w-full rounded-2xl px-4 text-sm transition-all duration-150 min-h-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Ramadan Super Spin 2026"
+                className={`w-full rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none border ${
                   isDark
-                    ? "bg-[#0e1422] border-slate-800 text-white placeholder-slate-500 focus:border-blue-500"
-                    : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500"
+                    ? "bg-[#0e1422] border-slate-800 text-white"
+                    : "bg-slate-50 border-slate-200 text-slate-900"
                 }`}
               />
             </div>
 
-            {/* Slug */}
+            {/* Campaign Portal Slug */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-textMuted uppercase tracking-wider">
-                Campaign Portal Slug (URL)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. djezzy-ramadan"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className={`w-full rounded-2xl px-4 text-xs font-mono transition-all duration-150 min-h-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
-                  isDark
-                    ? "bg-[#0e1422] border-slate-800 text-white placeholder-slate-500 focus:border-blue-500"
-                    : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500"
-                }`}
-              />
-            </div>
-
-            {/* Campaign Type Select */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-textMuted uppercase tracking-wider">
-                Portal Mechanics
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setType("lucky_wheel")}
-                  className={`p-3 rounded-2xl border text-center transition-all cursor-pointer min-h-12 flex items-center justify-center gap-2 ${
-                    type === "lucky_wheel"
-                      ? isDark
-                        ? "bg-blue-600/20 border-blue-500 text-blue-400 font-black"
-                        : "bg-blue-50 border-2 border-blue-500 text-blue-700 font-black"
-                      : isDark
-                        ? "bg-[#0e1422] border-slate-800 text-slate-400 hover:bg-slate-800"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                  Public Portal Slug *
+                </label>
+                {isLiveCampaign && (
+                  <span className="text-[10px] text-amber-500 font-mono font-bold">
+                    Preserving slug keeps active QR codes and links working
+                  </span>
+                )}
+              </div>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-xs font-mono text-brand-textMuted select-none">
+                  /play/
+                </span>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="ramadan-spin"
+                  className={`w-full rounded-2xl pl-16 pr-4 py-3 text-sm font-mono font-bold focus:outline-none border ${
+                    isDark
+                      ? "bg-[#0e1422] border-slate-800 text-white"
+                      : "bg-slate-50 border-slate-200 text-slate-900"
                   }`}
-                >
-                  <Sliders className="w-4 h-4" />
-                  <span className="text-xs font-bold">Lucky Spin Wheel</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType("quiz")}
-                  className={`p-3 rounded-2xl border text-center transition-all cursor-pointer min-h-12 flex items-center justify-center gap-2 ${
-                    type === "quiz"
-                      ? isDark
-                        ? "bg-blue-600/20 border-blue-500 text-blue-400 font-black"
-                        : "bg-blue-50 border-2 border-blue-500 text-blue-700 font-black"
-                      : isDark
-                        ? "bg-[#0e1422] border-slate-800 text-slate-400 hover:bg-slate-800"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  <QuizIcon className="w-4 h-4" />
-                  <span className="text-xs font-bold">Quiz Challenge</span>
-                </button>
+                />
               </div>
             </div>
 
-            {/* Arabic / Darija Translation Banner */}
+            {/* Arabic / Darija Display Name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-textMuted uppercase tracking-wider">
-                Consumer Darija Copy (العربية الدارجة)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  dir="auto"
-                  placeholder="سجل واربح جوائز قيمة مع جيلنا 🇩🇿"
-                  value={arabicName}
-                  onChange={(e) => setArabicName(e.target.value)}
-                  className={`w-full rounded-2xl pl-4 pr-36 text-sm transition-all duration-150 min-h-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
-                    isDark
-                      ? "bg-[#0e1422] border-slate-800 text-white placeholder-slate-500 focus:border-blue-500"
-                      : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500"
-                  }`}
-                />
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                  Arabic / Darija Promotional Copy
+                </label>
                 <button
                   type="button"
                   onClick={handleApplyDarijaSample}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-3 py-1.5 rounded-xl cursor-pointer transition-colors font-bold shadow-sm"
+                  className="text-xs text-blue-500 font-bold hover:underline cursor-pointer"
                 >
-                  Darija Preset ✨
+                  Insert Sample Darija
                 </button>
               </div>
-            </div>
-
-            {/* Campaign dates */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-textMuted uppercase tracking-wider">
-                Launch Date
-              </label>
               <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={`w-full rounded-2xl px-4 text-xs font-mono transition-all duration-150 min-h-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
+                type="text"
+                dir="rtl"
+                value={arabicName}
+                onChange={(e) => setArabicName(e.target.value)}
+                placeholder="اربح هدايا وقسائم فورية مع كل مشاركة!"
+                className={`w-full rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none border ${
                   isDark
-                    ? "bg-[#0e1422] border-slate-800 text-white focus:border-blue-500"
-                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500"
+                    ? "bg-[#0e1422] border-slate-800 text-white"
+                    : "bg-slate-50 border-slate-200 text-slate-900"
                 }`}
               />
             </div>
 
+            {/* Hero Image */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-textMuted uppercase tracking-wider">
-                Expiration Date
+              <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                Hero Branding Image
               </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={`w-full rounded-2xl px-4 text-xs font-mono transition-all duration-150 min-h-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 border ${
-                  isDark
-                    ? "bg-[#0e1422] border-slate-800 text-white focus:border-blue-500"
-                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500"
-                }`}
-              />
-            </div>
-
-            <div
-              className={`md:col-span-2 space-y-3 rounded-2xl p-4 border ${
-                isDark
-                  ? "bg-[#0e1422] border-slate-800"
-                  : "bg-slate-50 border-slate-200"
-              }`}
-            >
               <ImageUploader
                 value={heroImageUrl}
                 onChange={setHeroImageUrl}
                 folder="campaigns"
-                label="Campaign image"
+                label="Upload Hero Banner"
               />
-              <div className="flex items-center gap-3">
-                <img
-                  src={heroImageUrl || DEFAULT_CAMPAIGN_IMAGE_URL}
-                  alt="Campaign visual preview"
-                  className="h-20 w-36 rounded-2xl border border-card-border object-cover shadow-sm"
-                  onError={(event) => {
-                    event.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
-                  }}
+            </div>
+
+            {/* Game Mechanic Choice */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                Engagement Mechanic
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  {
+                    id: "lucky_wheel",
+                    title: "Lucky Spin Wheel",
+                    desc: "Instant gratification gamification with visual prize wedges",
+                  },
+                  {
+                    id: "quiz",
+                    title: "Trivia Quiz Challenge",
+                    desc: "Skill & knowledge based entry before claiming rewards",
+                  },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setType(m.id as any)}
+                    className={`p-4 rounded-2xl text-left border transition-all cursor-pointer ${
+                      type === m.id
+                        ? isDark
+                          ? "bg-blue-600/20 border-blue-500 text-blue-400"
+                          : "bg-blue-50 border-2 border-blue-500 text-blue-700 font-bold"
+                        : isDark
+                          ? "bg-[#0e1422] border-slate-800 text-slate-300 hover:bg-slate-800"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    <p className="font-black text-sm">{m.title}</p>
+                    <p className="text-xs text-brand-textMuted mt-1">
+                      {m.desc}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={`w-full rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none border ${
+                    isDark
+                      ? "bg-[#0e1422] border-slate-800 text-white"
+                      : "bg-slate-50 border-slate-200 text-slate-900"
+                  }`}
                 />
-                <p className="text-xs text-brand-textMuted">
-                  This image is shown in campaign cards, workspace, and player
-                  landing.
-                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-black text-brand-textMuted uppercase tracking-wider">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className={`w-full rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none border ${
+                    isDark
+                      ? "bg-[#0e1422] border-slate-800 text-white"
+                      : "bg-slate-50 border-slate-200 text-slate-900"
+                  }`}
+                />
               </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* STEP 2: GAME RULES */}
+      {/* STEP 2: GAME RULES & WIN PROBABILITY */}
       {step === 2 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`space-y-5 rounded-[28px] p-6 sm:p-7 shadow-sm border ${
+          className={`space-y-6 rounded-[28px] p-6 sm:p-7 shadow-sm border ${
             isDark
               ? "bg-[#151E30] border-slate-800 text-white"
               : "bg-white border-slate-200 text-slate-900"
           }`}
         >
-          <h3 className="font-black text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
-            <Sliders className="w-5 h-5 stroke-[2.5]" />
-            <span>Step 2: Distribution Rules & Legal Safety Limits</span>
-          </h3>
+          <div>
+            <h3 className="font-black text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
+              <Sliders className="w-5 h-5 stroke-[2.5]" />
+              <span>Step 2: Probability & Anti-Fraud Rate Limits</span>
+            </h3>
+            <p className="text-xs text-brand-textMuted mt-0.5">
+              Control average win rates, customer repeat-spin restrictions and
+              Algerian phone validation.
+            </p>
+          </div>
 
           <div className="space-y-6">
-            {/* Win rate probability slider */}
+            {/* Win probability slider */}
             <div
-              className={`p-5 rounded-2xl border space-y-3 ${
+              className={`p-5 rounded-2xl space-y-3 border ${
                 isDark
                   ? "bg-[#0e1422] border-slate-800"
                   : "bg-slate-50 border-slate-200"
@@ -688,11 +745,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
             <button
               type="button"
               onClick={handleAddPrizeLine}
-              className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm border ${
-                isDark
-                  ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                  : "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-              }`}
+              className="px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm border bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>Add Prize Allocation</span>
@@ -702,6 +755,13 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           <div className="space-y-3.5">
             {allocatedPrizes.map((ap, idx) => {
               const selectedItem = prizes.find((p) => p.id === ap.templateId);
+              const existingCampaignPrize = editingCampaign?.prizes?.find(
+                (p) => p.templateId === ap.templateId,
+              );
+              const quantityWon = existingCampaignPrize?.quantity_won ?? 0;
+              const minAllowedQty =
+                isLiveCampaign && quantityWon > 0 ? quantityWon : 1;
+
               return (
                 <div
                   key={idx}
@@ -713,9 +773,16 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 >
                   {/* Select template */}
                   <div className="md:col-span-5 flex flex-col gap-1">
-                    <span className="text-[10px] font-black text-brand-textMuted uppercase tracking-wider">
-                      Select Reward Template
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-brand-textMuted uppercase tracking-wider">
+                        Select Reward Template
+                      </span>
+                      {isLiveCampaign && quantityWon > 0 && (
+                        <span className="text-[10px] font-mono font-bold text-emerald-500">
+                          Won: {quantityWon} / {ap.quantity}
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={ap.templateId}
                       onChange={(e) =>
@@ -742,16 +809,35 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                         })
                       )}
                     </select>
+
+                    {/* Voucher Codes Warning */}
+                    {selectedItem?.category === "voucher" &&
+                      (selectedItem.filledValuesCount ?? 0) < ap.quantity && (
+                        <p className="text-[10px] text-amber-500 font-bold flex items-center gap-1 mt-0.5">
+                          <AlertTriangle className="w-3 h-3 shrink-0" />
+                          <span>
+                            Inventory has {selectedItem.filledValuesCount ?? 0}{" "}
+                            prepared codes (need {ap.quantity}).
+                          </span>
+                        </p>
+                      )}
                   </div>
 
                   {/* Allocated quantity */}
                   <div className="md:col-span-3 flex flex-col gap-1">
-                    <span className="text-[10px] font-black text-brand-textMuted uppercase tracking-wider">
-                      Quantity Limit
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-brand-textMuted uppercase tracking-wider">
+                        Quantity Limit
+                      </span>
+                      {quantityWon > 0 && (
+                        <span className="text-[9px] text-brand-textMuted font-mono">
+                          Min: {quantityWon}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="number"
-                      min="1"
+                      min={minAllowedQty}
                       max={
                         selectedItem
                           ? getEffectiveAvailableStock(selectedItem)
@@ -807,10 +893,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   <div className="md:col-span-1 flex justify-end md:justify-center pt-2 md:pt-4">
                     <button
                       type="button"
-                      disabled={allocatedPrizes.length <= 1}
+                      disabled={allocatedPrizes.length <= 1 || quantityWon > 0}
                       onClick={() => handleRemovePrizeLine(idx)}
+                      title={
+                        quantityWon > 0
+                          ? `Cannot remove: ${quantityWon} already won. Set weight to 0 to stop wins.`
+                          : "Remove prize"
+                      }
                       className={`p-2.5 rounded-2xl transition-colors border ${
-                        allocatedPrizes.length <= 1
+                        allocatedPrizes.length <= 1 || quantityWon > 0
                           ? "text-slate-400/50 bg-transparent border-transparent cursor-not-allowed"
                           : "text-red-500 bg-red-500/10 border-red-500/20 hover:bg-red-500/20 cursor-pointer"
                       }`}
@@ -839,7 +930,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 }`}
               >
                 {totalWeightSum}%{" "}
-                {totalWeightSum !== 100 && "(Auto-normalized on compile)"}
+                {totalWeightSum !== 100 && "(Auto-normalized on write)"}
               </span>
             </div>
           </div>
@@ -1074,6 +1165,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         <button
           type="button"
           onClick={onCancel}
+          disabled={isSubmitting}
           className="text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer px-4 py-2"
         >
           Cancel & Exit
@@ -1083,6 +1175,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           {step > 1 && (
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setStep(step - 1)}
               className={`px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1 cursor-pointer min-h-11 shadow-sm border ${
                 isDark
@@ -1105,30 +1198,34 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
             </button>
           ) : (
             <>
-              {!(!isEditMode && !isUpdateDraftMode && !isRelaunchMode) && (
+              {(!isLiveCampaign || editingCampaign?.status === "draft") && (
                 <button
                   type="button"
-                  onClick={() => handleSave("draft")}
+                  disabled={isSubmitting}
+                  onClick={() => handleSaveTrigger("draft")}
                   className={`px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-11 shadow-sm border ${
                     isDark
                       ? "bg-[#151E30] border-slate-800 text-white hover:bg-slate-800"
                       : "bg-white border-slate-200 text-slate-800 hover:bg-slate-100"
                   }`}
                 >
-                  <span>{isEditMode ? "Keep as Draft" : "Save Draft"}</span>
+                  <span>{isEditMode ? "Save as Draft" : "Save Draft"}</span>
                 </button>
               )}
               <button
                 type="button"
-                onClick={() => handleSave("active")}
+                disabled={isSubmitting}
+                onClick={() => handleSaveTrigger("active")}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-7 py-2.5 rounded-2xl text-xs font-black flex items-center gap-1.5 cursor-pointer min-h-11 shadow-lg shadow-emerald-600/25 transition-all hover:scale-102"
               >
                 <span>
-                  {isUpdateDraftMode || isEditingUpdateDraft
-                    ? "Publish Update Live"
-                    : isEditMode
-                      ? "Publish Draft Live"
-                      : "Publish & Deploy Live"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : isLiveCampaign
+                      ? "Apply & Save Changes"
+                      : isEditMode
+                        ? "Publish Live"
+                        : "Publish & Deploy Live"}
                 </span>
                 <Check className="w-4 h-4 stroke-[2.5]" />
               </button>
@@ -1136,6 +1233,72 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           )}
         </div>
       </div>
+
+      {/* LIVE CAMPAIGN CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showLiveConfirmModal && editingCampaign && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card-bg border border-card-border rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-5"
+            >
+              <div className="flex items-center gap-3 text-amber-500">
+                <ShieldAlert className="w-6 h-6" />
+                <h3 className="text-lg font-black text-brand-text">
+                  Confirm Live Campaign Update
+                </h3>
+              </div>
+
+              <div className="space-y-3 text-xs text-brand-text leading-relaxed">
+                <p>
+                  You are editing an active campaign (
+                  <strong>{editingCampaign.name}</strong>). These changes will
+                  take effect <strong>immediately</strong> for active player
+                  traffic.
+                </p>
+
+                {editingCampaign.type !== type && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 font-bold flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>
+                      Notice: Changing game type from{" "}
+                      <strong>{editingCampaign.type}</strong> to{" "}
+                      <strong>{type}</strong> may alter in-progress customer
+                      game sessions.
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-brand-textMuted">
+                  Existing won vouchers and completed player entries will be
+                  fully preserved in history.
+                </p>
+              </div>
+
+              <div className="flex justify-end items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setShowLiveConfirmModal(null)}
+                  className="px-4 py-2.5 rounded-xl border border-card-border text-xs font-bold text-brand-text hover:bg-card-bg-subtle cursor-pointer"
+                >
+                  Go Back
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => executeSave(showLiveConfirmModal)}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  {isSubmitting ? "Applying..." : "Confirm & Save Changes"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -27,9 +27,8 @@ interface CampaignWorkspaceProps {
   prizes: PrizeTemplate[];
   leads: LeadEntry[];
   onBack: () => void;
-  onEditDraft: (campaign: Campaign) => void;
+  onEditCampaign: (campaign: Campaign) => void;
   onRelaunch: (campaign: Campaign) => void;
-  onCreateUpdateDraft: (campaign: Campaign) => void;
   onToggleStatus: (id: string) => void;
   onOpenAnalytics: (id: string) => void;
 }
@@ -39,9 +38,8 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   prizes,
   leads,
   onBack,
-  onEditDraft,
+  onEditCampaign,
   onRelaunch,
-  onCreateUpdateDraft,
   onToggleStatus,
   onOpenAnalytics,
 }) => {
@@ -274,8 +272,22 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
 
         {/* RIGHT COLUMN: Action Buttons Row + 5 KPI Metric Cards */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Row of 4 Action Buttons */}
+          {/* Row of Action Buttons */}
           <div className="flex flex-wrap items-center gap-3">
+            {/* Edit Campaign */}
+            <button
+              type="button"
+              onClick={() => onEditCampaign(campaign)}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
+                isDark
+                  ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-blue-500/25"
+                  : "bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-blue-500/25"
+              }`}
+            >
+              <Pencil className="h-4 w-4 stroke-[2.5]" />
+              <span>Edit Campaign</span>
+            </button>
+
             {/* Prepare Relaunch */}
             <button
               type="button"

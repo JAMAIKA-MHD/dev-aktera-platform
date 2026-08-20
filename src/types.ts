@@ -1,7 +1,7 @@
 /**
  * DZEngage Platform Core Type Declarations
  * Adapted for extreme ease of GitHub Copilot & LLM integration with existing backend code bases.
- * 
+ *
  * Maps 1:1 to standard SQL/NoSQL schemas:
  * - organizations
  * - profiles
@@ -16,7 +16,15 @@
  * - billing
  */
 
-export type TabType = 'home' | 'campaigns' | 'creator' | 'prizes' | 'inventory' | 'analytics' | 'billing' | 'account';
+export type TabType =
+  | "home"
+  | "campaigns"
+  | "creator"
+  | "prizes"
+  | "inventory"
+  | "analytics"
+  | "billing"
+  | "account";
 
 /**
  * 1. Organizations Entity
@@ -39,7 +47,7 @@ export interface Profile {
   organizationId: string;
   fullName: string;
   email: string;
-  role: 'admin' | 'operator';
+  role: "admin" | "operator";
   createdAt: string;
 }
 
@@ -51,15 +59,15 @@ export interface Profile {
 export interface PrizeTemplate {
   id: string;
   name: string;
-  category: 'voucher' | 'physical';
+  category: "voucher" | "physical";
   description: string;
-  totalStock: number;       // Computed from prize_template_items count
-  availableStock: number;   // Ready & unallocated to active campaigns
-  allocatedStock: number;   // Reserved/committed to current campaign prize instances
-  itemValue: string;        // Presentation value e.g. "500 DA", "5 GB Pass", "Soda Bottle"
+  totalStock: number; // Computed from prize_template_items count
+  availableStock: number; // Ready & unallocated to active campaigns
+  allocatedStock: number; // Reserved/committed to current campaign prize instances
+  itemValue: string; // Presentation value e.g. "500 DA", "5 GB Pass", "Soda Bottle"
   filledValuesCount?: number; // Number of per-unit values/IDs already prepared in stock room
   campaignUsageCount?: number; // Number of campaign prize rows using this template
-  quantityWonCount?: number;   // Number of winning units historically consumed from this template
+  quantityWonCount?: number; // Number of winning units historically consumed from this template
   image?: string;
   createdAt?: string;
 }
@@ -71,8 +79,8 @@ export interface PrizeTemplate {
 export interface PrizeTemplateItem {
   id: string;
   templateId: string;
-  codeValue: string;        // Actual secret code string (e.g. "XYZ-987-A1B")
-  isRedeemed: boolean;      // True if given to a player
+  codeValue: string; // Actual secret code string (e.g. "XYZ-987-A1B")
+  isRedeemed: boolean; // True if given to a player
   assignedEntryId?: string; // Linked player entry on win
   redeemedAt?: string;
 }
@@ -85,8 +93,8 @@ export interface PrizeInventory {
   id: string;
   campaignId: string;
   templateId: string;
-  allocatedQty: number;     // Max quantity allocated to this campaign
-  wonQty: number;           // Number of times won in this campaign
+  allocatedQty: number; // Max quantity allocated to this campaign
+  wonQty: number; // Number of times won in this campaign
 }
 
 /**
@@ -111,14 +119,16 @@ export interface Campaign {
   arabicName: string;
   heroImageUrl?: string;
   slug: string;
-  type: 'lucky_wheel' | 'quiz';
-  status: 'active' | 'paused' | 'draft' | 'archived';
-  winProbability: number;   // Server-enforced winning percentage (0 to 100)
-  maxEntries?: '1' | '2' | 'unlimited';
+  type: "lucky_wheel" | "quiz";
+  status: "active" | "paused" | "draft" | "archived";
+  winProbability: number; // Server-enforced winning percentage (0 to 100)
+  maxEntries?: "1" | "2" | "unlimited";
   prizes: {
+    id?: string;
     templateId: string;
-    quantity: number;       // Allocated amount
-    weight: number;         // Spin probability weights
+    quantity: number; // Allocated amount
+    quantity_won?: number; // Units already won/claimed
+    weight: number; // Spin probability weights
   }[];
   questions: QuizQuestion[];
   participantsCount: number;
@@ -139,13 +149,13 @@ export interface LeadEntry {
   campaignId: string;
   campaignName: string;
   playerName: string;
-  phoneNumber: string;       // Algerian format: e.g. 0555123456, 0661123456
-  prizeWon?: string;         // Name of prize won
-  prizeTemplateId?: string;  // ID of the template given
-  couponCode?: string;       // Plucked secret code value from prize_template_items
+  phoneNumber: string; // Algerian format: e.g. 0555123456, 0661123456
+  prizeWon?: string; // Name of prize won
+  prizeTemplateId?: string; // ID of the template given
+  couponCode?: string; // Plucked secret code value from prize_template_items
   timestamp: string;
-  consentGiven: boolean;     // GDPR/Algerian local law compliance indicator
-  status: 'pending' | 'confirmed'; // Confirmed means player acknowledges coupon copying
+  consentGiven: boolean; // GDPR/Algerian local law compliance indicator
+  status: "pending" | "confirmed"; // Confirmed means player acknowledges coupon copying
 }
 
 /**
@@ -166,14 +176,13 @@ export interface CouponRedemption {
  */
 export interface BillingPlan {
   id: string;
-  tier: 'starter' | 'growth' | 'enterprise';
+  tier: "starter" | "growth" | "enterprise";
   maxActiveCampaigns: number;
   campaignCount: number;
   maxEntriesPerMonth: number;
   entryCount: number;
   priceAmount: number;
 }
-
 
 // --- CLIENT SIDE PLAYERS PRESETS & SIMULATORS STATE ---
 
@@ -192,7 +201,7 @@ export interface BrandPreset {
   prizes: Prize[];
 }
 
-export type ScreenType = 'landing' | 'game' | 'result';
+export type ScreenType = "landing" | "game" | "result";
 
 export interface PlayerData {
   name: string;
