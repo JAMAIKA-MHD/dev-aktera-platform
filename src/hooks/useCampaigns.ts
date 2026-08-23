@@ -37,6 +37,7 @@ interface DbCampaignRow {
   require_quiz: boolean;
   auto_pace_prizes?: boolean;
   auto_pace_enabled_at?: string | null;
+  player_screen_config?: any;
   source_campaign_id: string | null;
   prizes: DbPrizeRow[];
   quiz_questions: DbQuestionRow[];
@@ -92,6 +93,7 @@ function mapToUi(
     startDate: row.start_date.split("T")[0],
     endDate: row.end_date.split("T")[0],
     parentCampaignId: row.source_campaign_id ?? undefined,
+    playerScreenConfig: row.player_screen_config ?? undefined,
     createdAt: row.created_at,
   };
 }
@@ -117,7 +119,7 @@ export function useCampaigns(organizationId: string | null) {
       const { data: rows, error: campErr } = await supabase
         .from("campaigns")
         .select(
-          "id, organization_id, name, arabic_name, hero_image_url, slug, status, start_date, end_date, win_probability, max_entries, require_quiz, source_campaign_id, created_at, prizes(id, prize_template_id, quantity, quantity_won, weight, is_active), quiz_questions(id, question, options, correct_option_index, position, is_active)",
+          "id, organization_id, name, arabic_name, hero_image_url, slug, status, start_date, end_date, win_probability, max_entries, require_quiz, auto_pace_prizes, auto_pace_enabled_at, player_screen_config, source_campaign_id, created_at, prizes(id, prize_template_id, quantity, quantity_won, weight, is_active), quiz_questions(id, question, options, correct_option_index, position, is_active)",
         )
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });

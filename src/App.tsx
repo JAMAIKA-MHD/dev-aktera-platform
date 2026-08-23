@@ -17,7 +17,8 @@ import { PhoneFrame } from "./components/PhoneFrame";
 import { PlayerLanding } from "./components/PlayerLanding";
 import { PlayerGame } from "./components/PlayerGame";
 import { PlayerResult } from "./components/PlayerResult";
-
+import { PlayerScreenConfig } from "./components/PlayerScreenConfig";
+import { PlayerEditorShell } from "./components/player-editor/PlayerEditorShell";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -480,6 +481,11 @@ export default function App() {
               label: t("nav.organization", "Organization"),
               icon: "fa-regular fa-user",
             },
+            {
+              id: "playerScreen",
+              label: t("nav.playerScreen", "Player Screen"),
+              icon: "fa-solid fa-mobile-screen",
+            },
           ].map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -758,9 +764,40 @@ export default function App() {
                 <AccountSettings onAvatarChange={setAvatarUrl} />
               </motion.div>
             )}
+
           </AnimatePresence>
         </div>
       </main>
+
+      {/* FULL SCREEN PLAYER EDITOR */}
+      <AnimatePresence>
+        {activeTab === "playerScreen" && (
+          <motion.div
+            key="playerScreen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100]"
+          >
+            <PlayerEditorShell 
+              campaigns={campaigns}
+              selectedCampaignId={sandboxCampaignId}
+              onSelectCampaign={setSandboxCampaignId}
+              onClose={() => setActiveTab("home")}
+              onSave={async (campaignId, config) => {
+                try {
+                  const c = campaigns.find(x => x.id === campaignId);
+                  if (!c) return;
+                  await handleSaveCampaign({ ...c, playerScreenConfig: config, mode: "update" });
+                } catch (err: any) {
+                  console.error(err);
+                }
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* PORTAL SIMULATOR SLIDE-OUT OVERLAY DRAWER */}
       <AnimatePresence>

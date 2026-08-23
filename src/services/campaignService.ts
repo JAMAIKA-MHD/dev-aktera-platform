@@ -139,6 +139,7 @@ export interface SaveCampaignInput {
     autoPacePrizes?: boolean;
     maxEntries?: "1" | "2" | "unlimited";
     parentCampaignId?: string;
+    playerScreenConfig?: any;
     prizes: { templateId?: string; quantity: number; weight: number }[];
     questions: {
       questionText: string;
@@ -208,6 +209,7 @@ export async function createOrUpdateCampaignFullService(
     p_prizes: prizesPayload,
     p_questions: questionsPayload,
     p_auto_pace_prizes: Boolean(newCamp.autoPacePrizes),
+    p_player_screen_config: newCamp.playerScreenConfig || null,
   };
 
   const { data, error } = await supabase.rpc(
