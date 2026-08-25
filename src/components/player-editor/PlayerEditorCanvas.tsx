@@ -3,7 +3,6 @@ import { PlayerScreenConfig } from "../../types";
 
 interface PlayerEditorCanvasProps {
   deviceType: "desktop" | "tablet" | "mobile";
-  previewMode: "player" | "admin";
   config: PlayerScreenConfig;
 }
 

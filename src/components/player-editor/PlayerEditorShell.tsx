@@ -88,7 +88,7 @@ export function PlayerEditorShell({ campaigns, selectedCampaignId, onSelectCampa
 
   const [activeScreen, setActiveScreen] = useState<EditorScreenType>("pre-game");
   const [deviceType, setDeviceType] = useState<"desktop" | "tablet" | "mobile">("mobile");
-  const [previewMode, setPreviewMode] = useState<"player" | "admin">("player");
+
 
   const handlePublish = () => {
     if (campaign) onSave(campaign.id, config);
@@ -118,17 +118,17 @@ export function PlayerEditorShell({ campaigns, selectedCampaignId, onSelectCampa
           >
             <ArrowLeft className="w-5 h-5 text-brand-text-muted" />
           </button>
-          <div className="flex flex-col">
-            <span className="text-xs text-brand-text-muted font-semibold">Editing Player Screen</span>
+          <div className="flex items-center gap-2 relative group">
             <select
               value={campaign.id}
               onChange={(e) => onSelectCampaign(e.target.value)}
-              className="bg-transparent text-sm font-bold truncate max-w-[200px] outline-none cursor-pointer appearance-none border-b border-dashed border-brand-text-muted pb-0.5 text-brand-text"
+              className="appearance-none bg-brand-surface/50 hover:bg-brand-surface border border-brand-border hover:border-brand-primary text-sm font-bold truncate max-w-[250px] outline-none cursor-pointer text-brand-text py-1.5 pl-3 pr-8 rounded-md transition-all shadow-sm"
             >
               {campaigns.map(c => (
                 <option key={c.id} value={c.id} className="bg-brand-dark">{c.name}</option>
               ))}
             </select>
+            <ChevronDown className="w-4 h-4 text-brand-text-muted absolute right-2 pointer-events-none group-hover:text-brand-primary transition-colors" />
           </div>
         </div>
 
@@ -154,19 +154,6 @@ export function PlayerEditorShell({ campaigns, selectedCampaignId, onSelectCampa
                 </button>
               );
             })}
-          </div>
-
-          {/* Preview Mode Toggle */}
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span className="text-brand-text-muted">Preview as:</span>
-            <select 
-              value={previewMode}
-              onChange={(e) => setPreviewMode(e.target.value as any)}
-              className="bg-transparent text-brand-text outline-none cursor-pointer border-b border-dashed border-brand-text-muted pb-0.5"
-            >
-              <option value="player" className="bg-brand-dark">Player</option>
-              <option value="admin" className="bg-brand-dark">Admin</option>
-            </select>
           </div>
         </div>
 
@@ -206,7 +193,6 @@ export function PlayerEditorShell({ campaigns, selectedCampaignId, onSelectCampa
         
         <PlayerEditorCanvas 
           deviceType={deviceType}
-          previewMode={previewMode}
           config={config}
         />
         

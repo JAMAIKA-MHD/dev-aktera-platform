@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PlayerScreenConfig } from "../../types";
-import { Palette, Gamepad2, Type, Puzzle } from "lucide-react";
+import { Palette, Image, Type } from "lucide-react";
 
 interface PlayerEditorSettingsProps {
   config: PlayerScreenConfig;
@@ -8,16 +8,15 @@ interface PlayerEditorSettingsProps {
   gameType: "lucky_wheel" | "quiz";
 }
 
-type TabId = "theme" | "assets" | "content" | "integrations";
+type TabId = "theme" | "assets" | "content";
 
 export function PlayerEditorSettings({ config, onChange, gameType }: PlayerEditorSettingsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("theme");
 
   const tabs = [
     { id: "theme" as TabId, label: "Global Theme", icon: Palette },
-    { id: "assets" as TabId, label: "Game Assets", icon: Gamepad2 },
+    { id: "assets" as TabId, label: "Game Assets", icon: Image },
     { id: "content" as TabId, label: "Content & Logic", icon: Type },
-    { id: "integrations" as TabId, label: "Integrations", icon: Puzzle },
   ];
 
   const handleThemeChange = (key: keyof PlayerScreenConfig["theme"], value: any) => {
@@ -210,7 +209,7 @@ export function PlayerEditorSettings({ config, onChange, gameType }: PlayerEdito
 
         {activeTab === "assets" && (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
-             <Gamepad2 className="w-12 h-12 text-brand-text-muted mb-4 opacity-50" />
+             <Image className="w-12 h-12 text-brand-text-muted mb-4 opacity-50" />
              <p className="text-sm font-semibold text-brand-text">Game Assets (Phase 2)</p>
              <p className="text-xs text-brand-text-muted mt-2">
                Will show specific asset controls for {gameType === 'lucky_wheel' ? 'Wheel' : 'Quiz'}.
@@ -223,20 +222,6 @@ export function PlayerEditorSettings({ config, onChange, gameType }: PlayerEdito
              <Type className="w-12 h-12 text-brand-text-muted mb-4 opacity-50" />
              <p className="text-sm font-semibold text-brand-text">Content & Logic (Phase 3)</p>
              <p className="text-xs text-brand-text-muted mt-2">Form fields, copy, and parameters.</p>
-          </div>
-        )}
-
-        {activeTab === "integrations" && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4 relative overflow-hidden glass-panel rounded-xl">
-             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-5 pointer-events-none"></div>
-             <Puzzle className="w-10 h-10 text-brand-text-muted mb-4 opacity-30" />
-             <p className="text-sm font-bold text-brand-text mb-2">Integrations</p>
-             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-brand-text-muted/20 text-brand-text rounded-full mb-4">
-               Coming Soon
-             </div>
-             <p className="text-xs text-brand-text-muted">
-               Email providers, CRMs, and Analytics connectors will be available here soon.
-             </p>
           </div>
         )}
       </div>
