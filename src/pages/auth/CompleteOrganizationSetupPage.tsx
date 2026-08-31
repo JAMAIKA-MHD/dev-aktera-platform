@@ -3,7 +3,6 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
-  Flame,
   LogOut,
   Mail,
   Phone,
@@ -72,144 +71,209 @@ export default function CompleteOrganizationSetupPage() {
     setLoading(false);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-md mb-3">
-            <Flame className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            {t("auth.setupTitle", "Complete organization setup")}
-          </h1>
-          <p className="text-slate-500 text-sm mt-1 text-center">
-            {t(
-              "auth.setupSubtitle",
-              "Your sign-in worked, but this account does not currently have an organization profile.",
-            )}
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] dark:bg-[#0B1120] flex items-center justify-center px-4">
+        <div className="text-center max-w-md bg-white dark:bg-[#151E30] p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
+          <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            Organization setup completed!
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-base">
+            Loading your dashboard...
           </p>
         </div>
+      </div>
+    );
+  }
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+  return (
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#f7f9fb] dark:bg-[#0B1120] text-[#191c1e] dark:text-slate-100 antialiased font-sans">
+      {/* LEFT SIDE: Brand Hero Area with Background Image */}
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-14 lg:p-24 relative text-white"
+        style={{
+          backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.75), rgba(30, 58, 138, 0.75)), url("/login-img.png")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+        }}
+      >
+        <div className="grid-pattern"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-20">
+            <span className="text-white text-6xl lg:text-7xl font-black tracking-tighter uppercase font-sans">
+              Aktera
+            </span>
+          </div>
+
+          <div className="max-w-lg">
+            <h1 className="text-4xl lg:text-[52px] font-extrabold mb-8 leading-[1.15] text-white tracking-tight">
+              {t(
+                "auth.heroRegisterTitle",
+                "Start transforming your brand engagement today.",
+              )}
+            </h1>
+            <p className="text-xl text-blue-200/95 leading-relaxed mb-12 font-normal">
+              {t(
+                "auth.heroRegisterSubtitle",
+                "Launch high-converting gamified promotional campaigns, collect verified customer leads, and scale your brand reach across Algeria.",
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-sm text-blue-200/70 font-medium">
+          &copy; {new Date().getFullYear()} Aktera. All rights reserved.
+        </div>
+      </div>
+
+      {/* RIGHT SIDE: Form Area */}
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-14 bg-white dark:bg-[#0e1422] min-h-screen overflow-y-auto">
+        <div className="w-full max-w-[480px] space-y-7 py-8">
+          {/* Header & Logo */}
+          <div className="text-center lg:text-left">
+            <div className="w-20 h-20 mx-auto lg:mx-0 mb-6 rounded-2xl bg-white dark:bg-[#151E30] p-2 flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-800">
+              <img
+                src="/aktera-logo.png"
+                alt="Aktera Logo"
+                className="w-full h-full object-contain dark:invert"
+              />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2.5">
+              {t("auth.setupTitle", "Complete organization setup")}
+            </h2>
+            <p className="text-base text-slate-500 dark:text-slate-400 font-medium">
+              {t(
+                "auth.setupSubtitle",
+                "Your sign-in worked, but this account does not currently have an organization profile.",
+              )}
+            </p>
+          </div>
+
+          {/* Error Message */}
           {error && (
-            <div className="mb-5 flex items-start gap-2.5 bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 text-sm">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-red-600 dark:text-red-400 rounded-2xl px-4 py-3.5 text-base font-bold shadow-sm">
+              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          {success && (
-            <div className="mb-5 flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl px-4 py-3 text-sm">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>
-                {t(
-                  "auth.setupCompleted",
-                  "Organization setup completed. Loading your dashboard...",
-                )}
-              </span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Organization Name */}
+            <div className="space-y-2">
+              <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                 {t("auth.orgName", "Organization Name")}
               </label>
-              <div className="relative flex items-center">
-                <Building2 className="absolute left-3.5 w-4 h-4 text-slate-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                  <Building2 className="w-5 h-5" />
+                </div>
                 <input
                   type="text"
                   dir="auto"
+                  required
+                  placeholder="e.g. Acme Enterprises"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
-                  placeholder="e.g. Acme Enterprises"
-                  className="w-full border border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all min-h-12"
+                  className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-[#151E30] text-slate-900 dark:text-white text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all font-medium"
                   disabled={loading || success}
-                  required
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+            {/* Representative Full Name */}
+            <div className="space-y-2">
+              <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                 {t("auth.fullName", "Your Full Name")}
               </label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3.5 w-4 h-4 text-slate-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                  <User className="w-5 h-5" />
+                </div>
                 <input
                   type="text"
                   dir="auto"
+                  required
+                  placeholder="e.g. Jane Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Jane Doe"
-                  className="w-full border border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all min-h-12"
+                  className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-[#151E30] text-slate-900 dark:text-white text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all font-medium"
                   disabled={loading || success}
-                  required
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+            {/* Work Email (Disabled) */}
+            <div className="space-y-2">
+              <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                 {t("auth.workEmail", "Email")}
               </label>
-              <div className="relative flex items-center">
-                <Mail className="absolute left-3.5 w-4 h-4 text-slate-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-5 h-5" />
+                </div>
                 <input
                   type="email"
                   dir="auto"
                   value={email}
-                  className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-500 bg-slate-50 outline-none min-h-12"
+                  className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-100 dark:bg-[#1a2333] text-slate-500 dark:text-slate-400 text-base focus:outline-none font-medium cursor-not-allowed"
                   disabled
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+            {/* Phone */}
+            <div className="space-y-2">
+              <label className="block text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                 {t("auth.phone", "Phone")}{" "}
-                <span className="text-slate-400 normal-case font-normal">
+                <span className="text-slate-400 dark:text-slate-500 normal-case font-normal">
                   {t("auth.optional", "(optional)")}
                 </span>
               </label>
-              <div className="relative flex items-center">
-                <Phone className="absolute left-3.5 w-4 h-4 text-slate-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                  <Phone className="w-5 h-5" />
+                </div>
                 <input
                   type="tel"
                   dir="auto"
+                  placeholder="e.g. 0550000000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 0550000000"
-                  className="w-full border border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all min-h-12"
+                  className="block w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-[#151E30] text-slate-900 dark:text-white text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all font-medium"
                   disabled={loading || success}
                 />
               </div>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading || success}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl py-3 text-sm transition-all min-h-12 cursor-pointer flex items-center justify-center gap-2 shadow-sm mt-1"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl py-4 text-base transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>{t("auth.saving", "Saving organization...")}</span>
                 </>
               ) : (
-                t("auth.completeSetup", "Continue to Dashboard")
+                <span>{t("auth.completeSetup", "Continue to Dashboard")}</span>
               )}
             </button>
           </form>
 
-          <button
-            type="button"
-            onClick={signOut}
-            className="w-full mt-4 border border-slate-200 hover:border-slate-300 text-slate-600 font-semibold rounded-xl py-3 text-sm transition-all min-h-12 cursor-pointer flex items-center justify-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>{t("nav.signOut", "Sign out")}</span>
-          </button>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={signOut}
+              className="w-full bg-white dark:bg-[#0e1422] border-2 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-[#151E30] text-slate-700 dark:text-slate-300 font-bold rounded-2xl py-4 text-base transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>{t("nav.signOut", "Sign out")}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
