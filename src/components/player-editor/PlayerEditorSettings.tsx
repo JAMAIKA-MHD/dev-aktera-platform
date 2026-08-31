@@ -1,20 +1,25 @@
 import React, { useState } from "react";
-import { PlayerScreenConfig } from "../../types";
+import { PlayerScreenConfig, Campaign } from "../../types";
 import { Palette, Image, Type } from "lucide-react";
 
 interface PlayerEditorSettingsProps {
+  campaign: Campaign;
   config: PlayerScreenConfig;
   onChange: (config: PlayerScreenConfig) => void;
-  gameType: "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it";
+  logicConfig: any;
+  onLogicChange: (logicConfig: any) => void;
 }
 
 type TabId = "theme" | "assets" | "content";
 
 export function PlayerEditorSettings({
+  campaign,
   config,
   onChange,
-  gameType,
+  logicConfig,
+  onLogicChange,
 }: PlayerEditorSettingsProps) {
+  const gameType = campaign.gameType;
   const [activeTab, setActiveTab] = useState<TabId>("theme");
 
   const tabs = [
@@ -281,14 +286,84 @@ export function PlayerEditorSettings({
         )}
 
         {activeTab === "content" && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <Type className="w-12 h-12 text-brand-text-muted mb-4 opacity-50" />
-            <p className="text-sm font-semibold text-brand-text">
-              Content & Logic (Phase 3)
-            </p>
-            <p className="text-xs text-brand-text-muted mt-2">
-              Form fields, copy, and parameters.
-            </p>
+          <div className="flex flex-col gap-6">
+            <div className="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-4">
+              <h3 className="text-brand-text font-bold text-sm uppercase tracking-wider">
+                {gameType === "lucky_wheel"
+                  ? "Wheel Config"
+                  : gameType === "quiz"
+                    ? "Quiz Config"
+                    : gameType === "hit_it"
+                      ? "Hit It Config"
+                      : "Game Config"}
+              </h3>
+
+              {gameType === "lucky_wheel" && (
+                <div className="flex flex-col gap-2 text-sm text-brand-text-muted">
+                  <p>
+                    Wheel segments are automatically generated from your active
+                    prizes. To change probabilities, edit the Prize Allocation
+                    weights in the previous step.
+                  </p>
+                </div>
+              )}
+
+              {gameType === "quiz" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold">
+                    Pass Threshold (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={logicConfig.pass_threshold_percentage || 100}
+                    onChange={(e) =>
+                      onLogicChange({
+                        ...logicConfig,
+                        pass_threshold_percentage: Number(e.target.value),
+                      })
+                    }
+                    className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none"
+                  />
+                  <p className="text-xs text-brand-text-muted mt-1">
+                    Players must score at least this percentage to win a prize.
+                  </p>
+                </div>
+              )}
+
+              {gameType === "hit_it" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold">
+                    Hits Needed to Win
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={logicConfig.win_threshold || 9}
+                    onChange={(e) =>
+                      onLogicChange({
+                        ...logicConfig,
+                        win_threshold: Number(e.target.value),
+                      })
+                    }
+                    className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none"
+                  />
+                  <p className="text-xs text-brand-text-muted mt-1">
+                    Number of successful hits required within the time limit.
+                  </p>
+                </div>
+              )}
+
+              {(gameType === "scratch_card" || gameType === "mystery_box") && (
+                <div className="flex flex-col gap-2 text-sm text-brand-text-muted">
+                  <p>
+                    This game relies purely on the Win Probability you set in
+                    Step 2. No additional logic configuration is required.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -764,7 +764,6 @@ export default function App() {
                 <AccountSettings onAvatarChange={setAvatarUrl} />
               </motion.div>
             )}
-
           </AnimatePresence>
         </div>
       </main>
@@ -779,16 +778,21 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100]"
           >
-            <PlayerEditorShell 
+            <PlayerEditorShell
               campaigns={campaigns}
               selectedCampaignId={sandboxCampaignId}
               onSelectCampaign={setSandboxCampaignId}
               onClose={() => setActiveTab("home")}
-              onSave={async (campaignId, config) => {
+              onSave={async (campaignId, config, logicConfig) => {
                 try {
-                  const c = campaigns.find(x => x.id === campaignId);
+                  const c = campaigns.find((x) => x.id === campaignId);
                   if (!c) return;
-                  await handleSaveCampaign({ ...c, playerScreenConfig: config, mode: "update" });
+                  await handleSaveCampaign({
+                    ...c,
+                    playerScreenConfig: config,
+                    gameLogicConfig: logicConfig,
+                    mode: "update",
+                  });
                 } catch (err: any) {
                   console.error(err);
                 }
@@ -797,7 +801,6 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-
 
       {/* PORTAL SIMULATOR SLIDE-OUT OVERLAY DRAWER */}
       <AnimatePresence>

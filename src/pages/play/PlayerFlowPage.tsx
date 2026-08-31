@@ -32,6 +32,9 @@ import { PlayerLanding } from "../../components/PlayerLanding";
 import { PlayerGame } from "../../components/PlayerGame";
 import { PlayerResult } from "../../components/PlayerResult";
 import { PlayerQuiz } from "../../components/PlayerQuiz";
+import { PlayerScratch } from "../../components/PlayerScratch";
+import { PlayerMysteryBox } from "../../components/PlayerMysteryBox";
+import { PlayerHitIt } from "../../components/PlayerHitIt";
 import { AlertTriangle, Frown } from "lucide-react";
 import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../../lib/defaultImages";
 
@@ -41,6 +44,9 @@ type PlayerScreen =
   | "inactive"
   | "landing"
   | "quiz"
+  | "hit_it"
+  | "mystery_box"
+  | "scratch_card"
   | "submitting"
   | "game"
   | "result"
@@ -75,6 +81,8 @@ interface DbCampaignRow {
   hero_image_url: string | null;
   status: string;
   require_quiz: boolean;
+  game_type: string;
+  game_logic_config: any;
   prizes: Array<{
     id: string;
     name: string;
@@ -99,7 +107,8 @@ export default function PlayerFlowPage() {
 
   const [screen, setScreen] = useState<PlayerScreen>("loading");
   const [campaignId, setCampaignId] = useState<string | null>(null);
-  const [isQuizCampaign, setIsQuizCampaign] = useState(false);
+  const [gameType, setGameType] = useState<string>("lucky_wheel");
+  const [gameLogicConfig, setGameLogicConfig] = useState<any>({});
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [brandPreset, setBrandPreset] = useState<BrandPreset | null>(null);
   const [playerData, setPlayerData] = useState<PlayerData>({
@@ -165,7 +174,7 @@ export default function PlayerFlowPage() {
     const { data, error } = await supabase
       .from("campaigns")
       .select(
-        "id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
+        "id, name, arabic_name, hero_image_url, status, require_quiz, game_type, game_logic_config, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
       )
       .eq("slug", slug)
       .single();
@@ -275,7 +284,8 @@ export default function PlayerFlowPage() {
 
     setCampaignId(row.id);
     setBrandPreset(preset);
-    setIsQuizCampaign(row.require_quiz);
+    setGameType(row.game_type || "lucky_wheel");
+    setGameLogicConfig(row.game_logic_config || {});
     // Map DB quiz_questions → QuizQuestion[]
     const mappedQuestions: QuizQuestion[] = (row.quiz_questions ?? [])
       .filter((q) => q.is_active)
@@ -354,20 +364,20 @@ export default function PlayerFlowPage() {
   // Called by PlayerLanding when player submits the form
   const handleRegister = async (data: PlayerData) => {
     setPlayerData(data);
-    // Quiz campaigns: show quiz before calling select-prize
-    if (isQuizCampaign && quizQuestions.length > 0) {
+    if (gameType === "quiz" && quizQuestions.length > 0) {
       setScreen("quiz");
-      return;
+    } else if (gameType === "hit_it") {
+      setScreen("hit_it");
+    } else if (gameType === "mystery_box") {
+      setScreen("mystery_box");
+    } else {
+      // pre-resolved games: lucky_wheel, scratch_card
+      await callSelectPrize(data, undefined);
     }
-    // Non-quiz campaign: call select-prize immediately
-    await callSelectPrize(data, undefined);
   };
 
   // Shared function that calls select-prize and handles the response
-  const callSelectPrize = async (
-    data: PlayerData,
-    quizPassed: boolean | undefined,
-  ) => {
+  const callSelectPrize = async (data: PlayerData, gamePayload?: any) => {
     setScreen("submitting");
 
     const sessionId =
@@ -385,8 +395,10 @@ export default function PlayerFlowPage() {
             campaign_id: campaignId,
             phone_number: data.phone,
             participant_name: data.name,
-            quiz_passed: quizPassed,
+            participant_email: data.email,
+            game_payload: gamePayload || {},
             user_agent: navigator.userAgent,
+            metadata: { source: "web_player" },
             session_id: sessionId,
             dwell_time_seconds: dwellTimeSeconds,
           },
@@ -492,7 +504,7 @@ export default function PlayerFlowPage() {
                     ? chosenPrize.id
                     : null,
                 redeemed_coupon_value: null,
-                quiz_passed: quizPassed,
+                quiz_passed: null,
               })
               .select("id")
               .single();
@@ -654,16 +666,47 @@ export default function PlayerFlowPage() {
       entryIdRef.current = newId;
       setServerPrize(resolvedPrize);
       gameOpenTimeRef.current = Date.now();
-      setScreen("game");
+
+      if (gameType === "lucky_wheel") {
+        setScreen("game");
+      } else if (gameType === "scratch_card") {
+        setScreen("scratch_card");
+      }
+
+      return result.game_outcome;
     } catch {
       setErrorMsg("Unexpected error. Please check your connection.");
       setScreen("error");
+      return null;
     }
   };
 
   // Called by PlayerQuiz when all questions are answered
-  const handleQuizComplete = async (passed: boolean) => {
-    await callSelectPrize(playerData, passed);
+  const handleQuizComplete = async (payload: {
+    answers: Record<string, number>;
+  }) => {
+    await callSelectPrize(playerData, payload);
+    setScreen("result");
+  };
+
+  const handleHitItComplete = async (hits: number) => {
+    await callSelectPrize(playerData, { hits });
+  };
+
+  const handleHitItFinalComplete = () => {
+    setScreen("result");
+  };
+
+  const handleMysteryBoxSelect = async (index: number) => {
+    return await callSelectPrize(playerData, { selected_box_index: index });
+  };
+
+  const handleMysteryBoxComplete = () => {
+    setScreen("result");
+  };
+
+  const handleScratchComplete = () => {
+    setScreen("result");
   };
 
   const gameOpenTimeRef = React.useRef<number | null>(null);
@@ -869,6 +912,28 @@ export default function PlayerFlowPage() {
             targetPrize={serverPrize ?? undefined}
             onGameComplete={handleGameComplete}
             playerName={playerData.name}
+          />
+        )}
+        {screen === "scratch_card" && serverPrize !== undefined && (
+          <PlayerScratch
+            activeBrand={brandPreset}
+            targetPrize={serverPrize ?? undefined}
+            onGameComplete={handleScratchComplete}
+          />
+        )}
+        {screen === "mystery_box" && (
+          <PlayerMysteryBox
+            activeBrand={brandPreset}
+            onBoxSelect={handleMysteryBoxSelect}
+            onComplete={handleMysteryBoxComplete}
+          />
+        )}
+        {screen === "hit_it" && (
+          <PlayerHitIt
+            activeBrand={brandPreset}
+            winThreshold={gameLogicConfig?.win_threshold || 9}
+            onGameEnd={handleHitItComplete}
+            onComplete={handleHitItFinalComplete}
           />
         )}
         {screen === "result" && (

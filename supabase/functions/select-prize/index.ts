@@ -13,7 +13,8 @@ interface SelectPrizeBody {
   phone_number: string;
   participant_name?: string;
   participant_email?: string;
-  quiz_passed?: boolean;
+  quiz_passed?: boolean; // deprecated, use game_payload
+  game_payload?: any;
   metadata?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
@@ -72,6 +73,7 @@ serve(async (req) => {
       participant_name,
       participant_email,
       quiz_passed,
+      game_payload = {},
       metadata = {},
       ip_address,
       user_agent,
@@ -261,16 +263,16 @@ serve(async (req) => {
     let selectedPrize: ActivePrizePayload | null = null;
 
     const { data: drawResult, error: drawError } = await supabaseAdmin.rpc(
-      "draw_and_claim_campaign_prize",
+      "resolve_game_outcome",
       {
         p_campaign_id: campaign_id,
-        p_quiz_passed: isQuizCampaign ? quiz_passed === true : null,
+        p_payload: game_payload,
       },
     );
 
     if (drawError) {
       console.error(
-        "[select-prize] draw_and_claim_campaign_prize error:",
+        "[select-prize] resolve_game_outcome error:",
         drawError.message,
       );
       return new Response(
@@ -396,7 +398,7 @@ serve(async (req) => {
         phone_number: normalizedPhoneNumber,
         participant_name: participant_name || null,
         participant_email: participant_email || null,
-        quiz_passed: isQuizCampaign ? !!quiz_passed : null,
+        quiz_passed: drawResult?.passed ?? null,
         is_winner: isWinner,
         prize_id: selectedPrizeId,
         redeemed_coupon_value: couponCode,
@@ -466,6 +468,7 @@ serve(async (req) => {
             }
           : null,
         coupon: couponCode ? { code: couponCode } : null,
+        game_outcome: drawResult,
       }),
       {
         status: 200,

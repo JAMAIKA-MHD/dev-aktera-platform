@@ -18,7 +18,11 @@ interface PlayerEditorShellProps {
   selectedCampaignId?: string | null;
   onSelectCampaign: (id: string) => void;
   onClose: () => void;
-  onSave: (campaignId: string, config: PlayerScreenConfig) => void;
+  onSave: (
+    campaignId: string,
+    config: PlayerScreenConfig,
+    logicConfig: any,
+  ) => void;
 }
 
 const DEFAULT_CONFIG: PlayerScreenConfig = {
@@ -123,10 +127,15 @@ export function PlayerEditorShell({
     mergeConfig(campaign?.playerScreenConfig),
   );
 
+  const [logicConfig, setLogicConfig] = React.useState<any>(
+    campaign?.gameLogicConfig || {},
+  );
+
   // Reset config when campaign changes
   React.useEffect(() => {
     if (campaign) {
       setConfig(mergeConfig(campaign.playerScreenConfig));
+      setLogicConfig(campaign.gameLogicConfig || {});
     }
   }, [campaign?.id]);
 
@@ -137,11 +146,11 @@ export function PlayerEditorShell({
   );
 
   const handlePublish = () => {
-    if (campaign) onSave(campaign.id, config);
+    if (campaign) onSave(campaign.id, config, logicConfig);
   };
 
   const handleSaveDraft = () => {
-    if (campaign) onSave(campaign.id, config);
+    if (campaign) onSave(campaign.id, config, logicConfig);
   };
 
   if (!campaign) {
@@ -261,9 +270,11 @@ export function PlayerEditorShell({
         <PlayerEditorCanvas deviceType={deviceType} config={config} />
 
         <PlayerEditorSettings
+          campaign={campaign}
           config={config}
           onChange={setConfig}
-          gameType={campaign.gameType}
+          logicConfig={logicConfig}
+          onLogicChange={setLogicConfig}
         />
       </main>
     </div>
