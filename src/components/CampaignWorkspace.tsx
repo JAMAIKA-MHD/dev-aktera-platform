@@ -121,7 +121,7 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   const stateBadge = getStateBadge();
 
   const getDetailsGameIcon = () => {
-    if (campaign.type === "quiz") {
+    if (campaign.gameType === "quiz") {
       return "/images/icons/quiz-icon-for-details.jpg";
     }
     return "/images/icons/spin-wheel-icon-free-vector.jpg";
@@ -186,11 +186,11 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-emerald-500 bg-[#262A30] shadow-xl flex items-center justify-center shrink-0 -ml-2">
                 <img
                   src={getDetailsGameIcon()}
-                  alt={campaign.type}
+                  alt={campaign.gameType}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src =
-                      campaign.type === "quiz"
+                      campaign.gameType === "quiz"
                         ? "/images/icons/quiz-badge.svg"
                         : "/images/icons/wheel-badge.svg";
                   }}
@@ -220,7 +220,7 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                 /* Rich Studio Game Theme Canvas (High contrast in all themes) */
                 <div
                   className={`relative w-full h-full min-h-[300px] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden ${
-                    campaign.type === "quiz"
+                    campaign.gameType === "quiz"
                       ? "bg-gradient-to-br from-[#120D2C] via-[#0B1120] to-[#1E1242] text-white"
                       : "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26] text-white"
                   }`}
@@ -228,7 +228,7 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                   {/* Decorative background ambient glow */}
                   <div
                     className={`absolute w-64 h-64 rounded-full blur-3xl opacity-40 pointer-events-none ${
-                      campaign.type === "quiz"
+                      campaign.gameType === "quiz"
                         ? "bg-purple-600"
                         : "bg-emerald-500"
                     }`}
@@ -238,12 +238,12 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                   <div className="relative z-10 flex flex-col items-center space-y-3.5">
                     <div
                       className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl border ${
-                        campaign.type === "quiz"
+                        campaign.gameType === "quiz"
                           ? "bg-indigo-600/25 border-indigo-500/50 text-indigo-400 shadow-indigo-500/20"
                           : "bg-emerald-600/25 border-emerald-500/50 text-emerald-400 shadow-emerald-500/20"
                       }`}
                     >
-                      {campaign.type === "quiz" ? (
+                      {campaign.gameType === "quiz" ? (
                         <HelpCircle className="w-10 h-10 stroke-[2.2]" />
                       ) : (
                         <Disc className="w-10 h-10 stroke-[2.2] animate-spin-slow" />
@@ -256,12 +256,12 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                       </h3>
                       <span
                         className={`inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
-                          campaign.type === "quiz"
+                          campaign.gameType === "quiz"
                             ? "bg-purple-500/20 border-purple-500/30 text-purple-300"
                             : "bg-emerald-500/20 border-emerald-500/30 text-emerald-300"
                         }`}
                       >
-                        {campaign.type === "quiz"
+                        {campaign.gameType === "quiz"
                           ? "Trivia Quiz Challenge"
                           : "Lucky Spin Wheel"}
                       </span>

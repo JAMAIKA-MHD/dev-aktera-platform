@@ -9,7 +9,7 @@ import { Smartphone, Check, Image as ImageIcon } from "lucide-react";
 export function PlayerScreenConfig() {
   const { organization } = useAuth();
   const { campaigns } = useCampaigns(organization?.id ?? null);
-  
+
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [primaryColor, setPrimaryColor] = useState("#6366F1");
   const [gradientFrom, setGradientFrom] = useState("#8B5CF6");
@@ -23,43 +23,53 @@ export function PlayerScreenConfig() {
   }, [campaigns, selectedCampaignId]);
 
   // Use the active campaign
-  const activeCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
+  const activeCampaign =
+    campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
 
-  const brandPreset = activeCampaign ? {
-    name: activeCampaign.name,
-    arabicName: activeCampaign.arabicName,
-    primaryColor,
-    gradientFrom,
-    gradientTo,
-    description: `Participate & Win premium voucher codes or physical merchandise.`,
-    logoUrl: logoUrl || activeCampaign.heroImageUrl,
-    prizes: activeCampaign.prizes.map((p) => ({
-      name: "Mystery Reward",
-      icon: "🎁",
-      isWin: true,
-    }))
-  } : null;
+  const brandPreset = activeCampaign
+    ? {
+        name: activeCampaign.name,
+        arabicName: activeCampaign.arabicName,
+        primaryColor,
+        gradientFrom,
+        gradientTo,
+        description: `Participate & Win premium voucher codes or physical merchandise.`,
+        logoUrl: logoUrl || activeCampaign.heroImageUrl,
+        prizes: activeCampaign.prizes.map((p) => ({
+          name: "Mystery Reward",
+          icon: "🎁",
+          isWin: true,
+        })),
+      }
+    : null;
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">
       {/* Config Form */}
       <div className="flex-1 bg-card-bg border border-brand-border rounded-3xl p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-brand-text mb-6">Player Screen Customization</h2>
-        
+        <h2 className="text-xl font-bold text-brand-text mb-6">
+          Player Screen Customization
+        </h2>
+
         <div className="space-y-6">
           {/* Game Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-brand-text">Select Game (Campaign)</label>
+            <label className="text-sm font-semibold text-brand-text">
+              Select Game (Campaign)
+            </label>
             <div className="relative">
               <select
                 value={selectedCampaignId}
                 onChange={(e) => setSelectedCampaignId(e.target.value)}
                 className="w-full bg-black/5 dark:bg-white/5 border border-brand-border rounded-xl px-4 py-3 text-sm text-brand-text focus:outline-none focus:border-blue-500 appearance-none cursor-pointer transition-colors"
               >
-                {campaigns.length === 0 && <option value="">No games available</option>}
+                {campaigns.length === 0 && (
+                  <option value="">No games available</option>
+                )}
                 {campaigns.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.type === "lucky_wheel" ? "Lucky Wheel" : "Quiz"})
+                    {c.name} (
+                    {c.gameType === "lucky_wheel" ? "Lucky Wheel" : "Quiz"})
                   </option>
                 ))}
               </select>
@@ -73,11 +83,15 @@ export function PlayerScreenConfig() {
 
           {/* Color Customization */}
           <div className="space-y-4">
-            <h3 className="text-md font-semibold text-brand-text">Theme Colors</h3>
-            
+            <h3 className="text-md font-semibold text-brand-text">
+              Theme Colors
+            </h3>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs text-brand-textMuted font-medium block">Primary Accent</label>
+                <label className="text-xs text-brand-textMuted font-medium block">
+                  Primary Accent
+                </label>
                 <div className="flex gap-2 items-center">
                   <input
                     type="color"
@@ -95,7 +109,9 @@ export function PlayerScreenConfig() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-brand-textMuted font-medium block">Gradient Top (Background)</label>
+                <label className="text-xs text-brand-textMuted font-medium block">
+                  Gradient Top (Background)
+                </label>
                 <div className="flex gap-2 items-center">
                   <input
                     type="color"
@@ -113,7 +129,9 @@ export function PlayerScreenConfig() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-brand-textMuted font-medium block">Gradient Bottom (Background)</label>
+                <label className="text-xs text-brand-textMuted font-medium block">
+                  Gradient Bottom (Background)
+                </label>
                 <div className="flex gap-2 items-center">
                   <input
                     type="color"
@@ -136,9 +154,13 @@ export function PlayerScreenConfig() {
 
           {/* Icon / Image Customization */}
           <div className="space-y-4">
-            <h3 className="text-md font-semibold text-brand-text">Hero Image / Logo</h3>
+            <h3 className="text-md font-semibold text-brand-text">
+              Hero Image / Logo
+            </h3>
             <div className="space-y-2">
-              <label className="text-xs text-brand-textMuted font-medium block">Logo URL</label>
+              <label className="text-xs text-brand-textMuted font-medium block">
+                Logo URL
+              </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-brand-textMuted">
@@ -153,7 +175,10 @@ export function PlayerScreenConfig() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-brand-textMuted">Provide a direct URL to an image or logo. If left blank, it will use the campaign's hero image.</p>
+              <p className="text-xs text-brand-textMuted">
+                Provide a direct URL to an image or logo. If left blank, it will
+                use the campaign's hero image.
+              </p>
             </div>
           </div>
 
@@ -178,14 +203,14 @@ export function PlayerScreenConfig() {
         </div>
         <div className="h-[700px] w-full max-w-[360px] mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 dark:border-slate-700 relative flex flex-col bg-slate-900">
           {!brandPreset ? (
-             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
-               No game selected
-             </div>
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+              No game selected
+            </div>
           ) : (
-            <PlayerLanding 
-              activeBrand={brandPreset} 
-              onRegister={() => {}} 
-              savedData={{ name: "", phone: "", consent: false }} 
+            <PlayerLanding
+              activeBrand={brandPreset}
+              onRegister={() => {}}
+              savedData={{ name: "", phone: "", consent: false }}
             />
           )}
         </div>

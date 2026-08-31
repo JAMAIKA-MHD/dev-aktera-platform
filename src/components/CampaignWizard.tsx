@@ -80,9 +80,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         ? `${relaunchDraft.slug}-relaunch`
         : "",
   );
-  const [type, setType] = useState<"lucky_wheel" | "quiz">(
-    baseCampaign ? baseCampaign.type : "lucky_wheel",
-  );
+  const [type, setType] = useState<
+    "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it"
+  >(baseCampaign ? baseCampaign.gameType : "lucky_wheel");
   const [startDate, setStartDate] = useState(
     baseCampaign?.startDate ?? new Date().toISOString().split("T")[0],
   );
@@ -235,7 +235,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         arabicName,
         heroImageUrl: heroImageUrl || undefined,
         slug,
-        type,
+        gameType: type,
         status: submitStatus,
         winProbability,
         autoPacePrizes,
@@ -1397,12 +1397,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   traffic.
                 </p>
 
-                {editingCampaign.type !== type && (
+                {editingCampaign.gameType !== type && (
                   <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 font-bold flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
                       Notice: Changing game type from{" "}
-                      <strong>{editingCampaign.type}</strong> to{" "}
+                      <strong>{editingCampaign.gameType}</strong> to{" "}
                       <strong>{type}</strong> may alter in-progress customer
                       game sessions.
                     </span>

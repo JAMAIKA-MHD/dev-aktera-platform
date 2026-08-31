@@ -120,7 +120,8 @@ export interface Campaign {
   arabicName: string;
   heroImageUrl?: string;
   slug: string;
-  type: "lucky_wheel" | "quiz";
+  gameType: "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it";
+  gameLogicConfig?: any;
   status: "active" | "paused" | "draft" | "archived";
   winProbability: number; // Server-enforced winning percentage (0 to 100)
   maxEntries?: "1" | "2" | "unlimited";
@@ -160,21 +161,41 @@ export interface PlayerScreenConfig {
     primaryColor: string;
     secondaryColor: string;
     accentColor: string;
-    background: { type: 'solid' | 'gradient' | 'image'; value: string };
+    background: { type: "solid" | "gradient" | "image"; value: string };
     fontFamily: string;
     customFontUrl?: string;
-    borderRadius: 'sharp' | 'rounded' | 'pill';
+    borderRadius: "sharp" | "rounded" | "pill";
     modalShadow: boolean;
-    mode: 'light' | 'dark';
+    mode: "light" | "dark";
   };
   gameAssets: {
-    wheel?: { slices: { color: string; label: string; icon?: string }[]; centerPinImageUrl?: string };
-    scratchCard?: { surfaceImageUrl: string; revealCanvasConfig: Record<string, unknown> };
-    matchGame?: { tileIcons: string[]; gridBackgroundUrl?: string; popAnimation: string };
-    sound: { spinTickUrl?: string; matchSuccessUrl?: string; grandPrizeUrl?: string; muted: boolean };
+    wheel?: {
+      slices: { color: string; label: string; icon?: string }[];
+      centerPinImageUrl?: string;
+    };
+    scratchCard?: {
+      surfaceImageUrl: string;
+      revealCanvasConfig: Record<string, unknown>;
+    };
+    matchGame?: {
+      tileIcons: string[];
+      gridBackgroundUrl?: string;
+      popAnimation: string;
+    };
+    sound: {
+      spinTickUrl?: string;
+      matchSuccessUrl?: string;
+      grandPrizeUrl?: string;
+      muted: boolean;
+    };
   };
   content: {
-    preGame: { title: string; subHeader: string; rulesText: string; formFields: FormFieldConfig[] };
+    preGame: {
+      title: string;
+      subHeader: string;
+      rulesText: string;
+      formFields: FormFieldConfig[];
+    };
     winState: { title: string; ctaLabel: string; ctaAction: string };
     loseState: { title: string; ctaLabel: string; ctaAction: string };
     gameParams: { timerSeconds: number; dailyAttempts: number };

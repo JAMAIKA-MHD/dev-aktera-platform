@@ -82,9 +82,10 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
       .includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatuses.includes(camp.status);
     const matchesType =
-      selectedTypes.includes(camp.type) ||
-      (camp.type === "lucky_wheel" && selectedTypes.includes("lucky_wheel")) ||
-      (camp.type === "quiz" &&
+      selectedTypes.includes(camp.gameType) ||
+      (camp.gameType === "lucky_wheel" &&
+        selectedTypes.includes("lucky_wheel")) ||
+      (camp.gameType === "quiz" &&
         (selectedTypes.includes("quiz") || selectedTypes.includes("scratch")));
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -272,7 +273,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
           );
 
           const englishSubtitle =
-            camp.type === "lucky_wheel"
+            camp.gameType === "lucky_wheel"
               ? "Retail Electronics Promo"
               : "Loyalty Tier 1";
 

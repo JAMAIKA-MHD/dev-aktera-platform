@@ -84,7 +84,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
     try {
       // 1. Call atomic select-prize RPC / edge function
       const dwell =
-        campaign.type === "quiz"
+        campaign.gameType === "quiz"
           ? Math.floor(15 + Math.random() * 45)
           : Math.floor(6 + Math.random() * 14);
 
@@ -92,7 +92,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
         "draw_and_claim_campaign_prize",
         {
           p_campaign_id: campaign.id,
-          p_quiz_passed: campaign.type === "quiz" ? true : null,
+          p_quiz_passed: campaign.gameType === "quiz" ? true : null,
         },
       );
 
@@ -140,7 +140,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
         prize_id: isWinner ? drawResult.prize_id : null,
         redeemed_coupon_value: couponCode,
         dwell_time_seconds: dwell,
-        quiz_passed: campaign.type === "quiz" ? true : null,
+        quiz_passed: campaign.gameType === "quiz" ? true : null,
         coupon_confirmed: isWinner,
         metadata: {
           carrier,
@@ -209,7 +209,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
         const phone = `${prefix}${Math.floor(100000 + Math.random() * 900000)}`;
         const name = names[i % names.length];
         const dwell =
-          campaign.type === "quiz"
+          campaign.gameType === "quiz"
             ? 15 + Math.floor(Math.random() * 45)
             : 6 + Math.floor(Math.random() * 14);
 
@@ -218,7 +218,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
           "draw_and_claim_campaign_prize",
           {
             p_campaign_id: campaign.id,
-            p_quiz_passed: campaign.type === "quiz" ? i % 4 !== 0 : null,
+            p_quiz_passed: campaign.gameType === "quiz" ? i % 4 !== 0 : null,
           },
         );
 
@@ -236,7 +236,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
             ? `TEST-${Math.floor(100 + Math.random() * 900)}-PROMO`
             : null,
           dwell_time_seconds: dwell,
-          quiz_passed: campaign.type === "quiz" ? i % 4 !== 0 : null,
+          quiz_passed: campaign.gameType === "quiz" ? i % 4 !== 0 : null,
           coupon_confirmed: isWin,
           metadata: {
             carrier: phone.startsWith("05")
