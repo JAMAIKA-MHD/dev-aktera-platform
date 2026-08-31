@@ -96,10 +96,10 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
                 </span>{" "}
                 correct.
                 <br />
-                Time to spin the wheel!
+                Ready to unlock your reward!
               </p>
               <p dir="auto" className="text-xs text-zinc-500 mt-1">
-                أحسنت! اربح جائزتك الآن 🎁
+                أحسنت! احصل على مكافأتك الآن 🎁
               </p>
             </>
           ) : (
@@ -116,7 +116,7 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
                 </span>{" "}
                 correct.
                 <br />
-                You need {passThreshold} to win — let's spin anyway!
+                You needed {passThreshold} to qualify.
               </p>
               <p dir="auto" className="text-xs text-zinc-500 mt-1">
                 حاول مرة أخرى في المرة القادمة! 🤞
@@ -130,7 +130,7 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
             className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-extrabold text-sm text-white cursor-pointer min-h-[52px] shadow-lg"
             style={{ backgroundColor: activeBrand.primaryColor }}
           >
-            <span>{passed ? "Spin the Wheel!" : "Spin Anyway"}</span>
+            <span>{passed ? "Claim Reward" : "View Results"}</span>
             <ChevronRight className="w-4 h-4" />
           </motion.button>
         </motion.div>
