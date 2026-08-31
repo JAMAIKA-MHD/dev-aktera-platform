@@ -55,8 +55,9 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
   const [selectedTypes, setSelectedTypes] = useState<string[]>([
     "lucky_wheel",
     "quiz",
-    "scratch",
-    "slot",
+    "scratch_card",
+    "mystery_box",
+    "hit_it",
   ]);
 
   // Toggle status filter checkbox
@@ -81,12 +82,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatuses.includes(camp.status);
-    const matchesType =
-      selectedTypes.includes(camp.gameType) ||
-      (camp.gameType === "lucky_wheel" &&
-        selectedTypes.includes("lucky_wheel")) ||
-      (camp.gameType === "quiz" &&
-        (selectedTypes.includes("quiz") || selectedTypes.includes("scratch")));
+    const matchesType = selectedTypes.includes(camp.gameType);
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -216,12 +212,20 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     label: t("campaigns.spinWheel", "Spin Wheel"),
                   },
                   {
-                    id: "scratch",
+                    id: "quiz",
+                    label: t("campaigns.quiz", "Quiz Challenge"),
+                  },
+                  {
+                    id: "scratch_card",
                     label: t("campaigns.scratchCard", "Scratch Card"),
                   },
                   {
-                    id: "slot",
-                    label: t("campaigns.slotMachine", "Slot Machine"),
+                    id: "mystery_box",
+                    label: "Mystery Box",
+                  },
+                  {
+                    id: "hit_it",
+                    label: "Hit It",
                   },
                 ].map((item) => {
                   const checked = selectedTypes.includes(item.id);

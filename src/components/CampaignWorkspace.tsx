@@ -254,16 +254,16 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                       <h3 className="text-2xl font-black tracking-tight text-white drop-shadow-md">
                         {campaign.name}
                       </h3>
-                      <span
-                        className={`inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
-                          campaign.gameType === "quiz"
-                            ? "bg-purple-500/20 border-purple-500/30 text-purple-300"
-                            : "bg-emerald-500/20 border-emerald-500/30 text-emerald-300"
-                        }`}
-                      >
+                      <span className="inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border bg-blue-500/20 border-blue-500/30 text-blue-300">
                         {campaign.gameType === "quiz"
                           ? "Trivia Quiz Challenge"
-                          : "Lucky Spin Wheel"}
+                          : campaign.gameType === "scratch_card"
+                            ? "Scratch Card"
+                            : campaign.gameType === "mystery_box"
+                              ? "Mystery Box"
+                              : campaign.gameType === "hit_it"
+                                ? "Hit It Before It Leaves"
+                                : "Lucky Spin Wheel"}
                       </span>
                     </div>
                   </div>

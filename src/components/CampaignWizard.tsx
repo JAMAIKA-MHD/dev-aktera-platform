@@ -539,6 +539,21 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                     desc: "Instant gratification gamification with visual prize wedges",
                   },
                   {
+                    id: "scratch_card",
+                    title: "Scratch Card",
+                    desc: "Digital scratch-to-win card for surprise reveals",
+                  },
+                  {
+                    id: "mystery_box",
+                    title: "Mystery Box",
+                    desc: "Let users choose one of three boxes to reveal their prize",
+                  },
+                  {
+                    id: "hit_it",
+                    title: "Hit It Before It Leaves",
+                    desc: "Fast-paced tapping game to win a prize",
+                  },
+                  {
                     id: "quiz",
                     title: "Trivia Quiz Challenge",
                     desc: "Skill & knowledge based entry before claiming rewards",
