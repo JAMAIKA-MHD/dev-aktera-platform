@@ -372,13 +372,19 @@ export default function PlayerFlowPage() {
       setScreen("mystery_box");
     } else {
       // pre-resolved games: lucky_wheel, scratch_card
-      await callSelectPrize(data, undefined);
+      await callSelectPrize(data, undefined, true);
     }
   };
 
   // Shared function that calls select-prize and handles the response
-  const callSelectPrize = async (data: PlayerData, gamePayload?: any) => {
-    setScreen("submitting");
+  const callSelectPrize = async (
+    data: PlayerData,
+    gamePayload?: any,
+    showTransitionScreen: boolean = false,
+  ) => {
+    if (showTransitionScreen) {
+      setScreen("submitting");
+    }
 
     const sessionId =
       sessionStorage.getItem("octoreach_session_id") || `sess_${Date.now()}`;
@@ -628,12 +634,28 @@ export default function PlayerFlowPage() {
             setServerPrize(chosenPrize);
             gameOpenTimeRef.current = Date.now();
 
-            if (gameType === "scratch_card") {
-              setScreen("scratch_card");
-            } else {
+            if (gameType === "lucky_wheel") {
               setScreen("game");
+            } else if (gameType === "scratch_card") {
+              setScreen("scratch_card");
             }
-            return;
+            return {
+              ok: true,
+              is_winner: chosenPrize.isWin,
+              prize: chosenPrize.isWin ? chosenPrize : null,
+              boxes:
+                gameType === "mystery_box"
+                  ? [0, 1, 2].map((i) => ({
+                      index: i,
+                      content:
+                        i === (gamePayload?.selected_box_index ?? 0) &&
+                        chosenPrize.isWin
+                          ? "win"
+                          : "lose",
+                      prize: chosenPrize.isWin ? chosenPrize : null,
+                    }))
+                  : undefined,
+            };
           } catch (fallbackErr) {
             console.warn(
               "[PlayerFlowPage] Direct client fallback notice:",
@@ -879,10 +901,14 @@ export default function PlayerFlowPage() {
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm font-bold text-zinc-300">
-            Preparing your spin...
+            {gameType === "lucky_wheel"
+              ? "Preparing your spin..."
+              : "Preparing your game..."}
           </p>
           <p dir="auto" className="text-xs text-zinc-500 mt-1">
-            جارٍ تحضير دورتك...
+            {gameType === "lucky_wheel"
+              ? "جارٍ تحضير دورتك..."
+              : "جارٍ تحضير لعبتك..."}
           </p>
         </div>
       </div>
