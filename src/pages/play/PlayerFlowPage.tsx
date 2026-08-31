@@ -627,7 +627,12 @@ export default function PlayerFlowPage() {
             entryIdRef.current = fallbackId;
             setServerPrize(chosenPrize);
             gameOpenTimeRef.current = Date.now();
-            setScreen("game");
+
+            if (gameType === "scratch_card") {
+              setScreen("scratch_card");
+            } else {
+              setScreen("game");
+            }
             return;
           } catch (fallbackErr) {
             console.warn(
