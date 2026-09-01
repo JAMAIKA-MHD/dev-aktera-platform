@@ -52,7 +52,7 @@ export const PlayerLanding: React.FC<PlayerLandingProps> = ({
       return;
     }
 
-    onRegister({ name: name.trim(), phone: phone.trim(), consent });
+    onRegister({ name: name.trim(), phone: phone.trim(), email: "", consent });
   };
 
   return (
@@ -248,7 +248,7 @@ export const PlayerLanding: React.FC<PlayerLandingProps> = ({
             boxShadow: `0 8px 16px ${activeBrand.primaryColor}20`,
           }}
         >
-          <span>LET'S SPIN & WIN! / ابدأ اللعب</span>
+          <span>LET'S PLAY & WIN! / ابدأ اللعب</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </motion.button>
       </form>

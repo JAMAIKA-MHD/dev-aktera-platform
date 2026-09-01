@@ -414,8 +414,8 @@ export default function App() {
     }
   };
 
-  const handleSandboxGameComplete = (prize: any) => {
-    setSandboxSelectedPrize(prize);
+  const handleSandboxGameComplete = (_prize?: any) => {
+    setSandboxSelectedPrize(_prize ?? null);
     setSandboxScreen("result");
     // Sandbox is visual-only — no DB writes; real entries are created in the player portal
   };

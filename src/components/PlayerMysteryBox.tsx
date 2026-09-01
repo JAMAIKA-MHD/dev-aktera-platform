@@ -5,7 +5,7 @@ import { Gift, Sparkles, Frown, PartyPopper } from "lucide-react";
 
 interface PlayerMysteryBoxProps {
   activeBrand: BrandPreset | null;
-  onBoxSelect: (index: number) => Promise<any>;
+  onBoxSelect?: (index: number) => Promise<any>;
   onComplete: () => void;
 }
 
@@ -24,20 +24,23 @@ export const PlayerMysteryBox: React.FC<PlayerMysteryBoxProps> = ({
     setSelectedBox(index);
 
     try {
-      const outcome = await onBoxSelect(index);
-      if (outcome && outcome.boxes) {
-        setBoxesData(outcome.boxes);
-        setTimeout(() => onComplete(), 2800);
-      } else {
-        // Fallback demo reveal
-        const fallbackBoxes = [0, 1, 2].map((i) => ({
-          index: i,
-          content: i === index ? "win" : "lose",
-          prize: { name: "Special Reward" },
-        }));
-        setBoxesData(fallbackBoxes);
-        setTimeout(() => onComplete(), 2800);
+      if (onBoxSelect) {
+        const outcome = await onBoxSelect(index);
+        if (outcome && outcome.boxes) {
+          setBoxesData(outcome.boxes);
+          setTimeout(() => onComplete(), 2800);
+          return;
+        }
       }
+
+      // Fallback demo reveal (sandbox, preview, or fallback)
+      const fallbackBoxes = [0, 1, 2].map((i) => ({
+        index: i,
+        content: i === index ? "win" : "lose",
+        prize: { name: "Special Reward" },
+      }));
+      setBoxesData(fallbackBoxes);
+      setTimeout(() => onComplete(), 2800);
     } catch {
       setSubmitting(false);
       setSelectedBox(null);

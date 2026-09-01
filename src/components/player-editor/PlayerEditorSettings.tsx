@@ -273,37 +273,202 @@ export function PlayerEditorSettings({
         )}
 
         {activeTab === "assets" && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <Image className="w-12 h-12 text-brand-text-muted mb-4 opacity-50" />
-            <p className="text-sm font-semibold text-brand-text">
-              Game Assets (Phase 2)
-            </p>
-            <p className="text-xs text-brand-text-muted mt-2">
-              Will show specific asset controls for{" "}
-              {gameType === "lucky_wheel" ? "Wheel" : "Quiz"}.
-            </p>
+          <div className="flex flex-col gap-6">
+            <div className="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-4">
+              <h3 className="text-brand-text font-bold text-sm uppercase tracking-wider">
+                {gameType === "lucky_wheel"
+                  ? "Wheel Visuals & Sound"
+                  : gameType === "scratch_card"
+                    ? "Scratch Card Assets"
+                    : gameType === "mystery_box"
+                      ? "Mystery Box Assets"
+                      : gameType === "hit_it"
+                        ? "Target Assets"
+                        : "Quiz Assets"}
+              </h3>
+
+              {/* Sound toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-brand-surface/50 border border-brand-border">
+                <span className="text-xs font-semibold">Sound FX & Audio</span>
+                <input
+                  type="checkbox"
+                  checked={!config.gameAssets?.sound?.muted}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      gameAssets: {
+                        ...config.gameAssets,
+                        sound: { muted: !e.target.checked },
+                      },
+                    })
+                  }
+                  className="w-4 h-4 rounded bg-brand-dark border-brand-border accent-brand-primary cursor-pointer"
+                />
+              </div>
+
+              {gameType === "lucky_wheel" && (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-semibold">
+                    Center Pin & Sector Accents
+                  </label>
+                  <p className="text-xs text-brand-text-muted leading-relaxed">
+                    Wheel segments inherit the primary & secondary theme colors
+                    with high-contrast prize typography and smooth physics
+                    deceleration.
+                  </p>
+                </div>
+              )}
+
+              {gameType === "scratch_card" && (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-semibold">Foil Coating</label>
+                  <p className="text-xs text-brand-text-muted leading-relaxed">
+                    Digital latex foil uses high-resolution canvas with tactile
+                    particle spray upon scratching.
+                  </p>
+                </div>
+              )}
+
+              {gameType === "mystery_box" && (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-semibold">
+                    Box Animations
+                  </label>
+                  <p className="text-xs text-brand-text-muted leading-relaxed">
+                    Surprise 3D hover shake animations with golden particle
+                    burst upon opening.
+                  </p>
+                </div>
+              )}
+
+              {gameType === "hit_it" && (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-semibold">
+                    Target Physics
+                  </label>
+                  <p className="text-xs text-brand-text-muted leading-relaxed">
+                    Rapid random positioning with pulse glow, tap ripple effect,
+                    and responsive mobile touch zones.
+                  </p>
+                </div>
+              )}
+
+              {gameType === "quiz" && (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-semibold">
+                    Quiz Interface
+                  </label>
+                  <p className="text-xs text-brand-text-muted leading-relaxed">
+                    Dynamic question cards with instant feedback on answer
+                    selection and animated score progression.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {activeTab === "content" && (
           <div className="flex flex-col gap-6">
+            {/* Screen Copy Customization */}
+            <div className="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-4">
+              <h3 className="text-brand-text font-bold text-sm uppercase tracking-wider">
+                Screen Content Copy
+              </h3>
+
+              {/* Pre-game Header */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold">
+                  Landing Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={config.content?.preGame?.subHeader || ""}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      content: {
+                        ...config.content,
+                        preGame: {
+                          ...config.content?.preGame,
+                          subHeader: e.target.value,
+                        },
+                      },
+                    })
+                  }
+                  placeholder="Enter your details to play..."
+                  className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none text-xs"
+                />
+              </div>
+
+              {/* Winner Screen Title */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold">
+                  Winner Screen Headline
+                </label>
+                <input
+                  type="text"
+                  value={config.content?.winState?.title || ""}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      content: {
+                        ...config.content,
+                        winState: {
+                          ...config.content?.winState,
+                          title: e.target.value,
+                        },
+                      },
+                    })
+                  }
+                  placeholder="You Won! / مبروك عليك"
+                  className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none text-xs"
+                />
+              </div>
+
+              {/* Non-Winner Screen Title */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold">
+                  Non-Winner Headline
+                </label>
+                <input
+                  type="text"
+                  value={config.content?.loseState?.title || ""}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      content: {
+                        ...config.content,
+                        loseState: {
+                          ...config.content?.loseState,
+                          title: e.target.value,
+                        },
+                      },
+                    })
+                  }
+                  placeholder="Better luck next time / خيرها في غيرها"
+                  className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Game-Specific Server Logic */}
             <div className="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-4">
               <h3 className="text-brand-text font-bold text-sm uppercase tracking-wider">
                 {gameType === "lucky_wheel"
-                  ? "Wheel Config"
+                  ? "Wheel Logic"
                   : gameType === "quiz"
-                    ? "Quiz Config"
+                    ? "Quiz Pass Rule"
                     : gameType === "hit_it"
-                      ? "Hit It Config"
-                      : "Game Config"}
+                      ? "Hit It Target Rule"
+                      : "Server Outcome Rule"}
               </h3>
 
               {gameType === "lucky_wheel" && (
-                <div className="flex flex-col gap-2 text-sm text-brand-text-muted">
+                <div className="flex flex-col gap-2 text-xs text-brand-text-muted">
                   <p>
-                    Wheel segments are automatically generated from your active
-                    prizes. To change probabilities, edit the Prize Allocation
-                    weights in the previous step.
+                    Wheel sectors and probabilities are determined by the prize
+                    weights configured on the campaign.
                   </p>
                 </div>
               )}
@@ -317,17 +482,18 @@ export function PlayerEditorSettings({
                     type="number"
                     min="0"
                     max="100"
-                    value={logicConfig.pass_threshold_percentage || 100}
+                    value={logicConfig.pass_threshold_percentage ?? 50}
                     onChange={(e) =>
                       onLogicChange({
                         ...logicConfig,
                         pass_threshold_percentage: Number(e.target.value),
                       })
                     }
-                    className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none"
+                    className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none text-xs"
                   />
                   <p className="text-xs text-brand-text-muted mt-1">
-                    Players must score at least this percentage to win a prize.
+                    Players must achieve at least this score percentage to
+                    qualify for the prize draw.
                   </p>
                 </div>
               )}
@@ -335,31 +501,33 @@ export function PlayerEditorSettings({
               {gameType === "hit_it" && (
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-semibold">
-                    Hits Needed to Win
+                    Hits Needed to Win (10s Timer)
                   </label>
                   <input
                     type="number"
                     min="1"
-                    value={logicConfig.win_threshold || 9}
+                    max="30"
+                    value={logicConfig.win_threshold ?? 8}
                     onChange={(e) =>
                       onLogicChange({
                         ...logicConfig,
                         win_threshold: Number(e.target.value),
                       })
                     }
-                    className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none"
+                    className="bg-brand-dark border border-brand-border focus:border-brand-primary rounded-lg px-3 py-2 text-brand-text outline-none text-xs"
                   />
                   <p className="text-xs text-brand-text-muted mt-1">
-                    Number of successful hits required within the time limit.
+                    Number of successful target taps required within the
+                    10-second timer.
                   </p>
                 </div>
               )}
 
               {(gameType === "scratch_card" || gameType === "mystery_box") && (
-                <div className="flex flex-col gap-2 text-sm text-brand-text-muted">
+                <div className="flex flex-col gap-2 text-xs text-brand-text-muted">
                   <p>
-                    This game relies purely on the Win Probability you set in
-                    Step 2. No additional logic configuration is required.
+                    Evaluated server-side using your configured campaign win
+                    probability and prize allocation weights.
                   </p>
                 </div>
               )}

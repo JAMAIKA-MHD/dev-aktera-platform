@@ -66,12 +66,23 @@ export function PlayerScreenConfig() {
                 {campaigns.length === 0 && (
                   <option value="">No games available</option>
                 )}
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} (
-                    {c.gameType === "lucky_wheel" ? "Lucky Wheel" : "Quiz"})
-                  </option>
-                ))}
+                {campaigns.map((c) => {
+                  const label =
+                    c.gameType === "lucky_wheel"
+                      ? "Lucky Wheel"
+                      : c.gameType === "quiz"
+                        ? "Quiz Challenge"
+                        : c.gameType === "scratch_card"
+                          ? "Scratch Card"
+                          : c.gameType === "mystery_box"
+                            ? "Mystery Box"
+                            : "Hit It Challenge";
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({label})
+                    </option>
+                  );
+                })}
               </select>
               <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-brand-textMuted">
                 <i className="fa-solid fa-chevron-down"></i>

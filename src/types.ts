@@ -269,6 +269,7 @@ export type ScreenType = "landing" | "game" | "result";
 export interface PlayerData {
   name: string;
   phone: string;
+  email?: string;
   consent: boolean;
 }
 

@@ -13,6 +13,11 @@ import {
   Eye,
   TrendingUp,
   Filter,
+  Disc,
+  HelpCircle,
+  Layers,
+  Gift,
+  Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
@@ -91,6 +96,57 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
       return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}K`;
     }
     return count.toString();
+  };
+
+  const getGameTypeInfo = (gType: string) => {
+    switch (gType) {
+      case "quiz":
+        return {
+          label: t("campaigns.quiz", "Quiz Challenge"),
+          shortLabel: "Quiz Challenge",
+          icon: HelpCircle,
+          badgeColor: isDark
+            ? "bg-purple-950/70 border-purple-500/40 text-purple-300"
+            : "bg-purple-50 border-purple-200 text-purple-700",
+        };
+      case "scratch_card":
+        return {
+          label: t("campaigns.scratchCard", "Scratch Card"),
+          shortLabel: "Scratch Card",
+          icon: Layers,
+          badgeColor: isDark
+            ? "bg-amber-950/70 border-amber-500/40 text-amber-300"
+            : "bg-amber-50 border-amber-200 text-amber-700",
+        };
+      case "mystery_box":
+        return {
+          label: t("campaigns.mysteryBox", "Mystery Box"),
+          shortLabel: "Mystery Box",
+          icon: Gift,
+          badgeColor: isDark
+            ? "bg-blue-950/70 border-blue-500/40 text-blue-300"
+            : "bg-blue-50 border-blue-200 text-blue-700",
+        };
+      case "hit_it":
+        return {
+          label: t("campaigns.hitIt", "Hit It"),
+          shortLabel: "Hit It Challenge",
+          icon: Zap,
+          badgeColor: isDark
+            ? "bg-rose-950/70 border-rose-500/40 text-rose-300"
+            : "bg-rose-50 border-rose-200 text-rose-700",
+        };
+      case "lucky_wheel":
+      default:
+        return {
+          label: t("campaigns.spinWheel", "Spin Wheel"),
+          shortLabel: "Lucky Wheel",
+          icon: Disc,
+          badgeColor: isDark
+            ? "bg-emerald-950/70 border-emerald-500/40 text-emerald-300"
+            : "bg-emerald-50 border-emerald-200 text-emerald-700",
+        };
+    }
   };
 
   return (
@@ -221,11 +277,11 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   },
                   {
                     id: "mystery_box",
-                    label: "Mystery Box",
+                    label: t("campaigns.mysteryBox", "Mystery Box"),
                   },
                   {
                     id: "hit_it",
-                    label: "Hit It",
+                    label: t("campaigns.hitIt", "Hit It"),
                   },
                 ].map((item) => {
                   const checked = selectedTypes.includes(item.id);
@@ -276,10 +332,8 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             100,
           );
 
-          const englishSubtitle =
-            camp.gameType === "lucky_wheel"
-              ? "Retail Electronics Promo"
-              : "Loyalty Tier 1";
+          const gameInfo = getGameTypeInfo(camp.gameType);
+          const GameIcon = gameInfo.icon;
 
           return (
             <motion.div
@@ -311,8 +365,8 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 </>
               )}
 
-              {/* TOP ROW: Status Badge with Animated Light */}
-              <div className="flex items-center justify-between">
+              {/* TOP ROW: Status Badge + Game Type Pill */}
+              <div className="flex items-center justify-between gap-1">
                 <div>
                   {isActive && (
                     <div
@@ -370,6 +424,17 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* Game Type Icon Badge */}
+                <div
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8.5px] font-black uppercase tracking-wider ${gameInfo.badgeColor}`}
+                  title={gameInfo.label}
+                >
+                  <GameIcon className="w-2.5 h-2.5" />
+                  <span className="truncate max-w-[65px]">
+                    {gameInfo.shortLabel}
+                  </span>
+                </div>
               </div>
 
               {/* MAIN CONTENT: Campaign Name & Subtitle */}
@@ -392,7 +457,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     isDark ? "text-slate-400" : "text-slate-500"
                   }`}
                 >
-                  {englishSubtitle}
+                  {gameInfo.label}
                 </p>
               </div>
 

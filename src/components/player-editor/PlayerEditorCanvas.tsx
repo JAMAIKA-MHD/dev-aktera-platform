@@ -1,80 +1,223 @@
 import React from "react";
-import { PlayerScreenConfig } from "../../types";
+import { Campaign, PlayerScreenConfig, BrandPreset, Prize } from "../../types";
+import { EditorScreenType } from "./PlayerEditorLeftNav";
+import { PhoneFrame } from "../PhoneFrame";
+import { PlayerLanding } from "../PlayerLanding";
+import { PlayerGame } from "../PlayerGame";
+import { PlayerScratch } from "../PlayerScratch";
+import { PlayerMysteryBox } from "../PlayerMysteryBox";
+import { PlayerHitIt } from "../PlayerHitIt";
+import { PlayerQuiz } from "../PlayerQuiz";
+import { PlayerResult } from "../PlayerResult";
+
+const LOSER_SLOT: Prize = {
+  id: "loser_slot",
+  name: "Better Luck Next Time",
+  icon: "🌙",
+  isWin: false,
+  color: "#64748B",
+};
 
 interface PlayerEditorCanvasProps {
   deviceType: "desktop" | "tablet" | "mobile";
   config: PlayerScreenConfig;
+  activeScreen?: EditorScreenType;
+  campaign?: Campaign;
+  logicConfig?: any;
 }
 
-export function PlayerEditorCanvas({ deviceType, config }: PlayerEditorCanvasProps) {
-  // Map device type to canvas container width
-  const deviceWidths = {
-    desktop: "max-w-4xl",
-    tablet: "max-w-xl",
-    mobile: "max-w-[375px]",
-  };
-
-  const widthClass = deviceWidths[deviceType];
+export function PlayerEditorCanvas({
+  deviceType,
+  config,
+  activeScreen = "pre-game",
+  campaign,
+  logicConfig,
+}: PlayerEditorCanvasProps) {
   const { theme } = config;
+  const gameType = campaign?.gameType || "lucky_wheel";
 
-  // Render a static mockup that reacts to brand colors
-  // Ensure we use the brand colors, not editor colors here.
-  const appStyle: React.CSSProperties = {
-    fontFamily: theme.fontFamily || "inherit",
-    borderRadius: theme.borderRadius === "pill" ? "24px" : theme.borderRadius === "sharp" ? "0px" : "12px",
+  const primaryColor = theme.primaryColor || "#6C4DFF";
+  const secondaryColor = theme.secondaryColor || "#00C2A8";
+
+  const editorBrandPreset: BrandPreset = {
+    name: campaign?.name || "Demo Brand",
+    arabicName:
+      campaign?.arabicName || "سجل في المسابقة واربح هدايا فورية قيمة! 🎁",
+    primaryColor,
+    gradientFrom:
+      theme.background?.type === "gradient" && theme.background?.value
+        ? theme.background.value.split(",")[0] || primaryColor
+        : primaryColor,
+    gradientTo:
+      theme.background?.type === "gradient" && theme.background?.value
+        ? theme.background.value.split(",")[1] || secondaryColor
+        : secondaryColor,
+    description:
+      config.content?.preGame?.subHeader ||
+      "Participate & Win premium rewards in real-time.",
+    logoUrl: theme.logoUrl || campaign?.heroImageUrl || "",
+    prizes:
+      campaign?.prizes && campaign.prizes.length > 0
+        ? campaign.prizes.map((p, idx) => ({
+            name: `Prize Reward ${idx + 1}`,
+            icon: "🎁",
+            isWin: true,
+          }))
+        : [
+            { name: "Special Voucher Prize", icon: "🎁", isWin: true },
+            { name: "Better Luck Next Time", icon: "🌙", isWin: false },
+          ],
   };
 
-  const bgVal = theme.background?.value || "";
-  const bgStyle: React.CSSProperties = {
-    background: theme.background?.type === 'solid' 
-      ? (bgVal || theme.primaryColor)
-      : theme.background?.type === 'gradient'
-        ? `linear-gradient(135deg, ${bgVal.split(',')[0] || theme.primaryColor}, ${bgVal.split(',')[1] || theme.secondaryColor})`
-        : `url(${bgVal}) center/cover`,
+  const renderActiveScreenContent = () => {
+    switch (activeScreen) {
+      case "pre-game":
+        return (
+          <PlayerLanding
+            activeBrand={editorBrandPreset}
+            onRegister={() => {}}
+            savedData={{
+              name: "Demo Player",
+              phone: "0555123456",
+              email: "",
+              consent: true,
+            }}
+          />
+        );
+
+      case "game":
+        if (gameType === "quiz") {
+          return (
+            <PlayerQuiz
+              activeBrand={editorBrandPreset}
+              questions={
+                campaign?.questions && campaign.questions.length > 0
+                  ? campaign.questions
+                  : [
+                      {
+                        id: "demo_q1",
+                        questionText:
+                          "What is the official currency of Algeria?",
+                        options: ["Algerian Dinar", "Dirham", "Euro", "Riyal"],
+                        correctIndex: 0,
+                      },
+                    ]
+              }
+              playerName="Demo Player"
+              onComplete={() => {}}
+            />
+          );
+        } else if (gameType === "hit_it") {
+          return (
+            <PlayerHitIt
+              activeBrand={editorBrandPreset}
+              winThreshold={logicConfig?.win_threshold ?? 8}
+              onComplete={() => {}}
+            />
+          );
+        } else if (gameType === "mystery_box") {
+          return (
+            <PlayerMysteryBox
+              activeBrand={editorBrandPreset}
+              onComplete={() => {}}
+            />
+          );
+        } else if (gameType === "scratch_card") {
+          return (
+            <PlayerScratch
+              activeBrand={editorBrandPreset}
+              targetPrize={{
+                ...LOSER_SLOT,
+                isWin: true,
+                name: "Special Voucher Code",
+                color: primaryColor,
+              }}
+              onGameComplete={() => {}}
+            />
+          );
+        } else {
+          return (
+            <PlayerGame
+              activeBrand={editorBrandPreset}
+              forcedOutcome="random"
+              onGameComplete={() => {}}
+              playerName="Demo Player"
+            />
+          );
+        }
+
+      case "win":
+        return (
+          <PlayerResult
+            activeBrand={editorBrandPreset}
+            prize={{
+              id: "demo_win",
+              name: config.content?.winState?.title || "VIP Voucher Prize 🎁",
+              isWin: true,
+              couponCode: "WIN-DEMO-2026",
+              color: primaryColor,
+              icon: "🎁",
+            }}
+            onRestart={() => {}}
+            playerName="Demo Player"
+          />
+        );
+
+      case "lose":
+        return (
+          <PlayerResult
+            activeBrand={editorBrandPreset}
+            prize={{
+              id: "demo_lose",
+              name:
+                config.content?.loseState?.title || "Better Luck Next Time 🌙",
+              isWin: false,
+              color: "#64748B",
+              icon: "🌙",
+            }}
+            onRestart={() => {}}
+            playerName="Demo Player"
+          />
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className="flex-1 bg-[#0B0F1E] flex flex-col items-center overflow-y-auto p-4 sm:p-8">
-      {/* Canvas Wrapper */}
-      <div 
-        className={`w-full ${widthClass} min-h-[600px] flex flex-col transition-all duration-300 relative shadow-2xl overflow-hidden`}
-        style={{ ...bgStyle, ...appStyle }}
-      >
-        {/* Mockup Content */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10">
-          {theme.logoUrl && (
-            <img src={theme.logoUrl} alt="Brand Logo" className="w-24 h-24 object-contain mb-8" />
-          )}
-          
-          <h1 className="text-3xl font-bold mb-4" style={{ color: theme.mode === 'light' ? '#1f2937' : '#ffffff' }}>
-            Win A Prize!
-          </h1>
-          
-          <p className="mb-8 max-w-sm" style={{ color: theme.mode === 'light' ? '#4b5563' : '#d1d5db' }}>
-            This is a static preview representing the player screen. As you adjust colors and logo, this mockup reflects those changes instantly.
-          </p>
-
-          <button 
-            className="px-8 py-3 font-bold shadow-lg transition-transform hover:scale-105"
-            style={{ 
-              backgroundColor: theme.primaryColor, 
-              color: '#ffffff',
-              borderRadius: theme.borderRadius === "pill" ? "9999px" : theme.borderRadius === "sharp" ? "0px" : "8px" 
-            }}
+    <div className="flex-1 bg-[#0B0F1E] flex flex-col items-center justify-center overflow-y-auto p-4 sm:p-6 relative select-none">
+      {/* Viewport Frame */}
+      <div className="relative flex items-center justify-center">
+        {deviceType === "mobile" ? (
+          <PhoneFrame compact={true}>
+            <div className="flex-1 flex flex-col h-full bg-[#0F0F1A] overflow-hidden">
+              {renderActiveScreenContent()}
+            </div>
+          </PhoneFrame>
+        ) : (
+          <div
+            className={`flex flex-col bg-[#0F0F1A] border-4 border-slate-800 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 ${
+              deviceType === "tablet"
+                ? "w-[480px] h-[680px]"
+                : "w-[720px] h-[680px]"
+            }`}
           >
-            Play Now
-          </button>
-        </div>
-
-        {/* Brand Watermark mock */}
-        {theme.showBrandWatermark && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10">
-            <span className="text-[10px] uppercase font-bold opacity-50" style={{ color: theme.mode === 'light' ? '#000' : '#fff' }}>
-              Powered by Aktera
-            </span>
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+              {renderActiveScreenContent()}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Brand Watermark indicator */}
+      {theme.showBrandWatermark && (
+        <div className="mt-3 text-center pointer-events-none">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 opacity-70">
+            Powered by Aktera Player Studio
+          </span>
+        </div>
+      )}
     </div>
   );
 }

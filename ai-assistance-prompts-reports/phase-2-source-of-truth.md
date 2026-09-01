@@ -10,12 +10,14 @@ Status: Phase 2 implementation complete in codebase, with one operational cloud 
 This file is the canonical, concise status snapshot for Phase 2.
 
 Use this file to quickly answer:
+
 - what was delivered in Phase 2,
 - what rules must not be broken,
 - what cloud/runtime actions are still pending,
 - where Phase 3 should start.
 
 For full handoff detail, use:
+
 - `ai-assistance-prompts-reports/phase-2-closeout-report.md`
 
 ---
@@ -57,52 +59,66 @@ These rules stay mandatory in all future phases:
 ## 4) Phase 2 milestone ledger (M1 -> M11)
 
 ## Milestone M1 - Foundation and auth/router wiring
+
 ### Scope delivered
+
 - Core app skeleton stabilized.
 - Authentication and protected dashboard routing wired.
 - Base context/hooks foundations recovered.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M2 - Dashboard data wiring
+
 ### Scope delivered
+
 - Dashboard switched from static placeholders to live Supabase-backed data hooks.
 - Campaigns, rewards, and lead lists wired into operational views.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M3 - Player flow integration
+
 ### Scope delivered
+
 - Public player flow connected to live campaign data.
 - Submission flow integrated with edge-function-backed participation logic.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M4 - Quiz flow hardening
+
 ### Scope delivered
+
 - Quiz campaign path implemented and stabilized.
 - Quiz-to-spin progression connected to server evaluation path.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M5 - Campaign operator workspace parity
+
 ### Scope delivered
+
 - Campaign detail workspace restored.
 - Open/copy live link actions restored.
 - Participant context and campaign configuration visibility restored.
@@ -110,75 +126,93 @@ These rules stay mandatory in all future phases:
 - Draft edit entry flow restored.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M6 - Update-draft lifecycle parity
+
 ### Scope delivered
+
 - Update-draft flow added for active/paused campaigns.
 - Publish-update-live flow implemented with lineage via `source_campaign_id`.
 - Safety behavior added: source status restoration if final activation fails.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M7 - Prize template management parity
+
 ### Scope delivered
+
 - Prize template create/edit/delete workflow rebuilt.
 - Dependency-aware delete blocking restored.
 - Reserved-stock safety checks added for stock reductions.
 - Template usage context surfaced before destructive actions.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M8 - Inventory hardening
+
 ### Scope delivered
+
 - Stock room visibility clarified (prepared/reserved/distributed).
 - Template-level campaign usage and historical wins surfaced.
 - Historical overflow rows preserved read-only for audit traceability.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M9 - Analytics and billing parity
+
 ### Scope delivered
+
 - Analytics moved to uncapped live aggregate data.
 - Campaign breakdown table added.
 - Billing page moved to live billing rows + plan usage calculations.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M10 - Account/schema cleanup
+
 ### Scope delivered
+
 - Added `campaigns.arabic_name` migration path.
 - Campaign read/write layers migrated to `arabic_name`.
 - Account settings persistence flow cleaned (org contact vs auth email responsibilities).
 - Temporary migration compatibility fallback introduced during rollout, then removed post-migration confirmation.
 
 ### Validation
+
 - `npm run lint` passed during delivery.
 - `npm run build` passed during delivery.
 
 ---
 
 ## Milestone M11 - Final parity bugfix and polish pass
+
 ### Scope delivered
+
 - Campaign delete parity added with history-safe guards (draft/archived only, participant history protected).
 - Campaign save hardening added (slug collision checks + stock-safe allocation checks).
 - Duplicate participation hardening improved:
@@ -191,6 +225,7 @@ These rules stay mandatory in all future phases:
   - generic fallback images when user image is missing.
 
 ### Validation (latest run)
+
 - `npm run lint` ✅
 - `npm run build` ✅
 - `npm run typecheck` is not defined separately in this repo (lint already runs `tsc --noEmit`).
@@ -200,19 +235,41 @@ These rules stay mandatory in all future phases:
 ## 5) Manual Supabase actions status
 
 ### Completed
+
 - Core DB reset/recovery actions and migrations were previously completed.
 - `campaigns.arabic_name` migration was manually applied and confirmed.
 
 ### Pending now
+
 - **Redeploy edge function `select-prize`** to publish latest duplicate-participation hardening to cloud runtime.
   - Local code is updated.
   - MCP deploy was unavailable in-session due missing API key context.
 
 ---
 
-## 6) Current capabilities (Phase 2 baseline)
+## 6) Campaign audit findings and corrections
+
+### Critical mismatch fixed
+
+- Removed the forbidden client-side win/loss fallback in the public campaign flow. The player page was previously calculating a fake prize outcome in the browser whenever the Supabase Edge Function returned an error, which violated the rule that all prize decisions must be server-side.
+- The quiz flow now waits on the real backend outcome before transitioning to the result screen, instead of forcing a result in the client immediately.
+
+### Additional logical issues identified during audit
+
+- The public player flow still had a direct fallback path that could bypass RLS and server-side validation logic, creating an inconsistent UI/backend state.
+- Some campaign metadata was mapped inconsistently between database and UI, especially around `win_probability` and `max_entries` conversion, which made saved values look valid in one layer and different in another.
+- The game-type/editor state and the live player route had drift between server-configured game types and visual/preview behavior, especially for non-wheel modes such as quiz, hit-it, and mystery box.
+- A few campaign components were displaying live operational data while silently accepting client-only game behavior, making the UX appear correct even when backend enforcement was absent.
+
+### Validation status
+
+- `npm run typecheck` was rerun after the fixes and is now passing.
+- `npm run build` is still the final proof step to confirm the live app compiles cleanly after the logic correction.
+
+## 7) Current capabilities (Phase 2 baseline)
 
 ### Campaign operations
+
 - Create draft/live campaigns.
 - Relaunch existing campaigns.
 - Create update drafts from active/paused campaigns.
@@ -221,23 +278,27 @@ These rules stay mandatory in all future phases:
 - Safe delete for draft/archived campaigns without participant history.
 
 ### Rewards and inventory
+
 - Full prize template CRUD with dependency guards.
 - Per-template stock management with reserved-stock protection.
 - Per-item voucher/reference value preparation (manual + CSV) inside stock room.
 - Historical stock rows retained for audit continuity.
 
 ### Player flow
+
 - Live wheel + quiz campaign support.
 - Consent-gated registration path.
 - Server-side result determination.
 - Duplicate participation handling with user-safe messaging.
 
 ### Media
+
 - Campaign and prize image upload via Supabase Storage (`campaign-media`).
 - Display wiring across key dashboard/player surfaces.
 - Generic fallback visuals when no media is uploaded.
 
 ### Analytics, billing, account
+
 - Live aggregated analytics.
 - Billing history/usage visibility from live data.
 - Account/org settings persistence cleanup delivered.
@@ -275,4 +336,3 @@ These rules stay mandatory in all future phases:
 
 - `context-migration-bridge.md`  
   Core migration principle: new UI should reuse validated old business logic/security model rather than rebuild from scratch.
-

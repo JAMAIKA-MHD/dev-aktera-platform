@@ -267,7 +267,13 @@ export function PlayerEditorShell({
           onChangeScreen={setActiveScreen}
         />
 
-        <PlayerEditorCanvas deviceType={deviceType} config={config} />
+        <PlayerEditorCanvas
+          deviceType={deviceType}
+          config={config}
+          activeScreen={activeScreen}
+          campaign={campaign}
+          logicConfig={logicConfig}
+        />
 
         <PlayerEditorSettings
           campaign={campaign}

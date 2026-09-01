@@ -8,12 +8,23 @@ interface PlayerEditorLeftNavProps {
   onChangeScreen: (screen: EditorScreenType) => void;
 }
 
-export function PlayerEditorLeftNav({ activeScreen, onChangeScreen }: PlayerEditorLeftNavProps) {
+export function PlayerEditorLeftNav({
+  activeScreen,
+  onChangeScreen,
+}: PlayerEditorLeftNavProps) {
   const screens = [
-    { id: "pre-game" as EditorScreenType, label: "Pre-Game Screen", icon: LayoutTemplate },
+    {
+      id: "pre-game" as EditorScreenType,
+      label: "Pre-Game Screen",
+      icon: LayoutTemplate,
+    },
     { id: "game" as EditorScreenType, label: "Game Screen", icon: PlayCircle },
     { id: "win" as EditorScreenType, label: "Winner Screen", icon: Trophy },
-    { id: "lose" as EditorScreenType, label: "Looser Screen", icon: XCircle },
+    {
+      id: "lose" as EditorScreenType,
+      label: "Non-Winner Screen",
+      icon: XCircle,
+    },
   ];
 
   return (
@@ -23,18 +34,18 @@ export function PlayerEditorLeftNav({ activeScreen, onChangeScreen }: PlayerEdit
         <div className="text-xs font-bold text-brand-text-muted uppercase tracking-wider mb-2 px-2">
           Player Flow
         </div>
-        
+
         {screens.map((screen) => {
           const isActive = activeScreen === screen.id;
           const Icon = screen.icon;
-          
+
           return (
             <button
               key={screen.id}
               onClick={() => onChangeScreen(screen.id)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer text-left border-l-2 ${
-                isActive 
-                  ? "bg-brand-surface border-brand-primary text-brand-text shadow-sm" 
+                isActive
+                  ? "bg-brand-surface border-brand-primary text-brand-text shadow-sm"
                   : "border-transparent text-brand-text-muted hover:bg-brand-surface/50 hover:text-brand-text"
               }`}
             >
