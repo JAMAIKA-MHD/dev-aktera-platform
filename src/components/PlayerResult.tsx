@@ -50,7 +50,7 @@ export const PlayerResult: React.FC<PlayerResultProps> = ({
     }
   };
 
-  const shareText = `Sahit! I just won ${prize?.name} from the ${activeBrand.name} lucky wheel! Try your luck too! 🇩🇿🎁`;
+  const shareText = `Sahit! I just won ${prize?.name} from ${activeBrand.name}! Try your luck too! 🇩🇿🎁`;
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
@@ -241,15 +241,14 @@ export const PlayerResult: React.FC<PlayerResultProps> = ({
               🌙
             </div>
             <h3 className="text-base font-bold text-slate-300 tracking-tight mt-4 font-sans">
-              No prize this spin!
+              No prize this time!
             </h3>
             <p
               dir="auto"
               className="text-xs text-slate-400 font-sans leading-relaxed mt-2 px-2"
             >
               Ma3liche {playerName || "Sadiqi"}! Algeria's lucky star is still
-              shining. Spin limitations protect campaigns. You can return
-              tomorrow to try again!
+              shining. You can return to try again!
             </p>
             <p
               dir="auto"

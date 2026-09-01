@@ -16,8 +16,13 @@ import { AccountSettings } from "./components/AccountSettings";
 import { PhoneFrame } from "./components/PhoneFrame";
 import { PlayerLanding } from "./components/PlayerLanding";
 import { PlayerGame } from "./components/PlayerGame";
+import { PlayerQuiz } from "./components/PlayerQuiz";
+import { PlayerScratch } from "./components/PlayerScratch";
+import { PlayerMysteryBox } from "./components/PlayerMysteryBox";
+import { PlayerHitIt } from "./components/PlayerHitIt";
 import { PlayerResult } from "./components/PlayerResult";
-
+import { PlayerScreenConfig } from "./components/PlayerScreenConfig";
+import { PlayerEditorShell } from "./components/player-editor/PlayerEditorShell";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -56,6 +61,15 @@ import {
   LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+const LOSER_SLOT = {
+  id: "__loser__",
+  name: "Khir Ghira!",
+  icon: "🎁",
+  isWin: false,
+  color: "#1E1E2E",
+  textColor: "#6B7280",
+};
 
 const DEFAULT_AVATAR =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDRIrzL2B44jQOBHs_8Mr5_T7olxzgM6b1g4gWw22aervyasCXua96W9EMGfBs3Hbv_9zNL7W6q68Dap-kyXlJCTapI9qT3WCgI9tFHlCAB92gCphYgPX17Qnu4U6HxnVUGbl8sbA-ULs79sQ5zlbr2TisGtCtC1Qmq1DEjMvqaAg-AbaNcSw2caRxs0HgZ7kySWhAeALg1mGqNgflVBbIxNxh8gNLhxlFARs8RHBYpYaBpFsMgMw-h";
@@ -108,7 +122,13 @@ export default function App() {
   const [showSandbox, setShowSandbox] = useState<boolean>(false);
   const [sandboxCampaignId, setSandboxCampaignId] = useState<string>("");
   const [sandboxScreen, setSandboxScreen] = useState<
-    "landing" | "game" | "result"
+    | "landing"
+    | "game"
+    | "result"
+    | "scratch_card"
+    | "mystery_box"
+    | "hit_it"
+    | "quiz"
   >("landing");
   const [sandboxPlayerData, setSandboxPlayerData] = useState({
     name: "",
@@ -379,11 +399,23 @@ export default function App() {
   // Player simulator callback events
   const handleSandboxRegister = (data: any) => {
     setSandboxPlayerData(data);
-    setSandboxScreen("game");
+    const c = campaigns.find((x) => x.id === sandboxCampaignId);
+    const gType = c?.gameType || "lucky_wheel";
+    if (gType === "quiz" && c?.questions && c.questions.length > 0) {
+      setSandboxScreen("quiz");
+    } else if (gType === "hit_it") {
+      setSandboxScreen("hit_it");
+    } else if (gType === "mystery_box") {
+      setSandboxScreen("mystery_box");
+    } else if (gType === "scratch_card") {
+      setSandboxScreen("scratch_card");
+    } else {
+      setSandboxScreen("game");
+    }
   };
 
-  const handleSandboxGameComplete = (prize: any) => {
-    setSandboxSelectedPrize(prize);
+  const handleSandboxGameComplete = (_prize?: any) => {
+    setSandboxSelectedPrize(_prize ?? null);
     setSandboxScreen("result");
     // Sandbox is visual-only — no DB writes; real entries are created in the player portal
   };
@@ -479,6 +511,11 @@ export default function App() {
               id: "account",
               label: t("nav.organization", "Organization"),
               icon: "fa-regular fa-user",
+            },
+            {
+              id: "playerScreen",
+              label: t("nav.playerScreen", "Player Screen"),
+              icon: "fa-solid fa-mobile-screen",
             },
           ].map((item) => {
             const isActive = activeTab === item.id;
@@ -762,6 +799,40 @@ export default function App() {
         </div>
       </main>
 
+      {/* FULL SCREEN PLAYER EDITOR */}
+      <AnimatePresence>
+        {activeTab === "playerScreen" && (
+          <motion.div
+            key="playerScreen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100]"
+          >
+            <PlayerEditorShell
+              campaigns={campaigns}
+              selectedCampaignId={sandboxCampaignId}
+              onSelectCampaign={setSandboxCampaignId}
+              onClose={() => setActiveTab("home")}
+              onSave={async (campaignId, config, logicConfig) => {
+                try {
+                  const c = campaigns.find((x) => x.id === campaignId);
+                  if (!c) return;
+                  await handleSaveCampaign({
+                    ...c,
+                    playerScreenConfig: config,
+                    gameLogicConfig: logicConfig,
+                    mode: "update",
+                  });
+                } catch (err: any) {
+                  console.error(err);
+                }
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* PORTAL SIMULATOR SLIDE-OUT OVERLAY DRAWER */}
       <AnimatePresence>
         {showSandbox && (
@@ -849,6 +920,79 @@ export default function App() {
                             forcedOutcome="random"
                             onGameComplete={handleSandboxGameComplete}
                             playerName={sandboxPlayerData.name}
+                          />
+                        </motion.div>
+                      )}
+
+                      {sandboxScreen === "scratch_card" && (
+                        <motion.div
+                          key="sandbox-scratch"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex-1 flex flex-col"
+                        >
+                          <PlayerScratch
+                            activeBrand={sandboxBrandPreset}
+                            targetPrize={{
+                              ...LOSER_SLOT,
+                              isWin: true,
+                              id: "test",
+                              name: "Test Prize",
+                              color: "#FF0000",
+                            }}
+                            onGameComplete={handleSandboxGameComplete}
+                          />
+                        </motion.div>
+                      )}
+
+                      {sandboxScreen === "mystery_box" && (
+                        <motion.div
+                          key="sandbox-mystery"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex-1 flex flex-col"
+                        >
+                          <PlayerMysteryBox
+                            activeBrand={sandboxBrandPreset}
+                            onComplete={handleSandboxGameComplete}
+                          />
+                        </motion.div>
+                      )}
+
+                      {sandboxScreen === "hit_it" && (
+                        <motion.div
+                          key="sandbox-hitit"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex-1 flex flex-col"
+                        >
+                          <PlayerHitIt
+                            activeBrand={sandboxBrandPreset}
+                            winThreshold={5}
+                            onComplete={handleSandboxGameComplete}
+                          />
+                        </motion.div>
+                      )}
+
+                      {sandboxScreen === "quiz" && (
+                        <motion.div
+                          key="sandbox-quiz"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex-1 flex flex-col"
+                        >
+                          <PlayerQuiz
+                            activeBrand={sandboxBrandPreset}
+                            questions={
+                              campaigns.find((c) => c.id === sandboxCampaignId)
+                                ?.questions || []
+                            }
+                            playerName={sandboxPlayerData.name}
+                            onComplete={handleSandboxGameComplete}
                           />
                         </motion.div>
                       )}

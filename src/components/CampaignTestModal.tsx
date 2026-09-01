@@ -77,22 +77,35 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
     setCustomName(names[Math.floor(Math.random() * names.length)]);
   };
 
+  const getSimulatedDwellTime = (gType: string) => {
+    switch (gType) {
+      case "quiz":
+        return Math.floor(15 + Math.random() * 30);
+      case "hit_it":
+        return Math.floor(10 + Math.random() * 3);
+      case "scratch_card":
+        return Math.floor(6 + Math.random() * 8);
+      case "mystery_box":
+        return Math.floor(4 + Math.random() * 6);
+      case "lucky_wheel":
+      default:
+        return Math.floor(7 + Math.random() * 8);
+    }
+  };
+
   const handleRunInteractivePlay = async () => {
     setIsPlaying(true);
     setPlayResult(null);
 
     try {
       // 1. Call atomic select-prize RPC / edge function
-      const dwell =
-        campaign.type === "quiz"
-          ? Math.floor(15 + Math.random() * 45)
-          : Math.floor(6 + Math.random() * 14);
+      const dwell = getSimulatedDwellTime(campaign.gameType);
 
       const { data: drawResult, error: drawError } = await supabase.rpc(
         "draw_and_claim_campaign_prize",
         {
           p_campaign_id: campaign.id,
-          p_quiz_passed: campaign.type === "quiz" ? true : null,
+          p_quiz_passed: campaign.gameType === "quiz" ? true : null,
         },
       );
 
@@ -140,11 +153,12 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
         prize_id: isWinner ? drawResult.prize_id : null,
         redeemed_coupon_value: couponCode,
         dwell_time_seconds: dwell,
-        quiz_passed: campaign.type === "quiz" ? true : null,
+        quiz_passed: campaign.gameType === "quiz" ? true : null,
         coupon_confirmed: isWinner,
         metadata: {
           carrier,
           dwell_time_seconds: dwell,
+          game_type: campaign.gameType,
           simulated_test: true,
           ip_city: "Algiers",
         },
@@ -208,17 +222,14 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
 
         const phone = `${prefix}${Math.floor(100000 + Math.random() * 900000)}`;
         const name = names[i % names.length];
-        const dwell =
-          campaign.type === "quiz"
-            ? 15 + Math.floor(Math.random() * 45)
-            : 6 + Math.floor(Math.random() * 14);
+        const dwell = getSimulatedDwellTime(campaign.gameType);
 
         // Run atomic prize draw
         const { data: drawResult } = await supabase.rpc(
           "draw_and_claim_campaign_prize",
           {
             p_campaign_id: campaign.id,
-            p_quiz_passed: campaign.type === "quiz" ? i % 4 !== 0 : null,
+            p_quiz_passed: campaign.gameType === "quiz" ? i % 4 !== 0 : null,
           },
         );
 
@@ -236,7 +247,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
             ? `TEST-${Math.floor(100 + Math.random() * 900)}-PROMO`
             : null,
           dwell_time_seconds: dwell,
-          quiz_passed: campaign.type === "quiz" ? i % 4 !== 0 : null,
+          quiz_passed: campaign.gameType === "quiz" ? i % 4 !== 0 : null,
           coupon_confirmed: isWin,
           metadata: {
             carrier: phone.startsWith("05")
@@ -245,6 +256,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
                 ? "Mobilis"
                 : "Djezzy",
             dwell_time_seconds: dwell,
+            game_type: campaign.gameType,
             simulated_batch: true,
           },
           created_at: new Date(

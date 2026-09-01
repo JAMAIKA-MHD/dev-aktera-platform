@@ -32,6 +32,9 @@ import { PlayerLanding } from "../../components/PlayerLanding";
 import { PlayerGame } from "../../components/PlayerGame";
 import { PlayerResult } from "../../components/PlayerResult";
 import { PlayerQuiz } from "../../components/PlayerQuiz";
+import { PlayerScratch } from "../../components/PlayerScratch";
+import { PlayerMysteryBox } from "../../components/PlayerMysteryBox";
+import { PlayerHitIt } from "../../components/PlayerHitIt";
 import { AlertTriangle, Frown } from "lucide-react";
 import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../../lib/defaultImages";
 
@@ -41,6 +44,9 @@ type PlayerScreen =
   | "inactive"
   | "landing"
   | "quiz"
+  | "hit_it"
+  | "mystery_box"
+  | "scratch_card"
   | "submitting"
   | "game"
   | "result"
@@ -75,6 +81,8 @@ interface DbCampaignRow {
   hero_image_url: string | null;
   status: string;
   require_quiz: boolean;
+  game_type: string;
+  game_logic_config: any;
   prizes: Array<{
     id: string;
     name: string;
@@ -99,7 +107,8 @@ export default function PlayerFlowPage() {
 
   const [screen, setScreen] = useState<PlayerScreen>("loading");
   const [campaignId, setCampaignId] = useState<string | null>(null);
-  const [isQuizCampaign, setIsQuizCampaign] = useState(false);
+  const [gameType, setGameType] = useState<string>("lucky_wheel");
+  const [gameLogicConfig, setGameLogicConfig] = useState<any>({});
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [brandPreset, setBrandPreset] = useState<BrandPreset | null>(null);
   const [playerData, setPlayerData] = useState<PlayerData>({
@@ -165,7 +174,7 @@ export default function PlayerFlowPage() {
     const { data, error } = await supabase
       .from("campaigns")
       .select(
-        "id, name, arabic_name, hero_image_url, status, require_quiz, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
+        "id, name, arabic_name, hero_image_url, status, require_quiz, game_type, game_logic_config, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
       )
       .eq("slug", slug)
       .single();
@@ -275,7 +284,8 @@ export default function PlayerFlowPage() {
 
     setCampaignId(row.id);
     setBrandPreset(preset);
-    setIsQuizCampaign(row.require_quiz);
+    setGameType(row.game_type || "lucky_wheel");
+    setGameLogicConfig(row.game_logic_config || {});
     // Map DB quiz_questions → QuizQuestion[]
     const mappedQuestions: QuizQuestion[] = (row.quiz_questions ?? [])
       .filter((q) => q.is_active)
@@ -354,21 +364,38 @@ export default function PlayerFlowPage() {
   // Called by PlayerLanding when player submits the form
   const handleRegister = async (data: PlayerData) => {
     setPlayerData(data);
-    // Quiz campaigns: show quiz before calling select-prize
-    if (isQuizCampaign && quizQuestions.length > 0) {
+    if (gameType === "quiz" && quizQuestions.length > 0) {
       setScreen("quiz");
-      return;
+    } else if (gameType === "hit_it") {
+      setScreen("hit_it");
+    } else if (gameType === "mystery_box") {
+      setScreen("mystery_box");
+    } else {
+      // pre-resolved games: lucky_wheel, scratch_card
+      await callSelectPrize(data, undefined, true);
     }
-    // Non-quiz campaign: call select-prize immediately
-    await callSelectPrize(data, undefined);
+  };
+
+  const normalizeDzPhone = (rawPhone: string): string => {
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    if (digitsOnly.startsWith("213") && digitsOnly.length === 12) {
+      return `0${digitsOnly.slice(3)}`;
+    }
+    if (digitsOnly.length === 9 && /^[567]/.test(digitsOnly)) {
+      return `0${digitsOnly}`;
+    }
+    return digitsOnly;
   };
 
   // Shared function that calls select-prize and handles the response
   const callSelectPrize = async (
     data: PlayerData,
-    quizPassed: boolean | undefined,
+    gamePayload?: any,
+    showTransitionScreen: boolean = false,
   ) => {
-    setScreen("submitting");
+    if (showTransitionScreen) {
+      setScreen("submitting");
+    }
 
     const sessionId =
       sessionStorage.getItem("octoreach_session_id") || `sess_${Date.now()}`;
@@ -378,262 +405,183 @@ export default function PlayerFlowPage() {
     );
 
     try {
-      const { data: result, error } = await supabase.functions.invoke(
-        "select-prize",
-        {
-          body: {
-            campaign_id: campaignId,
-            phone_number: data.phone,
-            participant_name: data.name,
-            quiz_passed: quizPassed,
-            user_agent: navigator.userAgent,
-            session_id: sessionId,
-            dwell_time_seconds: dwellTimeSeconds,
-          },
-        },
-      );
+      let result: any = null;
+      let invokeSuccess = false;
 
-      if (error || !result?.ok) {
-        const invokeMessage = error
-          ? await extractInvokeErrorMessage(error)
-          : String(result?.error ?? "").toLowerCase();
+      try {
+        const { data: invResult, error: invError } =
+          await supabase.functions.invoke("select-prize", {
+            body: {
+              campaign_id: campaignId,
+              phone_number: data.phone,
+              participant_name: data.name,
+              participant_email: data.email || null,
+              game_payload: gamePayload || {},
+              user_agent: navigator.userAgent,
+              metadata: { source: "web_player" },
+              session_id: sessionId,
+              dwell_time_seconds: dwellTimeSeconds,
+            },
+          });
 
-        if (
-          result?.code === "ALREADY_PARTICIPATED" ||
-          invokeMessage.includes("already participated") ||
-          invokeMessage.includes("maximum entries")
+        if (!invError && invResult?.ok) {
+          result = invResult;
+          invokeSuccess = true;
+        } else if (
+          invResult?.code === "ALREADY_PARTICIPATED" ||
+          invError?.message?.includes("already participated")
         ) {
           setScreen("duplicate");
-          return;
-        }
-
-        if (
-          result?.code === "CAMPAIGN_CLOSED" ||
-          invokeMessage.includes("not active") ||
-          invokeMessage.includes("not found") ||
-          invokeMessage.includes("closed") ||
-          invokeMessage.includes("claimed")
+          return null;
+        } else if (
+          invResult?.code === "CAMPAIGN_CLOSED" ||
+          invError?.message?.includes("closed")
         ) {
           setScreen("inactive");
-          return;
+          return null;
+        }
+      } catch (invokeEx) {
+        console.warn(
+          "[PlayerFlowPage] Edge function select-prize invoke exception, using direct RPC fallback:",
+          invokeEx,
+        );
+      }
+
+      // Direct Database & RPC fallback if edge function was unreachable or returned an error
+      if (!invokeSuccess) {
+        const normalizedPhone = normalizeDzPhone(data.phone);
+
+        // 1. Fetch Campaign and check duplicate entry limits
+        const { data: campRow, error: campErr } = await supabase
+          .from("campaigns")
+          .select("id, organization_id, status, max_entries, win_probability")
+          .eq("id", campaignId)
+          .single();
+
+        if (campErr || !campRow) {
+          setErrorMsg("Campaign could not be found or verified.");
+          setScreen("error");
+          return null;
         }
 
-        // Direct Client Database Fallback (if Edge Function is unreachable or pending deployment)
-        if (campaignId) {
-          try {
-            const { count: existingCount } = await supabase
-              .from("entries")
-              .select("id", { count: "exact", head: true })
-              .eq("campaign_id", campaignId)
-              .eq("phone_number", data.phone);
+        if (campRow.status !== "active") {
+          setScreen("inactive");
+          return null;
+        }
 
-            if (existingCount && existingCount >= 1) {
-              setScreen("duplicate");
-              return;
-            }
+        const maxEntries = campRow.max_entries ?? 1;
+        if (maxEntries > 0) {
+          const { count: existingEntriesCount } = await supabase
+            .from("entries")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", campaignId)
+            .eq("phone_number", normalizedPhone);
 
-            const { data: campData } = await supabase
-              .from("campaigns")
-              .select("organization_id, win_probability")
-              .eq("id", campaignId)
-              .single();
-            // Query winning entries count vs total allocated stock
-            const { count: priorWinnersCount } = await supabase
-              .from("entries")
-              .select("id", { count: "exact", head: true })
-              .eq("campaign_id", campaignId)
-              .eq("is_winner", true);
-
-            const winnersSoFar = priorWinnersCount ?? 0;
-
-            const { data: dbPrizes } = await supabase
-              .from("prizes")
-              .select("id, quantity, quantity_won, prize_template_id")
-              .eq("campaign_id", campaignId)
-              .eq("is_active", true);
-
-            const totalAllocated = (dbPrizes ?? []).reduce(
-              (acc, p) => acc + (p.quantity ?? 0),
-              0,
-            );
-
-            // If total prize stock is fully claimed, player cannot win any prize
-            const hasAvailableStock =
-              totalAllocated > 0 ? winnersSoFar < totalAllocated : true;
-
-            const winProb = Number(campData?.win_probability ?? 0.3);
-            const rolledWin = hasAvailableStock && Math.random() <= winProb;
-
-            let chosenPrize = LOSER_SLOT;
-            let fallbackCouponCode: string | null = null;
-
-            if (rolledWin && brandPreset?.prizes) {
-              const winnablePrizes = brandPreset.prizes.filter((p) => p.isWin);
-              if (winnablePrizes.length > 0) {
-                const picked =
-                  winnablePrizes[
-                    Math.floor(Math.random() * winnablePrizes.length)
-                  ];
-                chosenPrize = { ...picked };
-              }
-            }
-
-            // Insert entry
-            const { data: insertedEntry } = await supabase
-              .from("entries")
-              .insert({
-                campaign_id: campaignId,
-                organization_id: campData?.organization_id,
-                phone_number: data.phone,
-                participant_name: data.name,
-                is_winner: chosenPrize.isWin,
-                prize_id:
-                  chosenPrize.isWin && chosenPrize.id !== "__loser__"
-                    ? chosenPrize.id
-                    : null,
-                redeemed_coupon_value: null,
-                quiz_passed: quizPassed,
-              })
-              .select("id")
-              .single();
-
-            // If player won a prize, track quantity_won and claim unique voucher code
-            if (
-              chosenPrize.isWin &&
-              chosenPrize.id &&
-              chosenPrize.id !== "__loser__" &&
-              insertedEntry?.id
-            ) {
-              try {
-                // Increment prize quantity_won counter
-                const { data: pCurrent } = await supabase
-                  .from("prizes")
-                  .select("quantity_won")
-                  .eq("id", chosenPrize.id)
-                  .single();
-
-                if (pCurrent) {
-                  await supabase
-                    .from("prizes")
-                    .update({
-                      quantity_won: (pCurrent.quantity_won ?? 0) + 1,
-                    })
-                    .eq("id", chosenPrize.id);
-                }
-              } catch {
-                // Non-fatal
-              }
-
-              try {
-                // Method 1: Database RPC function (Atomic, SKIP LOCKED, works for anon)
-                const { data: rpcCode, error: rpcError } = await supabase.rpc(
-                  "claim_campaign_prize_coupon",
-                  {
-                    p_prize_id: chosenPrize.id,
-                    p_entry_id: insertedEntry.id,
-                  },
-                );
-
-                if (!rpcError && rpcCode && typeof rpcCode === "string") {
-                  fallbackCouponCode = rpcCode.trim();
-                }
-              } catch {
-                // RPC fallback
-              }
-
-              // Method 2: Sequential offset fallback using previous winning entries count
-              if (!fallbackCouponCode) {
-                try {
-                  const { data: pData } = await supabase
-                    .from("prizes")
-                    .select("prize_template_id")
-                    .eq("id", chosenPrize.id)
-                    .single();
-
-                  if (pData?.prize_template_id) {
-                    // Count how many winners already won this prize in this campaign
-                    const { count: priorWinnersCount } = await supabase
-                      .from("entries")
-                      .select("id", { count: "exact", head: true })
-                      .eq("campaign_id", campaignId)
-                      .eq("prize_id", chosenPrize.id)
-                      .neq("id", insertedEntry.id);
-
-                    const offset = priorWinnersCount ?? 0;
-
-                    const { data: itemRows } = await supabase
-                      .from("prize_template_items")
-                      .select("id, item_value, item_index")
-                      .eq("prize_template_id", pData.prize_template_id)
-                      .not("item_value", "is", null)
-                      .order("item_index", { ascending: true })
-                      .range(offset, offset + 10);
-
-                    const assignedItem =
-                      (itemRows ?? []).find(
-                        (i) => i.item_value && i.item_value.trim().length > 0,
-                      ) || itemRows?.[0];
-
-                    if (assignedItem?.item_value) {
-                      fallbackCouponCode = assignedItem.item_value.trim();
-
-                      // Update entries table with this coupon code
-                      await supabase
-                        .from("entries")
-                        .update({ redeemed_coupon_value: fallbackCouponCode })
-                        .eq("id", insertedEntry.id);
-                    } else {
-                      const { data: tData } = await supabase
-                        .from("prize_templates")
-                        .select("item_value")
-                        .eq("id", pData.prize_template_id)
-                        .single();
-                      if (tData?.item_value?.trim()) {
-                        fallbackCouponCode = tData.item_value.trim();
-                        await supabase
-                          .from("entries")
-                          .update({ redeemed_coupon_value: fallbackCouponCode })
-                          .eq("id", insertedEntry.id);
-                      }
-                    }
-                  }
-                } catch {
-                  // Fallback query silent catch
-                }
-              }
-
-              if (fallbackCouponCode) {
-                chosenPrize = {
-                  ...chosenPrize,
-                  couponCode: fallbackCouponCode,
-                };
-              }
-            }
-
-            const fallbackId = insertedEntry?.id ?? null;
-            setEntryId(fallbackId);
-            entryIdRef.current = fallbackId;
-            setServerPrize(chosenPrize);
-            gameOpenTimeRef.current = Date.now();
-            setScreen("game");
-            return;
-          } catch (fallbackErr) {
-            console.warn(
-              "[PlayerFlowPage] Direct client fallback notice:",
-              fallbackErr,
-            );
+          if ((existingEntriesCount ?? 0) >= maxEntries) {
+            setScreen("duplicate");
+            return null;
           }
         }
 
-        setErrorMsg(
-          result?.error ||
-            "We could not submit your participation right now. Please try again in a moment.",
+        // 2. Resolve game outcome atomically via resolve_game_outcome RPC
+        const { data: rpcOutcome, error: rpcErr } = await supabase.rpc(
+          "resolve_game_outcome",
+          {
+            p_campaign_id: campaignId,
+            p_payload: gamePayload || {},
+          },
         );
-        setScreen("error");
-        return;
+
+        if (rpcErr) {
+          console.error(
+            "[PlayerFlowPage] resolve_game_outcome RPC error:",
+            rpcErr,
+          );
+          setErrorMsg("Failed to process game outcome. Please try again.");
+          setScreen("error");
+          return null;
+        }
+
+        const isWin = Boolean(
+          rpcOutcome?.ok && rpcOutcome?.is_winner && rpcOutcome?.prize_id,
+        );
+        let couponCode: string | null = null;
+
+        if (isWin && rpcOutcome?.prize_id) {
+          const { data: pData } = await supabase
+            .from("prizes")
+            .select("prize_template_id, name")
+            .eq("id", rpcOutcome.prize_id)
+            .single();
+
+          if (pData?.prize_template_id) {
+            const { data: items } = await supabase
+              .from("prize_template_items")
+              .select("id, item_value")
+              .eq("prize_template_id", pData.prize_template_id)
+              .is("assigned_entry_id", null)
+              .limit(1);
+
+            couponCode =
+              items?.[0]?.item_value ||
+              `DZ-${Math.floor(1000 + Math.random() * 9000)}-PROMO`;
+
+            if (items?.[0]?.id) {
+              await supabase
+                .from("prize_template_items")
+                .update({
+                  is_redeemed: true,
+                  redeemed_at: new Date().toISOString(),
+                })
+                .eq("id", items[0].id);
+            }
+          }
+        }
+
+        // 3. Insert entry into database
+        const newEntryId = crypto.randomUUID();
+        const { error: insertErr } = await supabase.from("entries").insert({
+          id: newEntryId,
+          campaign_id: campaignId,
+          organization_id: campRow.organization_id,
+          phone_number: normalizedPhone,
+          participant_name: data.name,
+          participant_email: data.email || null,
+          is_winner: isWin,
+          prize_id: isWin ? rpcOutcome.prize_id : null,
+          redeemed_coupon_value: couponCode,
+          dwell_time_seconds: dwellTimeSeconds,
+          quiz_passed:
+            rpcOutcome?.passed ?? (gameType === "quiz" ? true : null),
+          coupon_confirmed: isWin,
+          metadata: {
+            source: "web_player",
+            game_type: gameType,
+            dwell_time_seconds: dwellTimeSeconds,
+          },
+          created_at: new Date().toISOString(),
+        });
+
+        if (insertErr) {
+          console.error("[PlayerFlowPage] insert entry error:", insertErr);
+        }
+
+        result = {
+          ok: true,
+          prize:
+            isWin && rpcOutcome?.prize_id
+              ? {
+                  id: rpcOutcome.prize_id,
+                  name: rpcOutcome.prize_name || "Special Reward",
+                }
+              : null,
+          entry: { id: newEntryId, redeemed_coupon_value: couponCode },
+          coupon: couponCode ? { code: couponCode } : null,
+          game_outcome: rpcOutcome,
+        };
       }
 
-      // Determine the UI prize to land on
+      // Determine the UI prize to display
       let resolvedPrize: Prize;
       const returnedCouponCode =
         result.coupon?.code || result.entry?.redeemed_coupon_value || undefined;
@@ -644,7 +592,13 @@ export default function PlayerFlowPage() {
         );
         resolvedPrize = matched
           ? { ...matched, couponCode: returnedCouponCode }
-          : { ...LOSER_SLOT, isWin: false };
+          : {
+              id: result.prize.id,
+              name: result.prize.name || "Special Prize",
+              icon: "🎁",
+              isWin: true,
+              couponCode: returnedCouponCode,
+            };
       } else {
         resolvedPrize = LOSER_SLOT;
       }
@@ -654,16 +608,50 @@ export default function PlayerFlowPage() {
       entryIdRef.current = newId;
       setServerPrize(resolvedPrize);
       gameOpenTimeRef.current = Date.now();
-      setScreen("game");
-    } catch {
+
+      if (gameType === "lucky_wheel") {
+        setScreen("game");
+      } else if (gameType === "scratch_card") {
+        setScreen("scratch_card");
+      }
+
+      return result.game_outcome;
+    } catch (outerErr: any) {
+      console.error("[PlayerFlowPage] callSelectPrize outer error:", outerErr);
       setErrorMsg("Unexpected error. Please check your connection.");
       setScreen("error");
+      return null;
     }
   };
 
   // Called by PlayerQuiz when all questions are answered
-  const handleQuizComplete = async (passed: boolean) => {
-    await callSelectPrize(playerData, passed);
+  const handleQuizComplete = async (payload: {
+    answers: Record<string, number>;
+  }) => {
+    const result = await callSelectPrize(playerData, payload);
+    if (result && gameType === "quiz") {
+      setScreen("result");
+    }
+  };
+
+  const handleHitItComplete = async (hits: number) => {
+    await callSelectPrize(playerData, { hits });
+  };
+
+  const handleHitItFinalComplete = () => {
+    setScreen("result");
+  };
+
+  const handleMysteryBoxSelect = async (index: number) => {
+    return await callSelectPrize(playerData, { selected_box_index: index });
+  };
+
+  const handleMysteryBoxComplete = () => {
+    setScreen("result");
+  };
+
+  const handleScratchComplete = () => {
+    setScreen("result");
   };
 
   const gameOpenTimeRef = React.useRef<number | null>(null);
@@ -831,10 +819,14 @@ export default function PlayerFlowPage() {
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm font-bold text-zinc-300">
-            Preparing your spin...
+            {gameType === "lucky_wheel"
+              ? "Preparing your spin..."
+              : "Preparing your game..."}
           </p>
           <p dir="auto" className="text-xs text-zinc-500 mt-1">
-            جارٍ تحضير دورتك...
+            {gameType === "lucky_wheel"
+              ? "جارٍ تحضير دورتك..."
+              : "جارٍ تحضير لعبتك..."}
           </p>
         </div>
       </div>
@@ -869,6 +861,28 @@ export default function PlayerFlowPage() {
             targetPrize={serverPrize ?? undefined}
             onGameComplete={handleGameComplete}
             playerName={playerData.name}
+          />
+        )}
+        {screen === "scratch_card" && serverPrize !== undefined && (
+          <PlayerScratch
+            activeBrand={brandPreset}
+            targetPrize={serverPrize ?? undefined}
+            onGameComplete={handleScratchComplete}
+          />
+        )}
+        {screen === "mystery_box" && (
+          <PlayerMysteryBox
+            activeBrand={brandPreset}
+            onBoxSelect={handleMysteryBoxSelect}
+            onComplete={handleMysteryBoxComplete}
+          />
+        )}
+        {screen === "hit_it" && (
+          <PlayerHitIt
+            activeBrand={brandPreset}
+            winThreshold={gameLogicConfig?.win_threshold || 9}
+            onGameEnd={handleHitItComplete}
+            onComplete={handleHitItFinalComplete}
           />
         )}
         {screen === "result" && (

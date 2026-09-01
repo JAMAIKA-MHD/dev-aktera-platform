@@ -14,6 +14,9 @@ import {
   AlertTriangle,
   AlertCircle,
   ShieldAlert,
+  Disc,
+  Layers,
+  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ImageUploader } from "./common/ImageUploader";
@@ -80,8 +83,14 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         ? `${relaunchDraft.slug}-relaunch`
         : "",
   );
-  const [type, setType] = useState<"lucky_wheel" | "quiz">(
-    baseCampaign ? baseCampaign.type : "lucky_wheel",
+  const [type, setType] = useState<
+    "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it"
+  >(baseCampaign ? baseCampaign.gameType : "lucky_wheel");
+  const [gameLogicConfig, setGameLogicConfig] = useState<any>(
+    baseCampaign?.gameLogicConfig ?? {
+      win_threshold: 8,
+      pass_threshold_percentage: 50,
+    },
   );
   const [startDate, setStartDate] = useState(
     baseCampaign?.startDate ?? new Date().toISOString().split("T")[0],
@@ -221,10 +230,26 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       setValidationErrors([
         {
           field: "weights",
-          message: "Total wheel sector weight must be greater than 0.",
+          message: "Total prize probability weight must be greater than 0.",
         },
       ]);
       return;
+    }
+
+    if (type === "quiz") {
+      const invalidQ = quizQuestions.some(
+        (q) => !q.questionText.trim() || q.options.some((o) => !o.trim()),
+      );
+      if (invalidQ || quizQuestions.length === 0) {
+        setValidationErrors([
+          {
+            field: "quiz",
+            message:
+              "Trivia quiz campaigns require at least one valid question with non-empty options.",
+          },
+        ]);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -235,7 +260,8 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         arabicName,
         heroImageUrl: heroImageUrl || undefined,
         slug,
-        type,
+        gameType: type,
+        gameLogicConfig,
         status: submitStatus,
         winProbability,
         autoPacePrizes,
@@ -537,33 +563,75 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                     id: "lucky_wheel",
                     title: "Lucky Spin Wheel",
                     desc: "Instant gratification gamification with visual prize wedges",
+                    icon: Disc,
+                    color: "text-emerald-400",
+                  },
+                  {
+                    id: "scratch_card",
+                    title: "Scratch Card",
+                    desc: "Digital scratch-to-win card for surprise reveals",
+                    icon: Layers,
+                    color: "text-amber-400",
+                  },
+                  {
+                    id: "mystery_box",
+                    title: "Mystery Box",
+                    desc: "Let users choose one of three boxes to reveal their prize",
+                    icon: Gift,
+                    color: "text-blue-400",
+                  },
+                  {
+                    id: "hit_it",
+                    title: "Hit It Reaction Game",
+                    desc: "Fast-paced target tapping game against a timer",
+                    icon: Zap,
+                    color: "text-rose-400",
                   },
                   {
                     id: "quiz",
                     title: "Trivia Quiz Challenge",
                     desc: "Skill & knowledge based entry before claiming rewards",
+                    icon: QuizIcon,
+                    color: "text-purple-400",
                   },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setType(m.id as any)}
-                    className={`p-4 rounded-2xl text-left border transition-all cursor-pointer ${
-                      type === m.id
-                        ? isDark
-                          ? "bg-blue-600/20 border-blue-500 text-blue-400"
-                          : "bg-blue-50 border-2 border-blue-500 text-blue-700 font-bold"
-                        : isDark
-                          ? "bg-[#0e1422] border-slate-800 text-slate-300 hover:bg-slate-800"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <p className="font-black text-sm">{m.title}</p>
-                    <p className="text-xs text-brand-textMuted mt-1">
-                      {m.desc}
-                    </p>
-                  </button>
-                ))}
+                ].map((m) => {
+                  const Icon = m.icon;
+                  const isSelected = type === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setType(m.id as any)}
+                      className={`p-4 rounded-2xl text-left border transition-all cursor-pointer flex items-start gap-3.5 ${
+                        isSelected
+                          ? isDark
+                            ? "bg-blue-600/20 border-blue-500 text-blue-400 shadow-md"
+                            : "bg-blue-50 border-2 border-blue-500 text-blue-700 font-bold"
+                          : isDark
+                            ? "bg-[#0e1422] border-slate-800 text-slate-300 hover:bg-slate-800"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${
+                          isSelected
+                            ? "bg-blue-600 text-white border-blue-400"
+                            : isDark
+                              ? "bg-slate-800/80 border-slate-700 text-slate-400"
+                              : "bg-white border-slate-200 text-slate-500"
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-black text-sm">{m.title}</p>
+                        <p className="text-xs text-brand-textMuted mt-0.5">
+                          {m.desc}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -752,7 +820,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                         isDark ? "text-white" : "text-slate-900"
                       }`}
                     >
-                      Average Spin Win Probability
+                      {type === "lucky_wheel"
+                        ? "Average Spin Win Probability"
+                        : "Average Win Probability"}
                     </span>
                     {autoPacePrizes && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -763,7 +833,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   <span className="text-xs text-brand-textMuted mt-0.5 block">
                     {autoPacePrizes
                       ? "Win rate is dynamically determined by daily prize quota pacing."
-                      : 'Determines the ratio of "no prize" outcomes for non-priority spins'}
+                      : 'Determines the ratio of "no prize" outcomes for non-priority participants'}
                   </span>
                 </div>
                 <span
@@ -797,6 +867,136 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
               </div>
             </div>
 
+            {/* Game-Specific Server Logic Configuration Card */}
+            <div
+              className={`p-5 rounded-2xl space-y-3.5 border ${
+                isDark
+                  ? "bg-[#0e1422] border-slate-800"
+                  : "bg-slate-50 border-slate-200"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-blue-500" />
+                <span
+                  className={`text-xs font-black uppercase tracking-wider ${
+                    isDark ? "text-white" : "text-slate-900"
+                  }`}
+                >
+                  {type === "hit_it"
+                    ? "Hit It Reaction Challenge Settings"
+                    : type === "quiz"
+                      ? "Trivia Quiz Challenge Pass Threshold"
+                      : type === "scratch_card"
+                        ? "Scratch Card Reveal Mechanics"
+                        : type === "mystery_box"
+                          ? "Mystery Box Draw Mechanics"
+                          : "Spin Wheel Physics & Mechanics"}
+                </span>
+              </div>
+
+              {type === "hit_it" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-1">
+                  <div>
+                    <label className="text-[11px] font-bold text-brand-textMuted block mb-1">
+                      Hits Needed to Win (10s Timer)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={gameLogicConfig.win_threshold ?? 8}
+                      onChange={(e) =>
+                        setGameLogicConfig((prev: any) => ({
+                          ...prev,
+                          win_threshold: Math.max(
+                            1,
+                            parseInt(e.target.value, 10) || 8,
+                          ),
+                        }))
+                      }
+                      className={`w-full rounded-xl px-4 py-2.5 text-xs font-bold focus:outline-none border ${
+                        isDark
+                          ? "bg-[#151E30] border-slate-700 text-white"
+                          : "bg-white border-slate-200 text-slate-900"
+                      }`}
+                    />
+                  </div>
+                  <p className="text-xs text-brand-textMuted leading-relaxed">
+                    Players must tap the target at least{" "}
+                    <strong className="text-blue-500">
+                      {gameLogicConfig.win_threshold ?? 8} times
+                    </strong>{" "}
+                    within the 10-second countdown to qualify for the prize
+                    draw.
+                  </p>
+                </div>
+              )}
+
+              {type === "quiz" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-1">
+                  <div>
+                    <label className="text-[11px] font-bold text-brand-textMuted block mb-1">
+                      Passing Score Threshold (%)
+                    </label>
+                    <select
+                      value={gameLogicConfig.pass_threshold_percentage ?? 50}
+                      onChange={(e) =>
+                        setGameLogicConfig((prev: any) => ({
+                          ...prev,
+                          pass_threshold_percentage: parseInt(
+                            e.target.value,
+                            10,
+                          ),
+                        }))
+                      }
+                      className={`w-full rounded-xl px-4 py-2.5 text-xs font-bold focus:outline-none border ${
+                        isDark
+                          ? "bg-[#151E30] border-slate-700 text-white"
+                          : "bg-white border-slate-200 text-slate-900"
+                      }`}
+                    >
+                      <option value={25}>25% - Easy entry</option>
+                      <option value={50}>50% - Standard half correct</option>
+                      <option value={75}>75% - High skill challenge</option>
+                      <option value={100}>100% - Perfect score required</option>
+                    </select>
+                  </div>
+                  <p className="text-xs text-brand-textMuted leading-relaxed">
+                    Players answering at least{" "}
+                    <strong className="text-purple-400">
+                      {gameLogicConfig.pass_threshold_percentage ?? 50}%
+                    </strong>{" "}
+                    of questions correctly qualify for the prize draw.
+                  </p>
+                </div>
+              )}
+
+              {type === "scratch_card" && (
+                <p className="text-xs text-brand-textMuted leading-relaxed">
+                  Players scratch the digital coating to reveal prize outcomes.
+                  Winning outcomes and voucher codes are securely determined
+                  server-side using your configured win probability and prize
+                  weights.
+                </p>
+              )}
+
+              {type === "mystery_box" && (
+                <p className="text-xs text-brand-textMuted leading-relaxed">
+                  Players select 1 of 3 mystery boxes. The platform securely
+                  evaluates the reward draw on the server and displays an
+                  animated reveal.
+                </p>
+              )}
+
+              {type === "lucky_wheel" && (
+                <p className="text-xs text-brand-textMuted leading-relaxed">
+                  Players spin the wheel. The server securely draws the prize
+                  segment based on sector weights and lands smoothly on the
+                  selected prize.
+                </p>
+              )}
+            </div>
+
             {/* Entry rate constraints */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="flex flex-col gap-2">
@@ -820,8 +1020,17 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "1", label: "1 Spin Limit" },
-                    { id: "2", label: "2 Spins" },
+                    {
+                      id: "1",
+                      label:
+                        type === "lucky_wheel"
+                          ? "1 Spin Limit"
+                          : "1 Play Limit",
+                    },
+                    {
+                      id: "2",
+                      label: type === "lucky_wheel" ? "2 Spins" : "2 Plays",
+                    },
                     { id: "unlimited", label: "Unlimited" },
                   ].map((opt) => (
                     <button
@@ -843,8 +1052,11 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   ))}
                 </div>
                 <p className="text-xs text-brand-textMuted mt-1 leading-normal">
-                  Recommended: <strong>1 Spin</strong> to guarantee fair reward
-                  dispersion across campaigns.
+                  Recommended:{" "}
+                  <strong>
+                    {type === "lucky_wheel" ? "1 Spin" : "1 Play"}
+                  </strong>{" "}
+                  to guarantee fair reward dispersion across campaigns.
                 </p>
               </div>
             </div>
@@ -1277,6 +1489,23 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   <strong>Assigned Prizes:</strong> {allocatedPrizes.length}{" "}
                   slots configured
                 </p>
+                {type === "hit_it" && (
+                  <p>
+                    <strong>Hit It Goal:</strong>{" "}
+                    <span className="text-rose-400 font-bold">
+                      ≥ {gameLogicConfig.win_threshold ?? 8} hits / 10s
+                    </span>
+                  </p>
+                )}
+                {type === "quiz" && (
+                  <p>
+                    <strong>Quiz Goal:</strong>{" "}
+                    <span className="text-purple-400 font-bold">
+                      ≥ {gameLogicConfig.pass_threshold_percentage ?? 50}% score
+                      ({quizQuestions.length} Qs)
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1397,12 +1626,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   traffic.
                 </p>
 
-                {editingCampaign.type !== type && (
+                {editingCampaign.gameType !== type && (
                   <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 font-bold flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
                       Notice: Changing game type from{" "}
-                      <strong>{editingCampaign.type}</strong> to{" "}
+                      <strong>{editingCampaign.gameType}</strong> to{" "}
                       <strong>{type}</strong> may alter in-progress customer
                       game sessions.
                     </span>

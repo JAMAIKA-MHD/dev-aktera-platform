@@ -132,13 +132,16 @@ export interface SaveCampaignInput {
     arabicName?: string;
     heroImageUrl?: string;
     slug: string;
-    type: "lucky_wheel" | "quiz";
+    gameType:
+      "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it";
+    gameLogicConfig?: any;
     startDate: string;
     endDate: string;
     winProbability: number;
     autoPacePrizes?: boolean;
     maxEntries?: "1" | "2" | "unlimited";
     parentCampaignId?: string;
+    playerScreenConfig?: any;
     prizes: { templateId?: string; quantity: number; weight: number }[];
     questions: {
       questionText: string;
@@ -204,10 +207,13 @@ export async function createOrUpdateCampaignFullService(
         : newCamp.maxEntries === "unlimited"
           ? 0
           : 1,
-    p_require_quiz: newCamp.type === "quiz",
+    p_require_quiz: newCamp.gameType === "quiz",
     p_prizes: prizesPayload,
     p_questions: questionsPayload,
     p_auto_pace_prizes: Boolean(newCamp.autoPacePrizes),
+    p_player_screen_config: newCamp.playerScreenConfig || null,
+    p_game_type: newCamp.gameType,
+    p_game_logic_config: newCamp.gameLogicConfig || {},
   };
 
   const { data, error } = await supabase.rpc(

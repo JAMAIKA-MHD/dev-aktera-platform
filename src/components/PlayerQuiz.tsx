@@ -23,7 +23,7 @@ interface PlayerQuizProps {
   activeBrand: BrandPreset;
   questions: QuizQuestion[];
   playerName: string;
-  onComplete: (passed: boolean) => void;
+  onComplete: (payload: { answers: Record<string, number> }) => void;
 }
 
 type AnswerState = "idle" | "correct" | "wrong";
@@ -39,6 +39,7 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
   const [answerState, setAnswerState] = useState<AnswerState>("idle");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [phase, setPhase] = useState<"question" | "summary">("question");
+  const [userAnswers, setUserAnswers] = useState<Record<string, number>>({});
 
   const total = questions.length;
   const current = questions[currentIdx];
@@ -50,6 +51,7 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
     const isCorrect = optIdx === current.correctIndex;
     const newCorrectCount = isCorrect ? correctCount + 1 : correctCount;
 
+    setUserAnswers((prev) => ({ ...prev, [current.id]: optIdx }));
     setSelectedOption(optIdx);
     setAnswerState(isCorrect ? "correct" : "wrong");
 
@@ -94,10 +96,10 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
                 </span>{" "}
                 correct.
                 <br />
-                Time to spin the wheel!
+                Ready to unlock your reward!
               </p>
               <p dir="auto" className="text-xs text-zinc-500 mt-1">
-                أحسنت! اربح جائزتك الآن 🎁
+                أحسنت! احصل على مكافأتك الآن 🎁
               </p>
             </>
           ) : (
@@ -114,7 +116,7 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
                 </span>{" "}
                 correct.
                 <br />
-                You need {passThreshold} to win — let's spin anyway!
+                You needed {passThreshold} to qualify.
               </p>
               <p dir="auto" className="text-xs text-zinc-500 mt-1">
                 حاول مرة أخرى في المرة القادمة! 🤞
@@ -124,11 +126,11 @@ export const PlayerQuiz: React.FC<PlayerQuizProps> = ({
 
           <motion.button
             whileTap={{ scale: 0.96 }}
-            onClick={() => onComplete(passed)}
+            onClick={() => onComplete({ answers: userAnswers })}
             className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-extrabold text-sm text-white cursor-pointer min-h-[52px] shadow-lg"
             style={{ backgroundColor: activeBrand.primaryColor }}
           >
-            <span>{passed ? "Spin the Wheel!" : "Spin Anyway"}</span>
+            <span>{passed ? "Claim Reward" : "View Results"}</span>
             <ChevronRight className="w-4 h-4" />
           </motion.button>
         </motion.div>

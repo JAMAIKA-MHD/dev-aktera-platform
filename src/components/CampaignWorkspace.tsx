@@ -18,6 +18,8 @@ import {
   HelpCircle,
   Disc,
   FlaskConical,
+  Layers,
+  Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
@@ -118,14 +120,81 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
     }
   };
 
-  const stateBadge = getStateBadge();
-
-  const getDetailsGameIcon = () => {
-    if (campaign.type === "quiz") {
-      return "/images/icons/quiz-icon-for-details.jpg";
+  const getGameTheme = (gType: string) => {
+    switch (gType) {
+      case "quiz":
+        return {
+          title: "Trivia Quiz Challenge",
+          desc: "Knowledge & trivia questions before unlocking reward outcomes",
+          icon: HelpCircle,
+          bgGradient:
+            "bg-gradient-to-br from-[#180d38] via-[#0B1120] to-[#251352] text-white",
+          glowColor: "bg-purple-600",
+          iconBg:
+            "bg-indigo-600/25 border-indigo-500/50 text-indigo-400 shadow-indigo-500/20",
+          badgeBorder: "border-purple-500/30 bg-purple-500/20 text-purple-300",
+          emblemBorder: "border-purple-500 bg-[#1e1338] text-purple-400",
+        };
+      case "scratch_card":
+        return {
+          title: "Scratch Card Reveal",
+          desc: "Tactile digital scratching to reveal instant prize outcomes",
+          icon: Layers,
+          bgGradient:
+            "bg-gradient-to-br from-[#2f1807] via-[#0B1120] to-[#3a1d06] text-white",
+          glowColor: "bg-amber-500",
+          iconBg:
+            "bg-amber-600/25 border-amber-500/50 text-amber-400 shadow-amber-500/20",
+          badgeBorder: "border-amber-500/30 bg-amber-500/20 text-amber-300",
+          emblemBorder: "border-amber-500 bg-[#351e0e] text-amber-400",
+        };
+      case "mystery_box":
+        return {
+          title: "Mystery Box Draw",
+          desc: "Players select 1 of 3 surprise boxes to reveal their prize",
+          icon: Gift,
+          bgGradient:
+            "bg-gradient-to-br from-[#0a1c38] via-[#0B1120] to-[#0e274d] text-white",
+          glowColor: "bg-blue-600",
+          iconBg:
+            "bg-blue-600/25 border-blue-500/50 text-blue-400 shadow-blue-500/20",
+          badgeBorder: "border-blue-500/30 bg-blue-500/20 text-blue-300",
+          emblemBorder: "border-blue-500 bg-[#0e2142] text-blue-400",
+        };
+      case "hit_it":
+        return {
+          title: "Hit It Reaction Challenge",
+          desc: "Fast-paced target tapping challenge against a countdown timer",
+          icon: Zap,
+          bgGradient:
+            "bg-gradient-to-br from-[#330c14] via-[#0B1120] to-[#450e19] text-white",
+          glowColor: "bg-rose-600",
+          iconBg:
+            "bg-rose-600/25 border-rose-500/50 text-rose-400 shadow-rose-500/20",
+          badgeBorder: "border-rose-500/30 bg-rose-500/20 text-rose-300",
+          emblemBorder: "border-rose-500 bg-[#3a1019] text-rose-400",
+        };
+      case "lucky_wheel":
+      default:
+        return {
+          title: "Lucky Spin Wheel",
+          desc: "Visual spinning wheel with weighted prize segments",
+          icon: Disc,
+          bgGradient:
+            "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26] text-white",
+          glowColor: "bg-emerald-500",
+          iconBg:
+            "bg-emerald-600/25 border-emerald-500/50 text-emerald-400 shadow-emerald-500/20",
+          badgeBorder:
+            "border-emerald-500/30 bg-emerald-500/20 text-emerald-300",
+          emblemBorder: "border-emerald-500 bg-[#0c2b24] text-emerald-400",
+        };
     }
-    return "/images/icons/spin-wheel-icon-free-vector.jpg";
   };
+
+  const gameTheme = getGameTheme(campaign.gameType);
+  const GameIcon = gameTheme.icon;
+  const stateBadge = getStateBadge();
 
   return (
     <div
@@ -183,17 +252,11 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               </div>
 
               {/* Circular Game Emblem */}
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-emerald-500 bg-[#262A30] shadow-xl flex items-center justify-center shrink-0 -ml-2">
-                <img
-                  src={getDetailsGameIcon()}
-                  alt={campaign.type}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src =
-                      campaign.type === "quiz"
-                        ? "/images/icons/quiz-badge.svg"
-                        : "/images/icons/wheel-badge.svg";
-                  }}
+              <div
+                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 shadow-xl flex items-center justify-center shrink-0 -ml-2 ${gameTheme.emblemBorder}`}
+              >
+                <GameIcon
+                  className={`w-7 h-7 stroke-[2.2] ${campaign.gameType === "lucky_wheel" ? "animate-spin-slow" : ""}`}
                 />
               </div>
             </div>
@@ -219,35 +282,21 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               ) : (
                 /* Rich Studio Game Theme Canvas (High contrast in all themes) */
                 <div
-                  className={`relative w-full h-full min-h-[300px] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden ${
-                    campaign.type === "quiz"
-                      ? "bg-gradient-to-br from-[#120D2C] via-[#0B1120] to-[#1E1242] text-white"
-                      : "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26] text-white"
-                  }`}
+                  className={`relative w-full h-full min-h-[300px] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden ${gameTheme.bgGradient}`}
                 >
                   {/* Decorative background ambient glow */}
                   <div
-                    className={`absolute w-64 h-64 rounded-full blur-3xl opacity-40 pointer-events-none ${
-                      campaign.type === "quiz"
-                        ? "bg-purple-600"
-                        : "bg-emerald-500"
-                    }`}
+                    className={`absolute w-64 h-64 rounded-full blur-3xl opacity-40 pointer-events-none ${gameTheme.glowColor}`}
                   ></div>
 
                   {/* Center Game Graphic Element */}
                   <div className="relative z-10 flex flex-col items-center space-y-3.5">
                     <div
-                      className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl border ${
-                        campaign.type === "quiz"
-                          ? "bg-indigo-600/25 border-indigo-500/50 text-indigo-400 shadow-indigo-500/20"
-                          : "bg-emerald-600/25 border-emerald-500/50 text-emerald-400 shadow-emerald-500/20"
-                      }`}
+                      className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl border ${gameTheme.iconBg}`}
                     >
-                      {campaign.type === "quiz" ? (
-                        <HelpCircle className="w-10 h-10 stroke-[2.2]" />
-                      ) : (
-                        <Disc className="w-10 h-10 stroke-[2.2] animate-spin-slow" />
-                      )}
+                      <GameIcon
+                        className={`w-10 h-10 stroke-[2.2] ${campaign.gameType === "lucky_wheel" ? "animate-spin-slow" : ""}`}
+                      />
                     </div>
 
                     <div className="space-y-1.5">
@@ -255,16 +304,13 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                         {campaign.name}
                       </h3>
                       <span
-                        className={`inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
-                          campaign.type === "quiz"
-                            ? "bg-purple-500/20 border-purple-500/30 text-purple-300"
-                            : "bg-emerald-500/20 border-emerald-500/30 text-emerald-300"
-                        }`}
+                        className={`inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${gameTheme.badgeBorder}`}
                       >
-                        {campaign.type === "quiz"
-                          ? "Trivia Quiz Challenge"
-                          : "Lucky Spin Wheel"}
+                        {gameTheme.title}
                       </span>
+                      <p className="text-[11px] text-zinc-400 max-w-xs font-medium mt-1">
+                        {gameTheme.desc}
+                      </p>
                     </div>
                   </div>
                 </div>
