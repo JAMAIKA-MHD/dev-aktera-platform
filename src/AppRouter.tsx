@@ -1,12 +1,13 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { PlayerProvider } from './contexts/PlayerContext';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import CompleteOrganizationSetupPage from './pages/auth/CompleteOrganizationSetupPage';
-import PlayerFlowPage from './pages/play/PlayerFlowPage';
-import App from './App';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { PlayerProvider } from "./contexts/PlayerContext";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import CompleteOrganizationSetupPage from "./pages/auth/CompleteOrganizationSetupPage";
+import PlayerFlowPage from "./pages/play/PlayerFlowPage";
+import { PlayerUIMaker } from "./components/player-ui-maker";
+import App from "./App";
 
 /** Redirects to /login when no session; shows a full-screen spinner while loading. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -28,7 +29,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-white border border-red-100 rounded-3xl shadow-sm p-8 text-center">
-          <h2 className="text-xl font-bold text-slate-900 mb-2">We could not load your account</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
+            We could not load your account
+          </h2>
           <p className="text-sm text-slate-500">{authError}</p>
         </div>
       </div>
@@ -43,7 +46,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppRouter() {
-  const isRegistrationEnabled = import.meta.env.VITE_REGISTRATION_ENABLED === 'true';
+  const isRegistrationEnabled =
+    import.meta.env.VITE_REGISTRATION_ENABLED === "true";
 
   return (
     <BrowserRouter>
@@ -51,7 +55,9 @@ export default function AppRouter() {
         <Routes>
           {/* Public auth routes */}
           <Route path="/login" element={<LoginPage />} />
-          {isRegistrationEnabled && <Route path="/register" element={<RegisterPage />} />}
+          {isRegistrationEnabled && (
+            <Route path="/register" element={<RegisterPage />} />
+          )}
 
           {/* Public player portal — wrapped in PlayerProvider for game state */}
           <Route
@@ -62,6 +68,9 @@ export default function AppRouter() {
               </PlayerProvider>
             }
           />
+
+          {/* Standalone Player UI Maker route */}
+          <Route path="/ui-maker" element={<PlayerUIMaker />} />
 
           {/* Protected operator dashboard */}
           <Route

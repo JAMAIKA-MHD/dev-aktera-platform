@@ -22,7 +22,7 @@ import { PlayerMysteryBox } from "./components/PlayerMysteryBox";
 import { PlayerHitIt } from "./components/PlayerHitIt";
 import { PlayerResult } from "./components/PlayerResult";
 import { PlayerScreenConfig } from "./components/PlayerScreenConfig";
-import { PlayerEditorShell } from "./components/player-editor/PlayerEditorShell";
+import { PlayerUIMaker } from "./components/player-ui-maker";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -39,6 +39,7 @@ import {
   archiveCampaignService,
   deleteCampaignService,
   createOrUpdateCampaignFullService,
+  updateCampaignPlayerScreenService,
 } from "./services/campaignService";
 
 import {
@@ -335,6 +336,16 @@ export default function App() {
     setActiveTab("creator");
   };
 
+  // Handler: Open Player UI Screen Maker for a campaign
+  const handleOpenPlayerScreenEditor = (
+    camp: Campaign | { id?: string; [key: string]: any },
+  ) => {
+    if (camp?.id) {
+      setSandboxCampaignId(camp.id);
+    }
+    setActiveTab("playerScreen");
+  };
+
   // Helper: map a B2B Campaign to a sandbox BrandPreset for the visual preview
   const activeSandboxCampaign =
     campaigns.find((c) => c.id === sandboxCampaignId) || campaigns[0];
@@ -508,14 +519,14 @@ export default function App() {
               icon: "fa-solid fa-file-invoice-dollar",
             },
             {
-              id: "account",
-              label: t("nav.organization", "Organization"),
-              icon: "fa-regular fa-user",
-            },
-            {
               id: "playerScreen",
               label: t("nav.playerScreen", "Player Screen"),
               icon: "fa-solid fa-mobile-screen",
+            },
+            {
+              id: "account",
+              label: t("nav.organization", "Organization"),
+              icon: "fa-regular fa-user",
             },
           ].map((item) => {
             const isActive = activeTab === item.id;
@@ -703,6 +714,7 @@ export default function App() {
                     leads={leads}
                     onBack={() => setSelectedCampaignId(null)}
                     onEditCampaign={handleEditCampaignTrigger}
+                    onCustomizePlayerScreen={handleOpenPlayerScreenEditor}
                     onRelaunch={handleRelaunchTrigger}
                     onToggleStatus={handleToggleCampaignStatus}
                     onOpenAnalytics={handleOpenAnalyticsDesk}
@@ -712,6 +724,7 @@ export default function App() {
                     campaigns={campaigns}
                     onSelectCampaign={handleCampaignFocus}
                     onEditCampaign={handleEditCampaignTrigger}
+                    onCustomizePlayerScreen={handleOpenPlayerScreenEditor}
                     onRelaunch={handleRelaunchTrigger}
                     onToggleStatus={handleToggleCampaignStatus}
                     onArchive={handleArchiveCampaign}
@@ -733,6 +746,7 @@ export default function App() {
                 <CampaignWizard
                   prizes={prizes}
                   onSave={handleSaveCampaign}
+                  onOpenPlayerScreenEditor={handleOpenPlayerScreenEditor}
                   onCancel={() => {
                     setEditingCampaign(null);
                     setRelaunchDraftCampaign(null);
@@ -809,23 +823,37 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100]"
           >
-            <PlayerEditorShell
+            <PlayerUIMaker
               campaigns={campaigns}
               selectedCampaignId={sandboxCampaignId}
               onSelectCampaign={setSandboxCampaignId}
-              onClose={() => setActiveTab("home")}
-              onSave={async (campaignId, config, logicConfig) => {
+              onClose={() => setActiveTab("campaigns")}
+              onSave={async (campaignId, project) => {
                 try {
-                  const c = campaigns.find((x) => x.id === campaignId);
-                  if (!c) return;
-                  await handleSaveCampaign({
-                    ...c,
-                    playerScreenConfig: config,
-                    gameLogicConfig: logicConfig,
-                    mode: "update",
-                  });
+                  const currentCamp = campaigns.find(
+                    (x) => x.id === campaignId,
+                  );
+                  const updatedConfig = {
+                    ...(currentCamp?.playerScreenConfig || {}),
+                    uiProject: project,
+                  };
+                  await updateCampaignPlayerScreenService(
+                    campaignId,
+                    updatedConfig,
+                  );
+                  await refetchCampaigns();
                 } catch (err: any) {
-                  console.error(err);
+                  console.error(
+                    "Failed to save campaign UI project to Supabase:",
+                    err,
+                  );
+                  setActionError(
+                    toFriendlyErrorMessage(
+                      err,
+                      "Failed to save player screen configuration to Supabase.",
+                    ),
+                  );
+                  throw err;
                 }
               }}
             />

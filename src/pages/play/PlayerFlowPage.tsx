@@ -83,6 +83,7 @@ interface DbCampaignRow {
   require_quiz: boolean;
   game_type: string;
   game_logic_config: any;
+  player_screen_config?: any;
   prizes: Array<{
     id: string;
     name: string;
@@ -174,7 +175,7 @@ export default function PlayerFlowPage() {
     const { data, error } = await supabase
       .from("campaigns")
       .select(
-        "id, name, arabic_name, hero_image_url, status, require_quiz, game_type, game_logic_config, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
+        "id, name, arabic_name, hero_image_url, status, require_quiz, game_type, game_logic_config, player_screen_config, prizes(id, name, is_active, win_message, quantity, quantity_won, prize_template_id), quiz_questions(id, question, options, correct_option_index, position, is_active)",
       )
       .eq("slug", slug)
       .single();

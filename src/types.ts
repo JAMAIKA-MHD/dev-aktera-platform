@@ -154,21 +154,25 @@ export interface FormFieldConfig {
 }
 
 export interface PlayerScreenConfig {
-  theme: {
+  uiProject?: any;
+  theme?: {
     logoUrl?: string;
     faviconUrl?: string;
     showBrandWatermark: boolean;
     primaryColor: string;
     secondaryColor: string;
     accentColor: string;
-    background: { type: "solid" | "gradient" | "image"; value: string };
+    background: {
+      type: "solid" | "gradient" | "image" | "mesh" | "dots" | "brandImage";
+      value: string;
+    };
     fontFamily: string;
     customFontUrl?: string;
     borderRadius: "sharp" | "rounded" | "pill";
-    modalShadow: boolean;
+    modalShadow?: boolean;
     mode: "light" | "dark";
   };
-  gameAssets: {
+  gameAssets?: {
     wheel?: {
       slices: { color: string; label: string; icon?: string }[];
       centerPinImageUrl?: string;
@@ -189,7 +193,7 @@ export interface PlayerScreenConfig {
       muted: boolean;
     };
   };
-  content: {
+  content?: {
     preGame: {
       title: string;
       subHeader: string;

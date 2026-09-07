@@ -21,6 +21,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
+import { createProjectForGameType } from "./player-ui-maker/store/defaultProjects";
 
 interface CampaignWizardProps {
   prizes: PrizeTemplate[];
@@ -28,9 +29,11 @@ interface CampaignWizardProps {
     newCampaign: Omit<Campaign, "participantsCount" | "rewardsClaimed"> & {
       mode?: "create" | "edit" | "relaunch" | "update";
       submitStatus?: "draft" | "active";
+      playerScreenConfig?: any;
     },
   ) => Promise<void> | void;
   onCancel: () => void;
+  onOpenPlayerScreenEditor?: (campaignData: any) => void;
   relaunchDraft?: Campaign | null;
   editingCampaign?: Campaign | null;
 }
@@ -39,6 +42,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   prizes,
   onSave,
   onCancel,
+  onOpenPlayerScreenEditor,
   relaunchDraft,
   editingCampaign,
 }) => {
@@ -254,6 +258,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
 
     setIsSubmitting(true);
     try {
+      const resolvedPlayerScreenConfig = baseCampaign?.playerScreenConfig ?? {
+        uiProject: createProjectForGameType(type, name || "My Game Campaign"),
+      };
+
       await onSave({
         id: editingCampaign?.id ?? "",
         name,
@@ -270,6 +278,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         questions: type === "quiz" ? quizQuestions : [],
         startDate,
         endDate,
+        playerScreenConfig: resolvedPlayerScreenConfig,
         mode: isEditMode ? "edit" : isRelaunchMode ? "relaunch" : "create",
         submitStatus,
       });
@@ -1507,6 +1516,68 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Game Screen UI Preview & Customization Shortcut */}
+            <div
+              className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 ${
+                isDark
+                  ? "bg-[#0e1422] border-slate-800 text-white"
+                  : "bg-slate-50 border-slate-200 text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-md shrink-0 border ${
+                    type === "lucky_wheel"
+                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                      : type === "scratch_card"
+                        ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
+                        : type === "mystery_box"
+                          ? "bg-blue-500/20 border-blue-500/40 text-blue-400"
+                          : type === "hit_it"
+                            ? "bg-rose-500/20 border-rose-500/40 text-rose-400"
+                            : "bg-purple-500/20 border-purple-500/40 text-purple-400"
+                  }`}
+                >
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black flex items-center gap-2">
+                    <span>Player UI Experience Design</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase font-mono">
+                      {type.replace("_", " ")}
+                    </span>
+                  </h4>
+                  <p className="text-xs text-brand-textMuted mt-0.5">
+                    A tailored 4-screen layout (Pregame, Gameplay, Win, Lose)
+                    with dynamic slot locking is configured.
+                  </p>
+                </div>
+              </div>
+
+              {onOpenPlayerScreenEditor && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenPlayerScreenEditor({
+                      id: editingCampaign?.id || "",
+                      name,
+                      gameType: type,
+                      playerScreenConfig: baseCampaign?.playerScreenConfig ?? {
+                        uiProject: createProjectForGameType(
+                          type,
+                          name || "My Game Campaign",
+                        ),
+                      },
+                    })
+                  }
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-2 shadow-md shadow-indigo-600/20 whitespace-nowrap cursor-pointer transition-all hover:scale-102"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Customize in UI Editor</span>
+                </button>
+              )}
             </div>
 
             <div className="bg-emerald-500/15 border border-emerald-500/30 p-4 rounded-2xl flex items-start gap-3">
