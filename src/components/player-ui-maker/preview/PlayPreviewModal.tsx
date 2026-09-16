@@ -21,7 +21,10 @@ export const PlayPreviewModal: React.FC<PlayPreviewModalProps> = ({
   const [activeEvent, setActiveEvent] = useState<string | null>(null);
 
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
-  const [previewDims, setPreviewDims] = useState({ width: 360, height: 720 });
+  const [previewDims, setPreviewDims] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   const deviceType: DeviceFrameType =
     canvasResolution.id === "tablet-4-3"
@@ -31,11 +34,15 @@ export const PlayPreviewModal: React.FC<PlayPreviewModalProps> = ({
         : "mobile";
 
   React.useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setPreviewDims(null);
+      return;
+    }
 
     const updateDims = () => {
       if (!previewContainerRef.current) return;
       const { clientWidth, clientHeight } = previewContainerRef.current;
+      if (clientWidth === 0 || clientHeight === 0) return;
 
       const bezelW =
         deviceType === "mobile" ? 24 : deviceType === "tablet" ? 36 : 20;
@@ -74,11 +81,13 @@ export const PlayPreviewModal: React.FC<PlayPreviewModalProps> = ({
       });
     };
 
-    updateDims();
+    // Defer first measurement to after the browser has fully laid out the modal
+    const rafId = requestAnimationFrame(updateDims);
     const obs = new ResizeObserver(updateDims);
     if (previewContainerRef.current) obs.observe(previewContainerRef.current);
     window.addEventListener("resize", updateDims);
     return () => {
+      cancelAnimationFrame(rafId);
       obs.disconnect();
       window.removeEventListener("resize", updateDims);
     };
@@ -228,20 +237,28 @@ export const PlayPreviewModal: React.FC<PlayPreviewModalProps> = ({
           backgroundSize: "20px 20px",
         }}
       >
-        <DeviceFrame
-          deviceType={deviceType}
-          width={previewDims.width}
-          height={previewDims.height}
-          campaignSlug={project.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}
-        >
-          <PlayerUIRuntime
-            project={project}
-            activeScreen={previewScreen}
-            data={liveData}
-            onAction={handleAction}
-            activeEvent={activeEvent}
-          />
-        </DeviceFrame>
+        {!previewDims && (
+          <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
+            <div className="w-8 h-8 border-2 border-slate-300 border-t-[#2F6FED] rounded-full animate-spin" />
+            <span className="text-xs font-medium">Loading preview…</span>
+          </div>
+        )}
+        {previewDims && (
+          <DeviceFrame
+            deviceType={deviceType}
+            width={previewDims.width}
+            height={previewDims.height}
+            campaignSlug={project.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}
+          >
+            <PlayerUIRuntime
+              project={project}
+              activeScreen={previewScreen}
+              data={liveData}
+              onAction={handleAction}
+              activeEvent={activeEvent}
+            />
+          </DeviceFrame>
+        )}
       </div>
     </div>
   );
