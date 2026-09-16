@@ -5,6 +5,7 @@ import { UIElement, AnimationConfig } from "../types";
 import { resolveAnimationVariant } from "./animations";
 import { fireWinConfetti } from "../utils/confettiUtils";
 import { SOFT_UI_THEME } from "../theme/tokens";
+import { SpinWheel } from "../../player-editor/engines/AkteraSpinWheel";
 
 interface RenderedElementProps {
   element: UIElement;
@@ -244,175 +245,16 @@ export const RenderedElement: React.FC<RenderedElementProps> = ({
           element.slotId === "wheelContainer" ||
           element.slotId === "wheelHub"
         ) {
-          const slices = [
-            {
-              name: "500 DA Voucher",
-              icon: "fa-solid fa-gift",
-              color: "#2F6FED",
-              textColor: "#FFFFFF",
-            },
-            {
-              name: "Free Delivery",
-              icon: "fa-solid fa-truck",
-              color: "#FFFFFF",
-              textColor: "#2D3748",
-            },
-            {
-              name: "1000 DA Coupon",
-              icon: "fa-solid fa-money-bill-wave",
-              color: "#EBF2FE",
-              textColor: "#2F6FED",
-            },
-            {
-              name: "Special Reward",
-              icon: "fa-solid fa-box-open",
-              color: "#F1F4F9",
-              textColor: "#2D3748",
-            },
-            {
-              name: "Mystery Gift",
-              icon: "fa-solid fa-ticket",
-              color: "#2F6FED",
-              textColor: "#FFFFFF",
-            },
-            {
-              name: "20% Discount",
-              icon: "fa-solid fa-tag",
-              color: "#FFFFFF",
-              textColor: "#2D3748",
-            },
-            {
-              name: "Bonus Points",
-              icon: "fa-solid fa-star",
-              color: "#EBF2FE",
-              textColor: "#2F6FED",
-            },
-            {
-              name: "Try Again",
-              icon: "fa-solid fa-rotate-right",
-              color: "#F1F4F9",
-              textColor: "#64748B",
-            },
-          ];
-
           return (
-            <div className="w-full h-full relative flex items-center justify-center select-none overflow-visible">
-              {/* Outer Wheel Rim with Soft Neumorphic Bezel */}
-              <div
-                className="relative w-full h-full max-w-[340px] max-h-[340px] aspect-square rounded-full flex items-center justify-center p-2"
-                style={{
-                  backgroundColor: SOFT_UI_THEME.colors.card,
-                  border: `4px solid ${SOFT_UI_THEME.colors.borderLight}`,
-                  boxShadow: SOFT_UI_THEME.shadows.extruded,
+            <div className="w-full h-full flex items-center justify-center overflow-visible">
+              <SpinWheel
+                className="w-full h-full"
+                onSpinComplete={(result) => {
+                  if (mode !== "editor") {
+                    onAction?.(result.isWin ? "win" : "lose", result);
+                  }
                 }}
-              >
-                <svg
-                  viewBox="0 0 400 400"
-                  className="w-full h-full rounded-full overflow-hidden shadow-inner"
-                >
-                  {slices.map((slice, idx) => {
-                    const total = slices.length;
-                    const angle = 360 / total;
-                    const startAngle = idx * angle;
-                    const endAngle = (idx + 1) * angle;
-                    const radStart = (startAngle - 90) * (Math.PI / 180);
-                    const radEnd = (endAngle - 90) * (Math.PI / 180);
-                    const x1 = 200 + 190 * Math.cos(radStart);
-                    const y1 = 200 + 190 * Math.sin(radStart);
-                    const x2 = 200 + 190 * Math.cos(radEnd);
-                    const y2 = 200 + 190 * Math.sin(radEnd);
-                    const path = `M 200 200 L ${x1} ${y1} A 190 190 0 0 1 ${x2} ${y2} Z`;
-
-                    const midAngle = idx * angle + angle / 2 - 90;
-                    const rad = midAngle * (Math.PI / 180);
-                    const tx = 200 + 115 * Math.cos(rad);
-                    const ty = 200 + 115 * Math.sin(rad);
-
-                    return (
-                      <g key={idx}>
-                        <path
-                          d={path}
-                          fill={slice.color}
-                          stroke={SOFT_UI_THEME.colors.border}
-                          strokeWidth="1.5"
-                        />
-                        <g
-                          transform={`translate(${tx}, ${ty}) rotate(${midAngle + 90})`}
-                        >
-                          <text
-                            textAnchor="middle"
-                            fill={slice.textColor}
-                            fontSize="11"
-                            fontWeight="700"
-                            fontFamily="Inter, system-ui"
-                          >
-                            {slice.name}
-                          </text>
-                        </g>
-                      </g>
-                    );
-                  })}
-                  {/* Central Hub Cover */}
-                  <circle
-                    cx="200"
-                    cy="200"
-                    r="32"
-                    fill={SOFT_UI_THEME.colors.card}
-                    stroke={SOFT_UI_THEME.colors.border}
-                    strokeWidth="3"
-                  />
-                  <circle
-                    cx="200"
-                    cy="200"
-                    r="18"
-                    fill={SOFT_UI_THEME.colors.accent}
-                  />
-                  <circle
-                    cx="200"
-                    cy="200"
-                    r="6"
-                    fill="#FFFFFF"
-                    opacity="0.8"
-                  />
-                </svg>
-
-                {/* 12 LED Lights along Bezel */}
-                {[...Array(12)].map((_, i) => {
-                  const angle = (i * 360) / 12 - 90;
-                  const rad = angle * (Math.PI / 180);
-                  const radius = 48;
-                  const lx = 50 + radius * Math.cos(rad);
-                  const ly = 50 + radius * Math.sin(rad);
-                  return (
-                    <div
-                      key={i}
-                      className="absolute w-2.5 h-2.5 rounded-full border border-slate-200"
-                      style={{
-                        left: `${lx}%`,
-                        top: `${ly}%`,
-                        transform: "translate(-50%, -50%)",
-                        backgroundColor:
-                          i % 2 === 0 ? SOFT_UI_THEME.colors.accent : "#FFFFFF",
-                        boxShadow:
-                          i % 2 === 0
-                            ? `0 0 6px ${SOFT_UI_THEME.colors.accentGlow}`
-                            : "0 1px 3px rgba(0,0,0,0.1)",
-                      }}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Top Pointer Needle */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20 pointer-events-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.15)]">
-                <svg width="26" height="34" viewBox="0 0 28 38" fill="none">
-                  <path
-                    d="M14 38L0 12C0 12 4.5 0 14 0C23.5 0 28 12 28 12L14 38Z"
-                    fill={SOFT_UI_THEME.colors.accent}
-                  />
-                  <circle cx="14" cy="10" r="4" fill="#FFFFFF" />
-                </svg>
-              </div>
+              />
             </div>
           );
         }
