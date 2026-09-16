@@ -420,25 +420,7 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
                   </g>
                 );
               })}
-
-              <circle cx="0" cy="0" r="28" fill="#FFFFFF" opacity="0.96" />
-              <circle cx="0" cy="0" r="18" fill={primaryColor} />
-              <circle cx="0" cy="0" r="6" fill="#FFFFFF" opacity="0.9" />
             </svg>
-
-            <button
-              type="button"
-              onClick={startSpin}
-              disabled={isSpinning}
-              className="absolute left-1/2 top-1/2 z-20 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-slate-800 bg-white text-xs font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed sm:h-18 sm:w-18"
-            >
-              <span className="text-[11px] font-black uppercase leading-tight tracking-widest text-slate-900">
-                {isSpinning ? "SPINNING" : "SPIN"}
-              </span>
-              <span className="text-[8px] font-bold uppercase tracking-wider text-violet-600">
-                {logoText}
-              </span>
-            </button>
           </div>
         </div>
       </div>
