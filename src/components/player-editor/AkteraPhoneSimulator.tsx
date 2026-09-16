@@ -17,6 +17,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { AkteraWheelEngine } from "./engines/AkteraWheelEngine";
+import {
+  SpinWheel,
+  WheelLanguage,
+  presetPrizesToWheelSlices,
+} from "./engines/AkteraSpinWheel";
 import { AkteraQuizEngine } from "./engines/AkteraQuizEngine";
 import { AkteraScratchEngine } from "./engines/AkteraScratchEngine";
 import { AkteraMysteryBoxEngine } from "./engines/AkteraMysteryBoxEngine";
@@ -356,11 +361,23 @@ export const AkteraPhoneSimulator: React.FC<AkteraPhoneSimulatorProps> = ({
                   {activeScreen === 2 && (
                     <>
                       {mechanic === "wheel" && (
-                        <AkteraWheelEngine
-                          preset={preset}
-                          lang={lang}
-                          isLight={isLight}
-                          onWin={handleGameWin}
+                        <SpinWheel
+                          prizes={presetPrizesToWheelSlices(preset.prizes)}
+                          language={lang as WheelLanguage}
+                          primaryColor={preset.primaryColor}
+                          secondaryColor={preset.secondaryColor}
+                          logoText={preset.name}
+                          onSpinComplete={(result) => {
+                            if (result.isWin) {
+                              handleGameWin(
+                                result.rewardLabel,
+                                result.prize.value || "",
+                              );
+                            } else {
+                              handleGameLose();
+                            }
+                          }}
+                          className="w-full"
                         />
                       )}
                       {mechanic === "quiz" && (
