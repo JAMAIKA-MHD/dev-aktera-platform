@@ -348,6 +348,20 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
               role="img"
               aria-label="Lucky wheel"
             >
+              <defs>
+                {wheelPrizes.map((_, index) => {
+                  const sa = (index * sliceAngle * Math.PI) / 180;
+                  const ea = ((index + 1) * sliceAngle * Math.PI) / 180;
+                  const laf = sliceAngle > 180 ? 1 : 0;
+                  return (
+                    <clipPath key={index} id={`sc-${index}`}>
+                      <path
+                        d={`M 0 0 L ${(Math.cos(sa) * 136).toFixed(2)} ${(Math.sin(sa) * 136).toFixed(2)} A 136 136 0 ${laf} 1 ${(Math.cos(ea) * 136).toFixed(2)} ${(Math.sin(ea) * 136).toFixed(2)} Z`}
+                      />
+                    </clipPath>
+                  );
+                })}
+              </defs>
               {wheelPrizes.map((prize, index) => {
                 const startAngle = (index * sliceAngle * Math.PI) / 180;
                 const endAngle = ((index + 1) * sliceAngle * Math.PI) / 180;
@@ -366,9 +380,6 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
                       : "#334155");
 
                 const midAngle = (index + 0.5) * sliceAngle;
-                const textRad = (midAngle * Math.PI) / 180;
-                const textX = Math.cos(textRad) * 85;
-                const textY = Math.sin(textRad) * 85;
                 const label = resolvePrizeLabel(prize, language);
 
                 return (
@@ -381,27 +392,30 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
                       strokeOpacity="0.45"
                     />
                     <g
-                      transform={`translate(${textX}, ${textY}) rotate(${midAngle + 90})`}
+                      clipPath={`url(#sc-${index})`}
                       className="pointer-events-none select-none"
                     >
-                      <text
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        direction="auto"
-                        unicodeBidi="plaintext"
-                        fill="#FFFFFF"
-                        fontSize="11"
-                        fontWeight="800"
-                        fontFamily={
-                          language === "ar"
-                            ? "Poppins, Noto Sans Arabic, sans-serif"
-                            : "Poppins, sans-serif"
-                        }
-                        style={{ textShadow: "0 1px 3px rgba(0,0,0,0.75)" }}
-                      >
-                        {prize.icon ? `${prize.icon} ` : ""}
-                        {label}
-                      </text>
+                      <g transform={`rotate(${midAngle})`}>
+                        <text
+                          x={75}
+                          y={0}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          direction="auto"
+                          unicodeBidi="plaintext"
+                          fill="#FFFFFF"
+                          fontSize="10"
+                          fontWeight="800"
+                          fontFamily={
+                            language === "ar"
+                              ? "Poppins, Noto Sans Arabic, sans-serif"
+                              : "Poppins, sans-serif"
+                          }
+                        >
+                          {prize.icon ? `${prize.icon} ` : ""}
+                          {label}
+                        </text>
+                      </g>
                     </g>
                   </g>
                 );
