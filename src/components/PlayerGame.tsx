@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrandPreset, Prize } from '../types';
-import { Sparkles, Play, Volume2, HelpCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useRef } from "react";
+import { BrandPreset, Prize } from "../types";
+import { Sparkles, Play, Volume2, HelpCircle } from "lucide-react";
+import { motion } from "motion/react";
 
 interface PlayerGameProps {
   activeBrand: BrandPreset;
-  forcedOutcome: 'win' | 'lose' | 'random';
+  forcedOutcome: "win" | "lose" | "random";
   onGameComplete: (wonPrize: Prize) => void;
   playerName: string;
   /** Real player flow: server-determined prize (bypasses forcedOutcome random selection) */
@@ -35,6 +35,13 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
     return () => clearInterval(flashInterval);
   }, []);
 
+  // Fluid wheel diameter: never exceeds 82% of the available width or 62% of
+  // the available height (whichever is tighter), capped at 340px so it stays
+  // a deliberate phone-sized wheel on wide desktop mockups. Pure CSS — no JS
+  // measurement needed, and LED/pointer placement below uses % so they scale
+  // with whatever size this resolves to, instead of hardcoded pixels.
+  const WHEEL_SIZE_CSS = "min(82%, 62vh, 340px)";
+
   // Helper to generate the SVG path for a circular pie slice
   const getSlicePath = (index: number, total: number, radius: number = 180) => {
     const angle = 360 / total;
@@ -56,20 +63,25 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
   const playTickSound = (frequency: number = 440, duration: number = 0.05) => {
     try {
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
       }
       const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') {
+      if (ctx.state === "suspended") {
         ctx.resume();
       }
       const osc = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
-      osc.type = 'triangle';
+      osc.type = "triangle";
       osc.frequency.setValueAtTime(frequency, ctx.currentTime);
-      
+
       gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        ctx.currentTime + duration,
+      );
 
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
@@ -96,11 +108,11 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
     } else {
       // Sandbox mode — random selection based on forcedOutcome
       let eligibleIndices: number[] = [];
-      if (forcedOutcome === 'win') {
+      if (forcedOutcome === "win") {
         eligibleIndices = activeBrand.prizes
           .map((p, idx) => (p.isWin ? idx : -1))
           .filter((idx) => idx !== -1);
-      } else if (forcedOutcome === 'lose') {
+      } else if (forcedOutcome === "lose") {
         eligibleIndices = activeBrand.prizes
           .map((p, idx) => (!p.isWin ? idx : -1))
           .filter((idx) => idx !== -1);
@@ -108,13 +120,16 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
       if (eligibleIndices.length === 0) {
         eligibleIndices = activeBrand.prizes.map((_, idx) => idx);
       }
-      const randomIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
+      const randomIdx =
+        eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
       resolvedPrize = activeBrand.prizes[randomIdx];
     }
 
     // Find the index of resolvedPrize in wheel slices (match by id, then by name)
     const targetIdx = activeBrand.prizes.findIndex(
-      (p) => (resolvedPrize.id && p.id === resolvedPrize.id) || p.name === resolvedPrize.name,
+      (p) =>
+        (resolvedPrize.id && p.id === resolvedPrize.id) ||
+        p.name === resolvedPrize.name,
     );
     const safeIdx = targetIdx >= 0 ? targetIdx : 0;
 
@@ -147,12 +162,20 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
   };
 
   return (
-    <div id="player-game-container" className="flex-1 flex flex-col px-6 py-6 justify-between h-full bg-[#0F0F1A] text-zinc-100 select-none">
+    <div
+      id="player-game-container"
+      className="flex-1 flex flex-col px-6 py-6 justify-between h-full bg-[#0F0F1A] text-zinc-100 select-none"
+    >
       {/* Player greeting banner */}
       <div id="game-greeting-header" className="text-center pt-1">
-        <p className="text-[10px] font-bold tracking-widest text-zinc-500 font-mono uppercase">Active Player</p>
-        <h3 className="text-sm font-bold text-zinc-200 truncate mt-0.5" style={{ color: activeBrand.primaryColor }}>
-          👋 Saha {playerName || 'Player'}
+        <p className="text-[10px] font-bold tracking-widest text-zinc-500 font-mono uppercase">
+          Active Player
+        </p>
+        <h3
+          className="text-sm font-bold text-zinc-200 truncate mt-0.5"
+          style={{ color: activeBrand.primaryColor }}
+        >
+          👋 Saha {playerName || "Player"}
         </h3>
         <p dir="auto" className="text-[11px] text-zinc-400 font-sans mt-0.5">
           بصحتك المشاركة! اضغط على الزر لتجرب حظك
@@ -160,117 +183,168 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
       </div>
 
       {/* CUSTOM DESIGN LUCKY WHEEL VIEWPORT */}
-      <div id="wheel-viewport" className="flex-1 flex items-center justify-center py-4 relative overflow-hidden">
-        {/* Neon decorative background grid glow */}
-        <div 
-          className="absolute w-72 h-72 rounded-full filter blur-[100px] opacity-20 transition-all duration-700"
-          style={{ backgroundColor: activeBrand.primaryColor }}
+      <div
+        id="wheel-viewport"
+        className="flex-1 flex items-center justify-center py-4 relative overflow-visible"
+      >
+        {/* Neon decorative background grid glow — sized and centered with the wheel */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full filter blur-[100px] opacity-20 transition-all duration-700"
+          style={{
+            backgroundColor: activeBrand.primaryColor,
+            width: WHEEL_SIZE_CSS,
+            height: WHEEL_SIZE_CSS,
+          }}
         />
 
-        {/* The Outer Wheel Rim wrapper with flashing LEDs */}
-        <div 
-          id="wheel-rim-wrapper"
-          className="relative w-76 h-76 md:w-80 md:h-80 rounded-full bg-zinc-950 border-[6px] border-[#1A1A2A] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex items-center justify-center p-2"
-          style={{ boxShadow: `0 0 35px ${activeBrand.primaryColor}20` }}
+        {/* Wheel stage: fluid square that bounds the rim + pointer together,
+            so both scale as one unit and never overflow the viewport. */}
+        <div
+          id="wheel-stage"
+          className="relative"
+          style={{ width: WHEEL_SIZE_CSS, aspectRatio: "1 / 1" }}
         >
-          {/* Slices container rotated dynamically */}
-          <div 
-            id="wheel-slices-container"
-            className="w-full h-full rounded-full overflow-hidden relative"
-            style={{ 
-              transform: `rotate(${wheelRotation}deg)`,
-              transition: isSpinning ? 'transform 4200ms cubic-bezier(0.12, 0.85, 0.15, 1)' : 'none'
-            }}
+          {/* The Outer Wheel Rim wrapper with flashing LEDs */}
+          <div
+            id="wheel-rim-wrapper"
+            className="relative w-full h-full rounded-full bg-zinc-950 border-[6px] border-[#1A1A2A] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex items-center justify-center p-2"
+            style={{ boxShadow: `0 0 35px ${activeBrand.primaryColor}20` }}
           >
-            <svg viewBox="0 0 400 400" className="w-full h-full">
-              {/* Slices of the wheel */}
-              {activeBrand.prizes.map((prize, idx) => {
-                const total = activeBrand.prizes.length;
-                const path = getSlicePath(idx, total);
-                const angle = 360 / total;
-                const midAngle = idx * angle + angle / 2 - 90;
-                
-                // Position text labels at center of slice
-                const labelRadius = 110;
-                const rad = midAngle * (Math.PI / 180);
-                const tx = 200 + labelRadius * Math.cos(rad);
-                const ty = 200 + labelRadius * Math.sin(rad);
+            {/* Slices container rotated dynamically */}
+            <div
+              id="wheel-slices-container"
+              className="w-full h-full rounded-full overflow-hidden relative"
+              style={{
+                transform: `rotate(${wheelRotation}deg)`,
+                transition: isSpinning
+                  ? "transform 4200ms cubic-bezier(0.12, 0.85, 0.15, 1)"
+                  : "none",
+              }}
+            >
+              <svg viewBox="0 0 400 400" className="w-full h-full">
+                {/* Slices of the wheel */}
+                {activeBrand.prizes.map((prize, idx) => {
+                  const total = activeBrand.prizes.length;
+                  const path = getSlicePath(idx, total);
+                  const angle = 360 / total;
+                  const midAngle = idx * angle + angle / 2 - 90;
 
-                return (
-                  <g key={idx}>
-                    {/* SVG Segment Slice */}
-                    <path 
-                      d={path} 
-                      fill={prize.color} 
-                      stroke="#0F0F1A" 
-                      strokeWidth="3.5"
-                    />
-                    {/* Text and Icon grouped inside segment */}
-                    <g transform={`translate(${tx}, ${ty}) rotate(${midAngle + 90})`}>
-                      <text
-                        textAnchor="middle"
-                        fill={prize.textColor}
-                        fontSize="11.5"
-                        fontWeight="700"
-                        fontFamily="Poppins, system-ui"
-                        className="tracking-wide text-center"
+                  // Position text labels at center of slice
+                  const labelRadius = 110;
+                  const rad = midAngle * (Math.PI / 180);
+                  const tx = 200 + labelRadius * Math.cos(rad);
+                  const ty = 200 + labelRadius * Math.sin(rad);
+
+                  return (
+                    <g key={idx}>
+                      {/* SVG Segment Slice */}
+                      <path
+                        d={path}
+                        fill={prize.color}
+                        stroke="#0F0F1A"
+                        strokeWidth="3.5"
+                      />
+                      {/* Text and Icon grouped inside segment */}
+                      <g
+                        transform={`translate(${tx}, ${ty}) rotate(${midAngle + 90})`}
                       >
-                        {/* Cut label if too long for slice */}
-                        {prize.name.length > 15 ? `${prize.name.substring(0, 13)}...` : prize.name}
-                      </text>
-                      {prize.icon && (
                         <text
-                          y="18"
                           textAnchor="middle"
-                          fontSize="13"
+                          fill={prize.textColor}
+                          fontSize="11.5"
+                          fontWeight="700"
+                          fontFamily="Poppins, system-ui"
+                          className="tracking-wide text-center"
                         >
-                          {prize.icon}
+                          {/* Cut label if too long for slice */}
+                          {prize.name.length > 15
+                            ? `${prize.name.substring(0, 13)}...`
+                            : prize.name}
                         </text>
-                      )}
+                        {prize.icon && (
+                          <text y="18" textAnchor="middle" fontSize="13">
+                            {prize.icon}
+                          </text>
+                        )}
+                      </g>
                     </g>
-                  </g>
-                );
-              })}
+                  );
+                })}
 
-              {/* Central Premium Hub Cover */}
-              <circle cx="200" cy="200" r="32" fill="#0A0A10" stroke="#1F1F2F" strokeWidth="4" />
-              <circle cx="200" cy="200" r="18" fill={activeBrand.primaryColor} />
-              <circle cx="200" cy="200" r="6" fill="#FFFFFF" opacity="0.3" />
-            </svg>
+                {/* Central Premium Hub Cover */}
+                <circle
+                  cx="200"
+                  cy="200"
+                  r="32"
+                  fill="#0A0A10"
+                  stroke="#1F1F2F"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="200"
+                  cy="200"
+                  r="18"
+                  fill={activeBrand.primaryColor}
+                />
+                <circle cx="200" cy="200" r="6" fill="#FFFFFF" opacity="0.3" />
+              </svg>
+            </div>
+
+            {/* FLOCK OF 12 CIRCULAR LED LIGHTS ON BEZEL — placed with %
+                trig so they stay on the rim at any resolved wheel size */}
+            {[...Array(12)].map((_, i) => {
+              const angle = (i * 360) / 12 - 90;
+              const rad = angle * (Math.PI / 180);
+              const radiusPercent = 44; // percentage points out from center, toward the inner rim
+              const leftPercent = 50 + radiusPercent * Math.cos(rad);
+              const topPercent = 50 + radiusPercent * Math.sin(rad);
+              const isLit = ledFlash ? i % 2 === 0 : i % 2 !== 0;
+
+              return (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full border border-black/10 transition-colors duration-200"
+                  style={{
+                    left: `${leftPercent}%`,
+                    top: `${topPercent}%`,
+                    transform: "translate(-50%, -50%)",
+                    backgroundColor: isLit
+                      ? activeBrand.secondaryColor
+                      : "#1F1F2F",
+                    boxShadow: isLit
+                      ? `0 0 8px ${activeBrand.secondaryColor}`
+                      : "none",
+                  }}
+                />
+              );
+            })}
           </div>
 
-          {/* FLOCK OF 12 CIRCULAR LED LIGHTS ON BEZEL */}
-          {[...Array(12)].map((_, i) => {
-            const angle = (i * 360) / 12 - 90;
-            const rad = angle * (Math.PI / 180);
-            const radius = 143; // Placed on rim bezel
-            const lx = 145 + radius * Math.cos(rad);
-            const ly = 145 + radius * Math.sin(rad);
-            const isLit = ledFlash ? (i % 2 === 0) : (i % 2 !== 0);
-
-            return (
-              <div 
-                key={i}
-                className="absolute w-2 h-2 rounded-full border border-black/10 transition-colors duration-200"
-                style={{
-                  left: `${lx + 6}px`,
-                  top: `${ly + 6}px`,
-                  backgroundColor: isLit ? activeBrand.secondaryColor : '#1F1F2F',
-                  boxShadow: isLit ? `0 0 8px ${activeBrand.secondaryColor}` : 'none'
-                }}
+          {/* Physical Top Pointer / Needle Indicator — anchored to the
+              wheel-stage edge (%), so it rides along with the rim's size */}
+          <div
+            id="wheel-pointer"
+            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
+          >
+            <svg
+              width="28"
+              height="38"
+              viewBox="0 0 28 38"
+              fill="none"
+              className="filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]"
+            >
+              {/* The pointer pin and body */}
+              <path
+                d="M14 38L0 12C0 12 4.5 0 14 0C23.5 0 28 12 28 12L14 38Z"
+                fill="#FBBF24"
               />
-            );
-          })}
-        </div>
-
-        {/* Physical Top Pointer / Needle Indicator (Pointer) */}
-        <div id="wheel-pointer" className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[158px] z-30">
-          <svg width="28" height="38" viewBox="0 0 28 38" fill="none" className="filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]">
-            {/* The pointer pin and body */}
-            <path d="M14 38L0 12C0 12 4.5 0 14 0C23.5 0 28 12 28 12L14 38Z" fill="#FBBF24" />
-            <path d="M14 26L5 10C5 10 7.5 3 14 3C20.5 3 23 10 23 10L14 26Z" fill="#F59E0B" />
-            <circle cx="14" cy="10" r="4" fill="#0A0A10" />
-          </svg>
+              <path
+                d="M14 26L5 10C5 10 7.5 3 14 3C20.5 3 23 10 23 10L14 26Z"
+                fill="#F59E0B"
+              />
+              <circle cx="14" cy="10" r="4" fill="#0A0A10" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -292,14 +366,18 @@ export const PlayerGame: React.FC<PlayerGameProps> = ({
           disabled={isSpinning}
           onClick={handleSpinClick}
           className={`w-full min-h-[52px] py-3.5 rounded-2xl text-sm font-extrabold tracking-wider flex items-center justify-center gap-2 text-white shadow-lg cursor-pointer transition-all duration-300 ${
-            isSpinning 
-              ? 'bg-[#1F1F2E] border border-[#2D2D3F] cursor-not-allowed opacity-75' 
-              : ''
+            isSpinning
+              ? "bg-[#1F1F2E] border border-[#2D2D3F] cursor-not-allowed opacity-75"
+              : ""
           }`}
-          style={!isSpinning ? { 
-            background: `linear-gradient(135deg, ${activeBrand.gradientFrom}, ${activeBrand.gradientTo})`,
-            boxShadow: `0 10px 25px ${activeBrand.primaryColor}30`
-          } : {}}
+          style={
+            !isSpinning
+              ? {
+                  background: `linear-gradient(135deg, ${activeBrand.gradientFrom}, ${activeBrand.gradientTo})`,
+                  boxShadow: `0 10px 25px ${activeBrand.primaryColor}30`,
+                }
+              : {}
+          }
         >
           {isSpinning ? (
             <>
