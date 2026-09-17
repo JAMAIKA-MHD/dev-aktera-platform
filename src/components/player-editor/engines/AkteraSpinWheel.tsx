@@ -328,10 +328,7 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
           <div className="-mt-2.5 h-2.5 w-2.5 rounded-full bg-violet-400 shadow-inner" />
         </div>
 
-        <div
-          className="relative h-full w-full overflow-visible"
-          style={{ maxWidth: "92%", maxHeight: "92%" }}
-        >
+        <div className="relative h-full w-full overflow-visible">
           <div
             className="relative h-full w-full"
             style={{
@@ -343,7 +340,7 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
           >
             <svg
               className="h-full w-full cursor-pointer overflow-visible"
-              viewBox="-150 -150 300 300"
+              viewBox="-142 -142 284 284"
               onClick={startSpin}
               role="img"
               aria-label="Lucky wheel"

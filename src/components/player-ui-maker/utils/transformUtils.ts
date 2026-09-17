@@ -57,6 +57,36 @@ export interface PixelRect {
 }
 
 /**
+ * Wheel elements must always render as a perfect square (circle-shaped).
+ * Collapses any rectangular bounding box to the smaller of width/height,
+ * keeping it centered on the original rect's center point.
+ */
+export function isWheelElement(element: UIElement): boolean {
+  return (
+    element.binding === "wheel.spinner" ||
+    element.slotId === "wheelContainer" ||
+    element.slotId === "wheelHub"
+  );
+}
+
+export function squareifyWheelRect(
+  element: UIElement,
+  rect: PixelRect,
+): PixelRect {
+  if (!isWheelElement(element)) return rect;
+  const size = Math.min(rect.width, rect.height);
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  return {
+    ...rect,
+    left: centerX - size / 2,
+    top: centerY - size / 2,
+    width: size,
+    height: size,
+  };
+}
+
+/**
  * Computes exact pixel dimensions for an element inside a canvas container.
  * For 'preserve-aspect', uses min(containerWidth, containerHeight) as basis.
  */

@@ -2,7 +2,10 @@ import React, { useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { UIProject, ScreenId, Screen } from "../types";
 import { RenderedElement } from "./RenderedElement";
-import { computeElementPixelRect } from "../utils/transformUtils";
+import {
+  computeElementPixelRect,
+  squareifyWheelRect,
+} from "../utils/transformUtils";
 import { fireWinConfetti } from "../utils/confettiUtils";
 
 export interface PlayerUIRuntimeProps {
@@ -95,10 +98,13 @@ export const PlayerUIRuntime: React.FC<PlayerUIRuntimeProps> = ({
           {screen.elements
             .filter((el) => !el.hidden)
             .map((element) => {
-              const pixelRect = computeElementPixelRect(
-                element.transform,
-                containerSize.width,
-                containerSize.height,
+              const pixelRect = squareifyWheelRect(
+                element,
+                computeElementPixelRect(
+                  element.transform,
+                  containerSize.width,
+                  containerSize.height,
+                ),
               );
 
               return (

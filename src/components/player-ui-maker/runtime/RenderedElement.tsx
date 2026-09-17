@@ -247,14 +247,16 @@ export const RenderedElement: React.FC<RenderedElementProps> = ({
         ) {
           return (
             <div className="w-full h-full flex items-center justify-center overflow-visible">
-              <SpinWheel
-                className="w-full h-full"
-                onSpinComplete={(result) => {
-                  if (mode !== "editor") {
-                    onAction?.(result.isWin ? "win" : "lose", result);
-                  }
-                }}
-              />
+              <div className="aspect-square h-full max-w-full">
+                <SpinWheel
+                  className="w-full h-full"
+                  onSpinComplete={(result) => {
+                    if (mode !== "editor") {
+                      onAction?.(result.isWin ? "win" : "lose", result);
+                    }
+                  }}
+                />
+              </div>
             </div>
           );
         }
@@ -526,6 +528,24 @@ export const RenderedElement: React.FC<RenderedElementProps> = ({
     }
   };
 
+  const isWheelElement =
+    element.binding === "wheel.spinner" ||
+    element.slotId === "wheelContainer" ||
+    element.slotId === "wheelHub";
+
+  const finalStyleProps: React.CSSProperties = isWheelElement
+    ? {
+        ...styleProps,
+        backgroundColor: "transparent",
+        background: "none",
+        border: "none",
+        boxShadow: "none",
+        borderRadius: 0,
+        padding: 0,
+        overflow: "visible",
+      }
+    : styleProps;
+
   // Combine initial, animate, whileHover, etc.
   const motionProps: any = {
     ...mountVariant,
@@ -541,7 +561,7 @@ export const RenderedElement: React.FC<RenderedElementProps> = ({
   return (
     <motion.div
       key={`${element.id}-${eventTriggerCount}`}
-      style={styleProps}
+      style={finalStyleProps}
       onClick={handleClick}
       {...motionProps}
     >

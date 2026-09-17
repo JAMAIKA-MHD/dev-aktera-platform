@@ -8,6 +8,7 @@ import {
   canResize,
   canRotate,
   isFieldLocked,
+  squareifyWheelRect,
 } from "../utils/transformUtils";
 import { useEditorStore } from "../store/useEditorStore";
 import { RenderedElement } from "../runtime/RenderedElement";
@@ -41,12 +42,13 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({
 
   // Compute exact pixel bounding box
   const pixelRect = useMemo(() => {
-    return computeElementPixelRect(
+    const raw = computeElementPixelRect(
       element.transform,
       containerWidth,
       containerHeight,
     );
-  }, [element.transform, containerWidth, containerHeight]);
+    return squareifyWheelRect(element, raw);
+  }, [element, containerWidth, containerHeight]);
 
   // Lock checks
   const isDraggable = canDrag(element);
@@ -159,34 +161,6 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({
       >
         {/* Render element through identical runtime renderer */}
         <RenderedElement element={element} data={mockData} mode="editor" />
-
-        {/* Slot / Lock indicator badge */}
-        {(element.slotId || isFullyLocked || isPosLocked) && (
-          <div
-            className="absolute -top-3.5 left-1 z-30 px-2 py-0.5 rounded-md bg-white border border-[#E2E8F0] text-[9px] font-bold tracking-wider text-[#475569] flex items-center gap-1 shadow-sm pointer-events-none"
-            style={{
-              transform: `scale(${1 / Math.max(0.7, zoom)})`,
-              transformOrigin: "top left",
-            }}
-          >
-            {element.slotId ? (
-              <span className="text-[#2F6FED] flex items-center gap-1 font-bold">
-                <i className="fa-solid fa-bolt text-[8px]" />
-                {element.slotId}
-              </span>
-            ) : isFullyLocked ? (
-              <span className="text-[#EF4444] flex items-center gap-1">
-                <i className="fa-solid fa-lock text-[8px]" />
-                Locked
-              </span>
-            ) : (
-              <span className="text-[#64748B] flex items-center gap-1">
-                <i className="fa-solid fa-thumbtack text-[8px]" />
-                Fixed Pos
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Moveable Gizmo */}

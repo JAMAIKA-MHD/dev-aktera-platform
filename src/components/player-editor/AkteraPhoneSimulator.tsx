@@ -361,24 +361,28 @@ export const AkteraPhoneSimulator: React.FC<AkteraPhoneSimulatorProps> = ({
                   {activeScreen === 2 && (
                     <>
                       {mechanic === "wheel" && (
-                        <SpinWheel
-                          prizes={presetPrizesToWheelSlices(preset.prizes)}
-                          language={lang as WheelLanguage}
-                          primaryColor={preset.primaryColor}
-                          secondaryColor={preset.secondaryColor}
-                          logoText={preset.name}
-                          onSpinComplete={(result) => {
-                            if (result.isWin) {
-                              handleGameWin(
-                                result.rewardLabel,
-                                result.prize.value || "",
-                              );
-                            } else {
-                              handleGameLose();
-                            }
-                          }}
-                          className="w-full"
-                        />
+                        <div className="flex items-center justify-center w-full">
+                          <div className="aspect-square w-full">
+                            <SpinWheel
+                              prizes={presetPrizesToWheelSlices(preset.prizes)}
+                              language={lang as WheelLanguage}
+                              primaryColor={preset.primaryColor}
+                              secondaryColor={preset.secondaryColor}
+                              logoText={preset.name}
+                              onSpinComplete={(result) => {
+                                if (result.isWin) {
+                                  handleGameWin(
+                                    result.rewardLabel,
+                                    result.prize.value || "",
+                                  );
+                                } else {
+                                  handleGameLose();
+                                }
+                              }}
+                              className="w-full h-full"
+                            />
+                          </div>
+                        </div>
                       )}
                       {mechanic === "quiz" && (
                         <AkteraQuizEngine

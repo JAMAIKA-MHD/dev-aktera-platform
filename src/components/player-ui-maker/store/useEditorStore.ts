@@ -138,13 +138,27 @@ export interface EditorState {
 
 const STORAGE_KEY = "player_ui_maker_project_v1";
 
+function migrateProject(project: UIProject): UIProject {
+  // Inject legalFooter into pregame if missing (added 2026-09)
+  const pregame = project.screens?.pregame;
+  if (pregame && !pregame.elements.some((el) => el.slotId === "legalFooter")) {
+    const footer = STARTER_PROJECT.screens.pregame.elements.find(
+      (el) => el.slotId === "legalFooter",
+    );
+    if (footer) {
+      pregame.elements = [...pregame.elements, footer];
+    }
+  }
+  return project;
+}
+
 function getInitialProject(): UIProject {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed?.screens?.pregame && parsed?.screens?.game) {
-        return parsed;
+        return migrateProject(parsed);
       }
     }
   } catch (e) {
