@@ -27,6 +27,36 @@ export function createProjectForGameType(
     value: SOFT_UI_THEME.colors.bg,
   };
 
+  // Shared legal footer, appended to every screen (pregame/game/win/lose).
+  // fontSize uses clamp() so it scales with viewport width instead of a
+  // fixed px value, while its height stays a % of the container (already
+  // responsive via the transform system).
+  const createFooterElement = (id: string): UIElement => ({
+    id,
+    type: "text",
+    name: "Footer / Legal",
+    slotId: "legalFooter",
+    locked: false,
+    lockedFields: ["position", "size", "rotation"],
+    transform: {
+      position: { x: 50, y: 97 },
+      size: { width: 100, height: 4 },
+      rotation: 0,
+      anchor: "center",
+      zIndex: 5,
+      scaleMode: "stretch",
+    },
+    style: {
+      backgroundColor: SOFT_UI_THEME.colors.bgSecondary,
+      color: SOFT_UI_THEME.colors.textMuted,
+      fontSize: "clamp(8px, 2.6vw, 11px)",
+      fontWeight: "500",
+      textAlign: "center",
+    },
+    content: "© 2026 All rights reserved · Powered by OCTOREACH",
+    animations: [],
+  });
+
   // 1. Pregame Screen Elements (Landing & Form)
   const pregameElements: UIElement[] = [
     {
@@ -207,31 +237,7 @@ export function createProjectForGameType(
       binding: "game.start",
       animations: [{ trigger: "onMount", preset: "slideIn", duration: 300 }],
     },
-    {
-      id: "landing-footer",
-      type: "text",
-      name: "Footer / Legal",
-      slotId: "legalFooter",
-      locked: false,
-      lockedFields: ["position", "size", "rotation"],
-      transform: {
-        position: { x: 50, y: 97 },
-        size: { width: 100, height: 4 },
-        rotation: 0,
-        anchor: "center",
-        zIndex: 5,
-        scaleMode: "stretch",
-      },
-      style: {
-        backgroundColor: SOFT_UI_THEME.colors.bgSecondary,
-        color: SOFT_UI_THEME.colors.textMuted,
-        fontSize: "10px",
-        fontWeight: "500",
-        textAlign: "center",
-      },
-      content: "© 2026 All rights reserved · Powered by OCTOREACH",
-      animations: [],
-    },
+    createFooterElement("landing-footer"),
   ];
 
   // 2. Game Screen Elements Builder per Game Mechanic
@@ -557,7 +563,12 @@ export function createProjectForGameType(
       };
     }
 
-    return [...commonTopElements, mechanicElement, actionButton];
+    return [
+      ...commonTopElements,
+      mechanicElement,
+      actionButton,
+      createFooterElement("game-footer"),
+    ];
   };
 
   // 3. Victory Screen Elements
@@ -684,6 +695,7 @@ export function createProjectForGameType(
       binding: "prize.claim",
       animations: [],
     },
+    createFooterElement("win-footer"),
   ];
 
   // 4. Game Over / Loss Screen Elements
@@ -786,6 +798,7 @@ export function createProjectForGameType(
       binding: "retry",
       animations: [],
     },
+    createFooterElement("lose-footer"),
   ];
 
   return {

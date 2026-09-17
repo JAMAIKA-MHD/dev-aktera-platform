@@ -139,16 +139,20 @@ export interface EditorState {
 const STORAGE_KEY = "player_ui_maker_project_v1";
 
 function migrateProject(project: UIProject): UIProject {
-  // Inject legalFooter into pregame if missing (added 2026-09)
-  const pregame = project.screens?.pregame;
-  if (pregame && !pregame.elements.some((el) => el.slotId === "legalFooter")) {
-    const footer = STARTER_PROJECT.screens.pregame.elements.find(
+  // Inject legalFooter into every screen if missing (added 2026-09, extended
+  // from pregame-only to all screens 2026-09)
+  (Object.keys(project.screens || {}) as ScreenId[]).forEach((screenId) => {
+    const screen = project.screens[screenId];
+    if (!screen) return;
+    if (screen.elements.some((el) => el.slotId === "legalFooter")) return;
+
+    const footer = STARTER_PROJECT.screens[screenId]?.elements.find(
       (el) => el.slotId === "legalFooter",
     );
     if (footer) {
-      pregame.elements = [...pregame.elements, footer];
+      screen.elements = [...screen.elements, footer];
     }
-  }
+  });
   return project;
 }
 
