@@ -16,6 +16,8 @@
  * - billing
  */
 
+import type { ExperienceConfig } from "./features/player-experience";
+
 export type TabType =
   | "home"
   | "campaigns"
@@ -154,6 +156,9 @@ export interface FormFieldConfig {
 }
 
 export interface PlayerScreenConfig {
+  // New versioned configuration of the player screens (Player Experience module).
+  // Replaces uiProject, which is obsolete and removed in phase 7.
+  experience?: ExperienceConfig;
   uiProject?: any;
   theme?: {
     logoUrl?: string;

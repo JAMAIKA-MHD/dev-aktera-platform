@@ -81,7 +81,7 @@
 | Phase                            | Tâches       | Statut |
 | -------------------------------- | ------------ | ------ |
 | 0 — Préparation                  | T0.1 → T0.3  | ✅     |
-| 1 — Domaine                      | T1.1 → T1.12 | 🟡     |
+| 1 — Domaine                      | T1.1 → T1.12 | ✅     |
 | 2 — Services                     | T2.1 → T2.6  | ⬜     |
 | 3 — Thème, mise en page et cadre | T3.1 → T3.8  | ⬜     |
 | 4 — Parcours et écrans           | T4.1 → T4.5  | ⬜     |
