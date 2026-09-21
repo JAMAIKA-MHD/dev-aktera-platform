@@ -1,9 +1,11 @@
 # YOUENGAGE Context Migration Bridge
 
 ## Purpose
+
 This file explains how the new UI project should inherit the proven YOUENGAGE product logic without rebuilding everything from scratch.
 
 ## Project relationship
+
 - **Old project** = source of truth for:
   - business logic
   - Supabase schema
@@ -17,6 +19,7 @@ This file explains how the new UI project should inherit the proven YOUENGAGE pr
   - do not redesign core business behavior unless explicitly requested
 
 ## What must be preserved from the old project
+
 - Prize selection stays server-side
 - RLS stays enabled on all exposed tables
 - Coupon assignment and confirmation stay server-backed
@@ -27,6 +30,7 @@ This file explains how the new UI project should inherit the proven YOUENGAGE pr
 - Mobile-first touch target sizing stays enforced
 
 ## What the new agent should do
+
 1. Read the context files first.
 2. Map the new UI structure.
 3. Identify where old business logic should be wired into the new UI.
@@ -35,18 +39,22 @@ This file explains how the new UI project should inherit the proven YOUENGAGE pr
 6. Report gaps, risks, and missing integrations before implementation.
 
 ## Source files to read
+
 - `.github/instructions/MVP-YOUENGAGE-INSTRUCTION-FILE.instructions.md`
 - `.github/instructions/master_context_prompt_DZ_gamification.md`
 - `ai-assistance-prompts-reports/phase-1-closeout-report.md`
 - `ai-assistance-prompts-reports/phase-2-source-of-truth.md`
 
 ## Working principle
+
 Do not treat this as a greenfield rebuild.  
 Treat it as:
 **new UI + existing validated product logic + careful wiring + minimal regression risk**
 
 ## Expected output from the agent before coding
+
 The agent should first provide:
+
 - a mapping of new UI areas to old MVP logic
 - reusable backend/data pieces
 - missing integrations
@@ -54,4 +62,5 @@ The agent should first provide:
 - a recommended implementation order
 
 ## Final rule
+
 If something already works in the old project, prefer reusing it rather than recreating it.

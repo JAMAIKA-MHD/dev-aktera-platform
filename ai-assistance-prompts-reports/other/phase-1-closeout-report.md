@@ -3,6 +3,7 @@
 This file is **decommissioned as the active source of truth** and retained as the historical closeout record for Phase 1.
 
 Active source of truth for next work:
+
 - `ai-assistance-prompts-reports/phase-2-source-of-truth.md`
 
 ---
@@ -36,6 +37,7 @@ Active source of truth for next work:
 ## Milestone M0 - Initial baseline and analysis pass
 
 ### Scope delivered
+
 - Audited existing generated codebase and reports.
 - Ran baseline quality checks and identified blockers:
   - lint/typecheck failures
@@ -43,6 +45,7 @@ Active source of truth for next work:
   - compliance gaps (consent gating, language consistency, mobile behavior)
 
 ### Validation
+
 - lint/typecheck/build executed to establish baseline.
 
 ---
@@ -50,6 +53,7 @@ Active source of truth for next work:
 ## Milestone M1 - Quality baseline recovery + Prompt 5 stabilization
 
 ### Scope delivered
+
 - Fixed core lint/type errors across hooks/pages/utils/edge function.
 - Corrected quiz/wheel step flow in campaign creator.
 - Corrected win probability unit handling.
@@ -58,6 +62,7 @@ Active source of truth for next work:
 - Bound Vite host to `0.0.0.0`.
 
 ### Validation
+
 - `npm run lint` passed (only existing non-blocking warnings)
 - `npm run typecheck` passed
 - `npm run build` passed
@@ -67,12 +72,14 @@ Active source of truth for next work:
 ## Milestone M2 - Prompt 6 (template-first prize workflow)
 
 ### Scope delivered
+
 - Refactored campaign creation to use reusable prize templates.
 - Removed inline prize-template creation in campaign flow.
 - Campaign prizes are now created from selected templates with per-campaign quantity/weight/win message.
 - Relaunch flow preserves template linkage.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ---
@@ -80,12 +87,14 @@ Active source of truth for next work:
 ## Milestone M3 - QA hotfix wave 1
 
 ### Scope delivered
+
 - Numeric overflow handling improvements in campaign creation.
 - Better duplicate participation feedback in player flow.
 - Wizard back/edit navigation improvements.
 - Reduced raw technical error leakage in UI.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ---
@@ -93,12 +102,14 @@ Active source of truth for next work:
 ## Milestone M4 - QA hotfix wave 2
 
 ### Scope delivered
+
 - Fixed draft-save status race (draft accidentally becoming active).
 - Fixed blank wizard step between prizes and review.
 - Added centralized friendly error mapping in app surfaces.
 - Hardened registration edge function error messages.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ---
@@ -106,12 +117,14 @@ Active source of truth for next work:
 ## Milestone M5 - Campaign edit and republish lifecycle
 
 ### Scope delivered
+
 - Added draft edit route and workflow.
 - Added update-draft flow for active/paused campaigns.
 - Added campaign lineage (`source_campaign_id`) and publish-time source archival.
 - Wired list/detail actions for draft editing and update drafts.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ---
@@ -119,6 +132,7 @@ Active source of truth for next work:
 ## Milestone M6 - Prompt 7 (inventory and per-instance prize values)
 
 ### Scope delivered
+
 - Restricted prize template categories to MVP scope (`voucher`, `physical`).
 - Added `prize_inventory_items` model with RLS and indexes.
 - Added per-instance value assignment workflow:
@@ -128,9 +142,11 @@ Active source of truth for next work:
 - Integrated item row generation on campaign creation/restock.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ### DB/cloud dependency
+
 - Requires migration apply in user environment.
 
 ---
@@ -138,15 +154,18 @@ Active source of truth for next work:
 ## Milestone M7 - Prompt 8 (storage-based image uploads)
 
 ### Scope delivered
+
 - Added reusable image uploader component.
 - Replaced URL-only image fields in prize templates.
 - Added campaign hero image upload in campaign creator.
 - Added storage migration/policies for `campaign-media` bucket.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ### DB/cloud dependency
+
 - Requires migration apply in user environment.
 
 ---
@@ -154,6 +173,7 @@ Active source of truth for next work:
 ## Milestone M8 - Prompt 9 (analytics/account/billing pages)
 
 ### Scope delivered
+
 - Replaced placeholders with real MVP screens:
   - Analytics page (numeric KPIs + campaign table)
   - Account page (profile/org editable forms)
@@ -161,9 +181,11 @@ Active source of truth for next work:
 - Updated router wiring for these pages.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ### Commit
+
 - `adcdd2b` - feat: implement prompt 9 dashboard pages
 
 ---
@@ -171,6 +193,7 @@ Active source of truth for next work:
 ## Milestone M9 - Prompt 10 (UX compliance sweep)
 
 ### Scope delivered
+
 - Player-side mobile usability improvements:
   - max width targeting (`max-w-[480px]`)
   - minimum interactive height (`min-h-12`)
@@ -181,9 +204,11 @@ Active source of truth for next work:
 - Applied English-first labels in newly added dashboard/layout surfaces.
 
 ### Validation
+
 - lint/typecheck/build passed.
 
 ### Commit
+
 - `3f1fa7b` - feat: complete prompt 10 UX compliance sweep
 
 ---
@@ -191,10 +216,12 @@ Active source of truth for next work:
 ## 4) Canonical status now
 
 ### Feature prompts status
+
 - Prompt 1 to Prompt 10: implemented in local codebase.
 - Next phase: backlog stabilization and production hardening.
 
 ### Quality status
+
 - Lint/typecheck/build green after latest milestone.
 - Two persistent non-blocking fast-refresh warnings remain in context files.
 
@@ -207,16 +234,19 @@ Priority P1 = high-value follow-up.
 Priority P2 = polish.
 
 ## P0 - Localization consistency (resolved in S1 on 2026-07-03)
+
 - Replaced remaining French UI strings in dashboard primary surfaces and auth/placeholder pages.
 - Removed `date-fns/locale/fr` imports/usages from user-facing pages and normalized date formatting to English.
 - `rg` checks for common French UI tokens in `src/pages` now return no user-facing matches.
 
 ## P0 - Account email login identity mismatch (resolved in S2 on 2026-07-03)
+
 - Account profile save now routes email updates through `supabase.auth.updateUser`.
 - Account UX now differentiates between immediate email update and pending email confirmation.
 - Profile table syncing now follows Auth email state, including post-confirmation sync on session refresh/auth state changes.
 
 ## P0 - Inventory model correction (reopened after S3 user QA on 2026-07-03)
+
 - S3 did not match the required business behavior.
 - Required canonical behavior:
   1. Prize templates must own independent quantity and value preparation (manual/bulk), visible in Inventory without campaign dependency.
@@ -226,13 +256,16 @@ Priority P2 = polish.
   3. Security requirement: if a campaign reserves all template stock, that template is unavailable for other campaigns; partial reservations expose only remaining available stock.
 
 ## P1 - Campaign list scrolling usability
+
 - Scroll-wheel/scrollbar behavior reported inconsistent in campaign list.
 
 ## P1 - Technical error leakage in some remaining paths
+
 - Pattern reduced, but user still observed technical-style messages in some flows in prior rounds.
 - Requires full error-surface audit.
 
 ## P2 - Dashboard interaction polish
+
 - Dropdown/action visibility and overflow behavior should be re-verified after recent changes.
 - Zoom/responsive navigation usability (reported at 175% browser zoom) — resolved 2026-07-03:
   - Added mobile hamburger navigation drawer for dashboard routes.
@@ -247,9 +280,11 @@ Priority P2 = polish.
 ## Milestone S1 - Full English localization sweep (P0)
 
 ### Goal
+
 Remove remaining French UI text and locale formatting across app surfaces.
 
 ### Task batch S1.1 - Text and labels
+
 1. Replace French labels/messages/placeholders/buttons in:
    - Home
    - Campaign List
@@ -261,15 +296,18 @@ Remove remaining French UI text and locale formatting across app surfaces.
 3. Replace French alert/error strings with friendly English strings.
 
 ### Task batch S1.2 - Date/locale normalization
+
 1. Remove `date-fns/locale/fr` imports/usages where user-facing.
 2. Use English date formatting consistently.
 
 ### Acceptance criteria
+
 - No visible French strings in player/dashboard primary UI.
 - `rg` check for common French tokens in `src/pages` returns only comments/dev notes, not user-facing UI strings.
 - lint/typecheck/build pass.
 
 ### Delivery status (completed 2026-07-03)
+
 - Updated text/labels/status badges/alerts in:
   - `src/pages/dashboard/Home.tsx`
   - `src/pages/dashboard/CampaignList.tsx`
@@ -291,9 +329,11 @@ Remove remaining French UI text and locale formatting across app surfaces.
 ## Milestone S2 - Fix account email login flow (P0)
 
 ### Goal
+
 Make email change update actual login identity correctly and safely.
 
 ### Task batch S2.1 - Correct auth update path
+
 1. In account page flow:
    - detect email change
    - call Supabase Auth email update flow
@@ -301,17 +341,20 @@ Make email change update actual login identity correctly and safely.
 2. Keep profile table in sync after auth change confirmation.
 
 ### Task batch S2.2 - Friendly UX and edge cases
+
 1. Show explicit guidance if email confirmation is required.
 2. Handle conflict/duplicate email errors with clear non-technical text.
 3. Avoid false-success messages when auth update did not complete.
 
 ### Acceptance criteria
+
 - User can login with new email after confirmed change.
 - Old email no longer required/valid for login.
 - Clear UI guidance shown during pending confirmation states.
 - lint/typecheck/build pass.
 
 ### Delivery status (completed 2026-07-03)
+
 - Updated account flow in `src/pages/dashboard/Account.tsx`:
   - detects email changes and calls `supabase.auth.updateUser({ email })`
   - shows explicit pending-confirmation guidance when confirmation is required
@@ -331,9 +374,11 @@ Make email change update actual login identity correctly and safely.
 ## Milestone S3 - Inventory readiness behavior (P1)
 
 ### Goal
+
 Align inventory model/UI with business expectation: values and stock prepared before campaign go-live.
 
 ### Task batch S3.1 - Product behavior decision and implementation
+
 1. Decide canonical model:
    - global template-level inventory, or
    - campaign-scoped inventory preparation flow with clear UX.
@@ -341,11 +386,13 @@ Align inventory model/UI with business expectation: values and stock prepared be
 3. Ensure bulk/manual value assignment remains compatible.
 
 ### Acceptance criteria
+
 - User can prepare usable inventory prior to campaign launch, per agreed model.
 - UI clearly communicates what is global vs campaign-scoped.
 - lint/typecheck/build pass.
 
 ### Delivery status (completed 2026-07-03)
+
 - Updated inventory data model in `src/hooks/useInventory.ts` to include campaign phase fields:
   - `campaign_status`
   - `campaign_start_date`
@@ -362,10 +409,12 @@ Align inventory model/UI with business expectation: values and stock prepared be
 - New bugs discovered during S3: none.
 
 ### QA correction (2026-07-03, user feedback)
+
 - Marked as functionally incomplete against product expectation.
 - Follow-up implementation required to switch to template-level inventory ownership and secure campaign allocation limits.
 
 ### S3 correction delivery status (completed 2026-07-03)
+
 - Implemented template-level stock ownership:
   - added `prize_templates.stock_quantity`
   - inventory/value preparation is now independent of campaigns
@@ -390,6 +439,7 @@ Align inventory model/UI with business expectation: values and stock prepared be
   - No Edge Function redeploy required for this correction.
 
 ### S3 correction QA follow-up (completed 2026-07-03)
+
 - Fixed draft campaign edit allocation logic in `CampaignCreator`:
   - edit mode now restores the campaign's own reserved quantity into selectable availability
   - quantity validation and input max now use "available for this campaign" instead of global free stock only
@@ -411,19 +461,23 @@ Align inventory model/UI with business expectation: values and stock prepared be
 ## Milestone S4 - Campaign list scroll fix (P1)
 
 ### Goal
+
 Fix inconsistent wheel/scrollbar behavior in campaign list view.
 
 ### Task batch S4.1 - Layout and overflow audit
+
 1. Audit parent containers for `overflow` clipping and scroll chain blocking.
 2. Correct overflow/height behavior for reliable wheel and trackpad scroll.
 3. Re-test single-campaign and multi-campaign states.
 
 ### Acceptance criteria
+
 - Wheel/trackpad scroll works reliably in campaign list with one or many campaigns.
 - Action menus remain visible and usable.
 - lint/typecheck/build pass.
 
 ### Delivery status (completed 2026-07-03)
+
 - Updated `src/components/layout/DashboardLayout.tsx`:
   - moved dashboard content scrolling to the main content area (`overflow-y-auto` + `min-h-0`)
   - used full-height shell (`h-screen` + `overflow-hidden`) to prevent inconsistent body/child scroll-chain behavior
@@ -442,18 +496,22 @@ Fix inconsistent wheel/scrollbar behavior in campaign list view.
 ## Milestone S5 - Error-handling audit (P1)
 
 ### Goal
+
 Eliminate remaining technical/raw backend errors in user-facing UI.
 
 ### Task batch S5.1 - Surface audit
+
 1. Audit all major form submissions and edge-function calls.
 2. Route all errors through friendly error mapping.
 3. Ensure messages are specific and actionable (not generic "failed").
 
 ### Acceptance criteria
+
 - No raw "non-2xx", SQL, or stack-like errors shown to end users.
 - lint/typecheck/build pass.
 
 ### Delivery status (completed 2026-07-03)
+
 - Hardened centralized error mapping in `src/lib/errorMessages.ts`:
   - added broader technical-message detection (SQL/Postgres/Auth API/JWT/constraint/status code/exception patterns)
   - technical backend text now consistently resolves to friendly fallback messages
@@ -480,15 +538,18 @@ Eliminate remaining technical/raw backend errors in user-facing UI.
 ## Milestone S6 - UX improvements and design refresh (P1)
 
 ### Goal
+
 Address immediate UX gaps and modernize dashboard/player experience with modern aesthetic.
 
 ### Task batch S6.1 - User-reported UX fixes
+
 1. Add visible count of filled prize template values in inventory table (no click needed).
 2. Implement instant coupon display and redemption flow for wheel winners.
 3. Fix hamburger menu visibility at normal zoom levels (not just at 175%+).
 4. Redesign sidebar for modern, youthful aesthetic with better visual hierarchy.
 
 ### Acceptance criteria
+
 - Inventory table shows "filled/total values" count per template in main view.
 - Result screen shows coupon code with copy-to-clipboard + redemption confirmation for winners.
 - Hamburger menu always visible and functional (both desktop/mobile).
@@ -496,13 +557,14 @@ Address immediate UX gaps and modernize dashboard/player experience with modern 
 - lint/typecheck/build pass.
 
 ### Delivery status (completed 2026-07-03)
+
 - Enhanced inventory display in `src/pages/dashboard/Inventory.tsx`:
   - added "Filled values" column showing "X/Y" count of non-empty `prize_template_items`
   - values visible on main inventory table without needing to click "Values" button
 - Extended `src/context/PlayerContext.tsx`:
   - added `prizeId`, `couponCode`, `couponRedeemed` fields to player state
 - Enhanced Result screen in `src/pages/play/Result.tsx`:
-  - winner cards now fetch and display coupon code from `prize_template_items` 
+  - winner cards now fetch and display coupon code from `prize_template_items`
   - added copy-to-clipboard button for coupon code
   - added "I have taken my coupon" button → confirmation modal
   - displays loading and error states gracefully
@@ -533,9 +595,11 @@ Address immediate UX gaps and modernize dashboard/player experience with modern 
 ## Milestone S7 - Instant coupon delivery and entry-to-coupon tracking (P0)
 
 ### Goal
+
 Fix coupon delivery flow: winners must receive their coupon instantly on result screen + dashboard must show which user took which coupon for audit trail.
 
 ### Task batch S7.1 - Server-side coupon claim and storage
+
 1. Add `redeemed_coupon_value` field to entries table to store coupon code given at win time.
 2. Add `coupon_redemptions` audit table to track each coupon's usage (UNIQUE constraint per item).
 3. Update `select-prize` edge function to:
@@ -548,6 +612,7 @@ Fix coupon delivery flow: winners must receive their coupon instantly on result 
 7. Update Entry TypeScript type to include `redeemed_coupon_value` field.
 
 ### Acceptance criteria
+
 - Winners see their coupon code instantly on result screen (fetched server-side, no client fetch).
 - Each coupon code can only be used once (enforced by UNIQUE in coupon_redemptions).
 - Dashboard entries table shows "Coupon" column with coupon code for winners.
@@ -556,6 +621,7 @@ Fix coupon delivery flow: winners must receive their coupon instantly on result 
 - **User must manually apply migration**: `supabase/migrations/20260703172325_add_coupon_tracking.sql`
 
 ### Delivery status (completed + hotfix follow-ups on 2026-07-04)
+
 - Added database migration `20260703172325_add_coupon_tracking.sql`:
   - `redeemed_coupon_value VARCHAR(255)` field added to entries table
   - `coupon_redemptions` table created with UNIQUE(prize_template_item_id) constraint
@@ -614,6 +680,7 @@ Fix coupon delivery flow: winners must receive their coupon instantly on result 
   - `eb1d032` - fix: confirmation edge function, loser badge, win-probability diagnostics
 
 ### Known limitations and future improvements
+
 - Win probability may still appear inconsistent when prize stock is exhausted; use new `select-prize` logs in Supabase dashboard to verify roll vs stock outcomes.
 - No SMS/email notification after coupon redemption (blocked per MVP scope)
 - Player sees coupon once per session; refresh loses it (expected behavior with sessionStorage)
