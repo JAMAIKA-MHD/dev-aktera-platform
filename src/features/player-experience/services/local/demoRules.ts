@@ -1,5 +1,8 @@
 import type { Campaign, PrizeTemplate } from "@/src/types";
-import { buildCampaignSnapshot } from "../../domain/campaign";
+import {
+  buildCampaignSnapshot,
+  type CampaignSnapshot,
+} from "../../domain/campaign";
 
 // What decides a win in a campaign: probability, stock, weights, correct answers, thresholds.
 // Only the demo gateway reads it, to simulate the server in the Studio (plan §7.3). It never
@@ -76,6 +79,48 @@ export function buildDemoRules(
   }
   if (snapshot.rules.hitIt) {
     rules.hitIt = { winThreshold: snapshot.rules.hitIt.winThreshold };
+  }
+  return rules;
+}
+
+// Correct answers of the demo campaign's questions (presets/demoCampaign.ts). They live here,
+// with the other draw secrets, and not in the presets, which the runtime may read.
+const STANDALONE_ANSWERS: Readonly<Record<string, number>> = {
+  "demo-question-capital": 1, // Alger
+  "demo-question-wilayas": 1, // 58
+  "demo-question-sahara": 0, // Le Sahara
+};
+export const STANDALONE_WIN_PROBABILITY = 50; // both outcomes show up quickly in the Studio
+const STANDALONE_STOCK = 100;
+
+// Draw rules for the demo campaign, used when the Studio has no real campaign: every prize
+// equally likely and in stock, one entry per phone number as in production.
+export function buildStandaloneDemoRules(
+  campaign: CampaignSnapshot,
+): DemoCampaignRules {
+  const rules: DemoCampaignRules = {
+    campaignId: campaign.id,
+    active: campaign.status === "active",
+    winProbability: STANDALONE_WIN_PROBABILITY,
+    maxEntries: 1,
+    prizes: campaign.prizes.map((prize) => ({
+      ...prize,
+      weight: 1,
+      remaining: STANDALONE_STOCK,
+    })),
+  };
+  // The demo campaign carries both rule sets: only the ones of its game apply.
+  if (campaign.gameType === "quiz" && campaign.rules.quiz) {
+    rules.quiz = {
+      passThresholdPercent: campaign.rules.quiz.passThresholdPercent,
+      questions: campaign.quiz.map((question) => ({
+        id: question.id,
+        correctIndex: STANDALONE_ANSWERS[question.id] ?? 0,
+      })),
+    };
+  }
+  if (campaign.gameType === "hit_it" && campaign.rules.hitIt) {
+    rules.hitIt = { winThreshold: campaign.rules.hitIt.winThreshold };
   }
   return rules;
 }

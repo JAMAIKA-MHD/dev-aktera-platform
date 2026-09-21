@@ -1,6 +1,11 @@
 import type { Campaign } from "@/src/types";
 import { describe, expect, it } from "vitest";
-import { buildDemoRules } from "./demoRules";
+import { createDemoCampaign } from "../../presets/demoCampaign";
+import {
+  STANDALONE_WIN_PROBABILITY,
+  buildDemoRules,
+  buildStandaloneDemoRules,
+} from "./demoRules";
 
 const campaign = (changes: Partial<Campaign> = {}): Campaign => ({
   id: "campaign-1",
@@ -133,5 +138,61 @@ describe("buildDemoRules", () => {
       winThreshold: 1,
     });
     expect(buildDemoRules(campaign()).quiz).toBeUndefined();
+  });
+});
+
+describe("buildStandaloneDemoRules", () => {
+  it("gives every demo prize the same chance, with stock, one entry per phone", () => {
+    const rules = buildStandaloneDemoRules(createDemoCampaign("lucky_wheel"));
+    expect(rules).toMatchObject({
+      campaignId: "demo-campaign",
+      active: true,
+      winProbability: STANDALONE_WIN_PROBABILITY,
+      maxEntries: 1,
+    });
+    expect(STANDALONE_WIN_PROBABILITY).toBe(50);
+    expect(rules.prizes).toHaveLength(4);
+    for (const prize of rules.prizes) {
+      expect(prize).toMatchObject({ weight: 1, remaining: 100 });
+    }
+    expect(rules.quiz).toBeUndefined();
+    expect(rules.hitIt).toBeUndefined();
+  });
+
+  it("knows the correct answer of each demo question", () => {
+    const campaign = createDemoCampaign("quiz");
+    const rules = buildStandaloneDemoRules(campaign);
+    const answers = rules.quiz?.questions.map(({ id, correctIndex }) => {
+      const question = campaign.quiz.find((candidate) => candidate.id === id);
+      return question?.options[correctIndex];
+    });
+    expect(answers).toEqual(["Alger", "58", "Le Sahara"]);
+    expect(rules.quiz?.passThresholdPercent).toBe(100);
+  });
+
+  it("falls back to the first option for a question it does not know", () => {
+    const campaign = createDemoCampaign("quiz");
+    campaign.quiz.push({ id: "custom", text: "?", options: ["a", "b"] });
+    const rules = buildStandaloneDemoRules(campaign);
+    expect(rules.quiz?.questions.at(-1)).toEqual({
+      id: "custom",
+      correctIndex: 0,
+    });
+  });
+
+  it("keeps the Hit It threshold of the demo campaign, and its status", () => {
+    const hitIt = createDemoCampaign("hit_it");
+    expect(buildStandaloneDemoRules(hitIt).hitIt).toEqual({ winThreshold: 1 });
+    expect(buildStandaloneDemoRules(hitIt).quiz).toBeUndefined();
+    expect(
+      buildStandaloneDemoRules({ ...hitIt, status: "paused" }).active,
+    ).toBe(false);
+    expect(
+      buildStandaloneDemoRules({ ...createDemoCampaign("quiz"), rules: {} })
+        .quiz,
+    ).toBeUndefined();
+    expect(
+      buildStandaloneDemoRules({ ...hitIt, rules: {} }).hitIt,
+    ).toBeUndefined();
   });
 });
