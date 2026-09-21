@@ -95,8 +95,11 @@ describe("demoEntryStore", () => {
     const store = createDemoEntryStore();
     const recorded = entry({ outcome: WIN("voucher") });
     store.record(recorded);
+    const other = entry({ phone: "0661234567" });
+    store.record(other);
     expect(store.confirmCoupon(recorded.entryId)).toBe(true);
     expect(store.findById(recorded.entryId)?.couponConfirmed).toBe(true);
+    expect(store.findById(other.entryId)?.couponConfirmed).toBe(false); // untouched
     expect(store.confirmCoupon("unknown")).toBe(false);
   });
 
