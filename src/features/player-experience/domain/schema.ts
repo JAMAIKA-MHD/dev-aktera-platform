@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DEFAULT_GAME_TYPE, createDefaultExperience } from "./defaults";
 import type { GameType } from "./gameTypes";
 import { ICON_NAMES } from "./icons";
+import { migrateExperienceConfig } from "./migrations";
 import type { ExperienceConfig } from "./types";
 
 // Structural validation: can this configuration be loaded and rendered safely?
@@ -347,7 +348,8 @@ function readGameType(raw: unknown): GameType | undefined {
   return result.success ? result.data : undefined;
 }
 
-// Never throws. A valid input is returned as is (unknown keys removed); anything else is
+// Never throws. The input is first brought up to the current version (migrations.ts).
+// A valid input is returned as is (unknown keys removed); anything else is
 // repaired against a default configuration, and the problems are listed in `issues`.
 export function parseExperienceConfig(
   raw: unknown,
@@ -355,7 +357,9 @@ export function parseExperienceConfig(
 ): ParseResult {
   const gameType = fallbackGameType ?? readGameType(raw) ?? DEFAULT_GAME_TYPE;
   try {
-    const strict = experienceConfigSchema.safeParse(raw);
+    // Older versions are upgraded first; a migrated configuration is not a "recovery".
+    const migrated = migrateExperienceConfig(raw);
+    const strict = experienceConfigSchema.safeParse(migrated);
     if (strict.success) {
       // The casts below are sound: the project tsconfig is not strict, and without strictNullChecks
       // zod infers every nullable key as optional. schema.strict-check.ts proves the exact match.
@@ -367,7 +371,7 @@ export function parseExperienceConfig(
     }
     const fallback = createDefaultExperience({ gameType });
     const repaired = experienceConfigSchema.safeParse(
-      repair(experienceConfigSchema, raw, fallback),
+      repair(experienceConfigSchema, migrated, fallback),
     );
     return {
       config: repaired.success ? (repaired.data as ExperienceConfig) : fallback,
