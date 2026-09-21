@@ -5,6 +5,6 @@
 // export { PlayerExperienceStudio } from "./studio/PlayerExperienceStudio"; // T6.2
 // export { createLocalServices } from "./services/createLocalServices";     // T2.6
 // export { ServicesProvider } from "./services/ServicesProvider";           // T2.6
-// export type { ExperienceConfig, CampaignSnapshot } from "./domain/types"; // T1.4
 
-export {};
+export type { ExperienceConfig } from "./domain/types";
+export type { CampaignSnapshot } from "./domain/campaign";
