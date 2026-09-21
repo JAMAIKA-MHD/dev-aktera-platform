@@ -37,7 +37,8 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     tokens: {
       mode: "dark",
       colors: {
-        primary: "#8B5CF6",
+        // #7C3AED rather than the prototype's #8B5CF6: button text reaches 5.7:1 (4.2:1 before).
+        primary: "#7C3AED",
         secondary: "#EC4899",
         accent: "#06B6D4",
         surface: "#0F172A",

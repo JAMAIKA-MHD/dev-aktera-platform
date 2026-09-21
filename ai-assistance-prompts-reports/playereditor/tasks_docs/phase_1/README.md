@@ -16,7 +16,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T1.8  | Configuration par défaut                | Terminée | `feat(Player-Experience): generate default experience per game type`                    | [T1.8-configuration-par-defaut.md](./T1.8-configuration-par-defaut.md)                     |
 | T1.9  | Migrations et import de l'ancien format | Terminée | `feat(Player-Experience): migrate legacy player screen config`                          | [T1.9-migrations-et-import-ancien-format.md](./T1.9-migrations-et-import-ancien-format.md) |
 | T1.10 | Machine d'états du parcours             | Terminée | `feat(Player-Experience): add player flow state machine`                                | [T1.10-machine-d-etats-du-parcours.md](./T1.10-machine-d-etats-du-parcours.md)             |
+| T1.11 | Contrôle qualité du design              | Terminée | `feat(Player-Experience): add design validation and contrast checks`                    | [T1.11-controle-qualite-du-design.md](./T1.11-controle-qualite-du-design.md)               |
 
-À venir : T1.11 et T1.12.
+À venir : T1.12.
 
 Phase précédente : [phase 0 — Préparation](../phase_0/README.md).
