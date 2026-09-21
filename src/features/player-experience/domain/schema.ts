@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DEFAULT_GAME_TYPE, createDefaultExperience } from "./defaults";
 import type { GameType } from "./gameTypes";
+import { ICON_NAMES } from "./icons";
 import type { ExperienceConfig } from "./types";
 
 // Structural validation: can this configuration be loaded and rendered safely?
@@ -28,8 +29,7 @@ const localizedTextSchema = z.object({
 const colorSchema = z.string().regex(HEX_COLOR, "Expected a #rrggbb color");
 const percentSchema = z.number().min(0).max(100);
 const idSchema = z.string().min(1);
-// Narrowed to the icon registry in T1.7.
-const iconNameSchema = z.string().min(1);
+const iconNameSchema = z.enum(ICON_NAMES);
 
 const assetRefSchema = z
   .discriminatedUnion("kind", [

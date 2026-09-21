@@ -111,6 +111,10 @@ describe("experienceConfigSchema", () => {
     ["a wheel game without wheel settings", (r: any) => delete r.game.wheel],
     ["the share bonus switched on", (r: any) => (r.features.shareBonus = true)],
     ["an unknown schema version", (r: any) => (r.schemaVersion = 2)],
+    [
+      "an icon outside the registry",
+      (r: any) => (r.game.wheel.segments[0].icon = "rocket"),
+    ],
   ])("rejects %s", (_label, mutate) => {
     expect(isValid(broken(mutate))).toBe(false);
   });

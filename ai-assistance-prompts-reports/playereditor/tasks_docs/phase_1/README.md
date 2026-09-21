@@ -12,7 +12,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T1.4  | Types de la configuration         | Terminée | `feat(Player-Experience): define experience configuration types`                        | [T1.4-types-de-la-configuration.md](./T1.4-types-de-la-configuration.md)                 |
 | T1.5  | Contrat de participation          | Terminée | `feat(Player-Experience): define participation contract mirroring select-prize`         | [T1.5-contrat-de-participation.md](./T1.5-contrat-de-participation.md)                   |
 | T1.6  | Schéma de validation (zod)        | Terminée | `feat(Player-Experience): validate experience config with zod`                          | [T1.6-schema-de-validation-zod.md](./T1.6-schema-de-validation-zod.md)                   |
+| T1.7  | Presets et contenus par défaut    | Terminée | `feat(Player-Experience): add theme presets, default copy and icon registry`            | [T1.7-presets-et-contenus-par-defaut.md](./T1.7-presets-et-contenus-par-defaut.md)       |
 
-À venir : T1.7 → T1.12.
+À venir : T1.8 → T1.12.
 
 Phase précédente : [phase 0 — Préparation](../phase_0/README.md).

@@ -1,11 +1,11 @@
 import type { GameType } from "./gameTypes";
+import type { IconName } from "./icons";
 import type { Locale, LocalizedText } from "./locale";
 
 // Everything in this file is plain JSON: no functions, no React nodes, no Date objects
 // (types.test.ts fails otherwise). Behavior lives in the flow state machine, not here.
 
-// Narrowed to the icon registry keys (presets/icons.ts) in T1.7.
-export type IconName = string;
+export type { IconName };
 
 export type AssetRef =
   | { kind: "dataUrl"; url: string } // uploaded file, compressed (MVP)
