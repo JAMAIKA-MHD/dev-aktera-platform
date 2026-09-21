@@ -4,10 +4,11 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 **Statuts :** En cours · Terminée · Bloquée
 
-| Tâche | Titre              | Statut   | Commit proposé                                   | Documentation                                              |
-| ----- | ------------------ | -------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| T2.1  | Ports des services | Terminée | `feat(Player-Experience): declare service ports` | [T2.1-ports-des-services.md](./T2.1-ports-des-services.md) |
+| Tâche | Titre                        | Statut   | Commit proposé                                             | Documentation                                                                  |
+| ----- | ---------------------------- | -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| T2.1  | Ports des services           | Terminée | `feat(Player-Experience): declare service ports`           | [T2.1-ports-des-services.md](./T2.1-ports-des-services.md)                     |
+| T2.2  | Dépôt local de configuration | Terminée | `feat(Player-Experience): add local experience repository` | [T2.2-depot-local-de-configuration.md](./T2.2-depot-local-de-configuration.md) |
 
-À venir : T2.2 → T2.6.
+À venir : T2.3 → T2.6.
 
 Phase précédente : [phase 1 — Domaine](../phase_1/README.md).
