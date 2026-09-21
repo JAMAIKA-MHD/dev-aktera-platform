@@ -95,9 +95,9 @@ export const DEFAULT_WELCOME_TITLE: LocalizedText = {
 
 Pour **chaque tâche de `tasks.md`** (T0.1, T0.2, … T7.4) :
 
-1. **Au démarrage**, je crée le fichier `tasks_docs/<ID>-<titre-court>.md` à partir du modèle du [§9](#9-modèle--documentation-dune-tâche). Je le crée **avant d'écrire du code**, avec le statut `En cours`, l'objectif et le plan de travail.
+1. **Au démarrage**, je crée le fichier `tasks_docs/phase_<n>/<ID>-<titre-court>.md` (un dossier par phase : `phase_0/`, `phase_1/`…) à partir du modèle du [§9](#9-modèle--documentation-dune-tâche). Je le crée **avant d'écrire du code**, avec le statut `En cours`, l'objectif et le plan de travail.
    - Nommage : identifiant de la tâche, puis titre court en minuscules, sans accents, mots séparés par des tirets.
-   - Exemples : `tasks_docs/T0.1-branche-et-garde-fous.md`, `tasks_docs/T1.10-machine-d-etats-du-parcours.md`.
+   - Exemples : `tasks_docs/phase_0/T0.1-branche-et-garde-fous.md`, `tasks_docs/phase_1/T1.10-machine-d-etats-du-parcours.md`.
 2. **Pendant la tâche**, je mets le fichier à jour **après chaque étape significative** : fichier créé, décision prise, test écrit, imprévu, vérification lancée. Chaque mise à jour ajoute une entrée datée au journal.
 3. **À la fin**, je complète toutes les sections, avec les résultats **réels** des vérifications, et je passe le statut à `Terminée`. Si la tâche est interrompue, le statut passe à `Bloquée`, avec la raison.
 4. **Niveau de détail attendu** : la documentation doit te permettre de **comprendre l'implémentation et le code sans ouvrir l'éditeur**. Concrètement :
@@ -108,7 +108,7 @@ Pour **chaque tâche de `tasks.md`** (T0.1, T0.2, … T7.4) :
    - comment la tâche s'articule avec les autres ;
    - pour une tâche d'interface, ce qui est repris du prototype et ce qui est amélioré (D24).
 5. **Langue** : la documentation est en **français** ; les extraits de code restent en anglais (R0).
-6. **Index** : je tiens à jour [`tasks_docs/README.md`](./tasks_docs/README.md), qui liste chaque tâche avec son statut et le lien vers sa documentation. Je le crée à la première tâche.
+6. **Index** : chaque phase a son index, `tasks_docs/phase_<n>/README.md` (exemple : [phase 0](./tasks_docs/phase_0/README.md)), qui liste chaque tâche de la phase avec son statut, son commit et le lien vers sa documentation. Je le crée à la première tâche de la phase et le tiens à jour.
 7. **Correction ultérieure** : si une tâche suivante modifie du code livré par une tâche précédente, j'ajoute une entrée « Modifié par Tx.y » dans la documentation de la tâche d'origine.
 
 ### R3 — Résumé de fin de tâche et message de commit, sans commit _(nouvelle règle)_
@@ -152,7 +152,7 @@ Pour une demande hors `tasks.md` (une correction, une question, un ajustement), 
 
 ### R8 — Suivi à jour
 
-- `tasks_docs/README.md` : le statut de chaque tâche (R2).
+- `tasks_docs/phase_<n>/README.md` : le statut de chaque tâche de la phase (R2).
 - `tasks.md` §0.5 : le statut de chaque phase (`⬜` à faire, `🟡` en cours, `✅` terminée), mis à jour au début et à la fin de chaque phase.
 
 ### R9 — Décisions figées
@@ -371,7 +371,7 @@ Issues de `plan.md` §8.3, §8.6 et §9.3.
 
 ## 9. Modèle : documentation d'une tâche
 
-Fichier `tasks_docs/<ID>-<titre-court>.md`, créé au démarrage de la tâche et tenu à jour jusqu'à la fin (R2).
+Fichier `tasks_docs/phase_<n>/<ID>-<titre-court>.md`, créé au démarrage de la tâche et tenu à jour jusqu'à la fin (R2).
 
 ```markdown
 # <ID> — <Titre de la tâche>
@@ -486,7 +486,7 @@ Donné dans la conversation à la fin de chaque tâche (R3).
 
 **Qualité visuelle** (tâches d'interface) : repris du prototype … · amélioré … · à regarder : …
 
-**Documentation :** `tasks_docs/<ID>-<titre-court>.md`
+**Documentation :** `tasks_docs/phase_<n>/<ID>-<titre-court>.md`
 
 **Message de commit proposé (je n'ai rien commité) :**
 
@@ -510,8 +510,8 @@ Fichiers à inclure : …
 - [ ] **Design (§6)** pour une tâche d'interface : au moins aussi beau que la référence (D1 à D3), section « Qualité visuelle » remplie (D24), aucun élément de signature retiré sans ton accord.
 - [ ] Aucune règle de ce fichier n'est enfreinte (non négociables, architecture, métier, responsive, design, code).
 - [ ] Les commandes de vérification de la fiche ont été lancées, et leurs résultats sont rapportés tels quels.
-- [ ] La documentation `tasks_docs/<ID>-…md` est complète, le journal à jour, le statut à `Terminée`.
-- [ ] `tasks_docs/README.md` est à jour (et `tasks.md` §0.5 si la phase change de statut).
+- [ ] La documentation `tasks_docs/phase_<n>/<ID>-…md` est complète, le journal à jour, le statut à `Terminée`.
+- [ ] `tasks_docs/phase_<n>/README.md` est à jour (et `tasks.md` §0.5 si la phase change de statut).
 - [ ] Aucun commit, aucune opération Git d'écriture n'a été faite.
 - [ ] Le résumé de fin de tâche et le message de commit sont donnés.
 - [ ] Je n'ai pas démarré la tâche suivante.
