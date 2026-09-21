@@ -25,6 +25,24 @@ The rest of the app imports **only** from `index.ts`. ESLint enforces this rule.
 
 ESLint blocks three of these rules: deep imports from outside the module, `services/local` imports inside `runtime/`, and React (including `presets/icons.ts`), upper-layer or Supabase imports inside `domain/`.
 
+## Responsive rules (plan §8.3)
+
+The runtime is rendered in an iframe at the exact size of the simulated device (`/xp-frame`),
+and must work at every size from 280 to 2560 px wide and 320 to 1600 px high.
+
+- **No screen variants** (`sm:`, `md:`, `lg:`, `xl:`): use the runtime's own variants from
+  `runtime/layout/layout.css`: `split:`, `tight:`, `roomy:`, `compact:`, `wide:`. Their
+  values live in `runtime/layout/breakpoints.ts` only.
+- **No fixed sizes** in pixels (`w-[260px]`, `min-h-[620px]`…) and no `100vh`; only the
+  runtime root uses `100dvh` (`.xp-runtime`). Exceptions: borders and touch targets
+  (`min-h-[44px]` to `min-h-[56px]`). `runtime/layout/noFixedSizes.test.ts` fails otherwise.
+- **The game zone (slot 5) is a size container**: engines size themselves with
+  `cqw`/`cqh`/`cqmin` (or `useElementSize`), never on the screen.
+- **The primary CTA is sticky** at the bottom when the content is taller than the screen.
+- **Pointer Events everywhere**: mouse, finger and pen share the same code.
+- **Live resizing** (rotation, preview handle) never resets the state or breaks the display.
+- **Safe areas**: pad with `--xp-safe-top|right|bottom|left`.
+
 ## References
 
 The planning documents are in French: `ai-assistance-prompts-reports/playereditor/`.

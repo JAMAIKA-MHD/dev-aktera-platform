@@ -11,7 +11,9 @@ export default defineConfig((env) =>
       include: ["src/**/*.test.{ts,tsx}"],
       coverage: {
         provider: "v8",
-        include: ["src/features/player-experience/{domain,services,theme}/**"],
+        include: [
+          "src/features/player-experience/{domain,services,theme,runtime/layout}/**",
+        ],
         // Type-level proofs compiled by tsconfig.strict.json: nothing to run.
         exclude: ["**/*.strict-check.ts"],
       },
