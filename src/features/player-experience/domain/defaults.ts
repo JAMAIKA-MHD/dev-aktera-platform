@@ -1,61 +1,107 @@
+import {
+  CONSENT_TEXT,
+  FORM_FIELD_TEXT,
+  LEGAL_LINE,
+  LOSING_SEGMENT_LABELS,
+  SCRATCH_COVER_TEXT,
+  WHEEL_HUB_LABEL,
+  defaultJackpot,
+  defaultLegalLinks,
+  defaultPrizeChips,
+  defaultScreens,
+  defaultTermsBody,
+} from "../presets/contentDefaults";
+import { createDemoCampaign } from "../presets/demoCampaign";
+import { themeFromPreset } from "../presets/themePresets";
 import type { CampaignSnapshot } from "./campaign";
 import type { GameType } from "./gameTypes";
 import type {
   ExperienceConfig,
   FormField,
   GameSettings,
-  ScreenContent,
+  WheelSegment,
 } from "./types";
 import { createUuid } from "./uuid";
+
+// The domain reads the pure-data presets (texts, styles, demo campaign), never presets/icons.ts,
+// which imports React.
 
 export const DEFAULT_GAME_TYPE: GameType = "lucky_wheel";
 export const DEFAULT_POLICY_VERSION = "2026-09-01";
 
+export const MIN_WHEEL_SEGMENTS = 4;
+export const MAX_WHEEL_SEGMENTS = 12;
+
 export interface DefaultExperienceInput {
-  gameType: GameType;
-  campaign?: CampaignSnapshot | null;
+  gameType: GameType; // used when there is no campaign
+  campaign?: CampaignSnapshot | null; // null or absent = the fixed demo campaign
   presetId?: string;
   brandName?: string;
 }
 
-function emptyScreen(): ScreenContent {
-  return {
-    showHeader: true,
-    hero: "none",
-    title: {},
-    subtitle: {},
-    reinforcement: { kind: "none", text: {} },
-    primaryCta: {},
-    secondaryCta: null,
-  };
-}
-
 function field(key: FormField["key"], enabled: boolean, required: boolean) {
-  return { key, enabled, required, label: {}, placeholder: {} };
+  return { key, enabled, required, ...FORM_FIELD_TEXT[key] };
 }
 
-function defaultGameSettings(gameType: GameType): GameSettings {
-  const settings: GameSettings = {
-    type: gameType,
-    teaser: { mode: "attract", caption: null },
+function losingSegment(index: number): WheelSegment {
+  return {
+    id: createUuid(),
+    prizeId: null,
+    label: LOSING_SEGMENT_LABELS[index % LOSING_SEGMENT_LABELS.length],
+    color: null,
+    icon: null,
   };
-  switch (gameType) {
+}
+
+// One segment per prize and at least one losing segment, 4 to 12 in total.
+// With fewer than 3 prizes, extra losing segments (with varied labels) fill the wheel.
+// Beyond 11 prizes, the extra prizes get no segment. Colors stay null: the runtime
+// alternates the theme colors, so a theme change recolors the wheel.
+export function buildDefaultWheelSegments(
+  prizes: CampaignSnapshot["prizes"],
+): NonNullable<GameSettings["wheel"]> {
+  const shown = prizes.slice(0, MAX_WHEEL_SEGMENTS - 1);
+  const losingCount = Math.max(1, MIN_WHEEL_SEGMENTS - shown.length);
+  const total = shown.length + losingCount;
+  // Losing segments are spread evenly around the wheel, the last one closing the circle.
+  const losingSlots = new Set(
+    Array.from(
+      { length: losingCount },
+      (_, index) => Math.round(((index + 1) * total) / losingCount) - 1,
+    ),
+  );
+  const segments: WheelSegment[] = [];
+  let prizeIndex = 0;
+  let losingIndex = 0;
+  for (let slot = 0; slot < total; slot++) {
+    if (losingSlots.has(slot)) {
+      segments.push(losingSegment(losingIndex++));
+    } else {
+      segments.push({
+        id: createUuid(),
+        prizeId: shown[prizeIndex++].id,
+        label: {}, // empty = the prize display label
+        color: null,
+        icon: null,
+      });
+    }
+  }
+  return { segments, hubLabel: WHEEL_HUB_LABEL };
+}
+
+function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
+  const settings: GameSettings = {
+    type: campaign.gameType,
+    teaser: { mode: "attract", caption: null }, // null = caption generated from the campaign
+  };
+  switch (campaign.gameType) {
     case "lucky_wheel":
-      settings.wheel = {
-        segments: [1, 2].map(() => ({
-          id: createUuid(),
-          prizeId: null,
-          label: {},
-          color: null,
-          icon: null,
-        })),
-        hubLabel: {},
-      };
+      settings.wheel = buildDefaultWheelSegments(campaign.prizes);
       break;
     case "scratch_card":
       settings.scratch = {
         coverImage: null,
-        coverText: {},
+        coverText: SCRATCH_COVER_TEXT,
         revealThresholdPercent: 50,
       };
       break;
@@ -63,7 +109,7 @@ function defaultGameSettings(gameType: GameType): GameSettings {
       settings.boxes = { count: 3, icon: "gift", color: null };
       break;
     case "quiz":
-      settings.quiz = { translations: {} };
+      settings.quiz = { translations: {} }; // empty = the campaign questions as typed
       break;
     case "hit_it":
       settings.hitIt = { targetIcon: "target", targetImage: null };
@@ -72,69 +118,39 @@ function defaultGameSettings(gameType: GameType): GameSettings {
   return settings;
 }
 
-// Structurally valid configuration with neutral values and empty texts.
-// Always passes experienceConfigSchema: it is the safe fallback of parseExperienceConfig.
+// Complete configuration, ready to show: preset style, texts in fr/ar/en, sections,
+// form, legal texts and game presentation built from the campaign (or the demo one).
+// Always passes experienceConfigSchema: it is also the fallback of parseExperienceConfig.
 export function createDefaultExperience(
   input: DefaultExperienceInput,
 ): ExperienceConfig {
-  return {
+  // A real campaign decides the game (chosen in the Wizard); without one, the demo
+  // campaign is built for the requested type.
+  const campaign = input.campaign ?? createDemoCampaign(input.gameType);
+  const organizerName = input.brandName ?? "";
+  const config: ExperienceConfig = {
     schemaVersion: 1,
     id: createUuid(),
     campaignId: input.campaign?.id ?? null,
     templateId: "eight-slot",
     updatedAt: new Date().toISOString(),
     locales: { default: "fr", enabled: ["fr", "ar", "en"] },
-    theme: {
-      presetId: input.presetId ?? "midnight-gold",
-      mode: "dark",
-      colors: {
-        primary: "#F5BA41",
-        secondary: "#FBBF24",
-        accent: "#10B981",
-        surface: "#0A1120",
-        text: "#FFFFFF",
-      },
-      background: {
-        kind: "mesh",
-        image: null,
-        overlayOpacity: 0.85,
-        focus: { x: 50, y: 50 },
-      },
-      radius: "pill",
-      font: "poppins",
-    },
+    theme: themeFromPreset(input.presetId),
     brand: {
-      name: input.brandName ?? "",
+      name: organizerName,
       logo: null,
       logoIcon: "crown",
       tagline: {},
     },
-    screens: {
-      welcome: emptyScreen(),
-      register: emptyScreen(),
-      play: emptyScreen(),
-      win: emptyScreen(),
-      lose: emptyScreen(),
-    },
+    screens: defaultScreens(campaign.gameType),
     sections: {
-      jackpot: {
-        enabled: false,
-        eyebrow: {},
-        title: {},
-        badge: {},
-        icon: "trophy",
-      },
+      jackpot: defaultJackpot(),
       prizeChips: {
-        enabled: false,
-        items: [
-          {
-            id: createUuid(),
-            icon: "gift",
-            value: {},
-            caption: {},
-            tone: "primary",
-          },
-        ],
+        enabled: true,
+        items: defaultPrizeChips().map((chip) => ({
+          id: createUuid(),
+          ...chip,
+        })),
       },
     },
     form: {
@@ -144,16 +160,19 @@ export function createDefaultExperience(
         field("email", false, false),
         field("wilaya", true, false),
       ],
-      consent: { text: {}, policyVersion: DEFAULT_POLICY_VERSION },
+      consent: { text: CONSENT_TEXT, policyVersion: DEFAULT_POLICY_VERSION },
     },
     legal: {
-      organizerName: input.brandName ?? "",
-      links: [],
-      legalLine: {},
-      termsBody: {},
+      organizerName,
+      links: defaultLegalLinks().map((link) => ({ id: createUuid(), ...link })),
+      legalLine: LEGAL_LINE,
+      termsBody: defaultTermsBody(organizerName),
     },
-    game: defaultGameSettings(input.gameType),
-    prizeDisplay: {},
+    game: defaultGameSettings(campaign),
+    prizeDisplay: {}, // empty = the campaign prize names and messages
     features: { sound: true, animations: true, shareBonus: false },
   };
+  // Deep copy: the configuration shares no object with the presets, so editing it
+  // in the Studio can never alter the defaults.
+  return structuredClone(config);
 }

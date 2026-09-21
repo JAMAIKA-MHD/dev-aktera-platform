@@ -1,3 +1,4 @@
+import type { Campaign, PrizeTemplate } from "@/src/types";
 import type { GameType } from "./gameTypes";
 
 // What the runtime knows about a campaign. Never contains weights, stock, win probability,
@@ -42,4 +43,100 @@ export interface CampaignSnapshot {
   prizes: CampaignPrize[];
   quiz: CampaignQuizQuestion[]; // sorted by position
   rules: CampaignRules;
+}
+
+// Same defaults as the resolve_game_outcome RPC when game_logic_config has no value.
+// secondsPerQuestion and durationSeconds are not read by the RPC yet (plan §12.2).
+export const DEFAULT_RULES: Readonly<Required<CampaignRules>> = {
+  quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
+  hitIt: { winThreshold: 1, durationSeconds: 10 },
+};
+
+// Like the RPC, accepts numbers and numeric strings; anything else falls back to the default.
+function readNumber(config: unknown, key: string, fallback: number): number {
+  if (typeof config !== "object" || config === null) return fallback;
+  const value: unknown = (config as Record<string, unknown>)[key];
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildRules(campaign: Campaign): CampaignRules {
+  const config: unknown = campaign.gameLogicConfig;
+  if (campaign.gameType === "quiz") {
+    const defaults = DEFAULT_RULES.quiz;
+    return {
+      quiz: {
+        passThresholdPercent: readNumber(
+          config,
+          "pass_threshold_percentage",
+          defaults.passThresholdPercent,
+        ),
+        secondsPerQuestion: readNumber(
+          config,
+          "quiz_seconds_per_question",
+          defaults.secondsPerQuestion,
+        ),
+      },
+    };
+  }
+  if (campaign.gameType === "hit_it") {
+    const defaults = DEFAULT_RULES.hitIt;
+    return {
+      hitIt: {
+        winThreshold: readNumber(
+          config,
+          "win_threshold",
+          defaults.winThreshold,
+        ),
+        durationSeconds: readNumber(
+          config,
+          "hit_it_duration_seconds",
+          defaults.durationSeconds,
+        ),
+      },
+    };
+  }
+  return {};
+}
+
+// Reads the dashboard Campaign model (useCampaigns) without writing anything.
+// Campaign prizes carry no name: the database copies it from the prize template, so it is
+// looked up in the templates (usePrizeTemplates). win_message is not loaded by useCampaigns.
+// Weights, quantities, win probability and correct answers are deliberately left out.
+export function buildCampaignSnapshot(
+  campaign: Campaign,
+  prizeTemplates: readonly Pick<PrizeTemplate, "id" | "name">[] = [],
+): CampaignSnapshot {
+  const templateNames = new Map(
+    prizeTemplates.map((template) => [template.id, template.name]),
+  );
+  const prizes: CampaignPrize[] = [];
+  for (const prize of campaign.prizes) {
+    // A prize not saved yet has no id: the server could never return it as a win.
+    if (!prize.id) continue;
+    prizes.push({
+      id: prize.id,
+      name: templateNames.get(prize.templateId) ?? "",
+      winMessage: null,
+    });
+  }
+  return {
+    id: campaign.id,
+    name: campaign.name,
+    gameType: campaign.gameType,
+    status: campaign.status,
+    prizes,
+    // useCampaigns already keeps active questions only, sorted by position.
+    quiz: campaign.questions.map((question) => ({
+      id: question.id,
+      text: question.questionText,
+      options: [...question.options],
+    })),
+    rules: buildRules(campaign),
+  };
 }

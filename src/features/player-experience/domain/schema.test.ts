@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { WHEEL_HUB_LABEL } from "../presets/contentDefaults";
 import { createDefaultExperience } from "./defaults";
 import type { GameType } from "./gameTypes";
 import { experienceConfigSchema, parseExperienceConfig } from "./schema";
@@ -238,7 +239,8 @@ describe("parseExperienceConfig", () => {
     });
     const result = parseExperienceConfig(raw);
     expect(result.recovered).toBe(true);
-    expect(result.config.game.wheel?.hubLabel).toEqual({});
+    // Replaced by the default hub label, the rest of the wheel is kept.
+    expect(result.config.game.wheel?.hubLabel).toEqual(WHEEL_HUB_LABEL);
     expect(result.config.game.wheel?.segments[0].label).toEqual({
       fr: "5000 DA",
     });

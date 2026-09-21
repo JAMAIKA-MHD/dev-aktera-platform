@@ -140,6 +140,11 @@ export default [
                 "The domain must not import upper layers (services, runtime, studio): they depend on the domain, not the reverse.",
             },
             {
+              group: ["lucide-react", "**/presets/icons"],
+              message:
+                "The domain may read the pure-data presets, but not the icon components (React): use the names in domain/icons.ts.",
+            },
+            {
               group: ["@supabase/*", "**/lib/supabase"],
               message:
                 "The domain must not access Supabase: storage goes through ports in services/.",
