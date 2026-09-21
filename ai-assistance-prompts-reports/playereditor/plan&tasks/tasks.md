@@ -54,6 +54,7 @@
 | 13  | Édition des lots et des questions    | **Dans le Wizard** (source unique, lue par le serveur) ; le Studio les montre en lecture seule avec « Edit in campaign settings » et gère leur **présentation** (plan §6.6) |
 | 14  | Seuils, durée Hit It, chrono du quiz | **Règles de la campagne** (`game_logic_config`), hors `ExperienceConfig`                                                                                                    |
 | 15  | Accroche de pregame                  | **Simulation automatique non jouable**, une par mécanique, issue de la configuration (plan §8.7)                                                                            |
+| 16  | Thème des écrans joueur              | **Sombre par défaut** (preset `midnight-gold`, conforme à `CLAUDE.md`) ; styles clairs (`clean-light`, `retail-blue`) proposés en option — validé le 2026-09-21             |
 
 > **Révision du 2026-09-21 — responsive sur toutes les tailles d'écran.** Voir `plan.md` §8.3 et §9.3.
 >

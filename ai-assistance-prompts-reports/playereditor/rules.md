@@ -157,7 +157,7 @@ Pour une demande hors `tasks.md` (une correction, une question, un ajustement), 
 
 ### R9 — Décisions figées
 
-- Les 15 décisions de `tasks.md` §0.3 s'appliquent.
+- Les 16 décisions de `tasks.md` §0.3 s'appliquent.
 - En changer une demande **ton accord explicite**, puis la mise à jour de `plan.md` et de `tasks.md` **avant** tout code.
 
 ---

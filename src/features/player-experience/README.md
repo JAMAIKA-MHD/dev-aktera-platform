@@ -23,7 +23,7 @@ The rest of the app imports **only** from `index.ts`. ESLint enforces this rule.
 | `runtime/`           | What players see: layout, host, frame, screens, games | `domain`, `theme`, `presets`, `services/ports` | `studio`, concrete adapters (`services/local`)   |
 | `studio/`            | The editor                                            | the whole module                               | concrete adapters (injected by the provider)     |
 
-ESLint blocks two of these rules: deep imports from outside the module, and `services/local` imports inside `runtime/`.
+ESLint blocks three of these rules: deep imports from outside the module, `services/local` imports inside `runtime/`, and React, upper-layer or Supabase imports inside `domain/`.
 
 ## References
 

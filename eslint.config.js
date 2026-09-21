@@ -106,4 +106,47 @@ export default [
       ],
     },
   },
+  {
+    // Inside the domain: pure TypeScript, no UI, no I/O, no upper layer.
+    files: ["src/features/player-experience/domain/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "react",
+                "react/*",
+                "react-dom",
+                "react-dom/*",
+                "**/hooks/*",
+                "**/contexts/*",
+                "**/components/*",
+              ],
+              message:
+                "The domain must stay pure TypeScript: no React and no React-based app code.",
+            },
+            {
+              group: [
+                "**/services",
+                "**/services/*",
+                "**/runtime",
+                "**/runtime/*",
+                "**/studio",
+                "**/studio/*",
+              ],
+              message:
+                "The domain must not import upper layers (services, runtime, studio): they depend on the domain, not the reverse.",
+            },
+            {
+              group: ["@supabase/*", "**/lib/supabase"],
+              message:
+                "The domain must not access Supabase: storage goes through ports in services/.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
