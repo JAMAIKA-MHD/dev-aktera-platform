@@ -12,6 +12,8 @@ export default defineConfig((env) =>
       coverage: {
         provider: "v8",
         include: ["src/features/player-experience/{domain,services}/**"],
+        // Type-level proofs compiled by tsconfig.strict.json: nothing to run.
+        exclude: ["**/*.strict-check.ts"],
       },
     },
   }),

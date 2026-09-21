@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.strict.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

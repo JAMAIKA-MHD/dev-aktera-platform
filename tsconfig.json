@@ -24,6 +24,7 @@
     "old-ui-ode",
     "old-ui-code",
     "aktera---gamified-marketing-experience",
-    "coverage"
+    "coverage",
+    "src/**/*.strict-check.ts"
   ]
 }

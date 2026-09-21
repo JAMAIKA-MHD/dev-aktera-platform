@@ -11,7 +11,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T1.3  | Types de jeux et moment du tirage | Terminée | `feat(Player-Experience): declare game types and outcome timing table`                  | [T1.3-types-de-jeux-et-moment-du-tirage.md](./T1.3-types-de-jeux-et-moment-du-tirage.md) |
 | T1.4  | Types de la configuration         | Terminée | `feat(Player-Experience): define experience configuration types`                        | [T1.4-types-de-la-configuration.md](./T1.4-types-de-la-configuration.md)                 |
 | T1.5  | Contrat de participation          | Terminée | `feat(Player-Experience): define participation contract mirroring select-prize`         | [T1.5-contrat-de-participation.md](./T1.5-contrat-de-participation.md)                   |
+| T1.6  | Schéma de validation (zod)        | Terminée | `feat(Player-Experience): validate experience config with zod`                          | [T1.6-schema-de-validation-zod.md](./T1.6-schema-de-validation-zod.md)                   |
 
-À venir : T1.6 → T1.12.
+À venir : T1.7 → T1.12.
 
 Phase précédente : [phase 0 — Préparation](../phase_0/README.md).
