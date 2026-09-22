@@ -1,0 +1,217 @@
+/*
+ * The 8-slot frame (plan §8.3), imported by layout.css so that it can use the runtime's
+ * variants (split, tight, roomy, wide, compact) and their single source of breakpoints.
+ *
+ * One grid, and the same DOM in every arrangement: a rotation or a preview resize moves the
+ * slots, it never remounts them, so a game in progress (slot 5) keeps its state.
+ *   stack  one column, full width; from `wide`, centred and capped (--xp-column-max).
+ *   split  landscape: brand, texts and CTA on the start pane, the game on the end pane, the
+ *          footer below both. The stage is capped (about 1200 px); the background is not.
+ * Slots are placed by their data-xp-slot name, the names the layout audit reads (T3.8).
+ */
+
+@layer components {
+  .xp-frame {
+    --xp-gutter: clamp(1rem, 5vw, 1.5rem);
+    --xp-space: 1rem;
+    --xp-column-max: 40rem;
+    --xp-pane-start-max: 32rem;
+    --xp-pane-end-max: 40rem;
+    --xp-pane-gap: clamp(1.5rem, 4vw, 4rem);
+    /*
+     * Width of the text column, and the title size it allows: the design checks (T1.11)
+     * promise 22 characters per title line, about 12.5 em of Poppins ExtraBold. A title the
+     * Studio accepts is never cut on a desktop pane or a folded phone.
+     */
+    --xp-available: calc(
+      100vw - var(--xp-safe-left) - var(--xp-safe-right) - 2 * var(--xp-gutter)
+    );
+    --xp-text-width: min(var(--xp-column-max), var(--xp-available));
+    --xp-title-max: calc(var(--xp-text-width) / 12.5);
+
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+    /* Safe areas are physical insets (notch, home indicator): physical padding. */
+    padding: var(--xp-safe-top) var(--xp-safe-right)
+      calc(var(--xp-safe-bottom) + var(--xp-space)) var(--xp-safe-left);
+    grid-template-columns:
+      minmax(var(--xp-gutter), 1fr)
+      minmax(0, var(--xp-column-max))
+      minmax(var(--xp-gutter), 1fr);
+    grid-template-rows: auto auto auto auto 1fr auto auto auto auto;
+    grid-template-areas:
+      "header header header"
+      ". hero ."
+      ". title ."
+      ". copy ."
+      ". interaction ."
+      ". sections ."
+      ". reinforcement ."
+      ". cta ."
+      ". footer .";
+
+    @variant compact {
+      --xp-gutter: 0.75rem;
+    }
+    @variant tight {
+      --xp-space: 0.5rem;
+    }
+    @variant roomy {
+      --xp-space: 1.5rem;
+    }
+
+    /* Two panes; the spacer rows (1fr) centre the texts next to the game. */
+    @variant split {
+      /* Both panes grow evenly until the start pane reaches its cap. */
+      --xp-text-width: min(
+        var(--xp-pane-start-max),
+        (var(--xp-available) - var(--xp-pane-gap)) / 2
+      );
+      grid-template-columns:
+        minmax(var(--xp-gutter), 1fr)
+        minmax(0, var(--xp-pane-start-max))
+        var(--xp-pane-gap)
+        minmax(0, var(--xp-pane-end-max))
+        minmax(var(--xp-gutter), 1fr);
+      grid-template-rows: auto 1fr auto auto auto auto auto auto 1fr auto;
+      grid-template-areas:
+        ". header . interaction ."
+        ". . . interaction ."
+        ". hero . interaction ."
+        ". title . interaction ."
+        ". copy . interaction ."
+        ". sections . interaction ."
+        ". reinforcement . interaction ."
+        ". cta . interaction ."
+        ". . . interaction ."
+        ". footer footer footer .";
+    }
+  }
+
+  .xp-frame > [data-xp-slot] {
+    min-width: 0;
+  }
+
+  /* Full-bleed bar on a narrow phone; a floating capsule in the column or the start pane. */
+  .xp-frame > [data-xp-slot="header"] {
+    grid-area: header;
+    @variant wide {
+      grid-column: 2;
+      margin-top: var(--xp-space);
+    }
+    @variant split {
+      margin-top: var(--xp-space);
+    }
+  }
+  /* Header hidden by the screen: the status badge alone, on the end side of the column. */
+  .xp-frame > [data-xp-slot="status"] {
+    grid-area: header;
+    grid-column: 2;
+    margin-top: calc(var(--xp-space) * 0.5);
+  }
+  .xp-frame > [data-xp-slot="hero"] {
+    grid-area: hero;
+    margin-top: var(--xp-space);
+  }
+  .xp-frame > [data-xp-slot="title"] {
+    grid-area: title;
+    margin-top: calc(var(--xp-space) * 1.25);
+  }
+  .xp-frame > [data-xp-slot="copy"] {
+    grid-area: copy;
+    margin-top: calc(var(--xp-space) * 0.5);
+  }
+  .xp-frame > [data-xp-slot="interaction"] {
+    grid-area: interaction;
+    margin-top: var(--xp-space);
+    @variant split {
+      margin-bottom: var(--xp-space);
+    }
+  }
+  .xp-frame > [data-xp-slot="sections"] {
+    grid-area: sections;
+    margin-top: var(--xp-space);
+  }
+  .xp-frame > [data-xp-slot="reinforcement"] {
+    grid-area: reinforcement;
+    margin-top: var(--xp-space);
+  }
+  .xp-frame > [data-xp-slot="cta"] {
+    grid-area: cta;
+    margin-top: var(--xp-space);
+  }
+  .xp-frame > [data-xp-slot="footer"] {
+    grid-area: footer;
+    margin-top: var(--xp-space);
+  }
+
+  /* Motion (D10): transform and opacity only; staggered entrance of the slots on opening. */
+  .xp-frame [data-xp-rise] {
+    animation: xp-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--xp-rise-order, 0) * 70ms);
+  }
+  .xp-frame .xp-pop {
+    animation: xp-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .xp-frame .xp-ping {
+    animation: xp-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .xp-frame .xp-wiggle {
+    animation: xp-wiggle 2.6s ease-in-out infinite;
+  }
+  .xp-frame .xp-orbit {
+    animation: xp-orbit 3s linear infinite;
+  }
+
+  /*
+   * Reduced motion (system setting, or features.animations off): the frame's own motions
+   * stand still, in their final state. Games handle their own (useReducedMotion, T3.7).
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .xp-frame :is([data-xp-rise], .xp-pop, .xp-ping, .xp-wiggle, .xp-orbit) {
+      animation: none;
+    }
+  }
+  .xp-frame[data-xp-motion="off"]
+    :is([data-xp-rise], .xp-pop, .xp-ping, .xp-wiggle, .xp-orbit) {
+    animation: none;
+  }
+}
+
+@keyframes xp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+@keyframes xp-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes xp-ping {
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes xp-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes xp-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(14deg);
+  }
+  75% {
+    transform: rotate(-14deg);
+  }
+}

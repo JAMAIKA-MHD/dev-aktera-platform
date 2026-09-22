@@ -41,9 +41,26 @@ afterEach(() => {
 
 describe("fixtures", () => {
   it("offers the control pages of phase 3", () => {
-    expect(FIXTURE_NAMES).toEqual(["layout-debug", "theme-presets"]);
+    expect(FIXTURE_NAMES).toEqual([
+      "layout-debug",
+      "theme-presets",
+      "welcome-midnight-gold",
+      "frame-long-texts",
+      "frame-no-header",
+    ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
       "midnight-gold",
+    );
+    const welcome = getFixture("welcome-midnight-gold");
+    expect(welcome?.view).toBe("frame");
+    expect(welcome?.screen).toBe("welcome");
+    expect(welcome?.config.brand.name).toBe("Zeta Market");
+    const noHeader = getFixture("frame-no-header");
+    expect(noHeader?.screen).toBe("win");
+    expect(noHeader?.config.screens.win.showHeader).toBe(false);
+    // Built on demand: two reads never share an object.
+    expect(getFixture("frame-long-texts")?.config).not.toBe(
+      getFixture("frame-long-texts")?.config,
     );
     expect(getFixture("constructor")).toBeNull();
     expect(readFixtureLocale("ar")).toBe("ar");
@@ -86,8 +103,52 @@ describe("FrameHost", () => {
     render(<FrameHost />);
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
-      screen.getByText("Available: layout-debug, theme-presets"),
+      screen.getByText(
+        "Available: layout-debug, theme-presets, welcome-midnight-gold, frame-long-texts, frame-no-header",
+      ),
     ).toBeTruthy();
+  });
+
+  it("draws the frame fixtures, with the DEMO badge in the header", () => {
+    visit("?fixture=welcome-midnight-gold");
+    const { container, unmount } = render(<FrameHost />);
+    const header = container.querySelector('[data-xp-slot="header"]');
+    expect(header?.textContent).toContain("Zeta Market");
+    expect(header?.textContent).toContain("Demo");
+    expect(screen.getAllByText("Demo")).toHaveLength(1); // no floating badge
+    expect(container.querySelector('[data-xp-slot="title"]')?.textContent).toBe(
+      "Tournez la roue et tentez votre chance",
+    );
+    expect(screen.getByText("Lancer le jeu")).toBeTruthy(); // CTA stand-in
+    unmount();
+
+    visit("?fixture=frame-long-texts&locale=ar");
+    const long = render(<FrameHost />);
+    expect(
+      long.container
+        .querySelector('[data-xp-slot="header"] img')
+        ?.getAttribute("src"),
+    ).toBe("/aktera-logo.png");
+    expect(
+      long.container
+        .querySelector("[data-xp-hero]")
+        ?.getAttribute("data-xp-hero"),
+    ).toBe("gift");
+    long.unmount();
+
+    visit("?fixture=frame-no-header");
+    const noHeader = render(<FrameHost />);
+    expect(
+      noHeader.container.querySelector('[data-xp-slot="header"]'),
+    ).toBeNull();
+    expect(
+      noHeader.container.querySelector('[data-xp-slot="status"]')?.textContent,
+    ).toBe("Demo");
+    expect(
+      noHeader.container
+        .querySelector("[data-xp-hero]")
+        ?.getAttribute("data-xp-hero"),
+    ).toBe("trophy");
   });
 
   it("waits for the Studio by default", () => {

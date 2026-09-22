@@ -8,19 +8,20 @@ import {
 import type { CampaignSnapshot } from "../../domain/campaign";
 import { createDefaultExperience } from "../../domain/defaults";
 import type { Locale } from "../../domain/locale";
-import type { ExperienceConfig } from "../../domain/types";
+import type { ExperienceConfig, ScreenKey } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
 import { createLocalServices } from "../../services/createLocalServices";
 import type { ExperienceServices } from "../../services/ports";
 import { ensureFontStylesheet } from "../../theme/fonts";
-import { tint } from "../../theme/recipes";
 import { ThemeScope } from "../../theme/ThemeScope";
+import { StatusBadge } from "../frame/StatusBadge";
 import {
   ensureViewportFitCover,
   safeAreaStyle,
   type SafeAreaInsets,
 } from "../layout/safeArea";
 import { LayoutDebugView, ThemePresetsView } from "./DebugViews";
+import { FramePreview } from "./FramePreview";
 import {
   FIXTURE_NAMES,
   getFixture,
@@ -50,31 +51,22 @@ interface FrameContent {
   campaign: CampaignSnapshot;
   locale: Locale;
   view: FixtureView;
+  screen: ScreenKey; // drawn by the frame view
   safeArea?: SafeAreaInsets;
 }
 
-// On the end side of the reading direction: in Arabic, the text starts on the right.
-function DemoBadge() {
-  return (
-    <span
-      className="pointer-events-none fixed top-[calc(var(--xp-safe-top)+0.5rem)] end-[calc(max(var(--xp-safe-left),var(--xp-safe-right))+0.5rem)] z-50 rounded-full border px-2 py-0.5 text-[0.65rem] font-black uppercase tracking-[0.2em]"
-      style={{
-        color: "var(--xp-text)",
-        backgroundColor: tint("--xp-surface", 80),
-        borderColor: tint("--xp-primary", 50),
-      }}
-    >
-      Demo
-    </span>
-  );
-}
-
-// Until the player journey exists (T4.1), the frame shows the control views.
+// Until the player journey exists (T4.1), the frame shows the control views. The frame
+// view carries the DEMO badge in its header; the other views get a floating one.
 function Stage({ content }: { content: FrameContent }) {
   const { config, locale, view, safeArea } = content;
+  const { assets } = frameServices();
   const imageUrl = useMemo(
-    () => frameServices().assets.resolveUrl(config.theme.background.image),
-    [config.theme.background.image],
+    () => assets.resolveUrl(config.theme.background.image),
+    [assets, config.theme.background.image],
+  );
+  const logoUrl = useMemo(
+    () => assets.resolveUrl(config.brand.logo),
+    [assets, config.brand.logo],
   );
   useEffect(() => {
     ensureFontStylesheet(document, config.theme.font);
@@ -87,12 +79,23 @@ function Stage({ content }: { content: FrameContent }) {
         imageUrl={imageUrl}
         className="xp-runtime flex flex-col"
       >
-        {view === "theme-presets" ? (
-          <ThemePresetsView locale={locale} />
+        {view === "frame" ? (
+          <FramePreview
+            config={config}
+            locale={locale}
+            screen={content.screen}
+            logoUrl={logoUrl}
+          />
         ) : (
-          <LayoutDebugView />
+          <>
+            {view === "theme-presets" ? (
+              <ThemePresetsView locale={locale} />
+            ) : (
+              <LayoutDebugView />
+            )}
+            <StatusBadge label="Demo" floating />
+          </>
         )}
-        <DemoBadge />
       </ThemeScope>
     </div>
   );
@@ -161,7 +164,9 @@ export function BridgeFrame({
   if (!data) return <Message title="Waiting for the Studio…" />;
   return (
     <div onClickCapture={onClickCapture}>
-      <Stage content={{ ...data, ...ui, view: "layout-debug" }} />
+      <Stage
+        content={{ ...data, ...ui, view: "layout-debug", screen: "welcome" }}
+      />
     </div>
   );
 }
@@ -201,6 +206,7 @@ export function LocalFrame({ campaignId }: { campaignId: string | null }) {
         campaign: createDemoCampaign(config.game.type),
         locale: config.locales.default,
         view: "layout-debug",
+        screen: "welcome",
       }}
     />
   );

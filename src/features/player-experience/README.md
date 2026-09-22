@@ -46,6 +46,15 @@ and must work at every size from 280 to 2560 px wide and 320 to 1600 px high.
   `ms`/`me`, `text-start`).
 - **Safe areas**: pad with `--xp-safe-top|right|bottom|left`.
 
+## Theme rules (plan §8.2)
+
+- **No written colors** in `runtime/`: no hex value, no `rgb()`/`hsl()`, no Tailwind palette
+  class (`text-white`, `bg-slate-900`…). Use the theme variables (`var(--xp-primary)`…) and,
+  for transparency, `color-mix()` on them (`tint` in `theme/recipes.ts`).
+  `runtime/noHardcodedColors.test.ts` fails otherwise.
+- **Brand-typed text** gets `dir="auto"`; Arabic never gets letter spacing or capitals
+  (`runtime/frame/text.ts` reads the script from the text itself).
+
 ## References
 
 The planning documents are in French: `ai-assistance-prompts-reports/playereditor/`.

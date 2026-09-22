@@ -7,6 +7,9 @@
  * the Studio window instead of the simulated device.
  */
 
+/* The 8-slot frame's grid: imported here so that it can use the variants below. */
+@import "../frame/frame.css";
+
 @custom-variant compact (@media (max-width: 359px));
 @custom-variant wide (@media (min-width: 600px));
 @custom-variant split (@media (min-aspect-ratio: 6/5) and (min-width: 560px));
