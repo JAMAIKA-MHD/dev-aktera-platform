@@ -17,4 +17,4 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 **Bilan :** phase terminée le 2026-09-22. Le runtime a son thème (5 presets, aucune couleur écrite), une mise en page adaptative sur toute l'enveloppe (280 → 2560 × 320 → 1600 px), son document à lui (`/xp-frame`, pont d'aperçu), le cadre à 8 slots, les sections jackpot et chips, et ses retours sensoriels. Le balayage de T3.8 vérifie les 7 fixtures du cadre en fr, ar et en : 9 240 audits, 0 défaut, 0 message de console ; il a trouvé et fait corriger un faux avertissement latent du rapport en direct. Commits : T3.1 à T3.7 faits ; T3.8 proposé, non commité.
 
-Phase précédente : [phase 2 — Services et adaptateurs locaux](../phase_2/README.md). Phase suivante : phase 4 — Parcours et écrans (pas encore commencée).
+Phase précédente : [phase 2 — Services et adaptateurs locaux](../phase_2/README.md). Phase suivante : [phase 4 — Parcours et écrans](../phase_4/README.md).

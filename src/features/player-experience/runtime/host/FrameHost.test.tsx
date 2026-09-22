@@ -6,6 +6,7 @@ import { createLocalServices } from "../../services/createLocalServices";
 import { BridgeFrame, FrameHost, LocalFrame } from "./FrameHost";
 import { disposeConfetti } from "../feedback/confetti";
 import { FeedbackDebugView } from "./FeedbackDebugView";
+import { frameScreen } from "./FrameExperience";
 import { FIXTURE_NAMES, getFixture, readFixtureLocale } from "./fixtures";
 
 const confetti = vi.hoisted(() => {
@@ -48,7 +49,7 @@ afterEach(() => {
 });
 
 describe("fixtures", () => {
-  it("offers the control pages of phase 3", () => {
+  it("offers the control pages of phases 3 and 4", () => {
     expect(FIXTURE_NAMES).toEqual([
       "layout-debug",
       "theme-presets",
@@ -60,6 +61,8 @@ describe("fixtures", () => {
       "frame-cta-loading",
       "frame-cta-disabled",
       "frame-no-header",
+      "flow-welcome",
+      "flow-gateway-refused",
     ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
       "midnight-gold",
@@ -122,7 +125,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header",
+        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused",
       ),
     ).toBeTruthy();
   });
@@ -264,7 +267,8 @@ describe("FrameHost", () => {
     await createLocalServices().repository.save(config);
     visit("?source=local");
     const { container } = render(<FrameHost />);
-    expect(await screen.findByTestId("layout-mode")).toBeTruthy();
+    expect(await screen.findByText("Commencer le quiz")).toBeTruthy(); // its journey
+    expect(screen.getByText("Demo")).toBeTruthy();
     expect(
       container.querySelector(".xp-runtime")?.getAttribute("data-xp-mode"),
     ).toBe("light");
@@ -321,20 +325,61 @@ describe("BridgeFrame", () => {
       config: createDefaultExperience({ gameType: "quiz" }),
       campaign: createDemoCampaign("quiz"),
     });
-    const editable = document.createElement("span");
-    editable.setAttribute("data-xp-edit", "screens.welcome.title");
-    const inner = document.createElement("b");
-    editable.appendChild(inner);
-    container.querySelector("main")?.appendChild(editable);
-    fireEvent.click(inner);
-    fireEvent.click(container.querySelector("main") as HTMLElement); // not editable
-    // (The live layout report may also have gone out: it is tested in layoutReport.test.tsx.)
+    fireEvent.click(screen.getByText("Relevez le quiz express")); // the title
+    fireEvent.click(container.querySelector(".xp-frame") as HTMLElement); // not editable
     expect(
-      posted.filter((message) => message.type !== "xp:layout-report"),
+      posted.filter((message) => message.type === "xp:edit-target"),
+    ).toEqual([{ type: "xp:edit-target", path: "screens.welcome.title" }]);
+  });
+
+  it("plays the journey and tells the Studio each screen shown", () => {
+    const { bridge, posted, send } = fakeBridge();
+    render(<BridgeFrame bridge={bridge} />);
+    send({
+      type: "xp:config",
+      config: createDefaultExperience({ gameType: "lucky_wheel" }),
+      campaign: createDemoCampaign("lucky_wheel"),
+    });
+    expect(screen.getByText("Demo")).toBeTruthy(); // demo gateway by default
+    fireEvent.click(screen.getByText("Lancer le jeu"));
+    expect(
+      posted.filter((message) => message.type === "xp:flow-event"),
     ).toEqual([
-      { type: "xp:ready" },
-      { type: "xp:edit-target", path: "screens.welcome.title" },
+      { type: "xp:flow-event", screen: "welcome" },
+      { type: "xp:flow-event", screen: "register" },
     ]);
+  });
+
+  it("follows the preview bar: screen, scripted scenario, still screen and restart", () => {
+    const { bridge, posted, send } = fakeBridge();
+    render(<BridgeFrame bridge={bridge} />);
+    send({
+      type: "xp:config",
+      config: createDefaultExperience({ gameType: "lucky_wheel" }),
+      campaign: createDemoCampaign("lucky_wheel"),
+    });
+    const ui = {
+      type: "xp:ui" as const,
+      screen: null,
+      locale: "fr" as const,
+      mode: "demo" as const,
+      restartKey: 0,
+    };
+    // The Status tab shows the screen of the scripted scenario.
+    send({ ...ui, mode: "scripted", scenario: "duplicate", screen: "status" });
+    expect(screen.getByText("Déjà joué !")).toBeTruthy();
+    expect(posted.at(-1)).toEqual({
+      type: "xp:flow-event",
+      screen: "duplicate",
+    });
+    // A still screen with no tab chosen: the welcome screen.
+    send({ ...ui, mode: "static" });
+    expect(screen.getByText("Lancer le jeu")).toBeTruthy();
+    fireEvent.click(screen.getByText("Lancer le jeu"));
+    expect(screen.getByText("Vos coordonnées")).toBeTruthy();
+    // A new restartKey starts the journey again.
+    send({ ...ui, mode: "static", restartKey: 1 });
+    expect(screen.getByText("Lancer le jeu")).toBeTruthy();
   });
 
   it("stops listening when unmounted", () => {
@@ -350,10 +395,43 @@ describe("BridgeFrame", () => {
   });
 });
 
+describe("frameScreen", () => {
+  it("maps the Studio's tabs to the screens of the journey", () => {
+    expect(frameScreen(null)).toBeUndefined();
+    expect(frameScreen("win")).toBe("win");
+    expect(frameScreen("status", "duplicate")).toBe("duplicate");
+    expect(frameScreen("status", "closed")).toBe("closed");
+    expect(frameScreen("status", "network-error")).toBe("error");
+    expect(frameScreen("status")).toBe("error");
+  });
+});
+
+describe("journey fixtures", () => {
+  it("plays the journey from its start", () => {
+    visit("?fixture=flow-welcome&locale=ar");
+    const { container } = render(<FrameHost />);
+    expect(screen.getByText("ابدأ اللعب")).toBeTruthy();
+    expect(container.querySelector(".xp-runtime")?.getAttribute("dir")).toBe(
+      "rtl",
+    );
+    fireEvent.click(screen.getByText("ابدأ اللعب"));
+    expect(screen.getByText("بياناتك")).toBeTruthy();
+  });
+
+  it("shows the refusal screen of a page that only accepts the live gateway", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    visit("?fixture=flow-gateway-refused");
+    render(<FrameHost />);
+    expect(screen.getByText("Jeu indisponible")).toBeTruthy();
+    expect(error).toHaveBeenCalledOnce();
+    error.mockRestore();
+  });
+});
+
 describe("LocalFrame", () => {
   it("shows the demo configuration when nothing is saved, and follows saves live", async () => {
     const { container } = render(<LocalFrame campaignId={null} />);
-    await screen.findByTestId("layout-mode");
+    await screen.findByText("Lancer le jeu"); // the demo journey
     const root = () => container.querySelector(".xp-runtime") as HTMLElement;
     expect(root().style.getPropertyValue("--xp-primary")).toBe("#F5BA41");
     await createLocalServices().repository.save(

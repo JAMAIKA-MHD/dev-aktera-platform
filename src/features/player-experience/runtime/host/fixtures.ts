@@ -1,10 +1,13 @@
 import type { CampaignSnapshot } from "../../domain/campaign";
+import type { FlowScreen } from "../../domain/flow";
 import { createDefaultExperience } from "../../domain/defaults";
 import type { GameType } from "../../domain/gameTypes";
 import { localized, type Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenKey } from "../../domain/types";
 import { defaultTermsBody } from "../../presets/contentDefaults";
 import { createDemoCampaign } from "../../presets/demoCampaign";
+import type { ScriptedScenario } from "../../services/createLocalServices";
+import type { GatewayMode } from "../../services/ports";
 import type { FramePreviewState } from "./FramePreview";
 
 // Fixed configurations rendered by /xp-frame?fixture=<name>: control pages for the
@@ -12,7 +15,15 @@ import type { FramePreviewState } from "./FramePreview";
 // Each task of phases 3 to 5 adds its own fixtures. Brand names are fictional.
 
 export type FixtureView =
-  "layout-debug" | "theme-presets" | "feedback-debug" | "frame";
+  "layout-debug" | "theme-presets" | "feedback-debug" | "frame" | "flow";
+
+// The journey of the flow view: PlayerExperience on local services (FrameExperience).
+export interface FlowFixture {
+  gateway: "demo" | "scripted";
+  scenario?: ScriptedScenario;
+  initialScreen?: FlowScreen;
+  allowedGatewayModes?: readonly GatewayMode[];
+}
 
 export interface Fixture {
   view: FixtureView;
@@ -21,6 +32,7 @@ export interface Fixture {
   campaign: CampaignSnapshot;
   screen: ScreenKey; // screen drawn by the frame view
   state?: FramePreviewState; // what the flow and the game would give the frame
+  flow: FlowFixture; // read by the flow view only
 }
 
 interface FixtureOptions {
@@ -28,6 +40,7 @@ interface FixtureOptions {
   presetId?: string;
   screen?: ScreenKey;
   state?: FramePreviewState;
+  flow?: FlowFixture;
   customize?: (config: ExperienceConfig) => void;
 }
 
@@ -48,6 +61,7 @@ function fixture(
       campaign,
       screen: options.screen ?? "welcome",
       state: options.state,
+      flow: options.flow ?? { gateway: "scripted" },
     };
   };
 }
@@ -212,6 +226,19 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
         zetaMarket(config);
         config.screens.win.showHeader = false;
       },
+    },
+  ),
+  "flow-welcome": fixture(
+    "flow",
+    "The player journey from its start (scripted gateway: a loss)",
+    { customize: zetaMarket, flow: { gateway: "scripted", scenario: "lose" } },
+  ),
+  "flow-gateway-refused": fixture(
+    "flow",
+    "A page that only accepts the live gateway, given a demo one: no game",
+    {
+      customize: zetaMarket,
+      flow: { gateway: "demo", allowedGatewayModes: ["live"] },
     },
   ),
 };

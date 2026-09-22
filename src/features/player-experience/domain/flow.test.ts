@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "./defaults";
 import {
+  buildDrawRequest,
   canSubmit,
   createInitialFlowState,
+  createPreviewFlowState,
   flowReducer,
   nextCommand,
   outcomeTimingFor,
+  PREVIEW_COUPON_CODE,
   type FlowEvent,
   type FlowState,
 } from "./flow";
@@ -511,5 +514,162 @@ describe("purity", () => {
     expect(now).not.toHaveBeenCalled();
     expect(random).not.toHaveBeenCalled();
     expect(uuid).not.toHaveBeenCalled();
+  });
+});
+
+describe("buildDrawRequest", () => {
+  const input = {
+    campaignId: "campaign-1",
+    form: FORM,
+    locale: "ar" as const,
+    humanToken: null,
+    context: {
+      sessionId: "sess_1",
+      dwellTimeSeconds: 42,
+      userAgent: "test",
+      source: "studio_preview" as const,
+    },
+  };
+
+  it("sends what the player gave: normalized phone, filled fields, consent record", () => {
+    const filled = run(
+      createInitialFlowState("lucky_wheel", { startedAt: T0 }),
+      ...FILL,
+      { type: "UPDATE_FIELD", field: "wilaya", value: "  " }, // optional, left blank
+      { type: "UPDATE_FIELD", field: "email", value: "amina@example.dz" }, // field off
+      SUBMIT,
+      { type: "DRAW_STARTED" },
+    );
+    expect(buildDrawRequest(filled, input)).toEqual({
+      clientRequestId: "request-1",
+      campaignId: "campaign-1",
+      participant: { phone: "0541234567", fullName: "Amina B." },
+      consent: {
+        accepted: true,
+        acceptedAt: new Date(T0 + 5_000).toISOString(),
+        policyVersion: FORM.consent.policyVersion,
+        locale: "ar",
+      },
+      gamePayload: { kind: "none" },
+      humanToken: null,
+      context: input.context,
+    });
+  });
+
+  it("keeps the payload of the player's interaction", () => {
+    expect(buildDrawRequest(resolving("hit_it"), input)?.gamePayload).toEqual({
+      kind: "hitIt",
+      hits: 9,
+    });
+  });
+
+  it("never sends an incomplete attempt", () => {
+    const ready = resolving();
+    const incomplete: FlowState[] = [
+      { ...ready, consentAccepted: false },
+      { ...ready, consentAcceptedAt: null },
+      { ...ready, participant: { ...ready.participant, phone: "0123" } },
+      { ...ready, clientRequestId: null },
+      { ...ready, gamePayload: null },
+    ];
+    for (const state of incomplete) {
+      expect(buildDrawRequest(state, input)).toBeNull();
+    }
+  });
+
+  it("reads no clock", () => {
+    const now = vi.spyOn(Date, "now");
+    buildDrawRequest(resolving(), input);
+    expect(now).not.toHaveBeenCalled();
+  });
+});
+
+describe("createPreviewFlowState", () => {
+  const campaign = {
+    gameType: "lucky_wheel" as GameType,
+    quiz: [],
+    prizes: [
+      { id: "prize-1", name: "Bon d'achat", winMessage: "Bravo !" },
+      { id: "prize-2", name: "Casquette", winMessage: null },
+    ],
+  };
+  const options = { startedAt: T0, clientRequestId: "preview-1" };
+  const at = (screen: FlowState["screen"], from = campaign) =>
+    createPreviewFlowState(screen, from, options);
+
+  it("starts the welcome and registration screens empty", () => {
+    const initial = createInitialFlowState("lucky_wheel", { startedAt: T0 });
+    expect(at("welcome")).toEqual(initial);
+    expect(at("register")).toEqual({ ...initial, screen: "register" });
+  });
+
+  it("opens an attempt for the game screens, without any detail nor consent", () => {
+    expect(at("play")).toMatchObject({
+      screen: "play",
+      clientRequestId: "preview-1",
+      gamePayload: null,
+      consentAccepted: false,
+    });
+    expect(at("resolving")).toMatchObject({
+      screen: "resolving",
+      gamePayload: { kind: "none" },
+    });
+  });
+
+  it("shows the first prize of the campaign with a DEMO code on a win", () => {
+    const outcome = {
+      isWinner: true,
+      prize: { id: "prize-1", name: "Bon d'achat", winMessage: "Bravo !" },
+      couponCode: PREVIEW_COUPON_CODE,
+    };
+    expect(at("win")).toMatchObject({
+      screen: "win",
+      entryId: "preview-1",
+      outcome,
+    });
+    expect(at("revealing")).toMatchObject({ screen: "revealing", outcome });
+    expect(PREVIEW_COUPON_CODE).toMatch(/^DEMO-\w{4}-\w{4}$/);
+  });
+
+  it("shows a loss, and a campaign without prizes can only lose", () => {
+    const loss = { isWinner: false, prize: null, couponCode: null };
+    expect(at("lose")).toMatchObject({ screen: "lose", outcome: loss });
+    expect(at("win", { ...campaign, prizes: [] })).toMatchObject({
+      screen: "lose",
+      outcome: loss,
+    });
+  });
+
+  it("gives each status screen its error", () => {
+    expect(at("duplicate").error?.code).toBe("ALREADY_PARTICIPATED");
+    expect(at("closed").error?.code).toBe("CAMPAIGN_CLOSED");
+    expect(at("error").error?.code).toBe("NETWORK");
+  });
+
+  it("follows the timing of the campaign", () => {
+    expect(at("play", { ...campaign, gameType: "quiz" }).timing).toBe(
+      "before-animation", // a quiz without questions is drawn at once
+    );
+  });
+
+  it("never lets a draw started from a forced screen go out", () => {
+    const input = {
+      campaignId: "campaign-1",
+      form: FORM,
+      locale: "fr" as const,
+      humanToken: null,
+      context: {
+        sessionId: "s",
+        dwellTimeSeconds: 0,
+        userAgent: "test",
+        source: "studio_preview" as const,
+      },
+    };
+    const started = flowReducer(at("play"), { type: "DRAW_STARTED" });
+    expect(started.screen).toBe("resolving");
+    expect(buildDrawRequest(started, input)).toBeNull();
+    const retried = flowReducer(at("error"), { type: "RETRY" });
+    expect(retried.screen).toBe("resolving");
+    expect(buildDrawRequest(retried, input)).toBeNull();
   });
 });

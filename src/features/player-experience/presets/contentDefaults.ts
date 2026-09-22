@@ -229,6 +229,17 @@ export const STATUS_TEXT = {
   errorTitle: localized("Oups !", "عذراً!", "Oops!"),
   retry: localized("Réessayer", "أعد المحاولة", "Try again"),
   back: localized("Retour", "رجوع", "Back"),
+  // The page was given a participation gateway it must not use (allowedGatewayModes).
+  unavailableTitle: localized(
+    "Jeu indisponible",
+    "اللعبة غير متاحة",
+    "Game unavailable",
+  ),
+  unavailableBody: localized(
+    "Ce jeu n'est pas disponible pour le moment. Revenez un peu plus tard.",
+    "هذه اللعبة غير متاحة حالياً. عُد لاحقاً.",
+    "This game is not available right now. Please come back later.",
+  ),
 } as const satisfies Record<string, LocalizedText>;
 
 // Texts of the 8-slot frame itself, which brands do not edit. Placeholder: {name}.

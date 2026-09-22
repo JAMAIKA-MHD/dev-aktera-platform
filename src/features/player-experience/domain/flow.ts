@@ -1,12 +1,15 @@
 import type { CampaignSnapshot } from "./campaign";
 import { OUTCOME_TIMING, type GameType, type OutcomeTiming } from "./gameTypes";
+import type { Locale } from "./locale";
 import {
   isRetryable,
   type DrawOutcome,
+  type DrawRequest,
   type GamePayload,
   type ParticipationError,
+  type ParticipationErrorCode,
 } from "./participation";
-import { isValidDzMobile } from "./phone";
+import { isValidDzMobile, normalizeDzPhone } from "./phone";
 import type { FormConfig } from "./types";
 
 // Player journey as a pure state machine (plan §6.1). No network, no clock, no randomness:
@@ -263,4 +266,112 @@ export function nextCommand(
   if (next.screen === "resolving" && prev.screen !== "resolving") return "DRAW";
   if (next.couponConfirmed && !prev.couponConfirmed) return "CONFIRM";
   return null;
+}
+
+export interface DrawRequestInput {
+  campaignId: string;
+  form: FormConfig;
+  locale: Locale; // recorded with the consent
+  humanToken: string | null;
+  context: DrawRequest["context"];
+}
+
+// The request of the attempt in progress (plan §7.2). Only what the player gave is sent: the
+// enabled fields they filled in, the normalized phone, and their consent as a record (Law
+// 18-07). Null when the attempt is incomplete (no consent, no valid phone, no request id or
+// payload): such a participation is never sent.
+export function buildDrawRequest(
+  state: FlowState,
+  input: DrawRequestInput,
+): DrawRequest | null {
+  const { clientRequestId, gamePayload, consentAcceptedAt } = state;
+  if (
+    !state.consentAccepted ||
+    consentAcceptedAt === null ||
+    !clientRequestId ||
+    !gamePayload ||
+    !isValidDzMobile(state.participant.phone)
+  ) {
+    return null;
+  }
+  const participant: DrawRequest["participant"] = {
+    phone: normalizeDzPhone(state.participant.phone),
+  };
+  for (const field of input.form.fields) {
+    if (!field.enabled || field.key === "phone") continue;
+    const value = state.participant[field.key].trim();
+    if (value) participant[field.key] = value;
+  }
+  return {
+    clientRequestId,
+    campaignId: input.campaignId,
+    participant,
+    consent: {
+      accepted: true,
+      acceptedAt: new Date(consentAcceptedAt).toISOString(),
+      policyVersion: input.form.consent.policyVersion,
+      locale: input.locale,
+    },
+    gamePayload,
+    humanToken: input.humanToken,
+    context: input.context,
+  };
+}
+
+// Code shown by a forced win screen: a DEMO code, so it can never pass for a real one (B6).
+export const PREVIEW_COUPON_CODE = "DEMO-0000-0000";
+
+const PREVIEW_ERRORS: Partial<Record<FlowScreen, ParticipationErrorCode>> = {
+  duplicate: "ALREADY_PARTICIPATED",
+  closed: "CAMPAIGN_CLOSED",
+  error: "NETWORK",
+};
+
+// Starting state of a screen forced by the Studio preview (PlayerExperience initialScreen).
+// Nothing is drawn: a win shows the first prize of the campaign with a DEMO code (a campaign
+// without prizes can only lose), and the player has given no details nor consent, so a draw
+// started from here goes back to the form (buildDrawRequest). The runtime refuses forced
+// screens with a live gateway.
+export function createPreviewFlowState(
+  screen: FlowScreen,
+  campaign: Pick<CampaignSnapshot, "gameType" | "quiz" | "prizes">,
+  options: { startedAt: number; clientRequestId: string },
+): FlowState {
+  const base = createInitialFlowState(campaign.gameType, {
+    startedAt: options.startedAt,
+    timing: outcomeTimingFor(campaign),
+  });
+  if (screen === "welcome" || screen === "register") return { ...base, screen };
+  const attempt: FlowState = {
+    ...base,
+    screen,
+    clientRequestId: options.clientRequestId,
+    gamePayload: screen === "play" ? null : { kind: "none" },
+  };
+  const code = PREVIEW_ERRORS[screen];
+  if (code) {
+    return {
+      ...attempt,
+      error: { code, message: `Preview of the ${screen} screen.` },
+    };
+  }
+  if (screen === "play" || screen === "resolving") return attempt;
+  const prize = campaign.prizes[0];
+  const isWinner = screen !== "lose" && prize !== undefined;
+  return {
+    ...attempt,
+    screen: screen === "revealing" ? "revealing" : isWinner ? "win" : "lose",
+    entryId: options.clientRequestId,
+    outcome: isWinner
+      ? {
+          isWinner,
+          prize: {
+            id: prize.id,
+            name: prize.name,
+            winMessage: prize.winMessage,
+          },
+          couponCode: PREVIEW_COUPON_CODE,
+        }
+      : { isWinner: false, prize: null, couponCode: null },
+  };
 }

@@ -4,10 +4,8 @@ import { createDefaultExperience } from "../../domain/defaults";
 import type { Locale } from "../../domain/locale";
 import type { ExperienceConfig } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
-import {
-  ensureViewportFitCover,
-  type SafeAreaInsets,
-} from "../layout/safeArea";
+import { ensureViewportFitCover } from "../layout/safeArea";
+import { FrameExperience, frameScreen } from "./FrameExperience";
 import { FIXTURE_NAMES, getFixture, readFixtureLocale } from "./fixtures";
 import { exposeLayoutAudit, useLayoutReport } from "./layoutReport";
 import {
@@ -34,10 +32,24 @@ function FixtureFrame({ name, locale }: { name: string; locale: Locale }) {
       </Message>
     );
   }
+  if (fixture.view === "flow") {
+    return (
+      <FrameExperience
+        config={fixture.config}
+        campaign={fixture.campaign}
+        locale={locale}
+        {...fixture.flow}
+      />
+    );
+  }
   return <Stage content={{ ...fixture, locale }} />;
 }
 
-// Studio preview: waits for the configuration sent by the Studio.
+type UiMessage = Extract<ToFrameMessage, { type: "xp:ui" }>;
+
+// Studio preview: waits for the configuration sent by the Studio, then plays the journey as
+// its preview bar says: full flow on the demo gateway, a scripted outcome, or a still screen
+// (scripted, started on the chosen tab). A new restartKey starts the journey again.
 export function BridgeFrame({
   bridge: injected,
 }: {
@@ -52,8 +64,11 @@ export function BridgeFrame({
     config: ExperienceConfig;
     campaign: CampaignSnapshot;
   } | null>(null);
-  const [ui, setUi] = useState<{ locale: Locale; safeArea?: SafeAreaInsets }>({
+  const [ui, setUi] = useState<Omit<UiMessage, "type">>({
+    screen: null,
     locale: "fr",
+    mode: "demo",
+    restartKey: 0,
   });
 
   useEffect(() => {
@@ -61,7 +76,8 @@ export function BridgeFrame({
       if (message.type === "xp:config") {
         setData({ config: message.config, campaign: message.campaign });
       } else {
-        setUi({ locale: message.locale, safeArea: message.safeArea });
+        const { type: _type, ...next } = message;
+        setUi(next);
       }
     });
     // Sent after subscribing: the Studio only posts once it has heard from the frame.
@@ -86,14 +102,26 @@ export function BridgeFrame({
   if (!data) return <Message title="Waiting for the Studio…" />;
   return (
     <div onClickCapture={onClickCapture}>
-      <Stage
-        content={{ ...data, ...ui, view: "layout-debug", screen: "welcome" }}
+      <FrameExperience
+        key={ui.restartKey}
+        config={data.config}
+        campaign={data.campaign}
+        locale={ui.locale}
+        safeArea={ui.safeArea}
+        gateway={ui.mode === "demo" ? "demo" : "scripted"}
+        scenario={ui.scenario}
+        initialScreen={frameScreen(
+          ui.mode === "static" ? (ui.screen ?? "welcome") : ui.screen,
+          ui.scenario,
+        )}
+        onFlowEvent={(screen) => bridge.post({ type: "xp:flow-event", screen })}
       />
     </div>
   );
 }
 
-// "Open in new window": reads the saved configuration and follows its changes live.
+// "Open in new window": reads the saved configuration, follows its changes live, and plays
+// the demo journey.
 export function LocalFrame({ campaignId }: { campaignId: string | null }) {
   const [config, setConfig] = useState<ExperienceConfig | null>(null);
   useEffect(() => {
@@ -122,14 +150,11 @@ export function LocalFrame({ campaignId }: { campaignId: string | null }) {
 
   if (!config) return <Message title="Loading…" />;
   return (
-    <Stage
-      content={{
-        config,
-        campaign: createDemoCampaign(config.game.type),
-        locale: config.locales.default,
-        view: "layout-debug",
-        screen: "welcome",
-      }}
+    <FrameExperience
+      config={config}
+      campaign={createDemoCampaign(config.game.type)}
+      locale={config.locales.default}
+      gateway="demo"
     />
   );
 }

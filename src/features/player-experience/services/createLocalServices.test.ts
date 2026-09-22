@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "../domain/defaults";
+import { createDemoCampaign } from "../presets/demoCampaign";
 import type { DrawRequest } from "../domain/participation";
 import * as publicApi from "../index";
 import { createLocalServices } from "./createLocalServices";
@@ -108,6 +109,21 @@ describe("createLocalServices", () => {
       open: true,
     });
     expect(await participation.checkAvailability("demo-campaign")).toEqual({
+      open: false,
+      reason: "CLOSED",
+    });
+  });
+
+  it("builds standalone rules from the campaign previewed", async () => {
+    const campaign = { ...createDemoCampaign("quiz"), id: "campaign-2" };
+    const { participation } = createLocalServices({ campaign });
+    expect(await participation.checkAvailability("campaign-2")).toEqual({
+      open: true,
+    });
+    const closed = createLocalServices({
+      campaign: { ...campaign, status: "paused" },
+    }).participation;
+    expect(await closed.checkAvailability("campaign-2")).toEqual({
       open: false,
       reason: "CLOSED",
     });

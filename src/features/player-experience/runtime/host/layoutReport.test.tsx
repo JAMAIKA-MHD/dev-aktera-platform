@@ -158,12 +158,20 @@ describe("xp:layout-report", () => {
       }),
     );
     act(() => vi.advanceTimersByTime(REPORT_DELAY_MS));
-    expect(posted.at(-1)).toMatchObject({
+    const report = posted.at(-1);
+    expect(report).toMatchObject({
       type: "xp:layout-report",
       width: 1024,
       height: 768,
       mode: { arrangement: "split", density: "regular" },
-      issues: [],
     });
+    // jsdom lays nothing out: every box is 0 x 0, so the CTA of the journey's welcome screen
+    // reads as too small. Proof that the audit runs on the real frame, with the field to open.
+    expect(report?.type === "xp:layout-report" && report.issues).toContainEqual(
+      expect.objectContaining({
+        kind: "cta-too-small",
+        editPath: "screens.welcome.primaryCta",
+      }),
+    );
   });
 });

@@ -1,3 +1,4 @@
+import type { CampaignSnapshot } from "../domain/campaign";
 import { DEFAULT_GAME_TYPE } from "../domain/defaults";
 import { createDemoCampaign } from "../presets/demoCampaign";
 import { createConsoleAnalyticsTracker } from "./local/consoleAnalyticsTracker";
@@ -23,8 +24,10 @@ export type { ScriptedScenario };
 
 export interface LocalServicesOptions {
   participation?: "demo" | "scripted"; // default: "demo"
-  // Draw rules of the campaign being edited (buildDemoRules). Default: the demo campaign.
+  // Draw rules of the campaign being edited (buildDemoRules). Without them, standalone demo
+  // rules are built from `campaign`: the campaign previewed, by default the demo campaign.
   rules?: DemoCampaignRules;
+  campaign?: CampaignSnapshot;
   scenario?: ScriptedScenario; // for "scripted"; default: "lose"
 }
 
@@ -33,7 +36,9 @@ export function createLocalServices(
 ): ExperienceServices {
   const rules =
     options.rules ??
-    buildStandaloneDemoRules(createDemoCampaign(DEFAULT_GAME_TYPE));
+    buildStandaloneDemoRules(
+      options.campaign ?? createDemoCampaign(DEFAULT_GAME_TYPE),
+    );
   const participation =
     options.participation === "scripted"
       ? createScriptedParticipationGateway({
