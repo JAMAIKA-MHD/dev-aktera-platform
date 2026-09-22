@@ -319,6 +319,22 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       },
     },
   ),
+  "flow-win": fixture(
+    "flow",
+    "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",
+    {
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose", initialScreen: "win" },
+    },
+  ),
+  "flow-lose": fixture(
+    "flow",
+    "A warm consolation and a single share button, no bonus try (T4.4)",
+    {
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose", initialScreen: "lose" },
+    },
+  ),
 };
 
 export const FIXTURE_NAMES = Object.keys(FIXTURES);

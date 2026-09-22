@@ -1,18 +1,13 @@
 import { Sparkles } from "lucide-react";
 import type { JackpotSection } from "../../domain/types";
 import { ICON_COMPONENTS } from "../../presets/icons";
-import { tint } from "../../theme/recipes";
+import { BRAND_INK, tint } from "../../theme/recipes";
 import { spacedCaps } from "../frame/text";
 
 // The "GRAND JACKPOT" card of the reference welcome screen (prototype WelcomeTeaser): a
 // glowing pill in the brand color that breathes gently, its icon, a spaced eyebrow, the
 // headline and an optional badge. Every text comes from the configuration. The headline
 // keeps at least 9rem: on a narrow phone the badge goes under it instead of squeezing it.
-
-// Brand color pulled toward the text color: an ink that stays readable on the surface,
-// whatever the brand color (a pale yellow on white, a deep blue on navy).
-export const BRAND_INK =
-  "color-mix(in srgb, var(--xp-primary) 70%, var(--xp-text))";
 
 export function JackpotCard({
   section,

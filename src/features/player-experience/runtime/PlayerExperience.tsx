@@ -8,12 +8,14 @@ import { useExperienceServices } from "../services/ServicesProvider";
 import { ensureFontStylesheet } from "../theme/fonts";
 import { ThemeScope } from "../theme/ThemeScope";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
+import { LoseScreen } from "./screens/LoseScreen";
 import { PendingScreen } from "./screens/PendingScreen";
 import { RegisterScreen } from "./screens/RegisterScreen";
 import { ResolvingScreen } from "./screens/ResolvingScreen";
 import type { FrameChrome, ScreenProps } from "./screens/screenProps";
 import { StatusScreen } from "./screens/StatusScreen";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
+import { WinScreen } from "./screens/WinScreen";
 import { useExperienceFlow, type DrawSource } from "./useExperienceFlow";
 
 // Root of the player runtime (plan §8.1): one render mode, the full document. The Studio and
@@ -129,5 +131,7 @@ function Journey({
   if (screen === "duplicate" || screen === "closed" || screen === "error") {
     return <StatusScreen {...props} />;
   }
+  if (screen === "win") return <WinScreen {...props} />;
+  if (screen === "lose") return <LoseScreen {...props} />;
   return <PendingScreen {...props} />;
 }

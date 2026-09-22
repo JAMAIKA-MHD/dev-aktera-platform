@@ -33,3 +33,8 @@ export const cardStyle: CSSProperties = {
   borderColor: tint("--xp-text", 10),
   borderRadius: "var(--xp-radius-lg)",
 };
+
+// Brand color pulled toward the text color: an ink that stays readable on a card or a
+// glass surface, whatever the brand color (a pale yellow on white, a deep blue on navy).
+export const BRAND_INK =
+  "color-mix(in srgb, var(--xp-primary) 70%, var(--xp-text))";

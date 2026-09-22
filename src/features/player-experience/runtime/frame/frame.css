@@ -182,6 +182,16 @@
       --xp-chip-columns: 4;
     }
   }
+  /*
+   * The coupon code button (T4.4): below this width the "Copier"/"Copié !" label would
+   * squeeze the code itself off the edge (the responsive sweep's own text-clipped check),
+   * so the icon speaks alone.
+   */
+  @container (max-width: 22rem) {
+    .xp-frame .xp-code-copy-label {
+      display: none;
+    }
+  }
   .xp-frame > [data-xp-slot="reinforcement"] {
     grid-area: reinforcement;
     margin-top: var(--xp-space);

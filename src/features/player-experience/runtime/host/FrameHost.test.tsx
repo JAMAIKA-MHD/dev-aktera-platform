@@ -69,6 +69,8 @@ describe("fixtures", () => {
       "status-duplicate",
       "status-closed",
       "status-error",
+      "flow-win",
+      "flow-lose",
     ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
       "midnight-gold",
@@ -111,6 +113,9 @@ describe("fixtures", () => {
       scenario: "network-error",
       initialScreen: "error",
     });
+    // T4.4: the two outcomes.
+    expect(getFixture("flow-win")?.flow.initialScreen).toBe("win");
+    expect(getFixture("flow-lose")?.flow.initialScreen).toBe("lose");
     expect(getFixture("constructor")).toBeNull();
     expect(readFixtureLocale("ar")).toBe("ar");
     expect(readFixtureLocale("en")).toBe("en");
@@ -153,7 +158,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error",
+        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error, flow-win, flow-lose",
       ),
     ).toBeTruthy();
   });

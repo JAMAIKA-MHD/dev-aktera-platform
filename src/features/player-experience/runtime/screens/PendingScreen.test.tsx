@@ -27,7 +27,7 @@ const renderOn = (screen: FlowScreen) =>
   );
 
 describe("PendingScreen", () => {
-  it("leaves welcome, registration, the wait and the non-winning statuses to their own screens (T4.2, T4.3)", () => {
+  it("leaves every other screen of the journey to its own component (T4.2, T4.3, T4.4)", () => {
     for (const own of [
       "welcome",
       "register",
@@ -35,6 +35,8 @@ describe("PendingScreen", () => {
       "duplicate",
       "closed",
       "error",
+      "win",
+      "lose",
     ] as const) {
       expect(renderOn(own).container.innerHTML, own).toBe("");
     }
