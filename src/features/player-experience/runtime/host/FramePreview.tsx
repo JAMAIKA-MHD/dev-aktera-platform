@@ -38,6 +38,7 @@ export function FramePreview({
       editPath={`screens.${screen}`}
       logoUrl={logoUrl}
       statusBadge="Demo"
+      showSections={screen === "welcome"}
       reinforcement={state.reinforcement}
       cta={{ onPrimary: noop, onSecondary: noop, ...state.cta }}
     >

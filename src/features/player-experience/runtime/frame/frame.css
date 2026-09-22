@@ -142,6 +142,45 @@
   .xp-frame > [data-xp-slot="sections"] {
     grid-area: sections;
     margin-top: var(--xp-space);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--xp-space) * 0.75);
+  }
+
+  /*
+   * Prize chips (T3.6): one line while they fit, two by two otherwise, never squashed and
+   * never 3 + 1. The columns follow the width really available (container queries), in the
+   * column of a phone as in the start pane of a laptop. An odd last chip spans the line.
+   */
+  .xp-frame .xp-chips-box {
+    container-type: inline-size;
+  }
+  .xp-frame .xp-chips {
+    --xp-chip-columns: 2;
+    --xp-chip-last: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--xp-chip-columns), minmax(0, 1fr));
+    gap: 0.5rem;
+    > :last-child {
+      grid-column: span var(--xp-chip-last);
+    }
+  }
+  .xp-frame .xp-chips[data-xp-chips="1"] {
+    --xp-chip-columns: 1;
+  }
+  .xp-frame .xp-chips[data-xp-chips="3"] {
+    --xp-chip-last: 2;
+  }
+  @container (min-width: 19rem) {
+    .xp-frame .xp-chips[data-xp-chips="3"] {
+      --xp-chip-columns: 3;
+      --xp-chip-last: 1;
+    }
+  }
+  @container (min-width: 29.5rem) {
+    .xp-frame .xp-chips[data-xp-chips="4"] {
+      --xp-chip-columns: 4;
+    }
   }
   .xp-frame > [data-xp-slot="reinforcement"] {
     grid-area: reinforcement;
@@ -263,6 +302,9 @@
   .xp-frame .xp-orbit {
     animation: xp-orbit 3s linear infinite;
   }
+  .xp-frame .xp-breathe {
+    animation: xp-breathe 2.2s ease-in-out infinite;
+  }
 
   /*
    * Reduced motion (system setting, or features.animations off): the frame's own motions
@@ -276,6 +318,7 @@
         .xp-ping,
         .xp-wiggle,
         .xp-orbit,
+        .xp-breathe,
         .xp-shimmer,
         .xp-spin,
         .xp-sheet,
@@ -303,6 +346,7 @@
       .xp-ping,
       .xp-wiggle,
       .xp-orbit,
+      .xp-breathe,
       .xp-shimmer,
       .xp-spin,
       .xp-sheet,
@@ -342,6 +386,11 @@
   100% {
     opacity: 0;
     transform: scale(2.2);
+  }
+}
+@keyframes xp-breathe {
+  50% {
+    transform: scale(1.02);
   }
 }
 @keyframes xp-marquee {

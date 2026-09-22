@@ -1,9 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { getDirection, resolveText, type Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenContent } from "../../domain/types";
 import { FRAME_TEXT } from "../../presets/contentDefaults";
 import { useLayoutMode } from "../layout/useLayoutMode";
 import { TermsSheet } from "../legal/TermsSheet";
+import { JackpotCard } from "../sections/JackpotCard";
+import { PrizeChips } from "../sections/PrizeChips";
 import { BrandHeaderSlot } from "./slots/BrandHeaderSlot";
 import { CtaSlot } from "./slots/CtaSlot";
 import { FooterSlot } from "./slots/FooterSlot";
@@ -48,6 +50,7 @@ export interface ExperienceFrameProps {
   logoUrl?: string | null; // brand.logo resolved by the caller (AssetStorage.resolveUrl)
   statusBadge?: string | null; // "Demo" while the participation gateway is not live (B6)
   live?: boolean; // pulsing dot of the header: the campaign is running
+  showSections?: boolean; // welcome screen: jackpot card and prize chips (plan §8.4)
   children?: ReactNode; // slot 5: screen body or game engine
   reinforcement?: ReinforcementLive; // slot 6
   cta?: CtaActions | null; // slot 7: none while the screen waits (resolving)
@@ -61,6 +64,7 @@ export function ExperienceFrame({
   logoUrl = null,
   statusBadge = null,
   live = true,
+  showSections = false,
   children,
   reinforcement,
   cta = null,
@@ -83,6 +87,7 @@ export function ExperienceFrame({
   const reinforcementText =
     text(screenContent.reinforcement.text) || reinforcement?.text || "";
   const primaryLabel = text(screenContent.primaryCta);
+  const { jackpot, prizeChips } = config.sections;
   const organizer = config.legal.organizerName.trim();
 
   return (
@@ -121,6 +126,19 @@ export function ExperienceFrame({
         />
       )}
       <PrimaryInteractionSlot>{children}</PrimaryInteractionSlot>
+      {/* Under the game in stack; in split, under the copy: the end pane is the game's. */}
+      {showSections && (jackpot.enabled || prizeChips.enabled) && (
+        <div
+          data-xp-slot="sections"
+          data-xp-rise
+          style={{ "--xp-rise-order": 4 } as CSSProperties}
+        >
+          {jackpot.enabled && <JackpotCard section={jackpot} text={text} />}
+          {prizeChips.enabled && (
+            <PrizeChips section={prizeChips} text={text} />
+          )}
+        </div>
+      )}
       {reinforcementKind !== "none" &&
         (reinforcementText || reinforcement?.progress) && (
           <ReinforcementSlot

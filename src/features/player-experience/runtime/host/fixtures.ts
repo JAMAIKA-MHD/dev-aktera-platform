@@ -95,6 +95,31 @@ function longTexts(config: ExperienceConfig): void {
     "مسابقة مجانية دون إلزامية الشراء • مشاركة واحدة لكل رقم هاتف • الجوائز صالحة 30 يوماً في المتجر • اطّلع على النظام الكامل",
     "Free game, no purchase necessary • One entry per phone number • Prizes valid 30 days in store • See the full rules",
   );
+  config.sections.jackpot.title = localized(
+    "Un scooter électrique, des smartphones et des centaines de bons d'achat à gagner",
+    "دراجة كهربائية وهواتف ذكية ومئات قسائم الشراء للربح",
+    "An electric scooter, smartphones and hundreds of vouchers to win",
+  );
+  config.sections.jackpot.badge = localized(
+    "Tirage chaque jour",
+    "سحب كل يوم",
+    "Daily draw",
+  );
+  config.sections.prizeChips.items.push({
+    id: "fixture-chip-scooter",
+    icon: "zap",
+    value: localized(
+      "Scooter électrique",
+      "دراجة كهربائية",
+      "Electric scooter",
+    ),
+    caption: localized(
+      "Le grand lot de la rentrée",
+      "الجائزة الكبرى للدخول",
+      "The grand back-to-school prize",
+    ),
+    tone: "primary",
+  });
   // A link to a real page, and one that must never become a link (javascript:).
   config.legal.links.push(
     {

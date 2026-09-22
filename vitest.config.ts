@@ -12,7 +12,7 @@ export default defineConfig((env) =>
       coverage: {
         provider: "v8",
         include: [
-          "src/features/player-experience/{domain,services,theme,runtime/layout,runtime/host,runtime/frame,runtime/legal}/**",
+          "src/features/player-experience/{domain,services,theme,runtime/layout,runtime/host,runtime/frame,runtime/legal,runtime/sections}/**",
         ],
         // Type-level proofs compiled by tsconfig.strict.json, and stylesheets: nothing to run.
         exclude: ["**/*.strict-check.ts", "**/*.css"],
