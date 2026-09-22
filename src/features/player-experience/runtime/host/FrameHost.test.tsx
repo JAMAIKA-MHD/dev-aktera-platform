@@ -46,6 +46,10 @@ describe("fixtures", () => {
       "theme-presets",
       "welcome-midnight-gold",
       "frame-long-texts",
+      "frame-play-hit-it",
+      "frame-quiz-progress",
+      "frame-cta-loading",
+      "frame-cta-disabled",
       "frame-no-header",
     ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
@@ -58,6 +62,11 @@ describe("fixtures", () => {
     const noHeader = getFixture("frame-no-header");
     expect(noHeader?.screen).toBe("win");
     expect(noHeader?.config.screens.win.showHeader).toBe(false);
+    const hitIt = getFixture("frame-play-hit-it");
+    expect(hitIt?.config.screens.play.reinforcement.text.fr).toBe(
+      "Plus que 10 secondes",
+    );
+    expect(hitIt?.config.screens.play.secondaryCta?.fr).toBe("Voir les règles");
     // Built on demand: two reads never share an object.
     expect(getFixture("frame-long-texts")?.config).not.toBe(
       getFixture("frame-long-texts")?.config,
@@ -104,7 +113,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, welcome-midnight-gold, frame-long-texts, frame-no-header",
+        "Available: layout-debug, theme-presets, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header",
       ),
     ).toBeTruthy();
   });
@@ -119,7 +128,9 @@ describe("FrameHost", () => {
     expect(container.querySelector('[data-xp-slot="title"]')?.textContent).toBe(
       "Tournez la roue et tentez votre chance",
     );
-    expect(screen.getByText("Lancer le jeu")).toBeTruthy(); // CTA stand-in
+    // A real CTA, which does nothing until the flow exists (T4.1).
+    fireEvent.click(screen.getByRole("button", { name: "Lancer le jeu" }));
+    expect(screen.getByRole("button", { name: "Lancer le jeu" })).toBeTruthy();
     unmount();
 
     visit("?fixture=frame-long-texts&locale=ar");

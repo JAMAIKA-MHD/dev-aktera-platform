@@ -1,21 +1,44 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { getDirection, resolveText, type Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenContent } from "../../domain/types";
+import { FRAME_TEXT } from "../../presets/contentDefaults";
 import { useLayoutMode } from "../layout/useLayoutMode";
+import { TermsSheet } from "../legal/TermsSheet";
 import { BrandHeaderSlot } from "./slots/BrandHeaderSlot";
+import { CtaSlot } from "./slots/CtaSlot";
+import { FooterSlot } from "./slots/FooterSlot";
 import { HeroVisualSlot } from "./slots/HeroVisualSlot";
+import { PrimaryInteractionSlot } from "./slots/PrimaryInteractionSlot";
+import {
+  ReinforcementSlot,
+  type ReinforcementProgress,
+} from "./slots/ReinforcementSlot";
 import { SupportingCopySlot } from "./slots/SupportingCopySlot";
 import { TitleSlot } from "./slots/TitleSlot";
 import { StatusBadge } from "./StatusBadge";
 
 // The 8-slot frame of every player screen (plan §8.3, prototype SlotContainer). It receives
-// content only, never layout callbacks: the layout is code (frame.css), and the brand
-// fills the slots without positioning anything.
+// content and actions, never layout callbacks: the layout is code (frame.css), and the
+// brand fills the slots without positioning anything.
 //
 // The DOM is the same in every arrangement: frame.css moves the slots from one column
 // (stack) to two panes (split) with the variants of layout.css, so a rotation or a preview
 // resize never remounts the game of slot 5. useLayoutMode() gives the same mode to the
 // code, for what the layout decides itself (the hero is dropped when the screen is low).
+
+// Actions of slot 7, from the flow state machine; the labels come from the screen content.
+export interface CtaActions {
+  onPrimary: () => void;
+  onSecondary?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+// Live values of slot 6, from the game: the configured text wins when there is one.
+export interface ReinforcementLive {
+  text?: string; // e.g. a countdown
+  progress?: ReinforcementProgress | null;
+}
 
 export interface ExperienceFrameProps {
   config: ExperienceConfig;
@@ -26,28 +49,8 @@ export interface ExperienceFrameProps {
   statusBadge?: string | null; // "Demo" while the participation gateway is not live (B6)
   live?: boolean; // pulsing dot of the header: the campaign is running
   children?: ReactNode; // slot 5: screen body or game engine
-  reinforcement?: ReactNode; // slot 6
-  cta?: ReactNode; // slot 7
-}
-
-function Zone({
-  slot,
-  order,
-  children,
-}: {
-  slot: string;
-  order: number;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      data-xp-slot={slot}
-      data-xp-rise
-      style={{ "--xp-rise-order": order } as CSSProperties}
-    >
-      {children}
-    </div>
-  );
+  reinforcement?: ReinforcementLive; // slot 6
+  cta?: CtaActions | null; // slot 7: none while the screen waits (resolving)
 }
 
 export function ExperienceFrame({
@@ -60,18 +63,27 @@ export function ExperienceFrame({
   live = true,
   children,
   reinforcement,
-  cta,
+  cta = null,
 }: ExperienceFrameProps) {
   const mode = useLayoutMode();
+  // The legal sheet is open while it knows its trigger, where the focus goes back.
+  const [sheetTrigger, setSheetTrigger] = useState<HTMLElement | null>(null);
   const fallback = config.locales.default;
+  const text = (value: ScreenContent["title"] | null | undefined) =>
+    value ? resolveText(value, locale, fallback) : "";
   const direction = getDirection(locale);
-  const title = resolveText(screenContent.title, locale, fallback);
-  const subtitle = resolveText(screenContent.subtitle, locale, fallback);
+  const title = text(screenContent.title);
+  const subtitle = text(screenContent.subtitle);
   // Low screens keep their height for the game and the CTA (plan §8.3, tight density).
   const hero =
     screenContent.hero !== "none" && mode.density !== "tight"
       ? screenContent.hero
       : null;
+  const reinforcementKind = screenContent.reinforcement.kind;
+  const reinforcementText =
+    text(screenContent.reinforcement.text) || reinforcement?.text || "";
+  const primaryLabel = text(screenContent.primaryCta);
+  const organizer = config.legal.organizerName.trim();
 
   return (
     <div
@@ -108,18 +120,49 @@ export function ExperienceFrame({
           editPath={editPath}
         />
       )}
-      <Zone slot="interaction" order={3}>
-        {children}
-      </Zone>
-      {reinforcement && (
-        <Zone slot="reinforcement" order={4}>
-          {reinforcement}
-        </Zone>
+      <PrimaryInteractionSlot>{children}</PrimaryInteractionSlot>
+      {reinforcementKind !== "none" &&
+        (reinforcementText || reinforcement?.progress) && (
+          <ReinforcementSlot
+            kind={reinforcementKind}
+            text={reinforcementText}
+            progress={reinforcement?.progress ?? null}
+            editPath={editPath}
+          />
+        )}
+      {cta && primaryLabel && (
+        <CtaSlot
+          primaryLabel={primaryLabel}
+          secondaryLabel={text(screenContent.secondaryCta) || null}
+          onPrimary={cta.onPrimary}
+          onSecondary={cta.onSecondary}
+          disabled={cta.disabled ?? false}
+          loading={cta.loading ?? false}
+          loadingLabel={text(FRAME_TEXT.loading)}
+          editPath={editPath}
+        />
       )}
-      {cta && (
-        <Zone slot="cta" order={5}>
-          {cta}
-        </Zone>
+      <FooterSlot
+        legal={config.legal}
+        locale={locale}
+        fallbackLocale={fallback}
+        direction={direction}
+        onOpenSheet={setSheetTrigger}
+      />
+      {/* Fixed, outside the slots: no transformed ancestor can trap it. */}
+      {sheetTrigger && (
+        <TermsSheet
+          title={text(FRAME_TEXT.legalTitle)}
+          organizer={
+            organizer
+              ? text(FRAME_TEXT.organizedBy).replace("{name}", organizer)
+              : null
+          }
+          body={text(config.legal.termsBody)}
+          closeLabel={text(FRAME_TEXT.close)}
+          returnFocusTo={sheetTrigger}
+          onClose={() => setSheetTrigger(null)}
+        />
       )}
     </div>
   );

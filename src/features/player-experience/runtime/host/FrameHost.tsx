@@ -21,7 +21,7 @@ import {
   type SafeAreaInsets,
 } from "../layout/safeArea";
 import { LayoutDebugView, ThemePresetsView } from "./DebugViews";
-import { FramePreview } from "./FramePreview";
+import { FramePreview, type FramePreviewState } from "./FramePreview";
 import {
   FIXTURE_NAMES,
   getFixture,
@@ -52,6 +52,7 @@ interface FrameContent {
   locale: Locale;
   view: FixtureView;
   screen: ScreenKey; // drawn by the frame view
+  state?: FramePreviewState;
   safeArea?: SafeAreaInsets;
 }
 
@@ -84,6 +85,7 @@ function Stage({ content }: { content: FrameContent }) {
             config={config}
             locale={locale}
             screen={content.screen}
+            state={content.state}
             logoUrl={logoUrl}
           />
         ) : (

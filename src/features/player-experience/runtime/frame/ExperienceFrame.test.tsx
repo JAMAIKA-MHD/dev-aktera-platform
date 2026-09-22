@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "../../domain/defaults";
 import { TITLE_CHARS_PER_LINE_AT_320 } from "../../domain/validation";
 import { localized } from "../../domain/locale";
@@ -179,38 +179,50 @@ describe("ExperienceFrame", () => {
     const frame = container.querySelector<HTMLElement>(".xp-frame");
     expect(frame?.dataset.xpArrangement).toBe("stack");
     expect(frame?.dataset.xpDensity).toBe("regular");
-    const game = screen.getByRole("button");
+    const game = screen.getByRole("button", { name: /Spins/ });
     fireEvent.click(game);
 
     resizeTo(1366, 657); // rotation, or the preview's resize handle
     expect(frame?.dataset.xpArrangement).toBe("split");
     // Same node, same state: the game of slot 5 was never remounted.
-    expect(screen.getByRole("button")).toBe(game);
+    expect(screen.getByRole("button", { name: /Spins/ })).toBe(game);
     expect(game.textContent).toBe("Spins 1");
     resizeTo(1920, 969);
     expect(frame?.dataset.xpDensity).toBe("roomy");
   });
 
-  it("places the caller's content in slots 5 to 7, and omits the empty zones", () => {
+  it("fills slots 5 to 8 from the caller's body, the configuration and the actions", () => {
+    const config = zetaConfig();
+    config.screens.welcome.reinforcement = {
+      kind: "attempts",
+      text: { fr: "1 essai restant" },
+    };
+    const onPrimary = vi.fn();
     const { container, rerender } = renderFrame({
+      config,
       children: <p>Wheel</p>,
-      reinforcement: <p>1 try left</p>,
-      cta: <button type="button">Start</button>,
+      cta: { onPrimary },
     });
     expect(slot(container, "interaction")?.textContent).toBe("Wheel");
-    expect(slot(container, "reinforcement")?.textContent).toBe("1 try left");
-    expect(slot(container, "cta")?.textContent).toBe("Start");
-    const config = zetaConfig();
+    expect(slot(container, "reinforcement")?.textContent).toBe(
+      "1 essai restant",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lancer le jeu" }));
+    expect(onPrimary).toHaveBeenCalledOnce();
+    expect(slot(container, "footer")).not.toBeNull();
+
+    const plain = zetaConfig();
     rerender(
       <ExperienceFrame
-        config={config}
+        config={plain}
         locale="fr"
-        screenContent={config.screens.welcome}
+        screenContent={plain.screens.welcome}
       />,
     );
     expect(slot(container, "interaction")).not.toBeNull(); // the game zone always exists
     expect(slot(container, "reinforcement")).toBeNull();
-    expect(slot(container, "cta")).toBeNull();
+    expect(slot(container, "cta")).toBeNull(); // no actions: the screen waits
+    expect(slot(container, "footer")).not.toBeNull(); // never hidden
   });
 
   it("points to no Studio field without an edit path (the public page)", () => {
@@ -226,7 +238,8 @@ describe("ExperienceFrame", () => {
     const editable = [...container.querySelectorAll("[data-xp-edit]")].map(
       (element) => element.getAttribute("data-xp-edit"),
     );
-    expect(editable).toEqual(["brand"]); // the brand is shared by every screen
+    // The brand, the game and the legal texts are shared by every screen.
+    expect(editable).toEqual(["brand", "game", "legal"]);
   });
 
   it("shows the logo image, and the icon when there is none or it fails to load", () => {
@@ -367,14 +380,27 @@ describe("frame.css", () => {
     expect(TITLE_SLOT.match(/var\(--xp-title-max\)/g)).toHaveLength(2); // stack and split
   });
 
+  it("keeps the CTA in reach and sizes the game on the space left", () => {
+    const rule = (slot: string) =>
+      new RegExp(`\\[data-xp-slot="${slot}"\\]\\s*\\{([^}]*)`).exec(
+        FRAME_CSS,
+      )?.[1] ?? "";
+    expect(rule("cta")).toMatch(/position:\s*sticky/);
+    expect(rule("cta")).toMatch(/bottom:\s*calc\(var\(--xp-safe-bottom\)/);
+    expect(rule("interaction")).toMatch(/container-type:\s*size/);
+    expect(rule("interaction")).toMatch(/min-height:\s*var\(--xp-game-min\)/);
+    expect(FRAME_CSS).toMatch(/--xp-game-min:\s*12\.5rem/); // about 200 px (plan §8.3)
+  });
+
   it("renders only slots that frame.css places", () => {
     const config = zetaConfig();
     config.screens.welcome.hero = "gift";
+    config.screens.welcome.reinforcement.kind = "hint";
     const { container } = renderFrame({
       config,
       statusBadge: "Demo",
-      reinforcement: <p>Hint</p>,
-      cta: <p>CTA</p>,
+      reinforcement: { text: "Hint" },
+      cta: { onPrimary: () => {} },
     });
     const rendered = [
       ...container.querySelectorAll(".xp-frame > [data-xp-slot]"),
@@ -387,6 +413,7 @@ describe("frame.css", () => {
       "interaction",
       "reinforcement",
       "cta",
+      "footer",
     ]);
     for (const name of rendered) expect(FRAME_SLOTS).toContain(name);
   });

@@ -10,7 +10,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T3.2  | Système de mise en page adaptative      | Terminée | `feat(Player-Experience): add adaptive layout system and breakpoints`                   | [T3.2-mise-en-page-adaptative.md](./T3.2-mise-en-page-adaptative.md)         |
 | T3.3  | Hôte isolé `/xp-frame` et pont d'aperçu | Terminée | `feat(Player-Experience): add isolated frame host and preview bridge`                   | [T3.3-hote-isole-et-pont-d-apercu.md](./T3.3-hote-isole-et-pont-d-apercu.md) |
 | T3.4  | Cadre et slots 1 à 4                    | Terminée | `feat(Player-Experience): add experience frame with header, hero, title and copy slots` | [T3.4-cadre-et-slots-1-a-4.md](./T3.4-cadre-et-slots-1-a-4.md)               |
+| T3.5  | Slots 5 à 8                             | Terminée | `feat(Player-Experience): add interaction, reinforcement, CTA and footer slots`         | [T3.5-slots-5-a-8.md](./T3.5-slots-5-a-8.md)                                 |
 
-À venir : T3.5 → T3.8.
+À venir : T3.6 → T3.8.
 
 Phase précédente : [phase 2 — Services et adaptateurs locaux](../phase_2/README.md).

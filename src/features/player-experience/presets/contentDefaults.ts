@@ -231,6 +231,22 @@ export const STATUS_TEXT = {
   back: localized("Retour", "رجوع", "Back"),
 } as const satisfies Record<string, LocalizedText>;
 
+// Texts of the 8-slot frame itself, which brands do not edit. Placeholder: {name}.
+export const FRAME_TEXT = {
+  loading: localized("Chargement…", "جارٍ التحميل…", "Loading…"),
+  close: localized("Fermer", "إغلاق", "Close"),
+  legalTitle: localized(
+    "Règlement et mentions légales",
+    "القوانين والإشعارات القانونية",
+    "Rules and legal notice",
+  ),
+  organizedBy: localized(
+    "Organisé par {name}",
+    "تنظيم {name}",
+    "Organized by {name}",
+  ),
+} as const satisfies Record<string, LocalizedText>;
+
 export function defaultJackpot(): JackpotSection {
   return {
     enabled: true,
