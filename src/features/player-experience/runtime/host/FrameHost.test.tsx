@@ -65,6 +65,10 @@ describe("fixtures", () => {
       "flow-gateway-refused",
       "register",
       "register-all-fields",
+      "resolving",
+      "status-duplicate",
+      "status-closed",
+      "status-error",
     ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
       "midnight-gold",
@@ -93,6 +97,20 @@ describe("fixtures", () => {
         (field) => field.enabled && field.required,
       ),
     ).toBe(true);
+    // T4.3: the wait, and the three non-winning statuses, each with a matching scenario.
+    expect(getFixture("resolving")?.flow.initialScreen).toBe("resolving");
+    expect(getFixture("status-duplicate")?.flow).toMatchObject({
+      scenario: "duplicate",
+      initialScreen: "duplicate",
+    });
+    expect(getFixture("status-closed")?.flow).toMatchObject({
+      scenario: "closed",
+      initialScreen: "closed",
+    });
+    expect(getFixture("status-error")?.flow).toMatchObject({
+      scenario: "network-error",
+      initialScreen: "error",
+    });
     expect(getFixture("constructor")).toBeNull();
     expect(readFixtureLocale("ar")).toBe("ar");
     expect(readFixtureLocale("en")).toBe("en");
@@ -135,7 +153,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields",
+        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error",
       ),
     ).toBeTruthy();
   });

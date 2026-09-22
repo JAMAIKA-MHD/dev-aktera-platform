@@ -27,18 +27,30 @@ const renderOn = (screen: FlowScreen) =>
   );
 
 describe("PendingScreen", () => {
-  // The journey always gives a status screen its error (useExperienceFlow.test.tsx, and the
-  // preview states of domain/flow.ts); the interim screen still reads without one.
-  it("shows the default message of a status screen without its error", () => {
-    renderOn("closed");
-    expect(screen.getByText("Campaign ended")).toBeTruthy();
-    expect(
-      screen.getByText("This campaign has ended. Thank you for your interest!"),
-    ).toBeTruthy();
+  it("leaves welcome, registration, the wait and the non-winning statuses to their own screens (T4.2, T4.3)", () => {
+    for (const own of [
+      "welcome",
+      "register",
+      "resolving",
+      "duplicate",
+      "closed",
+      "error",
+    ] as const) {
+      expect(renderOn(own).container.innerHTML, own).toBe("");
+    }
   });
 
-  it("leaves welcome and registration to their own screens (T4.2)", () => {
-    expect(renderOn("welcome").container.innerHTML).toBe("");
-    expect(renderOn("register").container.innerHTML).toBe("");
+  it("shows a stand-in for the game while it plays, with the CTA of a game drawn first", () => {
+    render(
+      <PendingScreen
+        flow={flowOn("play")}
+        config={createDefaultExperience({ gameType: "lucky_wheel" })}
+        campaign={createDemoCampaign("lucky_wheel")}
+        locale="en"
+        chrome={{ logoUrl: null, statusBadge: null, live: false }}
+      />,
+    );
+    expect(screen.getByText(/Game engine/)).toBeTruthy();
+    expect(screen.getByText("Spin the wheel")).toBeTruthy(); // the CTA
   });
 });

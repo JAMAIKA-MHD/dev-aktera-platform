@@ -10,7 +10,9 @@ import { ThemeScope } from "../theme/ThemeScope";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
 import { PendingScreen } from "./screens/PendingScreen";
 import { RegisterScreen } from "./screens/RegisterScreen";
+import { ResolvingScreen } from "./screens/ResolvingScreen";
 import type { FrameChrome, ScreenProps } from "./screens/screenProps";
+import { StatusScreen } from "./screens/StatusScreen";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { useExperienceFlow, type DrawSource } from "./useExperienceFlow";
 
@@ -123,5 +125,9 @@ function Journey({
   const props: ScreenProps = { flow, config, campaign, locale, chrome };
   if (screen === "welcome") return <WelcomeScreen {...props} />;
   if (screen === "register") return <RegisterScreen {...props} />;
+  if (screen === "resolving") return <ResolvingScreen {...props} />;
+  if (screen === "duplicate" || screen === "closed" || screen === "error") {
+    return <StatusScreen {...props} />;
+  }
   return <PendingScreen {...props} />;
 }

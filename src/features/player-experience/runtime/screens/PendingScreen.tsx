@@ -1,55 +1,23 @@
-import {
-  CalendarX,
-  Clover,
-  Gift,
-  LoaderCircle,
-  UserCheck,
-  WifiOff,
-  type LucideIcon,
-} from "lucide-react";
+import { Clover, Gift } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { resolveText, type LocalizedText } from "../../domain/locale";
-import {
-  PARTICIPATION_ERROR_MESSAGES,
-  type ParticipationErrorCode,
-} from "../../domain/participation";
 import type { ScreenContent, ScreenKey } from "../../domain/types";
-import { STATUS_TEXT } from "../../presets/contentDefaults";
 import { tint } from "../../theme/recipes";
 import { ExperienceFrame, type CtaActions } from "../frame/ExperienceFrame";
 import { ScreenMedallion } from "./ScreenMedallion";
 import { press, type ScreenProps } from "./screenProps";
-import { textContent } from "./textContent";
 
-// Interim screens of the journey, until the real ones exist: waiting and status (T4.3),
-// win and loss (T4.4), games (phase 5). Each one already has its frame, its content and its
-// CTA wired to the flow (B4), and an exit (B9); slot 5 says what will fill it. No game
-// animates the outcome yet: the reveal completes at once. Welcome and registration have
-// their own screens (T4.2).
+// Interim screens of the journey, until the real ones exist: win and loss (T4.4), games
+// (phase 5). Each one already has its frame, its content and its CTA wired to the flow (B4),
+// and an exit (B9); slot 5 says what will fill it. No game animates the outcome yet: the
+// reveal completes at once. Welcome, registration, the draw's wait and the non-winning
+// statuses have their own screens (T4.2, T4.3).
 
 interface View {
-  key: ScreenKey | null; // screen content edited in the Studio, if any
+  key: ScreenKey; // screen content edited in the Studio
   content: ScreenContent;
   body: ReactNode;
   cta: CtaActions | null;
 }
-
-const STATUS: Record<
-  "duplicate" | "closed" | "error",
-  { icon: LucideIcon; title: LocalizedText; code: ParticipationErrorCode }
-> = {
-  duplicate: {
-    icon: UserCheck,
-    title: STATUS_TEXT.duplicateTitle,
-    code: "ALREADY_PARTICIPATED",
-  },
-  closed: {
-    icon: CalendarX,
-    title: STATUS_TEXT.closedTitle,
-    code: "CAMPAIGN_CLOSED",
-  },
-  error: { icon: WifiOff, title: STATUS_TEXT.errorTitle, code: "NETWORK" },
-};
 
 // Outlined stand-in, as in the frame fixtures: what fills slot 5, and which task brings it.
 function StandIn({
@@ -85,8 +53,6 @@ function AutoReveal({ onDone }: { onDone: () => void }) {
 
 export function PendingScreen({ flow, config, locale, chrome }: ScreenProps) {
   const { state } = flow;
-  const text = (value: LocalizedText) =>
-    resolveText(value, locale, config.locales.default);
   const restart = press(flow, flow.restart, "primary");
 
   const view = ((): View | null => {
@@ -94,7 +60,11 @@ export function PendingScreen({ flow, config, locale, chrome }: ScreenProps) {
     switch (state.screen) {
       case "welcome":
       case "register":
-        return null; // WelcomeScreen and RegisterScreen
+      case "resolving":
+      case "duplicate":
+      case "closed":
+      case "error":
+        return null; // their own screens (T4.2, T4.3)
       case "play":
       case "revealing":
         return {
@@ -112,19 +82,6 @@ export function PendingScreen({ flow, config, locale, chrome }: ScreenProps) {
             state.screen === "play" && state.timing === "before-animation"
               ? { onPrimary: press(flow, flow.startDraw, "primary") }
               : null,
-        };
-      case "resolving":
-        return {
-          key: "play",
-          content: screens.play,
-          body: (
-            <ScreenMedallion icon={LoaderCircle} waiting>
-              <p dir="auto" role="status" className="text-sm font-semibold">
-                {text(STATUS_TEXT.resolving)}
-              </p>
-            </ScreenMedallion>
-          ),
-          cta: null, // the draw is in flight: nothing to press
         };
       case "win":
         return {
@@ -151,29 +108,6 @@ export function PendingScreen({ flow, config, locale, chrome }: ScreenProps) {
           body: <ScreenMedallion icon={Clover} />,
           cta: { onPrimary: restart },
         };
-      case "duplicate":
-      case "closed":
-      case "error": {
-        const status = STATUS[state.screen];
-        const retryable = state.screen === "error";
-        return {
-          key: null,
-          content: textContent({
-            title: status.title,
-            subtitle:
-              PARTICIPATION_ERROR_MESSAGES[state.error?.code ?? status.code],
-            primaryCta: retryable ? STATUS_TEXT.retry : STATUS_TEXT.back,
-            secondaryCta: retryable ? STATUS_TEXT.back : undefined,
-          }),
-          body: <ScreenMedallion icon={status.icon} />,
-          cta: retryable
-            ? {
-                onPrimary: press(flow, flow.retry, "primary"),
-                onSecondary: press(flow, flow.restart, "secondary"),
-              }
-            : { onPrimary: restart },
-        };
-      }
     }
   })();
 
@@ -183,11 +117,10 @@ export function PendingScreen({ flow, config, locale, chrome }: ScreenProps) {
       config={config}
       locale={locale}
       screenContent={view.content}
-      editPath={view.key ? `screens.${view.key}` : null}
+      editPath={`screens.${view.key}`}
       logoUrl={chrome.logoUrl}
       statusBadge={chrome.statusBadge}
       live={chrome.live}
-      showSections={state.screen === "welcome"}
       cta={view.cta}
     >
       {view.body}

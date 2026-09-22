@@ -271,6 +271,54 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       },
     },
   ),
+  resolving: fixture(
+    "flow",
+    "Waiting for the draw: turning indicator, no CTA (T4.3)",
+    {
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "lose",
+        initialScreen: "resolving",
+      },
+    },
+  ),
+  "status-duplicate": fixture(
+    "flow",
+    "Status: already played with this phone number, only a way back (T4.3)",
+    {
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "duplicate",
+        initialScreen: "duplicate",
+      },
+    },
+  ),
+  "status-closed": fixture(
+    "flow",
+    "Status: the campaign is over, only a way back (T4.3)",
+    {
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "closed",
+        initialScreen: "closed",
+      },
+    },
+  ),
+  "status-error": fixture(
+    "flow",
+    "Status: network error, with Retry and Back (T4.3)",
+    {
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "network-error",
+        initialScreen: "error",
+      },
+    },
+  ),
 };
 
 export const FIXTURE_NAMES = Object.keys(FIXTURES);
