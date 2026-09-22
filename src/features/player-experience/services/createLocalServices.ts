@@ -15,6 +15,8 @@ import {
 } from "./local/scriptedParticipationGateway";
 import type { ExperienceServices } from "./ports";
 
+export type { ScriptedScenario };
+
 // Composition root of the MVP: the local adapters, as used by the Studio and demos.
 // The public player route will get createSupabaseServices() instead (plan §7.4), and refuses
 // the "demo" and "scripted" gateways (allowedGatewayModes, T4.1).

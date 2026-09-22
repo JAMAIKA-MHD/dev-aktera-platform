@@ -41,6 +41,9 @@ and must work at every size from 280 to 2560 px wide and 320 to 1600 px high.
 - **The primary CTA is sticky** at the bottom when the content is taller than the screen.
 - **Pointer Events everywhere**: mouse, finger and pen share the same code.
 - **Live resizing** (rotation, preview handle) never resets the state or breaks the display.
+- **No `ltr:` / `rtl:` variants**: they match the `dir` of any ancestor, so a French scope
+  around an Arabic one would apply both. Use logical properties (`start`/`end`, `ps`/`pe`,
+  `ms`/`me`, `text-start`).
 - **Safe areas**: pad with `--xp-safe-top|right|bottom|left`.
 
 ## References

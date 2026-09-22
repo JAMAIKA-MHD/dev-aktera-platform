@@ -24,6 +24,11 @@ const RULES: readonly Rule[] = [
       /(?<![\w-])(?:w|h|size|min-h|max-h|min-w|max-w)-\[\d+(?:\.\d+)?px\]/g,
   },
   {
+    // ltr:/rtl: match the dir of any ancestor: a French scope around an Arabic one applies both.
+    name: "ltr:/rtl: variant: use logical properties (start/end, ps/pe, ms/me, text-start)",
+    pattern: /(?<![\w-])(?:ltr|rtl):[\w[-]/g,
+  },
+  {
     name: "100vh: only the runtime root uses the viewport height (100dvh)",
     pattern: /100vh|(?<![\w-])(?:min-|max-)?h-screen(?![\w-])/g,
   },
@@ -65,7 +70,8 @@ describe("no fixed sizes in the runtime", () => {
   it("catches what the prototype used to do", () => {
     const prototype = `
       <div className="w-[260px] h-[260px] sm:w-[280px] min-h-[620px] md:text-lg max-w-[320px]" />
-      <div className="h-screen" style={{ height: "100vh" }} />`;
+      <div className="h-screen" style={{ height: "100vh" }} />
+      <span className="ltr:right-2 rtl:left-2" />`;
     expect(findViolations(prototype)).toEqual([
       "sm:w — screen variant (sm:, md:, lg:, xl:): use split:, tight:, roomy:, compact:, wide:",
       "md:t — screen variant (sm:, md:, lg:, xl:): use split:, tight:, roomy:, compact:, wide:",
@@ -74,6 +80,8 @@ describe("no fixed sizes in the runtime", () => {
       "w-[280px] — fixed size in pixels: size on the container (cqw, cqh, %) or on the content",
       "min-h-[620px] — fixed size in pixels: size on the container (cqw, cqh, %) or on the content",
       "max-w-[320px] — fixed size in pixels: size on the container (cqw, cqh, %) or on the content",
+      "ltr:r — ltr:/rtl: variant: use logical properties (start/end, ps/pe, ms/me, text-start)",
+      "rtl:l — ltr:/rtl: variant: use logical properties (start/end, ps/pe, ms/me, text-start)",
       "h-screen — 100vh: only the runtime root uses the viewport height (100dvh)",
       "100vh — 100vh: only the runtime root uses the viewport height (100dvh)",
     ]);

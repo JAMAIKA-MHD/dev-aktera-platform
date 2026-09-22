@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
@@ -8,6 +8,14 @@ import CompleteOrganizationSetupPage from "./pages/auth/CompleteOrganizationSetu
 import PlayerFlowPage from "./pages/play/PlayerFlowPage";
 import { PlayerUIMaker } from "./components/player-ui-maker";
 import App from "./App";
+
+// Player Experience runtime in a document of its own (Studio preview, responsive checks).
+// Loaded on demand: the dashboard bundle does not carry the runtime.
+const XpFrame = lazy(() =>
+  import("./features/player-experience").then((module) => ({
+    default: module.FrameHost,
+  })),
+);
 
 /** Redirects to /login when no session; shows a full-screen spinner while loading. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -66,6 +74,16 @@ export default function AppRouter() {
               <PlayerProvider>
                 <PlayerFlowPage />
               </PlayerProvider>
+            }
+          />
+
+          {/* Player Experience frame: demo services only, no server data */}
+          <Route
+            path="/xp-frame"
+            element={
+              <Suspense fallback={null}>
+                <XpFrame />
+              </Suspense>
             }
           />
 

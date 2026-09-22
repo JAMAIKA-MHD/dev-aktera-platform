@@ -6,6 +6,8 @@
 
 export { createLocalServices } from "./services/createLocalServices";
 export { ServicesProvider } from "./services/ServicesProvider";
+// Document of its own for the runtime (/xp-frame): loaded lazily by AppRouter.
+export { FrameHost } from "./runtime/host/FrameHost";
 
 export type { ExperienceConfig } from "./domain/types";
 export type { CampaignSnapshot } from "./domain/campaign";
