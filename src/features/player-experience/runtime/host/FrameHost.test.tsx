@@ -63,6 +63,8 @@ describe("fixtures", () => {
       "frame-no-header",
       "flow-welcome",
       "flow-gateway-refused",
+      "register",
+      "register-all-fields",
     ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
       "midnight-gold",
@@ -83,6 +85,14 @@ describe("fixtures", () => {
     expect(getFixture("frame-long-texts")?.config).not.toBe(
       getFixture("frame-long-texts")?.config,
     );
+    // The tallest registration form: the four fields, all required.
+    const tallest = getFixture("register-all-fields");
+    expect(tallest?.flow.initialScreen).toBe("register");
+    expect(
+      tallest?.config.form.fields.every(
+        (field) => field.enabled && field.required,
+      ),
+    ).toBe(true);
     expect(getFixture("constructor")).toBeNull();
     expect(readFixtureLocale("ar")).toBe("ar");
     expect(readFixtureLocale("en")).toBe("en");
@@ -125,7 +135,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused",
+        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields",
       ),
     ).toBeTruthy();
   });

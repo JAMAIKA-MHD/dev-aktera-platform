@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { formatDzPhone, isValidDzMobile, normalizeDzPhone } from "./phone";
+import {
+  formatDzPhone,
+  formatPhoneInput,
+  isValidDzMobile,
+  normalizeDzPhone,
+} from "./phone";
 
 describe("normalizeDzPhone", () => {
   it.each([
@@ -68,6 +73,33 @@ describe("formatDzPhone", () => {
     expect(formatDzPhone("0455123456")).toBe("0455123456");
     expect(formatDzPhone("05 55")).toBe("05 55");
     expect(formatDzPhone("")).toBe("");
+  });
+});
+
+describe("formatPhoneInput", () => {
+  it.each([
+    ["", ""],
+    ["0", "0"],
+    ["0555", "0555"],
+    ["05551", "0555 1"],
+    ["0555123456", "0555 12 34 56"],
+    ["05 55-12.34/56", "0555 12 34 56"], // any separator the player types
+    ["055512345678", "0555 12 34 56"], // no more than a full number
+    ["555123456", "555 12 34 56"], // the leading 0 left out
+    ["+", "+"],
+    ["+213", "+213"],
+    ["+213555123456", "+213 555 12 34 56"],
+    ["213555123456", "213 555 12 34 56"],
+    ["+2135551234567", "+213 555 12 34 56"],
+  ])("groups %j as %j", (raw, shown) => {
+    expect(formatPhoneInput(raw)).toBe(shown);
+  });
+
+  it("keeps a number the server accepts", () => {
+    for (const raw of ["0555123456", "+213555123456", "555123456"]) {
+      expect(isValidDzMobile(formatPhoneInput(raw))).toBe(true);
+      expect(normalizeDzPhone(formatPhoneInput(raw))).toBe("0555123456");
+    }
   });
 });
 

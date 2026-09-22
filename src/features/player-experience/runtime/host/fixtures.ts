@@ -241,6 +241,36 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       flow: { gateway: "demo", allowedGatewayModes: ["live"] },
     },
   ),
+  register: fixture(
+    "flow",
+    "Registration screen: the default fields (name, phone, wilaya) and the consent",
+    {
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "lose",
+        initialScreen: "register",
+      },
+    },
+  ),
+  "register-all-fields": fixture(
+    "flow",
+    "Registration screen at its tallest: the four fields, all required",
+    {
+      customize: (config) => {
+        zetaMarket(config);
+        for (const field of config.form.fields) {
+          field.enabled = true;
+          field.required = true;
+        }
+      },
+      flow: {
+        gateway: "scripted",
+        scenario: "lose",
+        initialScreen: "register",
+      },
+    },
+  ),
 };
 
 export const FIXTURE_NAMES = Object.keys(FIXTURES);

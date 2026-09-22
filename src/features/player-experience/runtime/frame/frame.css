@@ -305,6 +305,11 @@
   .xp-frame .xp-breathe {
     animation: xp-breathe 2.2s ease-in-out infinite;
   }
+  /* Fields of a form rise in one after the other, once their slot is in place. */
+  .xp-frame .xp-field {
+    animation: xp-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(250ms + var(--xp-field-order, 0) * 60ms);
+  }
 
   /*
    * Reduced motion (system setting, or features.animations off): the frame's own motions
@@ -319,6 +324,7 @@
         .xp-wiggle,
         .xp-orbit,
         .xp-breathe,
+        .xp-field,
         .xp-shimmer,
         .xp-spin,
         .xp-sheet,
@@ -347,6 +353,7 @@
       .xp-wiggle,
       .xp-orbit,
       .xp-breathe,
+      .xp-field,
       .xp-shimmer,
       .xp-spin,
       .xp-sheet,

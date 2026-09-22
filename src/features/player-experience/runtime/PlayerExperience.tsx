@@ -8,7 +8,10 @@ import { useExperienceServices } from "../services/ServicesProvider";
 import { ensureFontStylesheet } from "../theme/fonts";
 import { ThemeScope } from "../theme/ThemeScope";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
-import { PendingScreen, type FrameChrome } from "./screens/PendingScreen";
+import { PendingScreen } from "./screens/PendingScreen";
+import { RegisterScreen } from "./screens/RegisterScreen";
+import type { FrameChrome, ScreenProps } from "./screens/screenProps";
+import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { useExperienceFlow, type DrawSource } from "./useExperienceFlow";
 
 // Root of the player runtime (plan §8.1): one render mode, the full document. The Studio and
@@ -117,12 +120,8 @@ function Journey({
   useEffect(() => {
     report.current?.(screen);
   }, [screen]);
-  return (
-    <PendingScreen
-      flow={flow}
-      config={config}
-      locale={locale}
-      chrome={chrome}
-    />
-  );
+  const props: ScreenProps = { flow, config, campaign, locale, chrome };
+  if (screen === "welcome") return <WelcomeScreen {...props} />;
+  if (screen === "register") return <RegisterScreen {...props} />;
+  return <PendingScreen {...props} />;
 }

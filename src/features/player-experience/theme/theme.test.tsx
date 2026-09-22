@@ -10,6 +10,7 @@ import {
   RADIUS_SCALE,
   mixHex,
   mutedTextColor,
+  statusColor,
   tokensToCssVars,
 } from "./tokens";
 
@@ -72,6 +73,8 @@ describe("tokensToCssVars", () => {
         ["button", onPrimary, vars["--xp-primary"]],
         ["button, light end", onPrimary, vars["--xp-primary-light"]],
         ["button, deep end", onPrimary, vars["--xp-primary-deep"]],
+        ["valid field", vars["--xp-success"], surface],
+        ["error", vars["--xp-danger"], surface],
       ];
       for (const [name, ink, paper] of pairs) {
         expect(
@@ -102,6 +105,22 @@ describe("tokensToCssVars", () => {
     expect(contrastRatio(muted, "#0A1120")).toBeGreaterThanOrEqual(4.5);
     // Text barely readable already: kept as is.
     expect(mutedTextColor("#777777", "#FFFFFF")).toBe("#777777");
+  });
+
+  it("gives the status colors the hue of their meaning, readable on the surface", () => {
+    // On a dark surface, the green and the red are readable as they are.
+    expect(statusColor("#22C55E", "#0A1120")).toBe("#22C55E");
+    // On white, they darken only until they reach the text contrast.
+    const green = statusColor("#22C55E", "#FFFFFF");
+    expect(green).not.toBe("#22C55E");
+    expect(contrastRatio(green, "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrastRatio(mixHex("#22C55E", "#000000", 0.15), "#FFFFFF"),
+    ).toBeLessThan(4.5);
+    // A surface on which no mix is enough still gets the strongest one.
+    expect(statusColor("#22C55E", "#7F7F7F")).toBe(
+      mixHex("#22C55E", "#000000", 0.75),
+    );
   });
 
   it("follows the radius style of the theme", () => {

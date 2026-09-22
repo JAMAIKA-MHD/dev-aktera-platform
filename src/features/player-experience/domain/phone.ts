@@ -25,3 +25,26 @@ export function formatDzPhone(raw: string): string {
   if (!DZ_MOBILE_PATTERN.test(phone)) return raw;
   return `${phone.slice(0, 4)} ${phone.slice(4, 6)} ${phone.slice(6, 8)} ${phone.slice(8)}`;
 }
+
+// The phone as the player types it, grouped for reading: "0555 12 34 56", "555 12 34 56",
+// "+213 555 12 34 56". Only digits and a leading "+" are kept, up to a full number. The
+// value sent is normalized anyway (normalizeDzPhone).
+export function formatPhoneInput(raw: string): string {
+  const plus = raw.trim().startsWith("+");
+  const digits = raw.replace(/\D/g, "");
+  const group = (value: string, sizes: number[]) => {
+    const parts: string[] = [];
+    let start = 0;
+    for (const size of sizes) {
+      const part = value.slice(start, start + size);
+      if (part) parts.push(part);
+      start += size;
+    }
+    return parts.join(" ");
+  };
+  if (plus || digits.startsWith("213")) {
+    return (plus ? "+" : "") + group(digits, [3, 3, 2, 2, 2]);
+  }
+  if (/^[567]/.test(digits)) return group(digits, [3, 2, 2, 2]);
+  return group(digits, [4, 2, 2, 2]);
+}

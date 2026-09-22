@@ -72,6 +72,24 @@ export function mutedTextColor(text: string, surface: string): string {
   return muted;
 }
 
+// Status hues of the player screens (a valid field, an error), whatever the brand.
+const SUCCESS = "#22C55E";
+const DANGER = "#EF4444";
+
+// A status color readable as text on the surface (WCAG AA): the hue, lightened on a dark
+// surface or darkened on a light one, only as much as needed.
+export function statusColor(base: string, surface: string): string {
+  const toward =
+    contrastRatio(WHITE, surface) > contrastRatio(BLACK, surface)
+      ? WHITE
+      : BLACK;
+  for (const weight of [0, 0.15, 0.3, 0.45, 0.6]) {
+    const color = mixHex(base, toward, weight);
+    if (contrastRatio(color, surface) >= MIN_TEXT_CONTRAST) return color;
+  }
+  return mixHex(base, toward, 0.75);
+}
+
 export function tokensToCssVars(theme: ThemeTokens): CssVars {
   const { colors } = theme;
   // The runtime's button text uses the same rule as the design checks (T1.11).
@@ -99,6 +117,9 @@ export function tokensToCssVars(theme: ThemeTokens): CssVars {
       onPrimary,
       [0.2, 0.14, 0.08],
     ),
+    // A valid field and an error, never shown by the color alone (D19).
+    "--xp-success": statusColor(SUCCESS, colors.surface),
+    "--xp-danger": statusColor(DANGER, colors.surface),
     "--xp-radius-sm": radius.sm,
     "--xp-radius-md": radius.md,
     "--xp-radius-lg": radius.lg,

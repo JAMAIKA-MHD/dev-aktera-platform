@@ -5,6 +5,7 @@ import {
   canSubmit,
   createInitialFlowState,
   createPreviewFlowState,
+  formErrors,
   flowReducer,
   nextCommand,
   outcomeTimingFor,
@@ -201,6 +202,32 @@ describe("canSubmit", () => {
     fields: FORM.fields.map((field) =>
       field.key === key ? { ...field, ...change } : field,
     ),
+  });
+
+  it("says what is missing, field by field", () => {
+    const empty = {
+      ...withFields({ fullName: "", phone: "" }),
+      consentAccepted: false,
+    };
+    expect(formErrors(empty, FORM)).toEqual({
+      fullName: "required",
+      phone: "required",
+      consent: "consent",
+    });
+    expect(formErrors(withFields({ phone: "0212345678" }), FORM)).toEqual({
+      phone: "phone",
+    });
+    const withEmail = formWith("email", { enabled: true });
+    expect(formErrors(withFields({ email: "amina@" }), withEmail)).toEqual({
+      email: "email",
+    });
+    expect(
+      formErrors(
+        withFields({ email: "" }),
+        formWith("email", { enabled: true, required: true }),
+      ),
+    ).toEqual({ email: "required" });
+    expect(formErrors(withFields({}), FORM)).toEqual({});
   });
 
   it("accepts the Algerian mobile formats, and refuses the others", () => {

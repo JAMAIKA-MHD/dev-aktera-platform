@@ -340,6 +340,35 @@ export const FORM_FIELD_TEXT: Readonly<
   },
 };
 
+// Texts of the registration form that brands do not edit. Each error says how to fix it (D16).
+export const FORM_TEXT = {
+  errors: {
+    required: localized(
+      "Ce champ est obligatoire.",
+      "هذا الحقل إلزامي.",
+      "This field is required.",
+    ),
+    phone: localized(
+      "Numéro invalide : 10 chiffres commençant par 05, 06 ou 07.",
+      "رقم غير صحيح: 10 أرقام تبدأ بـ 05 أو 06 أو 07.",
+      "Invalid number: 10 digits starting with 05, 06 or 07.",
+    ),
+    email: localized(
+      "Adresse email invalide, par exemple nom@exemple.com.",
+      "بريد إلكتروني غير صحيح، مثلاً name@example.com.",
+      "Invalid email address, for example name@example.com.",
+    ),
+    consent: localized(
+      "Cochez la case pour participer.",
+      "ضع علامة في المربع للمشاركة.",
+      "Tick the box to take part.",
+    ),
+  },
+  optional: localized("facultatif", "اختياري", "optional"),
+  valid: localized("Valide", "صالح", "Valid"),
+  readRules: localized("Lire le règlement", "اقرأ القوانين", "Read the rules"),
+} as const;
+
 // Law 18-07: the player agrees to the rules and to the processing of their personal data.
 export const CONSENT_TEXT = localized(
   "J'accepte le règlement du jeu et le traitement de mes données personnelles pour la gestion de ma participation, conformément à la loi 18-07.",

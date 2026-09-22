@@ -8,37 +8,24 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import {
-  resolveText,
-  type Locale,
-  type LocalizedText,
-} from "../../domain/locale";
+import { resolveText, type LocalizedText } from "../../domain/locale";
 import {
   PARTICIPATION_ERROR_MESSAGES,
   type ParticipationErrorCode,
 } from "../../domain/participation";
-import type {
-  ExperienceConfig,
-  ScreenContent,
-  ScreenKey,
-} from "../../domain/types";
+import type { ScreenContent, ScreenKey } from "../../domain/types";
 import { STATUS_TEXT } from "../../presets/contentDefaults";
 import { tint } from "../../theme/recipes";
 import { ExperienceFrame, type CtaActions } from "../frame/ExperienceFrame";
-import type { ExperienceFlow } from "../useExperienceFlow";
 import { ScreenMedallion } from "./ScreenMedallion";
+import { press, type ScreenProps } from "./screenProps";
 import { textContent } from "./textContent";
 
-// Interim screens of the journey, until the real ones exist: welcome and registration
-// (T4.2), waiting and status (T4.3), win and loss (T4.4), games (phase 5). Each one already
-// has its frame, its content and its CTA wired to the flow (B4), and an exit (B9); slot 5
-// says what will fill it. No game animates the outcome yet: the reveal completes at once.
-
-export interface FrameChrome {
-  logoUrl: string | null;
-  statusBadge: string | null; // "Demo" while the gateway is not live (B6)
-  live: boolean;
-}
+// Interim screens of the journey, until the real ones exist: waiting and status (T4.3),
+// win and loss (T4.4), games (phase 5). Each one already has its frame, its content and its
+// CTA wired to the flow (B4), and an exit (B9); slot 5 says what will fill it. No game
+// animates the outcome yet: the reveal completes at once. Welcome and registration have
+// their own screens (T4.2).
 
 interface View {
   key: ScreenKey | null; // screen content edited in the Studio, if any
@@ -96,55 +83,18 @@ function AutoReveal({ onDone }: { onDone: () => void }) {
   return null;
 }
 
-export function PendingScreen({
-  flow,
-  config,
-  locale,
-  chrome,
-}: {
-  flow: ExperienceFlow;
-  config: ExperienceConfig;
-  locale: Locale;
-  chrome: FrameChrome;
-}) {
+export function PendingScreen({ flow, config, locale, chrome }: ScreenProps) {
   const { state } = flow;
   const text = (value: LocalizedText) =>
     resolveText(value, locale, config.locales.default);
-  // Every CTA of the journey reports its click, then emits its event.
-  const press = (action: () => void, cta: "primary" | "secondary") => () => {
-    flow.track("cta_clicked", { cta });
-    action();
-  };
-  const restart = press(flow.restart, "primary");
+  const restart = press(flow, flow.restart, "primary");
 
-  const view = ((): View => {
+  const view = ((): View | null => {
     const screens = config.screens;
     switch (state.screen) {
       case "welcome":
-        return {
-          key: "welcome",
-          content: screens.welcome,
-          body: <StandIn what="Game teaser" task="T4.2, then phase 5" />,
-          cta: { onPrimary: press(flow.start, "primary") },
-        };
       case "register":
-        return {
-          key: "register",
-          content: screens.register,
-          body: (
-            <StandIn what="Registration form" task="T4.2">
-              {state.error && (
-                <p dir="auto" role="alert" className="text-sm font-semibold">
-                  {text(PARTICIPATION_ERROR_MESSAGES[state.error.code])}
-                </p>
-              )}
-            </StandIn>
-          ),
-          cta: {
-            onPrimary: press(flow.submit, "primary"),
-            disabled: !flow.canSubmit,
-          },
-        };
+        return null; // WelcomeScreen and RegisterScreen
       case "play":
       case "revealing":
         return {
@@ -160,7 +110,7 @@ export function PendingScreen({
           // The engine of a game played first (quiz, boxes, Hit It) sends its own result.
           cta:
             state.screen === "play" && state.timing === "before-animation"
-              ? { onPrimary: press(flow.startDraw, "primary") }
+              ? { onPrimary: press(flow, flow.startDraw, "primary") }
               : null,
         };
       case "resolving":
@@ -218,8 +168,8 @@ export function PendingScreen({
           body: <ScreenMedallion icon={status.icon} />,
           cta: retryable
             ? {
-                onPrimary: press(flow.retry, "primary"),
-                onSecondary: press(flow.restart, "secondary"),
+                onPrimary: press(flow, flow.retry, "primary"),
+                onSecondary: press(flow, flow.restart, "secondary"),
               }
             : { onPrimary: restart },
         };
@@ -227,6 +177,7 @@ export function PendingScreen({
     }
   })();
 
+  if (!view) return null;
   return (
     <ExperienceFrame
       config={config}

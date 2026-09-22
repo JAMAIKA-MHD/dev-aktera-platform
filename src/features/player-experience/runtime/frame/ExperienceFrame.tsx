@@ -5,6 +5,7 @@ import { FRAME_TEXT } from "../../presets/contentDefaults";
 import { runtimeAudio, unlockOnFirstGesture } from "../feedback/audio";
 import { useLayoutMode } from "../layout/useLayoutMode";
 import { TermsSheet } from "../legal/TermsSheet";
+import { LegalSheetContext } from "./legalSheet";
 import { JackpotCard } from "../sections/JackpotCard";
 import { PrizeChips } from "../sections/PrizeChips";
 import { BrandHeaderSlot } from "./slots/BrandHeaderSlot";
@@ -97,106 +98,108 @@ export function ExperienceFrame({
   const organizer = config.legal.organizerName.trim();
 
   return (
-    <div
-      className="xp-frame"
-      data-xp-arrangement={mode.arrangement}
-      data-xp-density={mode.density}
-      data-xp-motion={config.features.animations ? undefined : "off"}
-    >
-      {screenContent.showHeader ? (
-        <BrandHeaderSlot
-          brand={config.brand}
-          locale={locale}
-          fallbackLocale={fallback}
-          logoUrl={logoUrl}
-          live={live}
-          badge={statusBadge}
-        />
-      ) : (
-        // Without the header, the badge keeps a row of its own: it never covers the title.
-        statusBadge && (
-          <div data-xp-slot="status" className="flex justify-end">
-            <StatusBadge label={statusBadge} />
-          </div>
-        )
-      )}
-      {hero && <HeroVisualSlot hero={hero} editPath={editPath} />}
-      {title && (
-        <TitleSlot text={title} direction={direction} editPath={editPath} />
-      )}
-      {subtitle && (
-        <SupportingCopySlot
-          text={subtitle}
-          direction={direction}
-          editPath={editPath}
-        />
-      )}
-      <PrimaryInteractionSlot>{children}</PrimaryInteractionSlot>
-      {/* Under the game in stack; in split, under the copy: the end pane is the game's. */}
-      {showSections && (jackpot.enabled || prizeChips.enabled) && (
-        <div
-          data-xp-slot="sections"
-          data-xp-rise
-          style={{ "--xp-rise-order": 4 } as CSSProperties}
-        >
-          {jackpot.enabled && <JackpotCard section={jackpot} text={text} />}
-          {prizeChips.enabled && (
-            <PrizeChips section={prizeChips} text={text} />
-          )}
-        </div>
-      )}
-      {reinforcementKind !== "none" &&
-        (reinforcementText || reinforcement?.progress) && (
-          <ReinforcementSlot
-            kind={reinforcementKind}
-            text={reinforcementText}
-            progress={reinforcement?.progress ?? null}
+    <LegalSheetContext.Provider value={setSheetTrigger}>
+      <div
+        className="xp-frame"
+        data-xp-arrangement={mode.arrangement}
+        data-xp-density={mode.density}
+        data-xp-motion={config.features.animations ? undefined : "off"}
+      >
+        {screenContent.showHeader ? (
+          <BrandHeaderSlot
+            brand={config.brand}
+            locale={locale}
+            fallbackLocale={fallback}
+            logoUrl={logoUrl}
+            live={live}
+            badge={statusBadge}
+          />
+        ) : (
+          // Without the header, the badge keeps a row of its own: it never covers the title.
+          statusBadge && (
+            <div data-xp-slot="status" className="flex justify-end">
+              <StatusBadge label={statusBadge} />
+            </div>
+          )
+        )}
+        {hero && <HeroVisualSlot hero={hero} editPath={editPath} />}
+        {title && (
+          <TitleSlot text={title} direction={direction} editPath={editPath} />
+        )}
+        {subtitle && (
+          <SupportingCopySlot
+            text={subtitle}
+            direction={direction}
             editPath={editPath}
           />
         )}
-      {cta && primaryLabel && (
-        <CtaSlot
-          primaryLabel={primaryLabel}
-          secondaryLabel={text(screenContent.secondaryCta) || null}
-          onPrimary={() => {
-            runtimeAudio.play("click");
-            cta.onPrimary();
-          }}
-          onSecondary={
-            cta.onSecondary &&
-            (() => {
+        <PrimaryInteractionSlot>{children}</PrimaryInteractionSlot>
+        {/* Under the game in stack; in split, under the copy: the end pane is the game's. */}
+        {showSections && (jackpot.enabled || prizeChips.enabled) && (
+          <div
+            data-xp-slot="sections"
+            data-xp-rise
+            style={{ "--xp-rise-order": 4 } as CSSProperties}
+          >
+            {jackpot.enabled && <JackpotCard section={jackpot} text={text} />}
+            {prizeChips.enabled && (
+              <PrizeChips section={prizeChips} text={text} />
+            )}
+          </div>
+        )}
+        {reinforcementKind !== "none" &&
+          (reinforcementText || reinforcement?.progress) && (
+            <ReinforcementSlot
+              kind={reinforcementKind}
+              text={reinforcementText}
+              progress={reinforcement?.progress ?? null}
+              editPath={editPath}
+            />
+          )}
+        {cta && primaryLabel && (
+          <CtaSlot
+            primaryLabel={primaryLabel}
+            secondaryLabel={text(screenContent.secondaryCta) || null}
+            onPrimary={() => {
               runtimeAudio.play("click");
-              cta.onSecondary?.();
-            })
-          }
-          disabled={cta.disabled ?? false}
-          loading={cta.loading ?? false}
-          loadingLabel={text(FRAME_TEXT.loading)}
-          editPath={editPath}
+              cta.onPrimary();
+            }}
+            onSecondary={
+              cta.onSecondary &&
+              (() => {
+                runtimeAudio.play("click");
+                cta.onSecondary?.();
+              })
+            }
+            disabled={cta.disabled ?? false}
+            loading={cta.loading ?? false}
+            loadingLabel={text(FRAME_TEXT.loading)}
+            editPath={editPath}
+          />
+        )}
+        <FooterSlot
+          legal={config.legal}
+          locale={locale}
+          fallbackLocale={fallback}
+          direction={direction}
+          onOpenSheet={setSheetTrigger}
         />
-      )}
-      <FooterSlot
-        legal={config.legal}
-        locale={locale}
-        fallbackLocale={fallback}
-        direction={direction}
-        onOpenSheet={setSheetTrigger}
-      />
-      {/* Fixed, outside the slots: no transformed ancestor can trap it. */}
-      {sheetTrigger && (
-        <TermsSheet
-          title={text(FRAME_TEXT.legalTitle)}
-          organizer={
-            organizer
-              ? text(FRAME_TEXT.organizedBy).replace("{name}", organizer)
-              : null
-          }
-          body={text(config.legal.termsBody)}
-          closeLabel={text(FRAME_TEXT.close)}
-          returnFocusTo={sheetTrigger}
-          onClose={() => setSheetTrigger(null)}
-        />
-      )}
-    </div>
+        {/* Fixed, outside the slots: no transformed ancestor can trap it. */}
+        {sheetTrigger && (
+          <TermsSheet
+            title={text(FRAME_TEXT.legalTitle)}
+            organizer={
+              organizer
+                ? text(FRAME_TEXT.organizedBy).replace("{name}", organizer)
+                : null
+            }
+            body={text(config.legal.termsBody)}
+            closeLabel={text(FRAME_TEXT.close)}
+            returnFocusTo={sheetTrigger}
+            onClose={() => setSheetTrigger(null)}
+          />
+        )}
+      </div>
+    </LegalSheetContext.Provider>
   );
 }

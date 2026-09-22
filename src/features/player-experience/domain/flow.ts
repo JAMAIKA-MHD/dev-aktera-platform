@@ -10,7 +10,7 @@ import {
   type ParticipationErrorCode,
 } from "./participation";
 import { isValidDzMobile, normalizeDzPhone } from "./phone";
-import type { FormConfig } from "./types";
+import type { FormConfig, FormFieldKey } from "./types";
 
 // Player journey as a pure state machine (plan §6.1). No network, no clock, no randomness:
 // timestamps and request ids come with the events. useExperienceFlow (T4.1) runs the effects
@@ -116,18 +116,33 @@ export function createInitialFlowState(
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// True when the form can be sent: every enabled required field filled, a valid Algerian
-// mobile number (always required: it is the anti-duplicate key), a well-formed email when
-// one is typed, and the consent box ticked.
-export function canSubmit(state: FlowState, form: FormConfig): boolean {
-  if (!state.consentAccepted) return false;
-  if (!isValidDzMobile(state.participant.phone)) return false;
-  return form.fields.every((field) => {
-    if (!field.enabled || field.key === "phone") return true;
+// What keeps the form from being sent, field by field: an enabled required field left
+// empty, an Algerian mobile number that is missing or invalid (always required: it is the
+// anti-duplicate key), a malformed email when one is typed, the consent box not ticked.
+export type FormErrorCode = "required" | "phone" | "email" | "consent";
+export type FormErrors = Partial<
+  Record<FormFieldKey | "consent", FormErrorCode>
+>;
+
+export function formErrors(state: FlowState, form: FormConfig): FormErrors {
+  const errors: FormErrors = {};
+  const { phone } = state.participant;
+  if (phone.trim() === "") errors.phone = "required";
+  else if (!isValidDzMobile(phone)) errors.phone = "phone";
+  for (const field of form.fields) {
+    if (!field.enabled || field.key === "phone") continue;
     const value = state.participant[field.key].trim();
-    if (field.required && value === "") return false;
-    return field.key !== "email" || value === "" || EMAIL.test(value);
-  });
+    if (field.required && value === "") errors[field.key] = "required";
+    else if (field.key === "email" && value !== "" && !EMAIL.test(value)) {
+      errors.email = "email";
+    }
+  }
+  if (!state.consentAccepted) errors.consent = "consent";
+  return errors;
+}
+
+export function canSubmit(state: FlowState, form: FormConfig): boolean {
+  return Object.keys(formErrors(state, form)).length === 0;
 }
 
 // Screens where the draw is in flight or being shown: leaving them would lose the result.

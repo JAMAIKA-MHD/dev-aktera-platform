@@ -12,7 +12,7 @@ export default defineConfig((env) =>
       coverage: {
         provider: "v8",
         include: [
-          "src/features/player-experience/{domain,services,theme,runtime/layout,runtime/host,runtime/frame,runtime/legal,runtime/sections,runtime/feedback,runtime/hooks,runtime/screens}/**",
+          "src/features/player-experience/{domain,services,theme,runtime/layout,runtime/host,runtime/frame,runtime/legal,runtime/sections,runtime/feedback,runtime/hooks,runtime/screens,runtime/games}/**",
           // The root of the runtime: PlayerExperience and useExperienceFlow.
           "src/features/player-experience/runtime/*.{ts,tsx}",
         ],
