@@ -21,6 +21,7 @@ import {
   type SafeAreaInsets,
 } from "../layout/safeArea";
 import { LayoutDebugView, ThemePresetsView } from "./DebugViews";
+import { FeedbackDebugView } from "./FeedbackDebugView";
 import { FramePreview, type FramePreviewState } from "./FramePreview";
 import {
   FIXTURE_NAMES,
@@ -92,6 +93,8 @@ function Stage({ content }: { content: FrameContent }) {
           <>
             {view === "theme-presets" ? (
               <ThemePresetsView locale={locale} />
+            ) : view === "feedback-debug" ? (
+              <FeedbackDebugView config={config} />
             ) : (
               <LayoutDebugView />
             )}

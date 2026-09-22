@@ -1,7 +1,8 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { getDirection, resolveText, type Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenContent } from "../../domain/types";
 import { FRAME_TEXT } from "../../presets/contentDefaults";
+import { runtimeAudio, unlockOnFirstGesture } from "../feedback/audio";
 import { useLayoutMode } from "../layout/useLayoutMode";
 import { TermsSheet } from "../legal/TermsSheet";
 import { JackpotCard } from "../sections/JackpotCard";
@@ -70,6 +71,11 @@ export function ExperienceFrame({
   cta = null,
 }: ExperienceFrameProps) {
   const mode = useLayoutMode();
+  // Sounds wait for the player's first gesture (autoplay rules), then follow features.sound.
+  useEffect(() => unlockOnFirstGesture(document, runtimeAudio), []);
+  useEffect(() => {
+    runtimeAudio.setEnabled(config.features.sound);
+  }, [config.features.sound]);
   // The legal sheet is open while it knows its trigger, where the focus goes back.
   const [sheetTrigger, setSheetTrigger] = useState<HTMLElement | null>(null);
   const fallback = config.locales.default;
@@ -152,8 +158,17 @@ export function ExperienceFrame({
         <CtaSlot
           primaryLabel={primaryLabel}
           secondaryLabel={text(screenContent.secondaryCta) || null}
-          onPrimary={cta.onPrimary}
-          onSecondary={cta.onSecondary}
+          onPrimary={() => {
+            runtimeAudio.play("click");
+            cta.onPrimary();
+          }}
+          onSecondary={
+            cta.onSecondary &&
+            (() => {
+              runtimeAudio.play("click");
+              cta.onSecondary?.();
+            })
+          }
           disabled={cta.disabled ?? false}
           loading={cta.loading ?? false}
           loadingLabel={text(FRAME_TEXT.loading)}

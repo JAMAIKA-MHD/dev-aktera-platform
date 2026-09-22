@@ -11,6 +11,7 @@ import { createDefaultExperience } from "../../domain/defaults";
 import { localized, type Locale } from "../../domain/locale";
 import type { ExperienceConfig } from "../../domain/types";
 import { defaultTermsBody } from "../../presets/contentDefaults";
+import { runtimeAudio } from "../feedback/audio";
 import { TermsSheet } from "../legal/TermsSheet";
 import { ExperienceFrame, type ExperienceFrameProps } from "./ExperienceFrame";
 import { useIsStuck } from "./useIsStuck";
@@ -182,6 +183,35 @@ describe("slot 7 — CTA", () => {
     // A plain link on a narrow phone (compact), a ghost button elsewhere.
     expect(secondary.className).toContain("compact:underline");
     expect(secondary.className).toContain("min-h-[44px]");
+  });
+
+  it("clicks like the prototype, and stays silent when the brand turned sound off", () => {
+    const play = vi.spyOn(runtimeAudio, "play");
+    const enable = vi.spyOn(runtimeAudio, "setEnabled");
+    const config = zetaConfig();
+    config.screens.welcome.secondaryCta = localized("Voir les lots");
+    const onPrimary = vi.fn(() => {
+      expect(play).toHaveBeenCalledWith("click"); // the sound comes first
+    });
+    const { rerender } = renderFrame({
+      config,
+      cta: { onPrimary, onSecondary: () => {} },
+    });
+    expect(enable).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByRole("button", { name: "Lancer le jeu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Voir les lots" }));
+    expect(onPrimary).toHaveBeenCalledOnce();
+    expect(play).toHaveBeenCalledTimes(2);
+    config.features.sound = false;
+    rerender(
+      <ExperienceFrame
+        config={{ ...config }}
+        locale="fr"
+        screenContent={config.screens.welcome}
+        cta={{ onPrimary }}
+      />,
+    );
+    expect(enable).toHaveBeenLastCalledWith(false);
   });
 
   it("stays unavailable while the form is invalid", () => {

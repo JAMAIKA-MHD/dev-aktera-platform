@@ -12,7 +12,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T3.4  | Cadre et slots 1 à 4                    | Terminée | `feat(Player-Experience): add experience frame with header, hero, title and copy slots` | [T3.4-cadre-et-slots-1-a-4.md](./T3.4-cadre-et-slots-1-a-4.md)               |
 | T3.5  | Slots 5 à 8                             | Terminée | `feat(Player-Experience): add interaction, reinforcement, CTA and footer slots`         | [T3.5-slots-5-a-8.md](./T3.5-slots-5-a-8.md)                                 |
 | T3.6  | Sections jackpot et chips               | Terminée | `feat(Player-Experience): add jackpot and prize chips sections`                         | [T3.6-sections-jackpot-et-chips.md](./T3.6-sections-jackpot-et-chips.md)     |
+| T3.7  | Retours sensoriels et hooks             | Terminée | `feat(Player-Experience): add feedback utilities and runtime hooks`                     | [T3.7-retours-sensoriels-et-hooks.md](./T3.7-retours-sensoriels-et-hooks.md) |
 
-À venir : T3.7 et T3.8.
+À venir : T3.8.
 
 Phase précédente : [phase 2 — Services et adaptateurs locaux](../phase_2/README.md).

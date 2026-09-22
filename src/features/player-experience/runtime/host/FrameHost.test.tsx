@@ -4,7 +4,15 @@ import { createDefaultExperience } from "../../domain/defaults";
 import { createDemoCampaign } from "../../presets/demoCampaign";
 import { createLocalServices } from "../../services/createLocalServices";
 import { BridgeFrame, FrameHost, LocalFrame } from "./FrameHost";
+import { disposeConfetti } from "../feedback/confetti";
+import { FeedbackDebugView } from "./FeedbackDebugView";
 import { FIXTURE_NAMES, getFixture, readFixtureLocale } from "./fixtures";
+
+const confetti = vi.hoisted(() => {
+  const fire = Object.assign(vi.fn(), { reset: vi.fn() });
+  return { fire, create: vi.fn(() => fire) };
+});
+vi.mock("canvas-confetti", () => ({ default: { create: confetti.create } }));
 import type { Bridge, FromFrameMessage, ToFrameMessage } from "./previewBridge";
 
 function visit(search: string) {
@@ -44,6 +52,7 @@ describe("fixtures", () => {
     expect(FIXTURE_NAMES).toEqual([
       "layout-debug",
       "theme-presets",
+      "feedback-debug",
       "welcome-midnight-gold",
       "frame-long-texts",
       "frame-play-hit-it",
@@ -113,7 +122,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header",
+        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header",
       ),
     ).toBeTruthy();
   });
@@ -160,6 +169,86 @@ describe("FrameHost", () => {
         .querySelector("[data-xp-hero]")
         ?.getAttribute("data-xp-hero"),
     ).toBe("trophy");
+  });
+
+  it("tries every feedback of T3.7 on its control page", async () => {
+    visit("?fixture=feedback-debug");
+    render(<FrameHost />);
+    expect(screen.getByText("Sounds, confetti and hooks")).toBeTruthy();
+    const value = (name: string) =>
+      screen.getByTestId(`feedback-${name}`).textContent;
+    expect(value("sound")).toBe("locked until a gesture");
+    expect(value("session")).toMatch(/^sess_/);
+    fireEvent.pointerDown(document.body); // the first gesture unlocks the audio
+    fireEvent.click(screen.getByRole("button", { name: "win" }));
+    expect(value("last")).toBe("win · 0 s");
+    fireEvent.click(screen.getByRole("button", { name: "Confetti" }));
+    expect(value("last")).toBe("confetti");
+    expect(confetti.fire).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Vibrate" }));
+    expect(value("last")).toBe("no vibration here");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copy session id" }));
+    });
+    // jsdom has no clipboard: the button says nothing was copied.
+    expect(
+      screen.getByRole("button", { name: "Copy session id" }),
+    ).toBeTruthy();
+    disposeConfetti(document);
+  });
+
+  it("reports each feedback that worked", async () => {
+    vi.stubGlobal(
+      "AudioContext",
+      vi.fn(function (this: object) {
+        Object.assign(this, { state: "running" });
+      }),
+    );
+    Object.defineProperty(navigator, "vibrate", {
+      value: vi.fn(() => true),
+      configurable: true,
+    });
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn(() => Promise.resolve()) },
+      configurable: true,
+    });
+    const config = createDefaultExperience({ gameType: "lucky_wheel" });
+    const { rerender } = render(<FeedbackDebugView config={config} />);
+    fireEvent.pointerDown(document.body);
+    fireEvent.click(screen.getByRole("button", { name: "click" }));
+    expect(screen.getByTestId("feedback-sound").textContent).toBe("unlocked");
+    fireEvent.click(screen.getByRole("button", { name: "Vibrate" }));
+    expect(screen.getByTestId("feedback-last").textContent).toBe("vibrated");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copy session id" }));
+    });
+    expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+    config.features.sound = false;
+    rerender(<FeedbackDebugView config={{ ...config }} />);
+    expect(screen.getByTestId("feedback-sound").textContent).toBe("off");
+    Reflect.deleteProperty(navigator, "vibrate");
+    Reflect.deleteProperty(navigator, "clipboard");
+    vi.unstubAllGlobals();
+  });
+
+  it("holds the confetti back with reduced motion", () => {
+    confetti.fire.mockClear();
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    visit("?fixture=feedback-debug");
+    render(<FrameHost />);
+    expect(screen.getByTestId("feedback-reduced-motion").textContent).toBe(
+      "yes",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Confetti" }));
+    expect(screen.getByTestId("feedback-last").textContent).toBe(
+      "confetti skipped (reduced motion)",
+    );
+    expect(confetti.fire).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it("waits for the Studio by default", () => {

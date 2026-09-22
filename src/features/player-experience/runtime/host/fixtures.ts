@@ -11,7 +11,8 @@ import type { FramePreviewState } from "./FramePreview";
 // responsive sweep (T3.8) and for manual checks with the browser's device mode.
 // Each task of phases 3 to 5 adds its own fixtures. Brand names are fictional.
 
-export type FixtureView = "layout-debug" | "theme-presets" | "frame";
+export type FixtureView =
+  "layout-debug" | "theme-presets" | "feedback-debug" | "frame";
 
 export interface Fixture {
   view: FixtureView;
@@ -156,6 +157,10 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
   "theme-presets": fixture(
     "theme-presets",
     "The five style presets, each drawn from its own theme variables",
+  ),
+  "feedback-debug": fixture(
+    "feedback-debug",
+    "Sounds, confetti, vibration and the runtime hooks, one button each",
   ),
   "welcome-midnight-gold": fixture(
     "frame",
