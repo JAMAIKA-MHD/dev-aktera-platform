@@ -328,7 +328,10 @@ describe("BridgeFrame", () => {
     container.querySelector("main")?.appendChild(editable);
     fireEvent.click(inner);
     fireEvent.click(container.querySelector("main") as HTMLElement); // not editable
-    expect(posted).toEqual([
+    // (The live layout report may also have gone out: it is tested in layoutReport.test.tsx.)
+    expect(
+      posted.filter((message) => message.type !== "xp:layout-report"),
+    ).toEqual([
       { type: "xp:ready" },
       { type: "xp:edit-target", path: "screens.welcome.title" },
     ]);

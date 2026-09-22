@@ -15,4 +15,4 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 **Bilan :** phase terminée le 2026-09-21, un commit par tâche. Les services du MVP (`src/features/player-experience/services/`) implémentent les 5 ports ; tout leur code est couvert à 100 % par les tests. Deux défauts du serveur ont été trouvés et documentés dans `services/supabase/README.md` (seuil de Hit It non appliqué, consentement non vérifié).
 
-Phase précédente : [phase 1 — Domaine](../phase_1/README.md). Phase suivante : phase 3 — Thème, mise en page adaptative et cadre (pas encore commencée).
+Phase précédente : [phase 1 — Domaine](../phase_1/README.md). Phase suivante : [phase 3 — Thème, mise en page adaptative et cadre](../phase_3/README.md).

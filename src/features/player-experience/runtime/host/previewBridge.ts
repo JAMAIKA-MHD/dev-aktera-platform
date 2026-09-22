@@ -3,6 +3,7 @@ import type { FlowScreen } from "../../domain/flow";
 import type { Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenKey } from "../../domain/types";
 import type { ScriptedScenario } from "../../services/createLocalServices";
+import type { LayoutReport } from "../layout/layoutAudit";
 import type { SafeAreaInsets } from "../layout/safeArea";
 
 // Messages between the Studio and the /xp-frame iframe (plan §9.3). Both sides are on the
@@ -22,17 +23,19 @@ export type ToFrameMessage =
       restartKey: number; // incremented to restart the journey
     };
 
-// Frame → Studio ("xp:layout-report" is added in T3.8)
+// Frame → Studio
 export type FromFrameMessage =
   | { type: "xp:ready" }
   | { type: "xp:flow-event"; screen: FlowScreen }
-  | { type: "xp:edit-target"; path: string }; // click on a data-xp-edit element
+  | { type: "xp:edit-target"; path: string } // click on a data-xp-edit element
+  | ({ type: "xp:layout-report" } & LayoutReport); // live layout audit (layoutAudit.ts)
 
 const TO_FRAME = new Set<string>(["xp:config", "xp:ui"]);
 const FROM_FRAME = new Set<string>([
   "xp:ready",
   "xp:flow-event",
   "xp:edit-target",
+  "xp:layout-report",
 ]);
 
 function hasType(data: unknown, types: Set<string>): boolean {

@@ -127,6 +127,28 @@ describe("Studio bridge", () => {
     });
   });
 
+  it("receives the live layout report of the frame (T3.8)", () => {
+    const { frameWindow, studio, iframe } = setup();
+    const listener = vi.fn();
+    createStudioBridge(iframe, studio.win).subscribe(listener);
+    const report = {
+      type: "xp:layout-report",
+      width: 360,
+      height: 640,
+      mode: {
+        arrangement: "stack",
+        density: "regular",
+        compact: false,
+        wide: false,
+      },
+      issues: [],
+    };
+    studio.deliver(report, ORIGIN, frameWindow.win);
+    studio.deliver(report, "https://evil.example.com", frameWindow.win);
+    expect(listener).toHaveBeenCalledOnce();
+    expect(listener).toHaveBeenCalledWith(report);
+  });
+
   it("does nothing while the iframe has no window yet", () => {
     const studio = fakeWindow();
     const iframe = { contentWindow: null } as unknown as HTMLIFrameElement;
