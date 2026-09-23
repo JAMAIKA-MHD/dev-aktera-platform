@@ -98,6 +98,7 @@ export interface StudioState {
   saveStatus: SaveStatus;
   issues: DesignIssue[]; // design checks (T1.11), recomputed whenever the config changes
   layoutIssues: LayoutIssue[]; // what the frame reports back from the preview (T6.10)
+  layoutSize: { width: number; height: number } | null; // the size they were found at
 
   // Edits. Each one is one step of the history, refreshes `updatedAt` and the design issues.
   updateTheme(patch: Partial<ThemeTokens>): void;
@@ -126,7 +127,10 @@ export interface StudioState {
   setMode(mode: PreviewFlowMode, scenario?: ScriptedScenario): void;
   setViewport(patch: Partial<ViewportState>): void;
   setSaveStatus(status: SaveStatus): void;
-  setLayoutIssues(issues: LayoutIssue[]): void;
+  setLayoutIssues(
+    issues: LayoutIssue[],
+    size?: { width: number; height: number } | null,
+  ): void;
 }
 
 export interface StudioStoreOptions {
@@ -196,6 +200,7 @@ export function createStudioStore(
           saveStatus: "idle",
           issues: checkDesign(config, campaign),
           layoutIssues: [],
+          layoutSize: null,
 
           updateTheme: (patch) =>
             edit((current) => ({
@@ -324,7 +329,8 @@ export function createStudioStore(
               ui: { ...state.ui, viewport: { ...state.ui.viewport, ...patch } },
             })),
           setSaveStatus: (saveStatus) => set({ saveStatus }),
-          setLayoutIssues: (layoutIssues) => set({ layoutIssues }),
+          setLayoutIssues: (layoutIssues, layoutSize = null) =>
+            set({ layoutIssues, layoutSize }),
         };
       },
       {

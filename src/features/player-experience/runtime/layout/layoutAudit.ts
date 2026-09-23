@@ -12,7 +12,10 @@ export type LayoutIssueKind =
   | "cta-too-small"
   | "cta-unreachable"
   | "game-below-floor"
-  | "wheel-not-square";
+  | "wheel-not-square"
+  // Not a defect of the layout: a text cut on purpose (data-xp-clamp) that is actually cut
+  // at this size. Only in the report's `truncated` list, for the Studio (T6.10).
+  | "text-truncated";
 
 export interface LayoutIssue {
   kind: LayoutIssueKind;
@@ -26,6 +29,9 @@ export interface LayoutReport {
   height: number;
   mode: LayoutMode;
   issues: LayoutIssue[];
+  // The brand's texts shortened at this size (an ellipsis): the layout is right, but the
+  // player does not read the whole text. Never part of `issues`: the sweep ignores them.
+  truncated: LayoutIssue[];
 }
 
 const TOLERANCE = 0.5; // sub-pixel rounding is not a defect
@@ -231,6 +237,37 @@ export function layoutAudit(root: HTMLElement): LayoutIssue[] {
   return issues;
 }
 
+// The clamped texts (data-xp-clamp) that do not fit at this size.
+export function layoutTruncations(root: HTMLElement): LayoutIssue[] {
+  const view = root.ownerDocument.defaultView;
+  if (!view) return [];
+  const truncated: LayoutIssue[] = [];
+  for (const element of root.querySelectorAll<HTMLElement>("[data-xp-clamp]")) {
+    if (element.clientWidth === 0 && element.clientHeight === 0) continue;
+    // The legal band scrolls a long text on purpose: it is read whole, just not at once.
+    if (element.hasAttribute("data-xp-band")) continue;
+    // A tight line height lets the glyphs overflow the box by a few pixels with nothing cut:
+    // a text is cut when at least half a line is hidden (or, on one line, its width).
+    const style = view.getComputedStyle(element);
+    const fontSize = Number.parseFloat(style.fontSize) || 16;
+    const lineHeight = Number.parseFloat(style.lineHeight) || fontSize * 1.2;
+    if (
+      element.scrollHeight > element.clientHeight + lineHeight / 2 ||
+      element.scrollWidth > element.clientWidth + 1
+    ) {
+      truncated.push({
+        kind: "text-truncated",
+        selector: describe(element),
+        editPath:
+          element.closest("[data-xp-edit]")?.getAttribute("data-xp-edit") ??
+          null,
+        detail: `"${String(element.textContent).trim().slice(0, 40)}" is cut to ${element.clientWidth} x ${element.clientHeight} px`,
+      });
+    }
+  }
+  return truncated;
+}
+
 // The report the frame sends to the Studio, after each render and each resize.
 export function layoutReport(root: HTMLElement): LayoutReport {
   const view = root.ownerDocument.defaultView;
@@ -241,5 +278,6 @@ export function layoutReport(root: HTMLElement): LayoutReport {
     height,
     mode: computeLayoutMode(width, height),
     issues: layoutAudit(root),
+    truncated: layoutTruncations(root),
   };
 }

@@ -15,7 +15,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T6.7  | Panneaux Legal et Share               | Terminée | `feat(Player-Experience): add legal and share panels`                   | [T6.7-panneaux-legal-et-share.md](./T6.7-panneaux-legal-et-share.md)                             |
 | T6.8  | Panneau de validation                 | Terminée | `feat(Player-Experience): add validation panel`                         | [T6.8-panneau-de-validation.md](./T6.8-panneau-de-validation.md)                                 |
 | T6.9  | Aperçu responsive façon DevTools      | Terminée | `feat(Player-Experience): add devtools-like responsive preview toolbar` | [T6.9-apercu-responsive-facon-devtools.md](./T6.9-apercu-responsive-facon-devtools.md)           |
+| T6.10 | Audit de mise en page dans le Studio  | Terminée | `feat(Player-Experience): surface layout audit issues in the studio`    | [T6.10-audit-de-mise-en-page-dans-le-studio.md](./T6.10-audit-de-mise-en-page-dans-le-studio.md) |
 
-À venir : T6.10 et T6.11.
+À venir : T6.11 (traductions du quiz).
 
 Phase précédente : [phase 5 — Moteurs de jeu et accroches de pregame](../phase_5/README.md).

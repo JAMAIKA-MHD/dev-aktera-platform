@@ -80,7 +80,7 @@ describe("ValidationPanel", () => {
     const groups = screen
       .getAllByRole("region")
       .map((region) => region.getAttribute("aria-label"));
-    expect(groups).toEqual(["Errors", "Warnings"]);
+    expect(groups).toEqual(["Errors", "Warnings", "All sizes"]);
     const warnings = screen.getByRole("region", { name: "Warnings" });
     fireEvent.click(
       within(warnings).getAllByRole("button", { name: /Content/ })[0],

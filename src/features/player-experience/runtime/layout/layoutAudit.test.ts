@@ -374,6 +374,44 @@ describe("layoutReport", () => {
       issues: [
         expect.objectContaining({ kind: "cta-unreachable" }), // 480 px down a 390 px screen
       ],
+      truncated: [],
     });
+  });
+
+  // T6.10: a text cut on purpose is not a defect, but the Studio tells the brand when it is
+  // actually cut at a size. Never part of the audit the sweep reads.
+  it("lists the clamped texts that are actually cut, apart from the defects", () => {
+    viewport(360, 640);
+    document.body.innerHTML = `
+      <div class="xp-runtime">
+        <div data-xp-edit="screens.welcome.title"><h1 data-xp-clamp style="line-height: 26px">A very long title</h1></div>
+        <p data-xp-clamp style="line-height: 26px">Fits, glyphs overflow a little</p>
+        <button data-xp-clamp data-xp-band>A legal line that scrolls</button>
+      </div>`;
+    const root = document.querySelector<HTMLElement>(".xp-runtime")!;
+    const [title, fits, band] =
+      root.querySelectorAll<HTMLElement>("[data-xp-clamp]");
+    for (const [element, scrollWidth, scrollHeight] of [
+      [title, 300, 120],
+      [fits, 300, 44], // 4 px of glyphs under a 26 px line: nothing is cut
+      [band, 900, 40], // wider than its box: it scrolls, on purpose
+    ] as const) {
+      Object.defineProperties(element, {
+        clientWidth: { configurable: true, value: 300 },
+        clientHeight: { configurable: true, value: 40 },
+        scrollWidth: { configurable: true, value: scrollWidth },
+        scrollHeight: { configurable: true, value: scrollHeight },
+      });
+    }
+    const report = layoutReport(root);
+    expect(report.truncated).toEqual([
+      expect.objectContaining({
+        kind: "text-truncated",
+        editPath: "screens.welcome.title",
+      }),
+    ]);
+    expect(
+      layoutAudit(root).some((issue) => issue.kind === "text-truncated"),
+    ).toBe(false);
   });
 });

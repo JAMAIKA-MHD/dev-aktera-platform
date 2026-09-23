@@ -87,7 +87,11 @@ export function usePreviewBridge(
           break;
         }
         case "xp:layout-report":
-          state.setLayoutIssues(message.issues);
+          // Defects and texts cut short, both warnings of the size on show (T6.10).
+          state.setLayoutIssues(
+            [...message.issues, ...(message.truncated ?? [])],
+            { width: message.width, height: message.height },
+          );
           break;
         case "xp:flow-event":
           latest.current.onFlowScreen?.(message.screen);

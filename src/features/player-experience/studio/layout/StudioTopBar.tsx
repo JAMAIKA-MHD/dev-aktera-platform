@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { StudioCampaignOption } from "../PlayerExperienceStudio";
+import { useLayoutWarnings } from "../preview/useLayoutReport";
 import { useStudio, useStudioHistory } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
 
@@ -98,9 +99,15 @@ function SaveIndicator({ autosave }: { autosave: Autosave }) {
 function IssuesButton() {
   const issues = useStudio((state) => state.issues);
   const setPanel = useStudio((state) => state.setPanel);
+  // Layout warnings of the size on show count too (T6.10); they never make it an error.
+  const layout = useLayoutWarnings().length;
   const errors = issues.filter((issue) => issue.level === "error").length;
-  const warnings = issues.length - errors;
-  const first = issues.find((issue) => issue.level === "error") ?? issues[0];
+  const warnings = issues.length - errors + layout;
+  const total = issues.length + layout;
+  const first =
+    issues.find((issue) => issue.level === "error") ??
+    issues[0] ??
+    (layout > 0 ? { message: "A block breaks at this size" } : undefined);
 
   if (!first) {
     return (
@@ -129,10 +136,8 @@ function IssuesButton() {
       }`}
     >
       <Icon className="size-4" aria-hidden />
-      <span>{issues.length}</span>
-      <span className="hidden md:inline">
-        {issues.length > 1 ? "issues" : "issue"}
-      </span>
+      <span>{total}</span>
+      <span className="hidden md:inline">{total > 1 ? "issues" : "issue"}</span>
     </button>
   );
 }

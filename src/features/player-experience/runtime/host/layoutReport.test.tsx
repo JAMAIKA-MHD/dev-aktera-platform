@@ -58,6 +58,7 @@ describe("useLayoutReport", () => {
         wide: true,
       },
       issues: [],
+      truncated: [],
     });
   });
 
