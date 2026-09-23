@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-} from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CampaignSnapshot } from "../../domain/campaign";
@@ -12,11 +6,10 @@ import { createDefaultExperience } from "../../domain/defaults";
 import type { GameType } from "../../domain/gameTypes";
 import { createDemoCampaign } from "../../presets/demoCampaign";
 import { autoCaption, fillCaption, teaserCaption } from "./autoCaption";
-import { FallbackTeaser, GAME_ICONS } from "./FallbackTeaser";
 import { useTeaserActivity } from "./useTeaserActivity";
 
-// The pregame pieces T4.2 brings ahead of T5.1: the teaser activity, its automatic caption
-// and the fallback teaser of the welcome screen.
+// The pregame pieces shared by every mechanic (T4.2, ahead of T5.1): the teaser activity and
+// the automatic caption. Each mechanic's own teaser is tested next to it (T5.2 onwards).
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -138,108 +131,5 @@ describe("teaserCaption", () => {
     expect(teaserCaption(config, wheel, "ar")).toBe("Tentez votre chance"); // fallback
     config.game.teaser.caption = { fr: "   " };
     expect(teaserCaption(config, wheel, "fr")).toBe(autoCaption(wheel, "fr"));
-  });
-});
-
-describe("FallbackTeaser", () => {
-  const setup = (
-    gameType: GameType,
-    props: Partial<Parameters<typeof FallbackTeaser>[0]> = {},
-  ) => {
-    const campaign = createDemoCampaign(gameType);
-    const config = createDefaultExperience({ gameType, campaign });
-    const onStart = vi.fn();
-    const view = render(
-      <FallbackTeaser
-        settings={config.game}
-        campaign={campaign}
-        config={config}
-        locale="fr"
-        reducedMotion={false}
-        active
-        onStart={onStart}
-        startLabel="Lancer le jeu"
-        {...props}
-      />,
-    );
-    return { ...view, onStart, config, campaign };
-  };
-
-  it("shows the game and its caption, and a tap starts the journey, never a game", () => {
-    const { onStart, container } = setup("lucky_wheel");
-    const button = screen.getByRole("button", {
-      name: "Lancer le jeu · 4 lots à gagner",
-    });
-    expect(button.getAttribute("data-xp-teaser")).toBe("lucky_wheel");
-    expect(screen.getByText("4 lots à gagner")).toBeTruthy();
-    fireEvent.click(button);
-    expect(onStart).toHaveBeenCalledOnce();
-    expect(container.querySelector(".xp-orbit")).toBeTruthy(); // it moves
-  });
-
-  it("has an icon for every game", () => {
-    for (const gameType of Object.keys(GAME_ICONS) as GameType[]) {
-      const { container, unmount } = setup(gameType);
-      expect(container.querySelector("svg")).toBeTruthy();
-      unmount();
-    }
-  });
-
-  it("pauses when it cannot be seen, and stands still when static or with reduced motion", () => {
-    const { container, rerender, campaign, config } = setup("quiz", {
-      active: false,
-    });
-    const breathing = container.querySelector<HTMLElement>(".xp-breathe");
-    expect(breathing?.style.animationPlayState).toBe("paused");
-    const still = (props: {
-      reducedMotion: boolean;
-      mode: "attract" | "static";
-    }) => {
-      const teaser = {
-        ...config.game,
-        teaser: { ...config.game.teaser, mode: props.mode },
-      };
-      rerender(
-        <FallbackTeaser
-          settings={teaser}
-          campaign={campaign}
-          config={{ ...config, game: teaser }}
-          locale="fr"
-          reducedMotion={props.reducedMotion}
-          active
-          onStart={() => {}}
-          startLabel="Commencer"
-        />,
-      );
-      return container.querySelector(".xp-orbit, .xp-breathe");
-    };
-    expect(still({ reducedMotion: true, mode: "attract" })).toBeNull();
-    expect(still({ reducedMotion: false, mode: "static" })).toBeNull();
-    expect(still({ reducedMotion: false, mode: "attract" })).toBeTruthy();
-  });
-
-  it("is named by the CTA and the caption, in the player's language", () => {
-    const campaign = { ...createDemoCampaign("scratch_card") };
-    const config = createDefaultExperience({
-      gameType: "scratch_card",
-      campaign,
-    });
-    render(
-      <FallbackTeaser
-        settings={config.game}
-        campaign={campaign}
-        config={config}
-        locale="fr"
-        reducedMotion
-        active
-        onStart={() => {}}
-        startLabel="Jouer maintenant"
-      />,
-    );
-    expect(
-      screen.getByRole("button", {
-        name: "Jouer maintenant · Grattez pour découvrir votre surprise",
-      }),
-    ).toBeTruthy();
   });
 });

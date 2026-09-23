@@ -398,6 +398,28 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       flow: { gateway: "scripted", scenario: "lose" },
     },
   ),
+  "hit-it-play": fixture(
+    "flow",
+    "Hit It in play: the target, the count and the campaign's own clock (T5.6)",
+    {
+      gameType: "hit_it",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "hit-it-welcome": fixture(
+    "flow",
+    "The welcome screen of a Hit It campaign: the target hopping, marked Démo (T5.6)",
+    {
+      gameType: "hit_it",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
   "flow-win": fixture(
     "flow",
     "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",

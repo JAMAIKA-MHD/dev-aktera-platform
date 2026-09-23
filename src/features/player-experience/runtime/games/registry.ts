@@ -6,18 +6,9 @@ import { autoCaption } from "./autoCaption";
 import type { GameRegistry } from "./types";
 
 // One entry per mechanic (plan §8.6): adding one after the MVP means adding one entry here,
-// never touching a screen. The engine and the teaser are lazy — until T5.2–T5.6 give a
-// mechanic its own module, every entry points at the same fallback pair, but the shape (one
-// dynamic import per mechanic) is already the one real modules will use, code-split so a
-// campaign only ever loads the one game it plays.
-const fallbackEngine = () =>
-  import("./FallbackEngine").then((module) => ({
-    default: module.FallbackEngine,
-  }));
-const fallbackTeaser = () =>
-  import("./FallbackTeaser").then((module) => ({
-    default: module.FallbackTeaser,
-  }));
+// never touching a screen. Each engine and each teaser is behind its own dynamic import, so
+// a campaign downloads the one game it plays and none of the others — and TypeScript will
+// not let a new GameType be added without a component for both.
 
 export const registry: GameRegistry = {
   lucky_wheel: {
@@ -90,8 +81,16 @@ export const registry: GameRegistry = {
     autoCaption,
   },
   hit_it: {
-    Engine: lazy(fallbackEngine),
-    Teaser: lazy(fallbackTeaser),
+    Engine: lazy(() =>
+      import("./hitIt/HitItEngine").then((module) => ({
+        default: module.HitItEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./hitIt/HitItTeaser").then((module) => ({
+        default: module.HitItTeaser,
+      })),
+    ),
     defaultSettings: { hitIt: { targetIcon: "target", targetImage: null } },
     labels: GAME_LABELS.hit_it,
     autoCaption,
