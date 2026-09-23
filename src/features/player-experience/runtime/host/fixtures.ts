@@ -376,6 +376,28 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       flow: { gateway: "scripted", scenario: "lose" },
     },
   ),
+  "quiz-play": fixture(
+    "flow",
+    "The quiz, on its first question, with the campaign's own timer (T5.5)",
+    {
+      gameType: "quiz",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "quiz-welcome": fixture(
+    "flow",
+    "The welcome screen of a quiz campaign: the card, its counter, and question marks (T5.5)",
+    {
+      gameType: "quiz",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
   "flow-win": fixture(
     "flow",
     "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",

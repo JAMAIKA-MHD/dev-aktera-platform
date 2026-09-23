@@ -75,8 +75,16 @@ export const registry: GameRegistry = {
     autoCaption,
   },
   quiz: {
-    Engine: lazy(fallbackEngine),
-    Teaser: lazy(fallbackTeaser),
+    Engine: lazy(() =>
+      import("./quiz/QuizEngine").then((module) => ({
+        default: module.QuizEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./quiz/QuizTeaser").then((module) => ({
+        default: module.QuizTeaser,
+      })),
+    ),
     defaultSettings: { quiz: { translations: {} } },
     labels: GAME_LABELS.quiz,
     autoCaption,

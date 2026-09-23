@@ -13,6 +13,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 | T5.4 | Boîtes mystère | Terminée | `feat(Player-Experience): add mystery boxes engine and teaser` | [T5.4-boites-mystere.md](./T5.4-boites-mystere.md) |
 
-À venir : T5.5 à T5.7.
+| T5.5 | Quiz | Terminée | `feat(Player-Experience): add quiz engine and teaser` | [T5.5-quiz.md](./T5.5-quiz.md) |
+
+À venir : T5.6 et T5.7.
 
 Phase précédente : [phase 4 — Parcours et écrans](../phase_4/README.md).

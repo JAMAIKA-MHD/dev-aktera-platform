@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "../../domain/defaults";
 import { createInitialFlowState, type FlowScreen } from "../../domain/flow";
@@ -126,9 +126,14 @@ describe("PlayScreen", () => {
   });
 
   it("offers no button to a game the player plays first", async () => {
-    setup({ gameType: "quiz" }); // "after-interaction": the game itself ends the turn
-    await screen.findByText("Slot 5 · Quiz Challenge", {}, engineTimeout);
-    expect(screen.queryByText("Tourner la roue")).toBeNull();
+    // "after-interaction": the game itself ends the turn, so the frame offers nothing.
+    const { container } = setup({ gameType: "quiz" });
+    await waitFor(
+      () =>
+        expect(container.querySelector('[data-xp-game="quiz"]')).toBeTruthy(),
+      engineTimeout,
+    );
+    expect(container.querySelector('[data-xp-slot="cta"]')).toBeNull();
   });
 
   it("is not a dead end, and stays open to the Studio's field", async () => {

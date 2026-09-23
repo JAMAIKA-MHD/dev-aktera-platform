@@ -192,6 +192,18 @@
       display: none;
     }
   }
+  /*
+   * Quiz options (T5.5): one column, two as soon as the card itself is wide enough for
+   * them — read on the card, never on the screen (plan §8.6).
+   */
+  .xp-frame [data-xp-quiz] {
+    container-type: inline-size;
+  }
+  @container (min-width: 30rem) {
+    .xp-frame .xp-quiz-options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   .xp-frame > [data-xp-slot="reinforcement"] {
     grid-area: reinforcement;
     margin-top: var(--xp-space);
