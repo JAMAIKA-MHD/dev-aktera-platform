@@ -60,8 +60,16 @@ export const registry: GameRegistry = {
     autoCaption,
   },
   mystery_box: {
-    Engine: lazy(fallbackEngine),
-    Teaser: lazy(fallbackTeaser),
+    Engine: lazy(() =>
+      import("./boxes/BoxesEngine").then((module) => ({
+        default: module.BoxesEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./boxes/BoxesTeaser").then((module) => ({
+        default: module.BoxesTeaser,
+      })),
+    ),
     defaultSettings: { boxes: { count: 3, icon: "gift", color: null } },
     labels: GAME_LABELS.mystery_box,
     autoCaption,

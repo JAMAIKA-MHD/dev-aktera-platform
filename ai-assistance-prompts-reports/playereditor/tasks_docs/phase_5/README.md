@@ -11,6 +11,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 | T5.3 | Grattage | Terminée | `feat(Player-Experience): add scratch card engine and teaser` | [T5.3-grattage.md](./T5.3-grattage.md) |
 
-À venir : T5.4 à T5.7.
+| T5.4 | Boîtes mystère | Terminée | `feat(Player-Experience): add mystery boxes engine and teaser` | [T5.4-boites-mystere.md](./T5.4-boites-mystere.md) |
+
+À venir : T5.5 à T5.7.
 
 Phase précédente : [phase 4 — Parcours et écrans](../phase_4/README.md).

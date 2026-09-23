@@ -354,6 +354,28 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       flow: { gateway: "scripted", scenario: "lose" },
     },
   ),
+  "boxes-play": fixture(
+    "flow",
+    "The three mystery boxes, waiting to be picked (T5.4)",
+    {
+      gameType: "mystery_box",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "boxes-welcome": fixture(
+    "flow",
+    "The welcome screen of a boxes campaign: the brand's own boxes, floating (T5.4)",
+    {
+      gameType: "mystery_box",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
   "flow-win": fixture(
     "flow",
     "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",
