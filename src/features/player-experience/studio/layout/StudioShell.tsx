@@ -7,6 +7,7 @@ import { PanelArea } from "./PanelArea";
 import { PreviewPane } from "./PreviewPane";
 import { StudioNav } from "./StudioNav";
 import { StudioTopBar } from "./StudioTopBar";
+import "../studio.css";
 
 // The Studio's frame (plan §9.1): top bar, section menu, settings panel, live preview.
 // Under 1024 px there is no room for all three columns: the preview moves into a drawer,

@@ -66,7 +66,9 @@ export function ImageField({
     setUrl("");
   };
 
-  const pickFocus = (event: PointerEvent<HTMLDivElement>) => {
+  // Measured on the image itself, not on its box: a letterboxed image would put the point
+  // somewhere else than where the brand clicked.
+  const pickFocus = (event: PointerEvent<HTMLSpanElement>) => {
     if (!picking) return;
     const box = event.currentTarget.getBoundingClientRect();
     onFocusChange?.({
@@ -96,34 +98,38 @@ export function ImageField({
               : undefined
           }
           tabIndex={picking ? 0 : undefined}
-          onPointerDown={pickFocus}
           onKeyDown={nudgeFocus}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
             void upload(event.dataTransfer.files[0]);
           }}
-          className={`relative flex aspect-video flex-1 items-center justify-center overflow-hidden rounded-xl border border-card-border bg-card-bg-subtle bg-[linear-gradient(45deg,var(--color-card-border)_25%,transparent_25%,transparent_75%,var(--color-card-border)_75%),linear-gradient(45deg,var(--color-card-border)_25%,transparent_25%,transparent_75%,var(--color-card-border)_75%)] [background-position:0_0,6px_6px] [background-size:12px_12px] focus-visible:outline-2 focus-visible:outline-blue-500 ${picking ? "cursor-crosshair" : ""}`}
+          className={`relative flex h-32 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-card-border bg-card-bg-subtle bg-[linear-gradient(45deg,var(--color-card-border)_25%,transparent_25%,transparent_75%,var(--color-card-border)_75%),linear-gradient(45deg,var(--color-card-border)_25%,transparent_25%,transparent_75%,var(--color-card-border)_75%)] [background-position:0_0,6px_6px] [background-size:12px_12px] focus-visible:outline-2 focus-visible:outline-blue-500`}
         >
           {src ? (
-            <img
-              src={src}
-              alt=""
-              className="size-full object-contain"
-              draggable={false}
-            />
+            <span
+              className={`relative inline-flex max-h-full max-w-full ${picking ? "cursor-crosshair" : ""}`}
+              onPointerDown={pickFocus}
+            >
+              <img
+                src={src}
+                alt=""
+                className="max-h-28 max-w-full object-contain"
+                draggable={false}
+              />
+              {picking && focus && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600/60 shadow-[0_0_0_2px_rgba(37,99,235,0.8)]"
+                  style={{ left: `${focus.x}%`, top: `${focus.y}%` }}
+                />
+              )}
+            </span>
           ) : (
             <span className="flex flex-col items-center gap-1 text-xs font-semibold text-brand-text-muted">
               <ImagePlus className="size-6" aria-hidden />
               Drop an image
             </span>
-          )}
-          {picking && focus && (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600/60 shadow-[0_0_0_2px_rgba(37,99,235,0.8)]"
-              style={{ left: `${focus.x}%`, top: `${focus.y}%` }}
-            />
           )}
           {busy && (
             <span className="absolute inset-0 flex items-center justify-center bg-card-bg/70">

@@ -1,19 +1,33 @@
 import { Construction } from "lucide-react";
-import type { ComponentType } from "react";
+import { useRef, type ComponentType } from "react";
+import { BrandPanel } from "../panels/BrandPanel";
+import { TemplatePanel } from "../panels/TemplatePanel";
 import type { StudioPanel } from "../store";
 import { useStudio } from "../StudioContext";
+import { useRevealFocusPath } from "../useRevealFocusPath";
 import { PANEL_META } from "./StudioNav";
 
 // The settings panel of the selected section. Each panel arrives with its own task
 // (T6.4 to T6.7); until then, its place says so instead of staying blank.
-const PANELS: Partial<Record<StudioPanel, ComponentType>> = {};
+const PANELS: Partial<Record<StudioPanel, ComponentType>> = {
+  template: TemplatePanel,
+  brand: BrandPanel,
+};
 
 export function PanelArea() {
   const panel = useStudio((state) => state.ui.panel);
+  const container = useRef<HTMLDivElement>(null);
+  useRevealFocusPath(container);
   const Panel = PANELS[panel];
   const { label, icon: Icon, hint } = PANEL_META[panel];
 
-  if (Panel) return <Panel />;
+  if (Panel) {
+    return (
+      <div ref={container} key={panel}>
+        <Panel />
+      </div>
+    );
+  }
   return (
     <div className="flex h-full min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
       <span className="flex size-12 items-center justify-center rounded-2xl bg-card-bg text-brand-text-muted shadow-sm ring-1 ring-card-border">

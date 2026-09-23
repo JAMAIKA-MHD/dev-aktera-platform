@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { mostReadable } from "../../domain/contrast";
 import type { FlowScreen } from "../../domain/flow";
 import {
   computeLayoutMode,
@@ -29,7 +30,15 @@ export function PreviewViewport({
   onFlowScreen,
 }: PreviewViewportProps) {
   const viewport = useStudio((state) => state.ui.viewport);
-  const dark = useStudio((state) => state.config.theme.mode === "dark");
+  // The status bar reads on the page color itself, whatever the mode says: a "light" mode
+  // kept on dark colors still needs white icons.
+  const dark = useStudio(
+    (state) =>
+      mostReadable(state.config.theme.colors.surface, [
+        "#ffffff",
+        "#0f172a",
+      ]) === "#ffffff",
+  );
   const device = findDevice(viewport.deviceId);
   const metrics = chromeFor(device, viewport);
   const outer = outerSize(viewport, metrics);

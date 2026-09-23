@@ -55,7 +55,12 @@ export function LocalizedTextField({
     onLocaleChange?.(next);
   };
   const text = value[active] ?? "";
-  const missing = locales.filter((candidate) => !hasText(value, candidate));
+  // An optional text left empty in every language is not "missing a translation": it is off.
+  const started =
+    required || locales.some((candidate) => hasText(value, candidate));
+  const missing = started
+    ? locales.filter((candidate) => !hasText(value, candidate))
+    : [];
   const inputId = `${path ?? label}-${active}`.replace(/[^\w-]/g, "-");
   const over = maxChars !== undefined && text.length > maxChars;
 

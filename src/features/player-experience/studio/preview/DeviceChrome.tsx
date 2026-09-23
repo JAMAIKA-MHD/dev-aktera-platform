@@ -5,7 +5,7 @@ import type { ChromeMetrics } from "./chromeMetrics";
 // The shell around the preview iframe (plan §9.3): a phone or tablet body with its status bar,
 // or a browser window for a laptop. Its sizes come from chromeMetrics and the viewport, never
 // from constants of its own; the screen inside keeps the exact size of the device. The status
-// bar follows the experience's dark or light mode, like a real one follows the page.
+// bar reads on the page's own color, like a real one follows the page.
 
 function useClock(): string {
   const format = () =>
@@ -77,7 +77,7 @@ export interface DeviceChromeProps {
   metrics: ChromeMetrics;
   width: number; // the screen, in CSS pixels
   height: number;
-  dark: boolean; // the experience's mode, for the status bar
+  dark: boolean; // a dark page: light status bar
   safeTop: number; // height of a status bar drawn over the screen
   safeBottom: number; // room of the home indicator
   children: ReactNode;
