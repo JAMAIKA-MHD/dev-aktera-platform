@@ -1,7 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { PlayerProvider } from "./contexts/PlayerContext";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import CompleteOrganizationSetupPage from "./pages/auth/CompleteOrganizationSetupPage";
@@ -78,15 +77,8 @@ export default function AppRouter() {
             <Route path="/register" element={<RegisterPage />} />
           )}
 
-          {/* Public player portal — wrapped in PlayerProvider for game state */}
-          <Route
-            path="/play/:slug"
-            element={
-              <PlayerProvider>
-                <PlayerFlowPage />
-              </PlayerProvider>
-            }
-          />
+          {/* Public player portal */}
+          <Route path="/play/:slug" element={<PlayerFlowPage />} />
 
           {/* Player Experience frame: demo services only, no server data */}
           <Route
