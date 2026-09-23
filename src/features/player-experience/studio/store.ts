@@ -2,6 +2,7 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 import { temporal, type TemporalState } from "zundo";
 import type { CampaignSnapshot } from "../domain/campaign";
 import { createDefaultExperience, DEFAULT_GAME_TYPE } from "../domain/defaults";
+import type { GameType } from "../domain/gameTypes";
 import type { Locale } from "../domain/locale";
 import type {
   ExperienceConfig,
@@ -13,6 +14,8 @@ import type {
   ThemeTokens,
 } from "../domain/types";
 import { validateExperience, type DesignIssue } from "../domain/validation";
+import { defaultScreens } from "../presets/contentDefaults";
+import { createDemoCampaign } from "../presets/demoCampaign";
 import { themeFromPreset } from "../presets/themePresets";
 import type { LayoutIssue } from "../runtime/layout/layoutAudit";
 import type { ScriptedScenario } from "../services/createLocalServices";
@@ -104,6 +107,10 @@ export interface StudioState {
   updateLegal(patch: Partial<LegalConfig>): void;
   updateConfig(patch: Partial<ExperienceConfig>): void; // locales, prizeDisplay, features
   applyPreset(presetId: string): void;
+  // The game presentation rebuilt from the campaign (after its game changed in the Wizard).
+  resetGame(): void;
+  // Without a campaign only: another game for the demo campaign.
+  setStandaloneGameType(type: GameType): void;
   replaceConfig(config: ExperienceConfig): void;
   resetToDefaults(): void;
 
@@ -135,6 +142,18 @@ type HistoryEntry = Pick<StudioState, "config">;
 export type StudioStore = UseBoundStore<StoreApi<StudioState>> & {
   temporal: StoreApi<TemporalState<HistoryEntry>>;
 };
+
+// Without a campaign, the preview plays the demo campaign of the configured game: the checks
+// look at that same campaign, so a prize left without a wheel segment is flagged there too.
+function checkDesign(
+  config: ExperienceConfig,
+  campaign: CampaignSnapshot | null,
+): DesignIssue[] {
+  return validateExperience(
+    config,
+    campaign ?? createDemoCampaign(config.game.type),
+  );
+}
 
 export function createStudioStore(
   options: StudioStoreOptions = {},
@@ -173,7 +192,7 @@ export function createStudioStore(
             focusPath: null,
           },
           saveStatus: "idle",
-          issues: validateExperience(config, campaign),
+          issues: checkDesign(config, campaign),
           layoutIssues: [],
 
           updateTheme: (patch) =>
@@ -222,6 +241,30 @@ export function createStudioStore(
               ...current,
               theme: themeFromPreset(presetId),
             })),
+          resetGame: () =>
+            edit((current) => ({
+              ...current,
+              game: createDefaultExperience({
+                gameType: get().campaign?.gameType ?? current.game.type,
+                campaign: get().campaign ?? undefined,
+              }).game,
+            })),
+          // The screens follow the new game only while they still hold the old game's
+          // default texts: a brand's own wording is never replaced.
+          setStandaloneGameType: (type) => {
+            if (get().campaign || get().config.game.type === type) return;
+            edit((current) => {
+              const fresh = createDefaultExperience({ gameType: type });
+              const untouched =
+                JSON.stringify(current.screens) ===
+                JSON.stringify(defaultScreens(current.game.type));
+              return {
+                ...current,
+                game: fresh.game,
+                screens: untouched ? fresh.screens : current.screens,
+              };
+            });
+          },
           // An imported configuration replaces everything, and is one step of the history
           // like any other edit. It keeps the identity of the one being edited, so the
           // autosave writes it where this campaign's configuration lives.
@@ -257,7 +300,7 @@ export function createStudioStore(
           setCampaign: (next) =>
             set({
               campaign: next,
-              issues: validateExperience(get().config, next),
+              issues: checkDesign(get().config, next),
             }),
           setStoredUpdatedAt: (storedUpdatedAt) => set({ storedUpdatedAt }),
           setPanel: (panel, focusPath = null) =>
@@ -297,7 +340,7 @@ export function createStudioStore(
   store.subscribe((state, previous) => {
     if (state.config !== previous.config) {
       store.setState({
-        issues: validateExperience(state.config, state.campaign),
+        issues: checkDesign(state.config, state.campaign),
       });
     }
   });

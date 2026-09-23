@@ -48,7 +48,7 @@ export function StudioShell({
 
   return (
     <div
-      className={`relative flex h-full min-h-0 flex-col overflow-hidden bg-brand-dark font-sans text-brand-text ${className}`}
+      className={`relative flex h-full min-h-0 flex-col overflow-clip bg-brand-dark font-sans text-brand-text ${className}`}
       data-xp-studio
     >
       <StudioTopBar

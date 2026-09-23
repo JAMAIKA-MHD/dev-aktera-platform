@@ -23,6 +23,9 @@ export interface PlayerExperienceStudioProps {
   campaigns?: readonly StudioCampaignOption[];
   onCampaignChange?: (campaignId: string | null) => void;
   onEditCampaignSettings?: StudioContextValue["onEditCampaignSettings"];
+  onRefreshCampaign?: () => void;
+  // The campaign's draw rules (buildDemoRules), shown read-only in the Game panel.
+  rules?: StudioContextValue["rules"];
   services?: ExperienceServices; // default: the local services of the MVP
   className?: string;
 }
@@ -50,6 +53,8 @@ function StudioSession({
   campaigns,
   onCampaignChange,
   onEditCampaignSettings,
+  onRefreshCampaign,
+  rules,
   className,
 }: Omit<PlayerExperienceStudioProps, "campaign" | "services"> & {
   campaign: CampaignSnapshot | null;
@@ -77,8 +82,14 @@ function StudioSession({
 
   const autosave = useAutosave({ store, repository: services.repository });
   const value = useMemo(
-    () => ({ store, services, onEditCampaignSettings }),
-    [store, services, onEditCampaignSettings],
+    () => ({
+      store,
+      services,
+      onEditCampaignSettings,
+      onRefreshCampaign,
+      rules,
+    }),
+    [store, services, onEditCampaignSettings, onRefreshCampaign, rules],
   );
 
   return (

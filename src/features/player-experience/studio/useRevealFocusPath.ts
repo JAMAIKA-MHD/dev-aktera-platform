@@ -27,16 +27,50 @@ export function findFieldFor(
   return best;
 }
 
+// Scrolls the panel's own scroller only: scrollIntoView would also move every scrollable
+// ancestor, the Studio's frame or the dashboard page included.
+function scrollerOf(element: HTMLElement): HTMLElement | null {
+  let scroller = element.parentElement;
+  while (
+    scroller &&
+    !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)
+  ) {
+    scroller = scroller.parentElement;
+  }
+  return scroller;
+}
+
+function scrollPanelTo(field: HTMLElement) {
+  const scroller = scrollerOf(field);
+  if (!scroller) return;
+  const top =
+    field.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+  // Centered when it fits; a field taller than the panel shows its beginning.
+  const offset =
+    field.offsetHeight < scroller.clientHeight
+      ? top - (scroller.clientHeight - field.offsetHeight) / 2
+      : top - 16;
+  scroller.scrollTo?.({ top: scroller.scrollTop + offset, behavior: "smooth" });
+}
+
 export function useRevealFocusPath(container: RefObject<HTMLElement | null>) {
   const panel = useStudio((state) => state.ui.panel);
   const path = useStudio((state) => state.ui.focusPath);
   useEffect(() => {
-    if (!path || !container.current) return;
+    if (!container.current) return;
+    // Another panel, and no field to show: start at its top.
+    if (!path) {
+      const scroller = scrollerOf(container.current);
+      if (scroller) scroller.scrollTop = 0;
+      return;
+    }
     const field = findFieldFor(container.current, path);
     if (!field) return;
-    field.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    scrollPanelTo(field);
     field
-      .querySelector<HTMLElement>("input, textarea, select, button")
+      .querySelector<HTMLElement>(
+        "input:not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)",
+      )
       ?.focus({ preventScroll: true });
     field.dataset.studioFlash = "true";
     const timer = setTimeout(() => delete field.dataset.studioFlash, 1600);

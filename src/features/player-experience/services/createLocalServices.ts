@@ -5,6 +5,7 @@ import { createConsoleAnalyticsTracker } from "./local/consoleAnalyticsTracker";
 import { createDataUrlAssetStorage } from "./local/dataUrlAssetStorage";
 import { createDemoParticipationGateway } from "./local/demoParticipationGateway";
 import {
+  buildDemoRules,
   buildStandaloneDemoRules,
   type DemoCampaignRules,
 } from "./local/demoRules";
@@ -17,6 +18,9 @@ import {
 import type { ExperienceServices } from "./ports";
 
 export type { ScriptedScenario };
+// What decides a win, for the Studio's read-only rules card (never for the runtime).
+export { buildDemoRules, buildStandaloneDemoRules };
+export type { DemoCampaignRules };
 
 // Composition root of the MVP: the local adapters, as used by the Studio and demos.
 // The public player route will get createSupabaseServices() instead (plan §7.4), and refuses

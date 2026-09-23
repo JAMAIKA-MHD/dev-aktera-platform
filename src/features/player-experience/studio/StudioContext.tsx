@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useStore } from "zustand";
+import type { DemoCampaignRules } from "../services/createLocalServices";
 import type { ExperienceServices } from "../services/ports";
 import type { StudioState, StudioStore } from "./store";
 
@@ -16,6 +17,11 @@ export interface StudioContextValue {
     campaignId: string,
     section: CampaignSettingsSection,
   ) => void | Promise<void>;
+  // Asks the app to reload the campaign after the Wizard (the snapshot comes back by props).
+  onRefreshCampaign?: () => void;
+  // What decides a win in the campaign (weights, stock, probability, correct answers), for
+  // the read-only rules card only: it never enters the configuration, the store or the frame.
+  rules?: DemoCampaignRules | null;
 }
 
 const StudioContext = createContext<StudioContextValue | null>(null);
