@@ -20,14 +20,17 @@ const GAME_TYPES = Object.keys(GAME_LABELS) as GameType[];
 const lazyTimeout = { timeout: 5000 };
 
 function engineProps(campaign: CampaignSnapshot): GameEngineProps {
-  return {
-    settings: createDefaultExperience({
-      gameType: campaign.gameType,
-      campaign,
-    }).game,
+  const config = createDefaultExperience({
+    gameType: campaign.gameType,
     campaign,
+  });
+  return {
+    settings: config.game,
+    campaign,
+    config,
     phase: "idle",
     outcome: null,
+    onStart: () => {},
     onInteractionComplete: () => {},
     onRevealComplete: () => {},
     reducedMotion: false,
@@ -83,25 +86,30 @@ describe("registry", () => {
     }
   });
 
-  it.each(GAME_TYPES)(
-    "resolves an Engine for %s (the fallback, until its own phase 5 task)",
-    async (gameType) => {
-      const campaign = createDemoCampaign(gameType);
-      const Engine = registry[gameType].Engine;
-      render(
-        <Suspense fallback={null}>
-          <Engine {...engineProps(campaign)} />
-        </Suspense>,
-      );
+  it.each(GAME_TYPES)("resolves an Engine for %s", async (gameType) => {
+    const campaign = createDemoCampaign(gameType);
+    const Engine = registry[gameType].Engine;
+    const { container } = render(
+      <Suspense fallback={null}>
+        <Engine {...engineProps(campaign)} />
+      </Suspense>,
+    );
+    // Each mechanic marks its own stage; those still waiting for their task (T5.3–T5.6)
+    // resolve to the shared fallback, which names the mechanic it stands in for.
+    await screen.findByText(
+      (_, element) => element?.getAttribute("data-xp-game") === gameType,
+      {},
+      lazyTimeout,
+    );
+    expect(
+      container.querySelector(`[data-xp-game="${gameType}"]`),
+    ).toBeTruthy();
+    if (gameType !== "lucky_wheel") {
       expect(
-        await screen.findByText(
-          `Slot 5 · ${GAME_LABELS[gameType]}`,
-          {},
-          lazyTimeout,
-        ),
+        screen.getByText(`Slot 5 · ${GAME_LABELS[gameType]}`),
       ).toBeTruthy();
-    },
-  );
+    }
+  });
 
   it.each(GAME_TYPES)(
     "resolves a Teaser for %s (the fallback, until its own phase 5 task)",

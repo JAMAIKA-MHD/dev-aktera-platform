@@ -195,17 +195,15 @@ describe("FallbackTeaser", () => {
       reducedMotion: boolean;
       mode: "attract" | "static";
     }) => {
+      const teaser = {
+        ...config.game,
+        teaser: { ...config.game.teaser, mode: props.mode },
+      };
       rerender(
         <FallbackTeaser
-          settings={config.game}
+          settings={teaser}
           campaign={campaign}
-          config={{
-            ...config,
-            game: {
-              ...config.game,
-              teaser: { ...config.game.teaser, mode: props.mode },
-            },
-          }}
+          config={{ ...config, game: teaser }}
           locale="fr"
           reducedMotion={props.reducedMotion}
           active

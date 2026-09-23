@@ -9,15 +9,13 @@ import {
 import type { CSSProperties } from "react";
 import type { GameType } from "../../domain/gameTypes";
 import { tint } from "../../theme/recipes";
-import { teaserCaption } from "./autoCaption";
+import { TeaserShell } from "./TeaserShell";
 import type { GameTeaserProps } from "./types";
 
 // Pregame teaser shown until the game of the campaign has its own (phase 5): the icon of the
-// game in a glowing medallion, and the caption. The rules of every teaser (plan §8.7) hold:
-// it never shows an outcome, it is not playable (a tap emits START, like the CTA), it comes
-// from the configuration, and it stands still when inactive, static or with reduced motion.
-// Registered under every mechanic in registry.ts (T5.1), until T5.2–T5.6 each replace one
-// entry with the real thing.
+// game in a glowing medallion. The rules of every teaser (plan §8.7) are kept by TeaserShell
+// around it; what is left here is only the drawing, and it stands still when inactive, static
+// or with reduced motion. Registered under the mechanics T5.2–T5.6 have not reached yet.
 
 export const GAME_ICONS: Readonly<Record<GameType, LucideIcon>> = {
   lucky_wheel: ChartPie,
@@ -27,38 +25,16 @@ export const GAME_ICONS: Readonly<Record<GameType, LucideIcon>> = {
   hit_it: Target,
 };
 
-export function FallbackTeaser({
-  campaign,
-  config,
-  locale,
-  reducedMotion,
-  active,
-  onStart,
-  startLabel,
-}: GameTeaserProps) {
+export function FallbackTeaser(props: GameTeaserProps) {
+  const { settings, campaign, reducedMotion, active } = props;
   const Icon = GAME_ICONS[campaign.gameType];
-  const caption = teaserCaption(config, campaign, locale);
-  const still = reducedMotion || config.game.teaser.mode === "static";
+  const still = reducedMotion || settings.teaser.mode === "static";
   // Paused, not removed: it goes on where it stopped when it comes back on screen.
   const motion: CSSProperties = {
     animationPlayState: active ? "running" : "paused",
   };
   return (
-    <button
-      type="button"
-      onClick={onStart}
-      aria-label={`${startLabel} · ${caption}`}
-      data-xp-teaser={campaign.gameType}
-      data-xp-active={active}
-      className="relative isolate flex min-h-0 cursor-pointer flex-col items-center justify-center gap-[clamp(0.75rem,4cqmin,1.5rem)] rounded-[var(--xp-radius-lg)] p-4 text-center transition-transform duration-200 ease-out active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--xp-primary)]"
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-[10%] -z-10 rounded-full blur-2xl"
-        style={{
-          background: `radial-gradient(circle, ${tint("--xp-primary", 32)}, transparent 70%)`,
-        }}
-      />
+    <TeaserShell {...props}>
       <span
         className="xp-pop relative grid size-[clamp(6rem,52cqmin,13rem)] place-items-center rounded-full border"
         style={{
@@ -90,16 +66,6 @@ export function FallbackTeaser({
           />
         </span>
       </span>
-      <span
-        dir="auto"
-        className="relative max-w-full rounded-full border px-4 py-1.5 text-sm font-bold"
-        style={{
-          backgroundColor: tint("--xp-surface", 72),
-          borderColor: tint("--xp-primary", 35),
-        }}
-      >
-        {caption}
-      </span>
-    </button>
+    </TeaserShell>
   );
 }

@@ -14,11 +14,22 @@ import type { ExperienceConfig, GameSettings } from "../../domain/types";
 // server code (N1): it only reads `outcome`, once the flow has it. `phase` drives it, never
 // an internal timer of its own — the primary CTA and a tap on the game itself dispatch the
 // very same event, so both start the very same animation.
+export type GamePhase =
+  "idle" | "interacting" | "awaiting-outcome" | "revealing" | "done";
+
 export interface GameEngineProps {
   settings: GameSettings;
   campaign: CampaignSnapshot;
-  phase: "idle" | "interacting" | "awaiting-outcome" | "revealing" | "done";
+  // prizeDisplay and the default locale: every mechanic names a prize through
+  // resolvePrizeDisplay(prizeId, config, campaign, locale), the single source the win screen
+  // uses too (plan §8.6) — so the same prize never reads differently from one screen to the next.
+  config: ExperienceConfig;
+  phase: GamePhase;
   outcome: DrawOutcome | null; // given once known
+  // The player launched a game drawn before its animation (a wheel, a scratch card): the
+  // very same event as the primary CTA of slot 7 (plan §8.6), so tapping the game itself and
+  // pressing the button are one and the same. Ignored by "after-interaction" mechanics.
+  onStart: () => void;
   onInteractionComplete: (payload: GamePayload) => void; // "after-interaction" mechanics
   onRevealComplete: () => void;
   reducedMotion: boolean;

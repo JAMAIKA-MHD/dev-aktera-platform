@@ -21,8 +21,16 @@ const fallbackTeaser = () =>
 
 export const registry: GameRegistry = {
   lucky_wheel: {
-    Engine: lazy(fallbackEngine),
-    Teaser: lazy(fallbackTeaser),
+    Engine: lazy(() =>
+      import("./wheel/WheelEngine").then((module) => ({
+        default: module.WheelEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./wheel/WheelTeaser").then((module) => ({
+        default: module.WheelTeaser,
+      })),
+    ),
     // No prizes yet for a mechanic just chosen in the Studio: the minimum wheel, all losing
     // segments (buildDefaultWheelSegments, domain/defaults.ts — the same one a real campaign's
     // prizes flow through once it has some).

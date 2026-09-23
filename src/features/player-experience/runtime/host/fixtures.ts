@@ -319,6 +319,19 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       },
     },
   ),
+  "wheel-play": fixture(
+    "flow",
+    "The wheel on stage, waiting for the tap that launches it (T5.2)",
+    {
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose", initialScreen: "play" },
+    },
+  ),
+  "wheel-welcome": fixture(
+    "flow",
+    "The welcome screen, with the campaign's own wheel turning as its teaser (T5.2)",
+    { customize: zetaMarket, flow: { gateway: "scripted", scenario: "lose" } },
+  ),
   "flow-win": fixture(
     "flow",
     "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",

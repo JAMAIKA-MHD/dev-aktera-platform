@@ -69,6 +69,8 @@ describe("fixtures", () => {
       "status-duplicate",
       "status-closed",
       "status-error",
+      "wheel-play",
+      "wheel-welcome",
       "flow-win",
       "flow-lose",
     ]);
@@ -114,6 +116,7 @@ describe("fixtures", () => {
       initialScreen: "error",
     });
     // T4.4: the two outcomes.
+    expect(getFixture("wheel-play")?.flow.initialScreen).toBe("play");
     expect(getFixture("flow-win")?.flow.initialScreen).toBe("win");
     expect(getFixture("flow-lose")?.flow.initialScreen).toBe("lose");
     expect(getFixture("constructor")).toBeNull();
@@ -158,7 +161,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error, flow-win, flow-lose",
+        "Available: layout-debug, theme-presets, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error, wheel-play, wheel-welcome, flow-win, flow-lose",
       ),
     ).toBeTruthy();
   });

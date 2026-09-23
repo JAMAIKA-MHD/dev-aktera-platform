@@ -9,9 +9,8 @@ import { ensureFontStylesheet } from "../theme/fonts";
 import { ThemeScope } from "../theme/ThemeScope";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
 import { LoseScreen } from "./screens/LoseScreen";
-import { PendingScreen } from "./screens/PendingScreen";
 import { RegisterScreen } from "./screens/RegisterScreen";
-import { ResolvingScreen } from "./screens/ResolvingScreen";
+import { PlayScreen } from "./screens/PlayScreen";
 import type { FrameChrome, ScreenProps } from "./screens/screenProps";
 import { StatusScreen } from "./screens/StatusScreen";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
@@ -127,11 +126,10 @@ function Journey({
   const props: ScreenProps = { flow, config, campaign, locale, chrome };
   if (screen === "welcome") return <WelcomeScreen {...props} />;
   if (screen === "register") return <RegisterScreen {...props} />;
-  if (screen === "resolving") return <ResolvingScreen {...props} />;
   if (screen === "duplicate" || screen === "closed" || screen === "error") {
     return <StatusScreen {...props} />;
   }
   if (screen === "win") return <WinScreen {...props} />;
   if (screen === "lose") return <LoseScreen {...props} />;
-  return <PendingScreen {...props} />;
+  return <PlayScreen {...props} />;
 }

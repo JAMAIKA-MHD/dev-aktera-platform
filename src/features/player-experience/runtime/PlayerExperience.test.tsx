@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CampaignSnapshot } from "../domain/campaign";
 import { createDefaultExperience } from "../domain/defaults";
@@ -15,6 +21,13 @@ import {
   PlayerExperience,
   type PlayerExperienceProps,
 } from "./PlayerExperience";
+
+// canvas-confetti draws on a real <canvas>; jsdom has none (FrameHost.test.tsx's pattern).
+const confetti = vi.hoisted(() => {
+  const fire = Object.assign(vi.fn(), { reset: vi.fn() });
+  return { fire, create: vi.fn(() => fire) };
+});
+vi.mock("canvas-confetti", () => ({ default: { create: confetti.create } }));
 
 // The root component: gateway guard, DEMO badge, CTAs wired to the flow, and a journey that
 // survives everything but a new game or a forced screen. The screens are the interim ones
@@ -204,10 +217,19 @@ describe("screens forced by the preview", () => {
     expect(screen.getByText("Lancer le jeu")).toBeTruthy();
   });
 
-  it("completes the reveal at once, as long as no game animates it", () => {
+  it("hands the reveal to the mechanic, which says when it is over (T5.2)", async () => {
     forced("revealing");
-    expect(screen.getByText("Félicitations, vous avez gagné !")).toBeTruthy();
-  });
+    // The wheel turns to the segment it was given before the win is shown: the outcome is
+    // never on screen while the game is still animating towards it.
+    expect(screen.queryByText("Félicitations, vous avez gagné !")).toBeNull();
+    expect(
+      await screen.findByText(
+        "Félicitations, vous avez gagné !",
+        {},
+        { timeout: 10000 },
+      ),
+    ).toBeTruthy();
+  }, 15000);
 
   it("shows the status screens, each with a way out", () => {
     const { unmount } = forced("duplicate");
@@ -233,9 +255,17 @@ describe("screens forced by the preview", () => {
     expect(screen.getByText("Lancer le jeu")).toBeTruthy();
   });
 
-  it("waits while the draw is in flight, without any button", () => {
+  it("waits while the draw is in flight on the game's own stage, without any button", async () => {
     const { container } = forced("resolving");
-    expect(screen.getByText("Préparation de votre partie…")).toBeTruthy();
+    // The game stays on stage through the wait (T5.2): the wheel turns rather than being
+    // swapped out for a spinner, and nothing can be pressed while the draw is under way.
+    await waitFor(
+      () =>
+        expect(
+          container.querySelector('[data-xp-game="lucky_wheel"]'),
+        ).toBeTruthy(),
+      { timeout: 5000 },
+    );
     expect(container.querySelector('[data-xp-slot="cta"]')).toBeNull();
   });
 

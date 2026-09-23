@@ -23,7 +23,7 @@ export interface ScreenProps {
 export function press(
   flow: ExperienceFlow,
   action: () => void,
-  cta: "primary" | "secondary" | "teaser",
+  cta: "primary" | "secondary" | "teaser" | "game",
 ): () => void {
   return () => {
     flow.track("cta_clicked", { cta });
