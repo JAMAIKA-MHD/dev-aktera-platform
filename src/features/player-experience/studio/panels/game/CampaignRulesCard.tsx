@@ -14,7 +14,13 @@ import { useCampaignView } from "./useCampaignView";
 // campaign, read by the server: the Studio shows them and sends the brand to the Wizard to
 // change them, it never edits them. On return, the app refetches the campaign.
 
-function EditButton({ section }: { section: CampaignSettingsSection }) {
+export function EditButton({
+  section,
+  label = "Edit in campaign settings",
+}: {
+  section: CampaignSettingsSection;
+  label?: string;
+}) {
   const { onEditCampaignSettings, onRefreshCampaign } = useStudioContext();
   const campaignId = useStudio((state) => state.campaignId);
   const waiting = useRef(false);
@@ -43,7 +49,7 @@ function EditButton({ section }: { section: CampaignSettingsSection }) {
       className="flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-blue-600 transition hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-500/10"
     >
       <ExternalLink className="size-3.5" aria-hidden />
-      Edit in campaign settings
+      {label}
     </button>
   );
 }

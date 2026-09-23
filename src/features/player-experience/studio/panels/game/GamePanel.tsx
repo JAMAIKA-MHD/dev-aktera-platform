@@ -1,4 +1,4 @@
-import { Languages, Link2, RotateCcw } from "lucide-react";
+import { Link2, RotateCcw } from "lucide-react";
 import { GAME_LABELS, type GameType } from "../../../domain/gameTypes";
 import { SelectField } from "../../fields/SelectField";
 import { useStudio } from "../../StudioContext";
@@ -11,6 +11,7 @@ import {
 import { CampaignRulesCard } from "./CampaignRulesCard";
 import { BoxesSettings, HitItSettings, ScratchSettings } from "./GameSettings";
 import { PrizeDisplayEditor } from "./PrizeDisplayEditor";
+import { QuizTranslationsEditor } from "./QuizTranslationsEditor";
 import { TeaserSettings } from "./TeaserSettings";
 import { WheelSegmentsEditor } from "./WheelSegmentsEditor";
 
@@ -83,16 +84,7 @@ export function GamePanel() {
         {game.type === "hit_it" && game.hitIt && (
           <HitItSettings hitIt={game.hitIt} />
         )}
-        {game.type === "quiz" && (
-          <PanelSection title="Questions">
-            <PanelIssues prefixes={["game.quiz"]} />
-            <p className="flex gap-2 text-xs text-brand-text-muted">
-              <Languages className="mt-0.5 size-4 shrink-0" aria-hidden />
-              The questions come from the campaign, as typed there. Their
-              translations for players will be edited here.
-            </p>
-          </PanelSection>
-        )}
+        {game.type === "quiz" && <QuizTranslationsEditor />}
 
         <TeaserSettings />
       </PanelBody>
