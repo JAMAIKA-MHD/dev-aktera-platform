@@ -46,6 +46,10 @@ export const STUDIO_PANELS: readonly StudioPanel[] = [
 // How the preview plays: the demo gateway from end to end, a chosen outcome, or a still screen.
 export type PreviewFlowMode = "demo" | "scripted" | "static";
 
+// The preview's screen tabs: the five editable screens, plus the status screens (already
+// played, closed, network error), shown by the scripted scenario.
+export type PreviewScreen = ScreenKey | "status";
+
 export interface ViewportState {
   deviceId: string | null; // null = a free size ("responsive")
   width: number;
@@ -57,7 +61,7 @@ export interface ViewportState {
 
 export interface StudioUi {
   panel: StudioPanel;
-  screen: ScreenKey;
+  screen: PreviewScreen;
   locale: Locale;
   mode: PreviewFlowMode;
   scenario: ScriptedScenario;
@@ -108,7 +112,7 @@ export interface StudioState {
   setCampaign(campaign: CampaignSnapshot | null): void;
   setStoredUpdatedAt(updatedAt: string | null): void;
   setPanel(panel: StudioPanel, focusPath?: string | null): void;
-  setScreen(screen: ScreenKey): void;
+  setScreen(screen: PreviewScreen): void;
   setLocale(locale: Locale): void;
   setMode(mode: PreviewFlowMode, scenario?: ScriptedScenario): void;
   setViewport(patch: Partial<ViewportState>): void;

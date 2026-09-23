@@ -17,6 +17,18 @@ const XpFrame = lazy(() =>
   })),
 );
 
+// Player Experience Studio, standalone, for development only until T7.1 mounts it in the
+// dashboard (/studio). Not part of a production build.
+const XpStudio = lazy(() =>
+  import("./features/player-experience").then((module) => ({
+    default: () => (
+      <div className="h-dvh">
+        <module.PlayerExperienceStudio />
+      </div>
+    ),
+  })),
+);
+
 /** Redirects to /login when no session; shows a full-screen spinner while loading. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, authError, needsOrganizationSetup } = useAuth();
@@ -86,6 +98,17 @@ export default function AppRouter() {
               </Suspense>
             }
           />
+
+          {import.meta.env.DEV && (
+            <Route
+              path="/xp-studio"
+              element={
+                <Suspense fallback={null}>
+                  <XpStudio />
+                </Suspense>
+              }
+            />
+          )}
 
           {/* Standalone Player UI Maker route */}
           <Route path="/ui-maker" element={<PlayerUIMaker />} />

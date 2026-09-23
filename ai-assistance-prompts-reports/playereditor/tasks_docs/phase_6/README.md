@@ -4,10 +4,11 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 **Statuts :** En cours · Terminée · Bloquée
 
-| Tâche | Titre                           | Statut   | Commit proposé                                                     | Documentation                                                                        |
-| ----- | ------------------------------- | -------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| T6.1  | Store et sauvegarde automatique | Terminée | `feat(Player-Experience): add studio store with undo and autosave` | [T6.1-store-et-sauvegarde-automatique.md](./T6.1-store-et-sauvegarde-automatique.md) |
+| Tâche | Titre                                 | Statut   | Commit proposé                                                     | Documentation                                                                                    |
+| ----- | ------------------------------------- | -------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| T6.1  | Store et sauvegarde automatique       | Terminée | `feat(Player-Experience): add studio store with undo and autosave` | [T6.1-store-et-sauvegarde-automatique.md](./T6.1-store-et-sauvegarde-automatique.md)             |
+| T6.2  | Ossature et aperçu à la taille réelle | Terminée | `feat(Player-Experience): add studio shell and live preview`       | [T6.2-ossature-et-apercu-a-la-taille-reelle.md](./T6.2-ossature-et-apercu-a-la-taille-reelle.md) |
 
-À venir : T6.2 à T6.11.
+À venir : T6.3 à T6.11.
 
 Phase précédente : [phase 5 — Moteurs de jeu et accroches de pregame](../phase_5/README.md).

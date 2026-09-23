@@ -2,7 +2,11 @@
 // Each export is enabled by the task that creates it.
 
 export { PlayerExperience } from "./runtime/PlayerExperience";
-// export { PlayerExperienceStudio } from "./studio/PlayerExperienceStudio"; // T6.2
+export { PlayerExperienceStudio } from "./studio/PlayerExperienceStudio";
+export type {
+  PlayerExperienceStudioProps,
+  StudioCampaignOption,
+} from "./studio/PlayerExperienceStudio";
 
 export { createLocalServices } from "./services/createLocalServices";
 export { ServicesProvider } from "./services/ServicesProvider";
