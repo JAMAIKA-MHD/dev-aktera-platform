@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef } from "react";
 import type { CampaignSnapshot } from "../../domain/campaign";
 import type { FlowScreen } from "../../domain/flow";
 import { createDemoCampaign } from "../../presets/demoCampaign";
@@ -55,7 +55,9 @@ function uiMessage(
 }
 
 export function usePreviewBridge(
-  iframe: RefObject<HTMLIFrameElement | null>,
+  // The element itself, not a ref: a device change may mount a new iframe (another shell),
+  // and the bridge must follow it — the old one's window is gone.
+  iframe: HTMLIFrameElement | null,
   options: PreviewBridgeOptions,
 ): void {
   const { store } = useStudioContext();
@@ -68,8 +70,8 @@ export function usePreviewBridge(
 
   // Listening: ready, clicks on editable elements, the live layout audit, the journey.
   useEffect(() => {
-    if (!iframe.current) return;
-    const current = createStudioBridge(iframe.current);
+    if (!iframe) return;
+    const current = createStudioBridge(iframe);
     bridge.current = current;
     const unsubscribe = current.subscribe((message) => {
       const state = store.getState();

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BROWSER_TOOLBAR_HEIGHT,
   chromeFor,
-  fitZoom,
+  chromeInsets,
   outerSize,
   STATUS_BAR_HEIGHT,
 } from "./chromeMetrics";
@@ -60,26 +60,15 @@ describe("device shell metrics", () => {
   });
 });
 
-describe("fit zoom", () => {
-  it("shrinks to the room available, never above 100 %", () => {
-    expect(
-      fitZoom({ width: 2000, height: 2000 }, { width: 412, height: 866 }),
-    ).toBe(1);
-    expect(
-      fitZoom({ width: 800, height: 433 }, { width: 412, height: 866 }),
-    ).toBe(0.5);
-    // Rounded down: the indicator never claims more than what is shown.
-    expect(
-      fitZoom({ width: 1000, height: 666 }, { width: 400, height: 1000 }),
-    ).toBe(0.66);
-  });
-
-  it("stays usable in an unmeasured or tiny area", () => {
-    expect(fitZoom({ width: 0, height: 0 }, { width: 400, height: 800 })).toBe(
-      1,
-    );
-    expect(
-      fitZoom({ width: 10, height: 10 }, { width: 2560, height: 1600 }),
-    ).toBe(0.1);
+describe("chromeInsets", () => {
+  it("turns the shell into insets around the screen", () => {
+    const android = findDevice("android-360")!;
+    const metrics = chromeFor(android, portrait);
+    expect(chromeInsets(metrics)).toEqual({
+      top: metrics.bezel + STATUS_BAR_HEIGHT,
+      right: metrics.bezel,
+      bottom: metrics.bezel,
+      left: metrics.bezel,
+    });
   });
 });

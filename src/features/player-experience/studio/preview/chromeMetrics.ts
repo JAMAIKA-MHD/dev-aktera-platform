@@ -1,5 +1,6 @@
 import type { ViewportState } from "../store";
 import type { Device } from "./devices";
+import type { Insets } from "./viewportMath";
 
 // How much room the device shell takes around the screen, in CSS pixels. The screen itself
 // always keeps the exact size of the device: the shell is drawn *around* it, never by
@@ -72,19 +73,12 @@ export function outerSize(
   };
 }
 
-export const MIN_ZOOM = 0.1;
-
-// "Fit": as large as the room allows, never above 100 % (plan §9.3). Rounded down to the
-// percent, so the indicator never claims more than what is shown.
-export function fitZoom(
-  available: { width: number; height: number },
-  outer: { width: number; height: number },
-): number {
-  if (available.width <= 0 || available.height <= 0) return 1;
-  const ratio = Math.min(
-    available.width / outer.width,
-    available.height / outer.height,
-    1,
-  );
-  return Math.max(MIN_ZOOM, Math.floor(ratio * 100) / 100);
+// The shell as insets around the screen, for computeFitZoom (viewportMath.ts).
+export function chromeInsets(metrics: ChromeMetrics): Insets {
+  return {
+    top: metrics.bezel + metrics.top,
+    right: metrics.bezel,
+    bottom: metrics.bezel,
+    left: metrics.bezel,
+  };
 }

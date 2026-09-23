@@ -6,10 +6,12 @@ import {
   describeLayoutMode,
 } from "../../runtime/layout/layoutMode";
 import { useStudio } from "../StudioContext";
-import { chromeFor, fitZoom, outerSize } from "./chromeMetrics";
+import { chromeFor, chromeInsets, outerSize } from "./chromeMetrics";
 import { DeviceChrome } from "./DeviceChrome";
-import { deviceSafeArea, findDevice } from "./devices";
+import { deviceSafeArea, findDevice, type Device } from "./devices";
+import { ResizableViewport } from "./ResizableViewport";
 import { usePreviewBridge } from "./usePreviewBridge";
+import { computeFitZoom } from "./viewportMath";
 
 // The preview at the exact size of the device (plan §9.3). The iframe's width and height are
 // the device's CSS size, whatever the zoom: inside it, window.innerWidth is 390 on a 390-wide
@@ -18,18 +20,21 @@ import { usePreviewBridge } from "./usePreviewBridge";
 // Studio's own layout stays right. (Not the EditorCanvas way, which shrank the CSS size.)
 
 export const PREVIEW_SRC = "/xp-frame?source=bridge";
-const PADDING = 24; // room between the device and the edges of the pane
+const PADDING = 28; // room between the device and the edges of the pane (and the handles)
 
 export interface PreviewViewportProps {
   restartKey: number;
+  customDevices?: readonly Device[];
   onFlowScreen?: (screen: FlowScreen) => void;
 }
 
 export function PreviewViewport({
   restartKey,
+  customDevices = [],
   onFlowScreen,
 }: PreviewViewportProps) {
   const viewport = useStudio((state) => state.ui.viewport);
+  const setViewport = useStudio((state) => state.setViewport);
   // The status bar reads on the page color itself, whatever the mode says: a "light" mode
   // kept on dark colors still needs white icons.
   const dark = useStudio(
@@ -39,7 +44,7 @@ export function PreviewViewport({
         "#0f172a",
       ]) === "#ffffff",
   );
-  const device = findDevice(viewport.deviceId);
+  const device = findDevice(viewport.deviceId, customDevices);
   const metrics = chromeFor(device, viewport);
   const outer = outerSize(viewport, metrics);
   const safeArea = deviceSafeArea(device, viewport.orientation);
@@ -60,9 +65,14 @@ export function PreviewViewport({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const zoom = viewport.zoom === "fit" ? fitZoom(room, outer) : viewport.zoom;
 
-  const iframe = useRef<HTMLIFrameElement>(null);
+  // While a handle is dragged, the zoom holds still: a "fit" zoom that shrinks under the
+  // pointer would make the drag run away from it.
+  const [dragZoom, setDragZoom] = useState<number | null>(null);
+  const fit = computeFitZoom(viewport, chromeInsets(metrics), room);
+  const zoom = dragZoom ?? (viewport.zoom === "fit" ? fit : viewport.zoom);
+
+  const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null);
   usePreviewBridge(iframe, { safeArea, restartKey, onFlowScreen });
 
   const mode = describeLayoutMode(
@@ -81,33 +91,52 @@ export function PreviewViewport({
           style={{ width: outer.width * zoom, height: outer.height * zoom }}
           data-xp-preview-zoom={zoom}
         >
-          <div
-            className="absolute left-1/2 top-0"
-            style={{
-              width: outer.width,
-              height: outer.height,
-              transform: `translateX(-50%) scale(${zoom})`,
-              transformOrigin: "top center",
-            }}
+          <ResizableViewport
+            enabled={viewport.deviceId === null}
+            size={viewport}
+            zoom={zoom}
+            room={{ width: room.width / zoom, height: room.height / zoom }}
+            onResize={(size) =>
+              setViewport({
+                ...size,
+                orientation:
+                  size.width > size.height ? "landscape" : "portrait",
+              })
+            }
+            onDragChange={(dragging) => setDragZoom(dragging ? zoom : null)}
           >
-            <DeviceChrome
-              metrics={metrics}
-              width={viewport.width}
-              height={viewport.height}
-              dark={dark}
-              safeTop={safeArea.top}
-              safeBottom={safeArea.bottom}
+            <div
+              className="absolute left-1/2 top-0"
+              style={{
+                width: outer.width,
+                height: outer.height,
+                transform: `translateX(-50%) scale(${zoom})`,
+                transformOrigin: "top center",
+              }}
             >
-              <iframe
-                ref={iframe}
-                src={PREVIEW_SRC}
-                title="Player screen preview"
+              <DeviceChrome
+                metrics={metrics}
                 width={viewport.width}
                 height={viewport.height}
-                className="block border-0 bg-transparent"
-              />
-            </DeviceChrome>
-          </div>
+                dark={dark}
+                safeTop={safeArea.top}
+                safeBottom={safeArea.bottom}
+              >
+                <iframe
+                  ref={setIframe}
+                  src={PREVIEW_SRC}
+                  title="Player screen preview"
+                  width={viewport.width}
+                  height={viewport.height}
+                  // A dragged handle must keep the pointer: the iframe would swallow it.
+                  style={{
+                    pointerEvents: dragZoom === null ? undefined : "none",
+                  }}
+                  className="block border-0 bg-transparent"
+                />
+              </DeviceChrome>
+            </div>
+          </ResizableViewport>
         </div>
       </div>
       <p
@@ -121,12 +150,8 @@ export function PreviewViewport({
         <span>{mode}</span>
         <span aria-hidden>·</span>
         <span>{Math.round(zoom * 100)} %</span>
-        {device && (
-          <>
-            <span aria-hidden>·</span>
-            <span className="truncate">{device.label}</span>
-          </>
-        )}
+        <span aria-hidden>·</span>
+        <span className="truncate">{device?.label ?? "Responsive"}</span>
       </p>
     </div>
   );

@@ -4,6 +4,7 @@ import { createLocalServices } from "../services/createLocalServices";
 import type { ExperienceServices } from "../services/ports";
 import { StudioShell } from "./layout/StudioShell";
 import { loadIntoStudio } from "./loadIntoStudio";
+import { loadViewportPrefs, saveViewportPrefs } from "./preview/viewportPrefs";
 import { createStudioStore, type StudioStore } from "./store";
 import { StudioProvider, type StudioContextValue } from "./StudioContext";
 import { useAutosave } from "./useAutosave";
@@ -60,7 +61,19 @@ function StudioSession({
   campaign: CampaignSnapshot | null;
   services: ExperienceServices;
 }) {
-  const [store] = useState<StudioStore>(() => createStudioStore({ campaign }));
+  const [store] = useState<StudioStore>(() =>
+    createStudioStore({ campaign, viewport: loadViewportPrefs() }),
+  );
+  // The preview's device is remembered per browser, never in the experience (T6.9).
+  useEffect(
+    () =>
+      store.subscribe((state, previous) => {
+        if (state.ui.viewport !== previous.ui.viewport) {
+          saveViewportPrefs(state.ui.viewport);
+        }
+      }),
+    [store],
+  );
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

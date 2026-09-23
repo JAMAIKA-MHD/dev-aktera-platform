@@ -4,17 +4,18 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 **Statuts :** En cours · Terminée · Bloquée
 
-| Tâche | Titre                                 | Statut   | Commit proposé                                                     | Documentation                                                                                    |
-| ----- | ------------------------------------- | -------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| T6.1  | Store et sauvegarde automatique       | Terminée | `feat(Player-Experience): add studio store with undo and autosave` | [T6.1-store-et-sauvegarde-automatique.md](./T6.1-store-et-sauvegarde-automatique.md)             |
-| T6.2  | Ossature et aperçu à la taille réelle | Terminée | `feat(Player-Experience): add studio shell and live preview`       | [T6.2-ossature-et-apercu-a-la-taille-reelle.md](./T6.2-ossature-et-apercu-a-la-taille-reelle.md) |
-| T6.3  | Champs réutilisables                  | Terminée | `feat(Player-Experience): add studio form fields`                  | [T6.3-champs-reutilisables.md](./T6.3-champs-reutilisables.md)                                   |
-| T6.4  | Panneaux Template et Brand            | Terminée | `feat(Player-Experience): add template and brand panels`           | [T6.4-panneaux-template-et-brand.md](./T6.4-panneaux-template-et-brand.md)                       |
-| T6.5  | Panneaux Content et Sections          | Terminée | `feat(Player-Experience): add content and sections panels`         | [T6.5-panneaux-content-et-sections.md](./T6.5-panneaux-content-et-sections.md)                   |
-| T6.6  | Panneaux Form et Game                 | Terminée | `feat(Player-Experience): add form and game panels`                | [T6.6-panneaux-form-et-game.md](./T6.6-panneaux-form-et-game.md)                                 |
-| T6.7  | Panneaux Legal et Share               | Terminée | `feat(Player-Experience): add legal and share panels`              | [T6.7-panneaux-legal-et-share.md](./T6.7-panneaux-legal-et-share.md)                             |
-| T6.8  | Panneau de validation                 | Terminée | `feat(Player-Experience): add validation panel`                    | [T6.8-panneau-de-validation.md](./T6.8-panneau-de-validation.md)                                 |
+| Tâche | Titre                                 | Statut   | Commit proposé                                                          | Documentation                                                                                    |
+| ----- | ------------------------------------- | -------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| T6.1  | Store et sauvegarde automatique       | Terminée | `feat(Player-Experience): add studio store with undo and autosave`      | [T6.1-store-et-sauvegarde-automatique.md](./T6.1-store-et-sauvegarde-automatique.md)             |
+| T6.2  | Ossature et aperçu à la taille réelle | Terminée | `feat(Player-Experience): add studio shell and live preview`            | [T6.2-ossature-et-apercu-a-la-taille-reelle.md](./T6.2-ossature-et-apercu-a-la-taille-reelle.md) |
+| T6.3  | Champs réutilisables                  | Terminée | `feat(Player-Experience): add studio form fields`                       | [T6.3-champs-reutilisables.md](./T6.3-champs-reutilisables.md)                                   |
+| T6.4  | Panneaux Template et Brand            | Terminée | `feat(Player-Experience): add template and brand panels`                | [T6.4-panneaux-template-et-brand.md](./T6.4-panneaux-template-et-brand.md)                       |
+| T6.5  | Panneaux Content et Sections          | Terminée | `feat(Player-Experience): add content and sections panels`              | [T6.5-panneaux-content-et-sections.md](./T6.5-panneaux-content-et-sections.md)                   |
+| T6.6  | Panneaux Form et Game                 | Terminée | `feat(Player-Experience): add form and game panels`                     | [T6.6-panneaux-form-et-game.md](./T6.6-panneaux-form-et-game.md)                                 |
+| T6.7  | Panneaux Legal et Share               | Terminée | `feat(Player-Experience): add legal and share panels`                   | [T6.7-panneaux-legal-et-share.md](./T6.7-panneaux-legal-et-share.md)                             |
+| T6.8  | Panneau de validation                 | Terminée | `feat(Player-Experience): add validation panel`                         | [T6.8-panneau-de-validation.md](./T6.8-panneau-de-validation.md)                                 |
+| T6.9  | Aperçu responsive façon DevTools      | Terminée | `feat(Player-Experience): add devtools-like responsive preview toolbar` | [T6.9-apercu-responsive-facon-devtools.md](./T6.9-apercu-responsive-facon-devtools.md)           |
 
-À venir : T6.9 à T6.11.
+À venir : T6.10 et T6.11.
 
 Phase précédente : [phase 5 — Moteurs de jeu et accroches de pregame](../phase_5/README.md).

@@ -4,12 +4,16 @@ import type { FlowScreen } from "../../domain/flow";
 import { LOCALES, type Locale } from "../../domain/locale";
 import { createDemoCampaign } from "../../presets/demoCampaign";
 import type { ScriptedScenario } from "../../services/createLocalServices";
+import { BreakpointRuler } from "../preview/BreakpointRuler";
+import { useCustomDevices } from "../preview/customDevices";
+import { CustomDevicesDialog } from "../preview/CustomDevicesDialog";
+import { DeviceToolbar } from "../preview/DeviceToolbar";
 import { PreviewViewport } from "../preview/PreviewViewport";
 import type { PreviewFlowMode, PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
 
-// The preview bar (plan §9.3): which screen, which language, how the journey plays. The
-// device bar joins it in T6.9. Picking a screen, a mode or a scenario restarts the journey
+// The preview bar (plan §9.3): which screen, which language, how the journey plays, and the
+// device bar (T6.9). Picking a screen, a mode or a scenario restarts the journey
 // there; switching language does not, the screen simply redraws in it.
 
 const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
@@ -87,6 +91,8 @@ export function PreviewPane() {
   }, [ui.screen, ui.mode, ui.scenario]);
 
   const [live, setLive] = useState<PreviewScreen | null>(null);
+  const custom = useCustomDevices();
+  const [editingDevices, setEditingDevices] = useState(false);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -187,10 +193,24 @@ export function PreviewPane() {
           </button>
         </div>
       </div>
+      <div className="space-y-2 border-b border-card-border bg-card-bg-subtle px-3 py-2 sm:px-4">
+        <DeviceToolbar
+          customDevices={custom.devices}
+          onEditCustom={() => setEditingDevices(true)}
+        />
+        <BreakpointRuler />
+      </div>
       <PreviewViewport
+        customDevices={custom.devices}
         restartKey={restartKey}
         onFlowScreen={(screen) => setLive(tabOf(screen))}
       />
+      {editingDevices && (
+        <CustomDevicesDialog
+          custom={custom}
+          onClose={() => setEditingDevices(false)}
+        />
+      )}
     </div>
   );
 }
