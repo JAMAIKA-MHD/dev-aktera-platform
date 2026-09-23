@@ -27,6 +27,7 @@ export function ToggleField({
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-labelledby={`${id}-label`}
       aria-describedby={description ? `${id}-description` : undefined}
       disabled={disabled}
       title={disabled ? disabledReason : undefined}
@@ -36,6 +37,7 @@ export function ToggleField({
     >
       <span className="min-w-0 flex-1">
         <span
+          id={`${id}-label`}
           className={`block text-sm font-semibold ${disabled ? "text-brand-text-muted" : "text-brand-text"}`}
         >
           {label}

@@ -1,6 +1,8 @@
 import { Construction } from "lucide-react";
 import { useRef, type ComponentType } from "react";
 import { BrandPanel } from "../panels/BrandPanel";
+import { ContentPanel } from "../panels/ContentPanel";
+import { SectionsPanel } from "../panels/SectionsPanel";
 import { TemplatePanel } from "../panels/TemplatePanel";
 import type { StudioPanel } from "../store";
 import { useStudio } from "../StudioContext";
@@ -12,6 +14,8 @@ import { PANEL_META } from "./StudioNav";
 const PANELS: Partial<Record<StudioPanel, ComponentType>> = {
   template: TemplatePanel,
   brand: BrandPanel,
+  content: ContentPanel,
+  sections: SectionsPanel,
 };
 
 export function PanelArea() {
