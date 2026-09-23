@@ -11,7 +11,6 @@ import {
   Undo2,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { panelForPath } from "../panelForPath";
 import type { StudioCampaignOption } from "../PlayerExperienceStudio";
 import { useStudio, useStudioHistory } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
@@ -121,10 +120,7 @@ function IssuesButton() {
   return (
     <button
       type="button"
-      onClick={() => {
-        const panel = panelForPath(first.path);
-        if (panel) setPanel(panel, first.path);
-      }}
+      onClick={() => setPanel("validation")}
       title={`${summary} — ${first.message}`}
       className={`flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition active:scale-95 ${
         errors > 0

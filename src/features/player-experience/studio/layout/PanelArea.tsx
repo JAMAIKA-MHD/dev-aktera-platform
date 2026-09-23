@@ -6,6 +6,7 @@ import { FormPanel } from "../panels/FormPanel";
 import { GamePanel } from "../panels/game/GamePanel";
 import { LegalPanel } from "../panels/LegalPanel";
 import { SharePanel } from "../panels/SharePanel";
+import { ValidationPanel } from "../validation/ValidationPanel";
 import { SectionsPanel } from "../panels/SectionsPanel";
 import { TemplatePanel } from "../panels/TemplatePanel";
 import type { StudioPanel } from "../store";
@@ -23,6 +24,7 @@ const PANELS: Partial<Record<StudioPanel, ComponentType>> = {
   game: GamePanel,
   legal: LegalPanel,
   share: SharePanel,
+  validation: ValidationPanel,
 };
 
 export function PanelArea() {

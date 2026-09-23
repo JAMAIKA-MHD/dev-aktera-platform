@@ -33,8 +33,10 @@ export type StudioPanel =
   | "form"
   | "game"
   | "legal"
-  | "share";
+  | "share"
+  | "validation"; // the list of issues (T6.8), not a part of the configuration
 
+// The eight settings panels, in menu order.
 export const STUDIO_PANELS: readonly StudioPanel[] = [
   "template",
   "brand",

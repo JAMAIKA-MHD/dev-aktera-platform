@@ -13,7 +13,8 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 | T6.5  | Panneaux Content et Sections          | Terminée | `feat(Player-Experience): add content and sections panels`         | [T6.5-panneaux-content-et-sections.md](./T6.5-panneaux-content-et-sections.md)                   |
 | T6.6  | Panneaux Form et Game                 | Terminée | `feat(Player-Experience): add form and game panels`                | [T6.6-panneaux-form-et-game.md](./T6.6-panneaux-form-et-game.md)                                 |
 | T6.7  | Panneaux Legal et Share               | Terminée | `feat(Player-Experience): add legal and share panels`              | [T6.7-panneaux-legal-et-share.md](./T6.7-panneaux-legal-et-share.md)                             |
+| T6.8  | Panneau de validation                 | Terminée | `feat(Player-Experience): add validation panel`                    | [T6.8-panneau-de-validation.md](./T6.8-panneau-de-validation.md)                                 |
 
-À venir : T6.8 à T6.11.
+À venir : T6.9 à T6.11.
 
 Phase précédente : [phase 5 — Moteurs de jeu et accroches de pregame](../phase_5/README.md).
