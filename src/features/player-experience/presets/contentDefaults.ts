@@ -504,6 +504,7 @@ export const RESULT_TEXT = {
     "يبقى رمزك صالحاً حتى لو فشل التأكيد.",
     "Your code stays valid even though the confirmation failed.",
   ),
+  reveal: localized("Révéler", "اكشف", "Reveal"),
   shareWhatsapp: localized(
     "Partager sur WhatsApp",
     "شارك عبر واتساب",

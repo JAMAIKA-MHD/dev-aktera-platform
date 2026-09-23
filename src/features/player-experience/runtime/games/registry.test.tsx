@@ -94,8 +94,8 @@ describe("registry", () => {
         <Engine {...engineProps(campaign)} />
       </Suspense>,
     );
-    // Each mechanic marks its own stage; those still waiting for their task (T5.3–T5.6)
-    // resolve to the shared fallback, which names the mechanic it stands in for.
+    // Each mechanic marks its stage with its own game type — whether that is its real
+    // engine (from T5.2 on) or the shared fallback still standing in for it.
     await screen.findByText(
       (_, element) => element?.getAttribute("data-xp-game") === gameType,
       {},
@@ -104,30 +104,22 @@ describe("registry", () => {
     expect(
       container.querySelector(`[data-xp-game="${gameType}"]`),
     ).toBeTruthy();
-    if (gameType !== "lucky_wheel") {
-      expect(
-        screen.getByText(`Slot 5 · ${GAME_LABELS[gameType]}`),
-      ).toBeTruthy();
-    }
   });
 
-  it.each(GAME_TYPES)(
-    "resolves a Teaser for %s (the fallback, until its own phase 5 task)",
-    async (gameType) => {
-      const campaign = createDemoCampaign(gameType);
-      const Teaser = registry[gameType].Teaser;
-      render(
-        <Suspense fallback={null}>
-          <Teaser {...teaserProps(campaign)} />
-        </Suspense>,
-      );
-      expect(
-        await screen.findByRole(
-          "button",
-          { name: /^Lancer le jeu · / },
-          lazyTimeout,
-        ),
-      ).toBeTruthy();
-    },
-  );
+  it.each(GAME_TYPES)("resolves a Teaser for %s", async (gameType) => {
+    const campaign = createDemoCampaign(gameType);
+    const Teaser = registry[gameType].Teaser;
+    render(
+      <Suspense fallback={null}>
+        <Teaser {...teaserProps(campaign)} />
+      </Suspense>,
+    );
+    expect(
+      await screen.findByRole(
+        "button",
+        { name: /^Lancer le jeu · / },
+        lazyTimeout,
+      ),
+    ).toBeTruthy();
+  });
 });

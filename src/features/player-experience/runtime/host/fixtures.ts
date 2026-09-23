@@ -332,6 +332,28 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
     "The welcome screen, with the campaign's own wheel turning as its teaser (T5.2)",
     { customize: zetaMarket, flow: { gateway: "scripted", scenario: "lose" } },
   ),
+  "scratch-play": fixture(
+    "flow",
+    "The scratch card, ready to be scratched off the prize it already hides (T5.3)",
+    {
+      gameType: "scratch_card",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "revealing",
+      },
+    },
+  ),
+  "scratch-welcome": fixture(
+    "flow",
+    "The welcome screen of a scratch campaign: the brand's own ticket, scratched by a coin (T5.3)",
+    {
+      gameType: "scratch_card",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
   "flow-win": fixture(
     "flow",
     "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",

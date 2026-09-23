@@ -39,8 +39,16 @@ export const registry: GameRegistry = {
     autoCaption,
   },
   scratch_card: {
-    Engine: lazy(fallbackEngine),
-    Teaser: lazy(fallbackTeaser),
+    Engine: lazy(() =>
+      import("./scratch/ScratchEngine").then((module) => ({
+        default: module.ScratchEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./scratch/ScratchTeaser").then((module) => ({
+        default: module.ScratchTeaser,
+      })),
+    ),
     defaultSettings: {
       scratch: {
         coverImage: null,
