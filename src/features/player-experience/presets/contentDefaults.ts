@@ -448,10 +448,18 @@ export const TEASER_CAPTIONS: Readonly<Record<GameType, LocalizedText>> = {
   ),
   hit_it: localized(
     "{threshold} touches en {duration} s",
-    "{threshold} لمسة في {duration} ثانية",
+    "{threshold} لمسات في {duration} ثانية",
     "{threshold} hits in {duration}s",
   ),
 };
+
+// A campaign asking for a single hit would otherwise read "1 touches" (T5.7). One threshold,
+// one wording — the only mechanic whose caption counts something that can be exactly one.
+export const HIT_IT_ONE_CAPTION = localized(
+  "1 touche en {duration} s",
+  "لمسة واحدة في {duration} ثانية",
+  "1 hit in {duration}s",
+);
 
 // Appended to the quiz caption when the campaign has a timer.
 export const QUIZ_TIMER_CAPTION = localized(

@@ -85,7 +85,9 @@ describe("autoCaption", () => {
       "امسح لتكتشف مفاجأتك",
     );
     expect(autoCaption(campaign("mystery_box"), "en")).toBe("Pick your box");
-    expect(autoCaption(campaign("hit_it"), "en")).toBe("1 hits in 10s");
+    // A single hit is said in the singular, in each language (T5.7).
+    expect(autoCaption(campaign("hit_it"), "en")).toBe("1 hit in 10s");
+    expect(autoCaption(campaign("hit_it"), "fr")).toBe("1 touche en 10 s");
   });
 
   it("adds the timer of a timed quiz, and reads the rules of the campaign", () => {
@@ -105,7 +107,7 @@ describe("autoCaption", () => {
       `${quiz.quiz.length} questions`,
     );
     expect(autoCaption({ ...quiz, gameType: "hit_it", rules: {} }, "fr")).toBe(
-      "1 touches en 10 s",
+      "1 touche en 10 s",
     );
   });
 

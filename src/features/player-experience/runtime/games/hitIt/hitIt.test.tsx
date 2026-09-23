@@ -165,7 +165,7 @@ describe("HitItTeaser", () => {
     expect(screen.getByText("Démo")).toBeTruthy();
     expect(
       screen.getByRole("button", {
-        name: `Lancer le jeu · ${RULES.winThreshold} touches en ${RULES.durationSeconds} s`,
+        name: `Lancer le jeu · ${RULES.winThreshold} touches en ${RULES.durationSeconds} s`, // 8: plural
       }),
     ).toBeTruthy();
     expect(score(container)).toBe(`0 / ${RULES.winThreshold}`);

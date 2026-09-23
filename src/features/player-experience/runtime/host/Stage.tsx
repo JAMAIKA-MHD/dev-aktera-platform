@@ -11,6 +11,7 @@ import { safeAreaStyle, type SafeAreaInsets } from "../layout/safeArea";
 import { LayoutDebugView, ThemePresetsView } from "./DebugViews";
 import { FeedbackDebugView } from "./FeedbackDebugView";
 import { FramePreview, type FramePreviewState } from "./FramePreview";
+import { AllGamesView } from "./AllGamesView";
 import type { FixtureView } from "./fixtures";
 
 // What /xp-frame draws, whatever the source of its configuration (FrameHost.tsx).
@@ -67,6 +68,8 @@ export function Stage({ content }: { content: FrameContent }) {
               <ThemePresetsView locale={locale} />
             ) : view === "feedback-debug" ? (
               <FeedbackDebugView config={config} />
+            ) : view === "all-games" ? (
+              <AllGamesView locale={locale} />
             ) : (
               <LayoutDebugView />
             )}

@@ -15,7 +15,12 @@ import type { FramePreviewState } from "./FramePreview";
 // Each task of phases 3 to 5 adds its own fixtures. Brand names are fictional.
 
 export type FixtureView =
-  "layout-debug" | "theme-presets" | "feedback-debug" | "frame" | "flow";
+  | "layout-debug"
+  | "theme-presets"
+  | "feedback-debug"
+  | "all-games"
+  | "frame"
+  | "flow";
 
 // The journey of the flow view: PlayerExperience on local services (FrameExperience).
 export interface FlowFixture {
@@ -172,6 +177,10 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
     "theme-presets",
     "The five style presets, each drawn from its own theme variables",
   ),
+  "all-games": fixture(
+    "all-games",
+    "The five pregame teasers on one page, one per mechanic (T5.7)",
+  ),
   "feedback-debug": fixture(
     "feedback-debug",
     "Sounds, confetti, vibration and the runtime hooks, one button each",
@@ -325,6 +334,18 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
     {
       customize: zetaMarket,
       flow: { gateway: "scripted", scenario: "lose", initialScreen: "play" },
+    },
+  ),
+  "wheel-spinning": fixture(
+    "flow",
+    "The wheel mid-spin, landing on the prize it was handed (T5.7)",
+    {
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "revealing",
+      },
     },
   ),
   "wheel-welcome": fixture(

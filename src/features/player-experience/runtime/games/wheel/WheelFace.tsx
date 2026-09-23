@@ -96,7 +96,9 @@ export function WheelFace({
   return (
     <svg
       viewBox={`-${RIM} -${RIM} ${RIM * 2} ${RIM * 2}`}
-      className="size-full overflow-visible"
+      // Everything is drawn inside the viewBox (pointer included), so nothing needs to spill:
+      // a rotated group that overflowed pushed the page sideways by a few pixels (T5.7).
+      className="size-full"
       aria-hidden
       focusable="false"
     >

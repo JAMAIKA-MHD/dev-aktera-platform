@@ -2,6 +2,7 @@ import { DEFAULT_RULES, type CampaignSnapshot } from "../../domain/campaign";
 import { resolveText, type Locale } from "../../domain/locale";
 import type { ExperienceConfig } from "../../domain/types";
 import {
+  HIT_IT_ONE_CAPTION,
   QUIZ_TIMER_CAPTION,
   TEASER_CAPTIONS,
 } from "../../presets/contentDefaults";
@@ -40,10 +41,10 @@ export function autoCaption(
     case "hit_it": {
       const { winThreshold, durationSeconds } =
         campaign.rules.hitIt ?? DEFAULT_RULES.hitIt;
-      return fillCaption(template, {
-        threshold: winThreshold,
-        duration: durationSeconds,
-      });
+      return fillCaption(
+        winThreshold === 1 ? text(HIT_IT_ONE_CAPTION) : template,
+        { threshold: winThreshold, duration: durationSeconds },
+      );
     }
     default:
       return template;
