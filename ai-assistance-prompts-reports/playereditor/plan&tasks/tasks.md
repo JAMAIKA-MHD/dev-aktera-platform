@@ -86,7 +86,7 @@
 | 3 — Thème, mise en page et cadre | T3.1 → T3.8  | ✅     |
 | 4 — Parcours et écrans           | T4.1 → T4.5  | ✅     |
 | 5 — Jeux                         | T5.1 → T5.7  | ✅     |
-| 6 — Studio                       | T6.1 → T6.11 | ⬜     |
+| 6 — Studio                       | T6.1 → T6.11 | 🟡     |
 | 7 — Intégration                  | T7.1 → T7.4  | ⬜     |
 
 ---
