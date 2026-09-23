@@ -7,18 +7,17 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { CSSProperties } from "react";
-import type { CampaignSnapshot } from "../../domain/campaign";
 import type { GameType } from "../../domain/gameTypes";
-import type { Locale } from "../../domain/locale";
-import type { ExperienceConfig } from "../../domain/types";
 import { tint } from "../../theme/recipes";
 import { teaserCaption } from "./autoCaption";
+import type { GameTeaserProps } from "./types";
 
 // Pregame teaser shown until the game of the campaign has its own (phase 5): the icon of the
 // game in a glowing medallion, and the caption. The rules of every teaser (plan §8.7) hold:
 // it never shows an outcome, it is not playable (a tap emits START, like the CTA), it comes
 // from the configuration, and it stands still when inactive, static or with reduced motion.
-// T5.1 registers it in the game registry, under the GameTeaserProps contract.
+// Registered under every mechanic in registry.ts (T5.1), until T5.2–T5.6 each replace one
+// entry with the real thing.
 
 export const GAME_ICONS: Readonly<Record<GameType, LucideIcon>> = {
   lucky_wheel: ChartPie,
@@ -28,16 +27,6 @@ export const GAME_ICONS: Readonly<Record<GameType, LucideIcon>> = {
   hit_it: Target,
 };
 
-export interface FallbackTeaserProps {
-  campaign: CampaignSnapshot;
-  config: ExperienceConfig;
-  locale: Locale;
-  reducedMotion: boolean;
-  active: boolean; // on screen and tab visible (useTeaserActivity)
-  onStart: () => void;
-  startLabel: string; // the welcome CTA, for the accessible name
-}
-
 export function FallbackTeaser({
   campaign,
   config,
@@ -46,7 +35,7 @@ export function FallbackTeaser({
   active,
   onStart,
   startLabel,
-}: FallbackTeaserProps) {
+}: GameTeaserProps) {
   const Icon = GAME_ICONS[campaign.gameType];
   const caption = teaserCaption(config, campaign, locale);
   const still = reducedMotion || config.game.teaser.mode === "static";

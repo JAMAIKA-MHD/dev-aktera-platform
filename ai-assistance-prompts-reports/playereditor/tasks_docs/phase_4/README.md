@@ -14,4 +14,4 @@ Une documentation détaillée par tâche de [`tasks.md`](../../plan&tasks/tasks.
 
 **Bilan :** phase terminée le 2026-09-23. Le parcours complet existe, du hook d'état (`useExperienceFlow`) jusqu'à ses huit écrans (accueil, inscription, jeu, attente, trois statuts non gagnants, gain, défaite), chacun avec son propre composant et ses tests. Les cinq scénarios que la passerelle peut renvoyer (gain, perte, déjà joué, campagne fermée, erreur réseau) sont verrouillés par un test de bout en bout à travers les vrais écrans, avant que la phase 5 y branche les moteurs de jeu. Commits : T4.1 à T4.5 faits.
 
-Phase précédente : [phase 3 — Thème, mise en page adaptative et cadre à 8 slots](../phase_3/README.md).
+Phase précédente : [phase 3 — Thème, mise en page adaptative et cadre à 8 slots](../phase_3/README.md). Phase suivante : [phase 5 — Moteurs de jeu et accroches de pregame](../phase_5/README.md).

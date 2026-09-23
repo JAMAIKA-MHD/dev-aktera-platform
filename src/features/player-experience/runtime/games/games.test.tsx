@@ -151,6 +151,7 @@ describe("FallbackTeaser", () => {
     const onStart = vi.fn();
     const view = render(
       <FallbackTeaser
+        settings={config.game}
         campaign={campaign}
         config={config}
         locale="fr"
@@ -196,6 +197,7 @@ describe("FallbackTeaser", () => {
     }) => {
       rerender(
         <FallbackTeaser
+          settings={config.game}
           campaign={campaign}
           config={{
             ...config,
@@ -226,6 +228,7 @@ describe("FallbackTeaser", () => {
     });
     render(
       <FallbackTeaser
+        settings={config.game}
         campaign={campaign}
         config={config}
         locale="fr"

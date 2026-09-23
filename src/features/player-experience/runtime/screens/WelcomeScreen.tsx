@@ -1,7 +1,7 @@
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
 import { resolveText } from "../../domain/locale";
 import { ExperienceFrame } from "../frame/ExperienceFrame";
-import { FallbackTeaser } from "../games/FallbackTeaser";
+import { registry } from "../games/registry";
 import { useTeaserActivity } from "../games/useTeaserActivity";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { press, type ScreenProps } from "./screenProps";
@@ -21,6 +21,7 @@ export function WelcomeScreen({
   const active = useTeaserActivity(teaser);
   const reducedMotion = useReducedMotion(config.features.animations);
   const content = config.screens.welcome;
+  const Teaser = registry[campaign.gameType].Teaser;
   return (
     <ExperienceFrame
       config={config}
@@ -33,21 +34,25 @@ export function WelcomeScreen({
       showSections
       cta={{ onPrimary: press(flow, flow.start, "primary") }}
     >
-      {/* Until the games of phase 5, every game shows the fallback teaser (T5.1). */}
+      {/* The teaser of the campaign's own game (registry.ts, T5.1): every mechanic still
+          shows the fallback until T5.2–T5.6 give it its own, one registry entry at a time. */}
       <div ref={teaser} className="grid min-h-0" data-xp-edit="game.teaser">
-        <FallbackTeaser
-          campaign={campaign}
-          config={config}
-          locale={locale}
-          reducedMotion={reducedMotion}
-          active={active}
-          onStart={press(flow, flow.start, "teaser")}
-          startLabel={resolveText(
-            content.primaryCta,
-            locale,
-            config.locales.default,
-          )}
-        />
+        <Suspense fallback={null}>
+          <Teaser
+            settings={config.game}
+            campaign={campaign}
+            config={config}
+            locale={locale}
+            reducedMotion={reducedMotion}
+            active={active}
+            onStart={press(flow, flow.start, "teaser")}
+            startLabel={resolveText(
+              content.primaryCta,
+              locale,
+              config.locales.default,
+            )}
+          />
+        </Suspense>
       </div>
     </ExperienceFrame>
   );

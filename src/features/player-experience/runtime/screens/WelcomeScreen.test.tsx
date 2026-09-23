@@ -9,6 +9,10 @@ import { PlayerExperience } from "../PlayerExperience";
 
 // The welcome screen inside the real journey: teaser of the game, sections, one button.
 
+// The teaser comes from the registry (T5.1), lazy: a longer timeout than the default 1000 ms
+// keeps this from flaking under a loaded machine (a full coverage run, dozens of files at once).
+const teaserTimeout = { timeout: 5000 };
+
 function setup(gameType: GameType = "lucky_wheel") {
   const campaign = createDemoCampaign(gameType);
   const config = createDefaultExperience({ gameType, campaign });
@@ -35,11 +39,13 @@ afterEach(() => {
 });
 
 describe("WelcomeScreen", () => {
-  it("shows the teaser of the game, its caption, the sections and one button", () => {
+  it("shows the teaser of the game, its caption, the sections and one button", async () => {
     const { container, campaign } = setup();
-    expect(
-      screen.getByText(`${campaign.prizes.length} lots à gagner`),
-    ).toBeTruthy();
+    await screen.findByText(
+      `${campaign.prizes.length} lots à gagner`,
+      {},
+      teaserTimeout,
+    );
     expect(
       container
         .querySelector('[data-xp-slot="interaction"] [data-xp-teaser]')
@@ -49,9 +55,14 @@ describe("WelcomeScreen", () => {
     expect(screen.getByText("Lancer le jeu")).toBeTruthy();
   });
 
-  it("starts the journey from the teaser like from the CTA, never a game", () => {
+  it("starts the journey from the teaser like from the CTA, never a game", async () => {
     const { track } = setup();
-    fireEvent.click(screen.getByRole("button", { name: /^Lancer le jeu · / }));
+    const teaser = await screen.findByRole(
+      "button",
+      { name: /^Lancer le jeu · / },
+      teaserTimeout,
+    );
+    fireEvent.click(teaser);
     expect(screen.getByText("Vos coordonnées")).toBeTruthy(); // registration first
     expect(track).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -62,14 +73,18 @@ describe("WelcomeScreen", () => {
     );
   });
 
-  it("follows the game of the campaign: its teaser, texts and CTA", () => {
+  it("follows the game of the campaign: its teaser, texts and CTA", async () => {
     const { container, campaign } = setup("quiz");
+    await screen.findByText(
+      `${campaign.quiz.length} questions`,
+      {},
+      teaserTimeout,
+    );
     expect(
       container
         .querySelector("[data-xp-teaser]")
         ?.getAttribute("data-xp-teaser"),
     ).toBe("quiz");
-    expect(screen.getByText(`${campaign.quiz.length} questions`)).toBeTruthy();
     expect(screen.getByText("Relevez le quiz express")).toBeTruthy();
     fireEvent.click(screen.getByText("Commencer le quiz"));
     expect(screen.getByText("Vos coordonnées")).toBeTruthy();
