@@ -19,15 +19,6 @@ import { AnalyticsCenter } from "./components/AnalyticsCenter";
 import { BillingUsage } from "./components/BillingUsage";
 import { AccountSettings } from "./components/AccountSettings";
 
-// Player facing portal sandbox (embedded preview)
-import { PhoneFrame } from "./components/PhoneFrame";
-import { PlayerLanding } from "./components/PlayerLanding";
-import { PlayerGame } from "./components/PlayerGame";
-import { PlayerQuiz } from "./components/PlayerQuiz";
-import { PlayerScratch } from "./components/PlayerScratch";
-import { PlayerMysteryBox } from "./components/PlayerMysteryBox";
-import { PlayerHitIt } from "./components/PlayerHitIt";
-import { PlayerResult } from "./components/PlayerResult";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -67,15 +58,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-const LOSER_SLOT = {
-  id: "__loser__",
-  name: "Khir Ghira!",
-  icon: "🎁",
-  isWin: false,
-  color: "#1E1E2E",
-  textColor: "#6B7280",
-};
-
 const DEFAULT_AVATAR =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDRIrzL2B44jQOBHs_8Mr5_T7olxzgM6b1g4gWw22aervyasCXua96W9EMGfBs3Hbv_9zNL7W6q68Dap-kyXlJCTapI9qT3WCgI9tFHlCAB92gCphYgPX17Qnu4U6HxnVUGbl8sbA-ULs79sQ5zlbr2TisGtCtC1Qmq1DEjMvqaAg-AbaNcSw2caRxs0HgZ7kySWhAeALg1mGqNgflVBbIxNxh8gNLhxlFARs8RHBYpYaBpFsMgMw-h";
 
@@ -83,6 +65,13 @@ const DEFAULT_AVATAR =
 const CampaignStudio = lazy(() =>
   import("./features/player-experience").then((module) => ({
     default: module.CampaignStudio,
+  })),
+);
+
+// The Portal Simulator (T7.2): the real runtime in a phone-sized frame, loaded on demand.
+const CampaignSimulator = lazy(() =>
+  import("./features/player-experience").then((module) => ({
+    default: module.CampaignSimulator,
   })),
 );
 
@@ -136,24 +125,9 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
     useState<Campaign | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
-  // Player Preview Sandbox state (pure visual preview — does NOT write to DB)
+  // Portal Simulator drawer and the campaign it plays (shared with the Studio's picker)
   const [showSandbox, setShowSandbox] = useState<boolean>(false);
   const [sandboxCampaignId, setSandboxCampaignId] = useState<string>("");
-  const [sandboxScreen, setSandboxScreen] = useState<
-    | "landing"
-    | "game"
-    | "result"
-    | "scratch_card"
-    | "mystery_box"
-    | "hit_it"
-    | "quiz"
-  >("landing");
-  const [sandboxPlayerData, setSandboxPlayerData] = useState({
-    name: "",
-    phone: "",
-    consent: false,
-  });
-  const [sandboxSelectedPrize, setSandboxSelectedPrize] = useState<any>(null);
   const [isSidebarHovered, setIsSidebarHovered] = useState<boolean>(false);
   // The campaign wizard opened over the Studio, and what to do once it closes.
   const [studioWizard, setStudioWizard] = useState<{
@@ -396,96 +370,6 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
       setSandboxCampaignId(camp.id);
     }
     setActiveTab("playerScreen");
-  };
-
-  // Helper: map a B2B Campaign to a sandbox BrandPreset for the visual preview
-  const activeSandboxCampaign =
-    campaigns.find((c) => c.id === sandboxCampaignId) || campaigns[0];
-
-  const mapCampaignToBrandPreset = (camp: Campaign): any => {
-    const campaignPrizes = camp.prizes.map((p) => {
-      const template = prizes.find((pr) => pr.id === p.templateId);
-      return {
-        name: template?.name || "Mystery Reward",
-        icon: template?.category === "voucher" ? "📱" : "🎁",
-        isWin: true,
-      };
-    });
-
-    if (camp.winProbability < 100) {
-      campaignPrizes.push({
-        name: "Better Luck Next Time",
-        icon: "🌙",
-        isWin: false,
-      });
-    }
-
-    // Determine premium theme hues
-    let primaryColor = "#6366F1";
-    let gradientFrom = "#8B5CF6";
-    let gradientTo = "#6366F1";
-
-    if (camp.name.toLowerCase().includes("djezzy")) {
-      primaryColor = "#E30613";
-      gradientFrom = "#FF1A24";
-      gradientTo = "#A30009";
-    } else if (camp.name.toLowerCase().includes("yassir")) {
-      primaryColor = "#10B981";
-      gradientFrom = "#34D399";
-      gradientTo = "#059669";
-    } else if (camp.name.toLowerCase().includes("hamoud")) {
-      primaryColor = "#F59E0B";
-      gradientFrom = "#FBBF24";
-      gradientTo = "#D97706";
-    } else if (camp.name.toLowerCase().includes("soummam")) {
-      primaryColor = "#3B82F6";
-      gradientFrom = "#60A5FA";
-      gradientTo = "#2563EB";
-    }
-
-    return {
-      name: camp.name,
-      arabicName: camp.arabicName,
-      primaryColor,
-      gradientFrom,
-      gradientTo,
-      description: `Participate & Win premium voucher codes or physical merchandise.`,
-      logoUrl: camp.heroImageUrl,
-      prizes: campaignPrizes,
-    };
-  };
-
-  const sandboxBrandPreset = activeSandboxCampaign
-    ? mapCampaignToBrandPreset(activeSandboxCampaign)
-    : null;
-
-  // Player simulator callback events
-  const handleSandboxRegister = (data: any) => {
-    setSandboxPlayerData(data);
-    const c = campaigns.find((x) => x.id === sandboxCampaignId);
-    const gType = c?.gameType || "lucky_wheel";
-    if (gType === "quiz" && c?.questions && c.questions.length > 0) {
-      setSandboxScreen("quiz");
-    } else if (gType === "hit_it") {
-      setSandboxScreen("hit_it");
-    } else if (gType === "mystery_box") {
-      setSandboxScreen("mystery_box");
-    } else if (gType === "scratch_card") {
-      setSandboxScreen("scratch_card");
-    } else {
-      setSandboxScreen("game");
-    }
-  };
-
-  const handleSandboxGameComplete = (_prize?: any) => {
-    setSandboxSelectedPrize(_prize ?? null);
-    setSandboxScreen("result");
-    // Sandbox is visual-only — no DB writes; real entries are created in the player portal
-  };
-
-  const handleSandboxRestart = () => {
-    setSandboxSelectedPrize(null);
-    setSandboxScreen("landing");
   };
 
   const handleSidebarNavigate = (tab: TabType) => {
@@ -939,178 +823,45 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="w-full max-w-[390px] sm:max-w-[410px] bg-slate-900 border-l border-slate-800 h-full max-h-screen flex flex-col p-3 sm:p-4 overflow-hidden relative shadow-2xl text-white"
+              role="dialog"
+              aria-label="Portal Simulator"
+              className="w-full max-w-[390px] sm:max-w-[410px] bg-card-bg border-l border-card-border h-full max-h-screen flex flex-col overflow-hidden shadow-2xl text-brand-text"
             >
-              {/* Minimal Top Header with Campaign Selector & Close Button */}
-              <div className="flex items-center justify-between gap-3 pb-2.5 mb-2 border-b border-slate-800 shrink-0">
-                {/* Campaign Switcher Dropdown in the Header */}
-                <div className="flex-1 flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" />
-                  <select
-                    value={sandboxCampaignId}
-                    onChange={(e) => {
-                      setSandboxCampaignId(e.target.value);
-                      handleSandboxRestart();
-                    }}
-                    className="w-full bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 min-h-9 cursor-pointer transition-colors"
-                  >
-                    {campaigns.map((c) => (
-                      <option
-                        key={c.id}
-                        value={c.id}
-                        className="bg-slate-950 text-white"
-                      >
+              <div className="flex items-center gap-2 p-3 border-b border-card-border shrink-0">
+                <Smartphone className="w-4 h-4 text-indigo-500 shrink-0" />
+                <select
+                  aria-label="Campaign"
+                  value={sandboxCampaignId}
+                  onChange={(e) => setSandboxCampaignId(e.target.value)}
+                  className="w-full bg-card-bg border border-card-border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 min-h-9 cursor-pointer"
+                >
+                  <option value={STANDALONE_STUDIO}>
+                    Default experience (demo campaign)
+                  </option>
+                  {campaigns
+                    .filter((c) => c.status !== "archived")
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
-                  </select>
-                </div>
-
+                </select>
                 <button
                   onClick={() => setShowSandbox(false)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                  className="p-2 border border-card-border rounded-xl text-brand-text-muted hover:text-brand-text hover:bg-card-hover transition-colors cursor-pointer shrink-0"
+                  aria-label="Close sandbox"
                   title="Close sandbox"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Sandbox Smartphone shell - fills maximum vertical screen space */}
-              <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-                {!sandboxBrandPreset ? (
-                  <div className="text-center text-slate-500 text-xs font-mono py-10">
-                    <div className="w-6 h-6 border-2 border-slate-700 border-t-slate-400 rounded-full animate-spin mx-auto mb-3" />
-                    No active campaigns yet — create one first.
-                  </div>
-                ) : (
-                  <PhoneFrame compact={true}>
-                    <AnimatePresence mode="wait">
-                      {sandboxScreen === "landing" && (
-                        <motion.div
-                          key="sandbox-landing"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerLanding
-                            activeBrand={sandboxBrandPreset}
-                            onRegister={handleSandboxRegister}
-                            savedData={sandboxPlayerData}
-                          />
-                        </motion.div>
-                      )}
-
-                      {sandboxScreen === "game" && (
-                        <motion.div
-                          key="sandbox-game"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerGame
-                            activeBrand={sandboxBrandPreset}
-                            forcedOutcome="random"
-                            onGameComplete={handleSandboxGameComplete}
-                            playerName={sandboxPlayerData.name}
-                          />
-                        </motion.div>
-                      )}
-
-                      {sandboxScreen === "scratch_card" && (
-                        <motion.div
-                          key="sandbox-scratch"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerScratch
-                            activeBrand={sandboxBrandPreset}
-                            targetPrize={{
-                              ...LOSER_SLOT,
-                              isWin: true,
-                              id: "test",
-                              name: "Test Prize",
-                              color: "#FF0000",
-                            }}
-                            onGameComplete={handleSandboxGameComplete}
-                          />
-                        </motion.div>
-                      )}
-
-                      {sandboxScreen === "mystery_box" && (
-                        <motion.div
-                          key="sandbox-mystery"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerMysteryBox
-                            activeBrand={sandboxBrandPreset}
-                            onComplete={handleSandboxGameComplete}
-                          />
-                        </motion.div>
-                      )}
-
-                      {sandboxScreen === "hit_it" && (
-                        <motion.div
-                          key="sandbox-hitit"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerHitIt
-                            activeBrand={sandboxBrandPreset}
-                            winThreshold={5}
-                            onComplete={handleSandboxGameComplete}
-                          />
-                        </motion.div>
-                      )}
-
-                      {sandboxScreen === "quiz" && (
-                        <motion.div
-                          key="sandbox-quiz"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerQuiz
-                            activeBrand={sandboxBrandPreset}
-                            questions={
-                              campaigns.find((c) => c.id === sandboxCampaignId)
-                                ?.questions || []
-                            }
-                            playerName={sandboxPlayerData.name}
-                            onComplete={handleSandboxGameComplete}
-                          />
-                        </motion.div>
-                      )}
-
-                      {sandboxScreen === "result" && (
-                        <motion.div
-                          key="sandbox-result"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex-1 flex flex-col"
-                        >
-                          <PlayerResult
-                            activeBrand={sandboxBrandPreset}
-                            prize={sandboxSelectedPrize}
-                            onRestart={handleSandboxRestart}
-                            playerName={sandboxPlayerData.name}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </PhoneFrame>
-                )}
-              </div>
+              <Suspense fallback={<div className="flex-1" />}>
+                <CampaignSimulator
+                  campaigns={campaigns}
+                  prizeTemplates={prizes}
+                  campaignId={sandboxCampaignId || null}
+                />
+              </Suspense>
             </motion.div>
           </div>
         )}

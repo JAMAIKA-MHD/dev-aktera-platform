@@ -11,6 +11,9 @@ export type {
 export { CampaignStudio } from "./studio/CampaignStudio";
 export type { CampaignStudioProps } from "./studio/CampaignStudio";
 export type { CampaignSettingsSection } from "./studio/StudioContext";
+// The dashboard's player sandbox on the real runtime (T7.2): loaded lazily by App.
+export { CampaignSimulator } from "./studio/CampaignSimulator";
+export type { CampaignSimulatorProps } from "./studio/CampaignSimulator";
 
 export { createLocalServices } from "./services/createLocalServices";
 export { ServicesProvider } from "./services/ServicesProvider";
