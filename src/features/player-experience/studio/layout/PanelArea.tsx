@@ -4,6 +4,8 @@ import { BrandPanel } from "../panels/BrandPanel";
 import { ContentPanel } from "../panels/ContentPanel";
 import { FormPanel } from "../panels/FormPanel";
 import { GamePanel } from "../panels/game/GamePanel";
+import { LegalPanel } from "../panels/LegalPanel";
+import { SharePanel } from "../panels/SharePanel";
 import { SectionsPanel } from "../panels/SectionsPanel";
 import { TemplatePanel } from "../panels/TemplatePanel";
 import type { StudioPanel } from "../store";
@@ -11,8 +13,7 @@ import { useStudio } from "../StudioContext";
 import { useRevealFocusPath } from "../useRevealFocusPath";
 import { PANEL_META } from "./StudioNav";
 
-// The settings panel of the selected section. Each panel arrives with its own task
-// (T6.4 to T6.7); until then, its place says so instead of staying blank.
+// The settings panel of the selected section (T6.4 to T6.7).
 const PANELS: Partial<Record<StudioPanel, ComponentType>> = {
   template: TemplatePanel,
   brand: BrandPanel,
@@ -20,6 +21,8 @@ const PANELS: Partial<Record<StudioPanel, ComponentType>> = {
   sections: SectionsPanel,
   form: FormPanel,
   game: GamePanel,
+  legal: LegalPanel,
+  share: SharePanel,
 };
 
 export function PanelArea() {

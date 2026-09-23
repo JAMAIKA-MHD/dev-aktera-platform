@@ -3,6 +3,7 @@ import { DEFAULT_GAME_TYPE } from "../domain/defaults";
 import { createDemoCampaign } from "../presets/demoCampaign";
 import { createConsoleAnalyticsTracker } from "./local/consoleAnalyticsTracker";
 import { createDataUrlAssetStorage } from "./local/dataUrlAssetStorage";
+import { createDemoEntryStore } from "./local/demoEntryStore";
 import { createDemoParticipationGateway } from "./local/demoParticipationGateway";
 import {
   buildDemoRules,
@@ -21,6 +22,12 @@ export type { ScriptedScenario };
 // What decides a win, for the Studio's read-only rules card (never for the runtime).
 export { buildDemoRules, buildStandaloneDemoRules };
 export type { DemoCampaignRules };
+
+// The Studio's "Reset demo data": forgets the demo participations of one campaign (or all),
+// so a phone number can play again in the preview. Real entries are never touched.
+export function resetDemoEntries(campaignId?: string): void {
+  createDemoEntryStore().reset(campaignId);
+}
 
 // Composition root of the MVP: the local adapters, as used by the Studio and demos.
 // The public player route will get createSupabaseServices() instead (plan §7.4), and refuses
