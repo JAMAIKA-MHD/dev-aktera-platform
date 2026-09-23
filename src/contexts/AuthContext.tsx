@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 
 // ── DB row shapes (snake_case, 1:1 with Postgres) ──────────────────────────
 
@@ -9,7 +16,7 @@ export interface DbProfile {
   organization_id: string;
   full_name: string;
   email: string;
-  role: 'owner' | 'admin' | 'manager' | 'viewer';
+  role: "owner" | "admin" | "manager" | "viewer";
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -22,7 +29,7 @@ export interface DbOrganization {
   contact_email: string;
   phone_number: string | null;
   logo_url: string | null;
-  plan: 'free' | 'starter' | 'pro' | 'enterprise';
+  plan: "free" | "starter" | "pro" | "enterprise";
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -47,7 +54,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ── Provider ────────────────────────────────────────────────────────────────
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DbProfile | null>(null);
@@ -55,6 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [needsOrganizationSetup, setNeedsOrganizationSetup] = useState(false);
+  // The user whose profile and organization are loaded (or being loaded).
+  const loadedUserId = useRef<string | null>(null);
 
   /** Load profile + org for the authenticated user. */
   const loadProfileAndOrg = useCallback(async (userId: string) => {
@@ -62,12 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNeedsOrganizationSetup(false);
 
     const { data: profileRow, error: profileErr } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
       .single();
 
-    const missingProfile = profileErr?.code === 'PGRST116' || !profileRow;
+    const missingProfile = profileErr?.code === "PGRST116" || !profileRow;
 
     if (missingProfile) {
       setProfile(null);
@@ -79,19 +90,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (profileErr) {
       setProfile(null);
       setOrganization(null);
-      setAuthError('We could not load your organization profile. Please refresh and try again.');
+      setAuthError(
+        "We could not load your organization profile. Please refresh and try again.",
+      );
       return;
     }
 
     setProfile(profileRow as DbProfile);
 
     const { data: orgRow, error: orgErr } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', (profileRow as DbProfile).organization_id)
+      .from("organizations")
+      .select("*")
+      .eq("id", (profileRow as DbProfile).organization_id)
       .single();
 
-    const missingOrganization = orgErr?.code === 'PGRST116' || !orgRow;
+    const missingOrganization = orgErr?.code === "PGRST116" || !orgRow;
 
     if (missingOrganization) {
       setOrganization(null);
@@ -101,7 +114,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (orgErr) {
       setOrganization(null);
-      setAuthError('We could not load your organization details. Please refresh and try again.');
+      setAuthError(
+        "We could not load your organization details. Please refresh and try again.",
+      );
       return;
     }
 
@@ -115,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
+        loadedUserId.current = s.user.id;
         loadProfileAndOrg(s.user.id).finally(() => setLoading(false));
       } else {
         setLoading(false);
@@ -122,13 +138,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // Subscribe to auth changes (login, logout, token refresh)
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
+        // A refreshed token, or the same user announced again by another same-origin page
+        // (a second tab, the Player Studio's preview iframe): the profile is already loaded.
+        // Showing the loading screen here would unmount the whole dashboard, and the preview
+        // iframe would restart it in a loop.
+        const sameUser = loadedUserId.current === s.user.id;
+        if (sameUser && event !== "USER_UPDATED") return;
+        loadedUserId.current = s.user.id;
         setLoading(true);
         loadProfileAndOrg(s.user.id).finally(() => setLoading(false));
       } else {
+        loadedUserId.current = null;
         setProfile(null);
         setOrganization(null);
         setAuthError(null);
@@ -140,8 +164,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => listener.subscription.unsubscribe();
   }, [loadProfileAndOrg]);
 
-  const signIn = async (email: string, password: string): Promise<string | null> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (
+    email: string,
+    password: string,
+  ): Promise<string | null> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return error ? error.message : null;
   };
 
@@ -180,6 +210,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }

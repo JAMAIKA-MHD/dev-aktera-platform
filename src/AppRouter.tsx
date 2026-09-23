@@ -6,7 +6,6 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import CompleteOrganizationSetupPage from "./pages/auth/CompleteOrganizationSetupPage";
 import PlayerFlowPage from "./pages/play/PlayerFlowPage";
-import { PlayerUIMaker } from "./components/player-ui-maker";
 import App from "./App";
 
 // Player Experience runtime in a document of its own (Studio preview, responsive checks).
@@ -110,8 +109,17 @@ export default function AppRouter() {
             />
           )}
 
-          {/* Standalone Player UI Maker route */}
-          <Route path="/ui-maker" element={<PlayerUIMaker />} />
+          {/* The Player Experience Studio, in the dashboard (T7.1). The legacy editor route
+              leads there. */}
+          <Route
+            path="/studio"
+            element={
+              <ProtectedRoute>
+                <App initialTab="playerScreen" />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/ui-maker" element={<Navigate to="/studio" replace />} />
 
           {/* Protected operator dashboard */}
           <Route

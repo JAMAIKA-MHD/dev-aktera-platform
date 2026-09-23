@@ -9,6 +9,7 @@ import {
   RotateCw,
   Sparkles,
   Undo2,
+  X,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { StudioCampaignOption } from "../PlayerExperienceStudio";
@@ -146,10 +147,12 @@ export function StudioTopBar({
   autosave,
   campaigns,
   onCampaignChange,
+  onClose,
 }: {
   autosave: Autosave;
   campaigns?: readonly StudioCampaignOption[];
   onCampaignChange?: (campaignId: string | null) => void;
+  onClose?: () => void;
 }) {
   const campaignId = useStudio((state) => state.campaignId);
   const campaignName = useStudio((state) => state.campaign?.name ?? null);
@@ -224,6 +227,11 @@ export function StudioTopBar({
           <ExternalLink className="size-4" aria-hidden />
           <span className="hidden xl:inline">Open in window</span>
         </button>
+        {onClose && (
+          <IconButton label="Back to dashboard" onClick={onClose}>
+            <X className="size-5" aria-hidden />
+          </IconButton>
+        )}
       </div>
     </header>
   );

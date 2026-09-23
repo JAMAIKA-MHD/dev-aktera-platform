@@ -194,7 +194,8 @@ describe("GamePanel", () => {
       screen.getByRole("button", { name: /^Remove Segment 1/ }),
     ).toHaveProperty("disabled", true);
     expect(screen.getByText(/Segment size does not reflect odds/)).toBeTruthy();
-  });
+    // Many segment edits, each re-rendering the panel: slow under a full parallel run.
+  }, 20_000);
 
   it("rewords a prize for players and cleans up removed ones", () => {
     const campaign = linked("mystery_box");

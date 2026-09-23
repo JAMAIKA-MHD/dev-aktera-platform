@@ -155,4 +155,15 @@ describe("useAutosave", () => {
     await flush();
     expect(leave()).toBe(false);
   });
+
+  it("writes a pending edit when the Studio closes, instead of dropping it", async () => {
+    const { store, hook, saves } = setup();
+    act(() => store.getState().updateBrand({ name: "Zeta" }));
+    hook.unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(saves).toHaveLength(1);
+    expect(saves[0].config.brand.name).toBe("Zeta");
+  });
 });

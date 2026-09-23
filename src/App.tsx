@@ -1,4 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Campaign, PrizeTemplate, TabType } from "./types";
 
 // B2B view subcomponents
@@ -21,8 +28,6 @@ import { PlayerScratch } from "./components/PlayerScratch";
 import { PlayerMysteryBox } from "./components/PlayerMysteryBox";
 import { PlayerHitIt } from "./components/PlayerHitIt";
 import { PlayerResult } from "./components/PlayerResult";
-import { PlayerScreenConfig } from "./components/PlayerScreenConfig";
-import { PlayerUIMaker } from "./components/player-ui-maker";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -39,7 +44,6 @@ import {
   archiveCampaignService,
   deleteCampaignService,
   createOrUpdateCampaignFullService,
-  updateCampaignPlayerScreenService,
 } from "./services/campaignService";
 
 import {
@@ -75,7 +79,20 @@ const LOSER_SLOT = {
 const DEFAULT_AVATAR =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDRIrzL2B44jQOBHs_8Mr5_T7olxzgM6b1g4gWw22aervyasCXua96W9EMGfBs3Hbv_9zNL7W6q68Dap-kyXlJCTapI9qT3WCgI9tFHlCAB92gCphYgPX17Qnu4U6HxnVUGbl8sbA-ULs79sQ5zlbr2TisGtCtC1Qmq1DEjMvqaAg-AbaNcSw2caRxs0HgZ7kySWhAeALg1mGqNgflVBbIxNxh8gNLhxlFARs8RHBYpYaBpFsMgMw-h";
 
-export default function App() {
+// The Player Experience Studio (T7.1), loaded on demand: the dashboard bundle does not carry it.
+const CampaignStudio = lazy(() =>
+  import("./features/player-experience").then((module) => ({
+    default: module.CampaignStudio,
+  })),
+);
+
+// The Studio's campaign picker offers "standalone" (the demo campaign) besides real campaigns.
+const STANDALONE_STUDIO = "standalone";
+
+// "Edit in campaign settings" from the Studio: the wizard step of each part of the rules.
+const WIZARD_STEP = { rules: 2, prizes: 3, questions: 4 } as const;
+
+export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
   const { organization, profile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t, isRtl } = useLanguage();
@@ -109,7 +126,7 @@ export default function App() {
   // Action error state (shown in-dashboard for CRUD failures)
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<TabType>("home");
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   // Focus & Draft states
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
@@ -138,6 +155,12 @@ export default function App() {
   });
   const [sandboxSelectedPrize, setSandboxSelectedPrize] = useState<any>(null);
   const [isSidebarHovered, setIsSidebarHovered] = useState<boolean>(false);
+  // The campaign wizard opened over the Studio, and what to do once it closes.
+  const [studioWizard, setStudioWizard] = useState<{
+    campaign: Campaign;
+    step: 1 | 2 | 3 | 4;
+  } | null>(null);
+  const studioWizardDone = useRef<(() => void) | null>(null);
 
   // Auto-select first loaded campaign for the sandbox
   useEffect(() => {
@@ -228,12 +251,25 @@ export default function App() {
 
   // ── Campaign CRUD handlers ─────────────────────────────────────────────────
 
-  const handleSaveCampaign = async (
-    newCamp: Omit<Campaign, "participantsCount" | "rewardsClaimed"> & {
-      mode?: "create" | "edit" | "relaunch" | "update";
-      submitStatus?: "draft" | "active";
-    },
-  ) => {
+  type CampaignDraft = Omit<
+    Campaign,
+    "participantsCount" | "rewardsClaimed"
+  > & {
+    mode?: "create" | "edit" | "relaunch" | "update";
+    submitStatus?: "draft" | "active";
+  };
+
+  const handleSaveCampaign = async (newCamp: CampaignDraft) => {
+    await persistCampaign(newCamp);
+    setRelaunchDraftCampaign(null);
+    setEditingCampaign(null);
+    setSelectedCampaignId(null);
+    await refetchCampaigns();
+    await refetchPrizes();
+    setActiveTab("campaigns");
+  };
+
+  const persistCampaign = async (newCamp: CampaignDraft) => {
     if (!orgId) {
       const msg =
         "Organization not loaded. Please refresh the page and try again.";
@@ -260,13 +296,29 @@ export default function App() {
       setActionError(errorMsg);
       throw new Error(errorMsg);
     }
+  };
 
-    setRelaunchDraftCampaign(null);
-    setEditingCampaign(null);
-    setSelectedCampaignId(null);
+  // ── Player Experience Studio (T7.1) ────────────────────────────────────────
+
+  // "Edit in campaign settings": the wizard opens over the Studio on the right step, and the
+  // promise settles once it closes, after the campaign was reloaded — the Studio then shows
+  // the new prizes or questions, and flags translations the change made outdated.
+  const handleEditFromStudio = useCallback(
+    (campaignId: string, section: keyof typeof WIZARD_STEP) =>
+      new Promise<void>((resolve) => {
+        const campaign = campaigns.find((item) => item.id === campaignId);
+        if (!campaign) return resolve();
+        studioWizardDone.current = resolve;
+        setStudioWizard({ campaign, step: WIZARD_STEP[section] });
+      }),
+    [campaigns],
+  );
+
+  const closeStudioWizard = async () => {
+    setStudioWizard(null);
     await refetchCampaigns();
-    await refetchPrizes();
-    setActiveTab("campaigns");
+    studioWizardDone.current?.();
+    studioWizardDone.current = null;
   };
 
   const handleToggleCampaignStatus = async (id: string) => {
@@ -813,7 +865,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* FULL SCREEN PLAYER EDITOR */}
+      {/* PLAYER EXPERIENCE STUDIO (full screen) */}
       <AnimatePresence>
         {activeTab === "playerScreen" && (
           <motion.div
@@ -823,43 +875,57 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100]"
           >
-            <PlayerUIMaker
-              campaigns={campaigns}
-              selectedCampaignId={sandboxCampaignId}
-              onSelectCampaign={setSandboxCampaignId}
-              onClose={() => setActiveTab("campaigns")}
-              onSave={async (campaignId, project) => {
-                try {
-                  const currentCamp = campaigns.find(
-                    (x) => x.id === campaignId,
-                  );
-                  const updatedConfig = {
-                    ...(currentCamp?.playerScreenConfig || {}),
-                    uiProject: project,
-                  };
-                  await updateCampaignPlayerScreenService(
-                    campaignId,
-                    updatedConfig,
-                  );
-                  await refetchCampaigns();
-                } catch (err: any) {
-                  console.error(
-                    "Failed to save campaign UI project to Supabase:",
-                    err,
-                  );
-                  setActionError(
-                    toFriendlyErrorMessage(
-                      err,
-                      "Failed to save player screen configuration to Supabase.",
-                    ),
-                  );
-                  throw err;
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center bg-brand-dark">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600/30 border-t-blue-600" />
+                </div>
+              }
+            >
+              <CampaignStudio
+                className="h-full"
+                campaigns={campaigns}
+                prizeTemplates={prizes}
+                campaignId={
+                  sandboxCampaignId === STANDALONE_STUDIO
+                    ? null
+                    : sandboxCampaignId || null
                 }
-              }}
-            />
+                onCampaignChange={(id) =>
+                  setSandboxCampaignId(id ?? STANDALONE_STUDIO)
+                }
+                onEditCampaignSettings={handleEditFromStudio}
+                onRefreshCampaign={refetchCampaigns}
+                onClose={() => setActiveTab("campaigns")}
+              />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* CAMPAIGN WIZARD OVER THE STUDIO ("Edit in campaign settings") */}
+      {studioWizard && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Campaign settings"
+          className="fixed inset-0 z-[110] overflow-y-auto bg-brand-dark p-4 sm:p-8"
+        >
+          <div className="mx-auto max-w-6xl">
+            <CampaignWizard
+              key={`studio-wizard-${studioWizard.campaign.id}-${studioWizard.step}`}
+              prizes={prizes}
+              editingCampaign={studioWizard.campaign}
+              initialStep={studioWizard.step}
+              onSave={async (campaign) => {
+                await persistCampaign(campaign);
+                await closeStudioWizard();
+              }}
+              onCancel={() => void closeStudioWizard()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* PORTAL SIMULATOR SLIDE-OUT OVERLAY DRAWER */}
       <AnimatePresence>

@@ -39,12 +39,16 @@ export function useAutosave({
   const pending = useRef<ExperienceConfig | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const alive = useRef(true);
+  const flush = useRef<() => void>(() => {});
 
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
       clearTimeout(timer.current);
+      // Closing the Studio (or leaving for the Wizard) never drops the last edit: what was
+      // waiting for its debounce is written now.
+      flush.current();
     };
   }, []);
 
@@ -77,6 +81,11 @@ export function useAutosave({
       setSaveStatus("error");
     }
   }, [repository, store]);
+  useEffect(() => {
+    flush.current = () => {
+      if (pending.current) void write();
+    };
+  }, [write]);
 
   // One write per lull in the typing, never one per keystroke.
   useEffect(

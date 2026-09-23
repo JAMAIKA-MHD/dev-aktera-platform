@@ -28,6 +28,7 @@ export interface PlayerExperienceStudioProps {
   // The campaign's draw rules (buildDemoRules), shown read-only in the Game panel.
   rules?: StudioContextValue["rules"];
   services?: ExperienceServices; // default: the local services of the MVP
+  onClose?: () => void; // a "Back to dashboard" button in the top bar
   className?: string;
 }
 
@@ -56,6 +57,7 @@ function StudioSession({
   onEditCampaignSettings,
   onRefreshCampaign,
   rules,
+  onClose,
   className,
 }: Omit<PlayerExperienceStudioProps, "campaign" | "services"> & {
   campaign: CampaignSnapshot | null;
@@ -112,6 +114,7 @@ function StudioSession({
         autosave={autosave}
         campaigns={campaigns}
         onCampaignChange={onCampaignChange}
+        onClose={onClose}
         className={className}
       />
     </StudioProvider>

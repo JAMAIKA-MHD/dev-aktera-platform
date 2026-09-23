@@ -32,6 +32,7 @@ export interface StudioShellProps {
   autosave: Autosave;
   campaigns?: readonly StudioCampaignOption[];
   onCampaignChange?: (campaignId: string | null) => void;
+  onClose?: () => void;
   className?: string;
 }
 
@@ -40,6 +41,7 @@ export function StudioShell({
   autosave,
   campaigns,
   onCampaignChange,
+  onClose,
   className = "",
 }: StudioShellProps) {
   const wide = useWideLayout();
@@ -55,6 +57,7 @@ export function StudioShell({
         autosave={autosave}
         campaigns={campaigns}
         onCampaignChange={onCampaignChange}
+        onClose={onClose}
       />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <StudioNav />

@@ -7,6 +7,10 @@ export type {
   PlayerExperienceStudioProps,
   StudioCampaignOption,
 } from "./studio/PlayerExperienceStudio";
+// The Studio on the dashboard's own campaigns (T7.1): loaded lazily by App.
+export { CampaignStudio } from "./studio/CampaignStudio";
+export type { CampaignStudioProps } from "./studio/CampaignStudio";
+export type { CampaignSettingsSection } from "./studio/StudioContext";
 
 export { createLocalServices } from "./services/createLocalServices";
 export { ServicesProvider } from "./services/ServicesProvider";

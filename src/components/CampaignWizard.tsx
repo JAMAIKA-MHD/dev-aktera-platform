@@ -21,7 +21,6 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
-import { createProjectForGameType } from "./player-ui-maker/store/defaultProjects";
 
 interface CampaignWizardProps {
   prizes: PrizeTemplate[];
@@ -36,6 +35,9 @@ interface CampaignWizardProps {
   onOpenPlayerScreenEditor?: (campaignData: any) => void;
   relaunchDraft?: Campaign | null;
   editingCampaign?: Campaign | null;
+  // Opens on a given step (1 to 4): the Studio's "Edit in campaign settings" lands on
+  // Game Rules (2), Reward Weights (3) or the Challenge Builder of step 4.
+  initialStep?: 1 | 2 | 3 | 4;
 }
 
 export const CampaignWizard: React.FC<CampaignWizardProps> = ({
@@ -45,11 +47,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   onOpenPlayerScreenEditor,
   relaunchDraft,
   editingCampaign,
+  initialStep = 1,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(initialStep);
   const baseCampaign = editingCampaign ?? relaunchDraft ?? null;
   const isEditMode = Boolean(editingCampaign);
   const isLiveCampaign =
@@ -258,9 +261,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
 
     setIsSubmitting(true);
     try {
-      const resolvedPlayerScreenConfig = baseCampaign?.playerScreenConfig ?? {
-        uiProject: createProjectForGameType(type, name || "My Game Campaign"),
-      };
+      // The player screens are designed in the Player Experience Studio: the wizard no
+      // longer creates a legacy uiProject, and passes the stored value back untouched (the
+      // save RPC overwrites the column).
+      const resolvedPlayerScreenConfig = baseCampaign?.playerScreenConfig;
 
       await onSave({
         id: editingCampaign?.id ?? "",
@@ -1550,8 +1554,8 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                     </span>
                   </h4>
                   <p className="text-xs text-brand-textMuted mt-0.5">
-                    A tailored 4-screen layout (Pregame, Gameplay, Win, Lose)
-                    with dynamic slot locking is configured.
+                    Welcome, form, game and result screens are designed in the
+                    Player Studio, previewed on every device size.
                   </p>
                 </div>
               </div>
@@ -1564,18 +1568,13 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                       id: editingCampaign?.id || "",
                       name,
                       gameType: type,
-                      playerScreenConfig: baseCampaign?.playerScreenConfig ?? {
-                        uiProject: createProjectForGameType(
-                          type,
-                          name || "My Game Campaign",
-                        ),
-                      },
+                      playerScreenConfig: baseCampaign?.playerScreenConfig,
                     })
                   }
                   className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-2 shadow-md shadow-indigo-600/20 whitespace-nowrap cursor-pointer transition-all hover:scale-102"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Customize in UI Editor</span>
+                  <span>Customize in Player Studio</span>
                 </button>
               )}
             </div>
