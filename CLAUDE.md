@@ -17,7 +17,7 @@ npm run verify       # lint + typecheck + test + build (runs on pre-push)
 npm run db:seed      # Seed local Supabase DB via scripts/seed.cjs
 ```
 
-No test framework is configured yet — `npm test` echoes a placeholder.
+Tests run with Vitest + Testing Library (jsdom): `npm test` (single run), `npx vitest run <file>` for one file.
 
 Pre-commit runs `lint-staged` (ESLint --fix + Prettier) on staged files. Pre-push runs `npm run verify`.
 
@@ -43,18 +43,18 @@ firebase deploy --only hosting:stable  # Deploy to stable channel
 ### Two separate UIs in one SPA
 
 - **Dashboard** (`src/App.tsx` + `src/components/`) — Protected B2B interface, tab-based (`TabType`). Requires auth + organization setup.
-- **Player Portal** (`src/pages/play/PlayerFlowPage.tsx`) — Public-facing gamified experience, accessed via `/play/:slug`. No auth required.
+- **Player Portal** (`src/pages/play/PlayerFlowPage.tsx`) — Public-facing gamified experience, accessed via `/play/:slug`. No auth required. Not yet wired to the Player Experience runtime (post-MVP, see below): it still uses the older `src/components/Player*.tsx` screens.
 
 Routing is in `src/AppRouter.tsx` (React Router v7). `ProtectedRoute` wraps all dashboard paths; missing org setup redirects to `CompleteOrganizationSetupPage`.
 
 ### State & data layers
 
-| Layer            | Pattern                                       | Location            |
-| ---------------- | --------------------------------------------- | ------------------- |
-| Global app state | React Context (Auth, Theme, Language, Player) | `src/contexts/`     |
-| Server state     | Custom hooks with Supabase queries            | `src/hooks/`        |
-| Mutations        | Service functions (pure async)                | `src/services/`     |
-| Undo/redo        | Zundo (wraps Zustand)                         | Player editor store |
+| Layer            | Pattern                               | Location            |
+| ---------------- | ------------------------------------- | ------------------- |
+| Global app state | React Context (Auth, Theme, Language) | `src/contexts/`     |
+| Server state     | Custom hooks with Supabase queries    | `src/hooks/`        |
+| Mutations        | Service functions (pure async)        | `src/services/`     |
+| Undo/redo        | Zundo (wraps Zustand)                 | Player Studio store |
 
 Custom hooks (`useCampaigns`, `usePrizeTemplates`, `useEntries`, etc.) return mapped data (DB snake_case → app camelCase) plus a `refetch` function. Services perform DB writes and validate business rules before querying.
 
@@ -68,13 +68,21 @@ Located in `supabase/functions/`. Three functions:
 
 **Prize selection must always happen in `select-prize`, never client-side.** This is a security invariant.
 
-### Player UI Maker / Player Editor
+### Player Experience (`src/features/player-experience/`)
 
-`src/components/player-ui-maker/` and `src/components/player-editor/` — drag-and-drop visual editor for customizing player-facing screens. Uses `@dnd-kit`. Rendered output is in `player-ui-maker/runtime/`. Preview via `PlayPreviewModal`.
+Everything players see and play (welcome, registration, game, result) and the **Studio** brands use to customize it. The rest of the app imports **only** from its `index.ts` (ESLint enforces it). Its own `README.md` holds the detailed rules.
 
-### Game engines
+- **Layers**: `domain/` (types, zod schema + migrations, flow state machine, validation — pure TypeScript, no React), `services/` (ports and adapters), `theme/` + `presets/`, `runtime/` (player UI: layout, 8-slot frame, screens, game engines), `studio/` (editor).
+- **Configuration is data**: `ExperienceConfig` is plain JSON (content and style only). Rules that decide a win (prizes, weights, stock, correct answers) never enter it; they stay in the campaign and the Wizard.
+- **Ports and adapters**: `ExperienceRepository`, `ParticipationGateway`, `AssetStorage`, `AnalyticsTracker`, `HumanVerification`. MVP adapters are in `services/local/`: configurations are stored in **`localStorage`**, and a demo gateway draws outcomes in the browser for previews only (`DEMO-…` codes; a runtime mounted with `allowedGatewayModes={["live"]}` refuses it). Supabase adapters come later without touching runtime or Studio.
+- **Outcome authority**: game engines receive the outcome from the gateway and only animate towards it. In production the outcome comes from `select-prize` — never computed in the browser.
+- **The runtime always renders in a document of its own**: the page itself in production, or a same-origin iframe (`/xp-frame`) at the device's exact CSS size in the Studio and the dashboard sandbox, zoomed with `transform: scale()` around the iframe. Never render `PlayerExperience` inside another page's `div`.
+- **Responsive rules**: it must work at every size from 280–2560 × 320–1600 px, portrait and landscape. Breakpoints live only in `runtime/layout/breakpoints.ts` (variants `split:`, `tight:`, `roomy:`, `compact:`, `wide:`); no `sm:`/`md:`/`lg:`/`xl:`, no fixed pixel sizes, no `100vh`, no hard-coded colors in `runtime/` (tests fail otherwise). Game engines size on their container (`cqw`/`cqh`), never on the screen.
+- **In the app**: `CampaignStudio` renders the `playerScreen` tab and `/studio` (`/ui-maker` redirects there); its "Edit in campaign settings" opens `CampaignWizard` over the Studio on the right step. `CampaignSimulator` renders the "Interactive Player Sandbox" drawer (390 × 844). Both are lazy-loaded.
+- **Checks**: `npm run xp:responsive -- <url>… [--quick | --full]` sweeps sizes with the runtime's own layout audit (e.g. `http://localhost:3000/xp-frame?fixture=all-games`; for long sweeps use `npm run build` + `npx vite preview --port 4173`, since the dev server reloads on any file change). `npm run xp:resize` resizes each game mid-play.
+- **`/play/:slug` will be wired later** (Supabase adapters, `PlayerExperience` with the live gateway only). Until then it is unchanged.
 
-`src/components/player-editor/engines/` — individual game renderers (Wheel, Quiz, ScratchCard, MysteryBox, HitIt, etc.). Each game reads campaign config and dispatches results back to `PlayerContext`.
+Planning documents (French): `ai-assistance-prompts-reports/playereditor/` (`rules.md`, `plan&tasks/plan.md`, `plan&tasks/tasks.md`, one doc per task in `tasks_docs/`).
 
 ## Non-Negotiable Rules
 

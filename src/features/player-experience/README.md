@@ -1,7 +1,7 @@
 # Player Experience module
 
 Everything players see and play (welcome, registration, game, result) and the Studio that brands use to customize it.
-It replaces `src/components/player-ui-maker/`, `src/components/player-editor/` and `src/components/PlayerScreenConfig.tsx`, which are removed at the end of the refactor.
+It replaced the former Player UI Maker, Player Editor and `PlayerScreenConfig.tsx` (removed in T7.3).
 
 The rest of the app imports **only** from `index.ts`. ESLint enforces this rule.
 
@@ -24,6 +24,25 @@ The rest of the app imports **only** from `index.ts`. ESLint enforces this rule.
 | `studio/`            | The editor                                            | the whole module                                       | concrete adapters (injected by the provider)     |
 
 ESLint blocks three of these rules: deep imports from outside the module, `services/local` imports inside `runtime/`, and React (including `presets/icons.ts`), upper-layer or Supabase imports inside `domain/`.
+
+## How the app uses it
+
+| Entry point (`index.ts`) | Mounted by                                        | What it does                                                                                              |
+| ------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `CampaignStudio`         | `App.tsx`, tab `playerScreen` and route `/studio` | The Studio on the app's own campaigns; "Edit in campaign settings" opens the Wizard over it               |
+| `CampaignSimulator`      | `App.tsx`, "Interactive Player Sandbox" drawer    | The runtime at 390 × 844 in its own iframe, full journey on the demo gateway                              |
+| `FrameHost`              | `AppRouter.tsx`, route `/xp-frame`                | The runtime's own document: driven by the Studio through the preview bridge, or by `?fixture=` for checks |
+| `PlayerExperience`       | (after the MVP) `/play/:slug`                     | The runtime itself, always rendered in a document of its own, never inside another page's `div`           |
+
+- **Storage (MVP)**: configurations are saved in `localStorage` (`services/local/`), one per campaign.
+  The Supabase adapters come after the MVP (plan §12) and change neither the runtime nor the Studio.
+- **Demo gateway only**: the Studio and the sandbox draw outcomes in the browser for the demo (`DEMO-…`
+  codes). Real prize selection stays in the `select-prize` Edge Function.
+- **`/play/:slug` is not wired yet**: it still renders `src/pages/play/PlayerFlowPage.tsx` and its older
+  `Player*` components.
+- **Checks**: `npm run xp:responsive -- <url>… [--quick | --full]` sweeps every size with the runtime's
+  own layout audit (run it on `npm run build` + `vite preview` for long sweeps: the dev server reloads
+  on any file change); `npm run xp:resize` resizes each game mid-play.
 
 ## Responsive rules (plan §8.3)
 

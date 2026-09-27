@@ -129,8 +129,13 @@ async function launchChrome(path) {
   const portFile = join(profile, "DevToolsActivePort");
   let port = null;
   for (let attempt = 0; attempt < 100 && !port; attempt++) {
-    if (existsSync(portFile))
-      port = readFileSync(portFile, "utf8").split("\n")[0].trim();
+    // On Windows the file can still be locked while Chrome writes it (EBUSY): try again.
+    try {
+      if (existsSync(portFile))
+        port = readFileSync(portFile, "utf8").split("\n")[0].trim();
+    } catch (error) {
+      if (error.code !== "EBUSY") throw error;
+    }
     if (!port) await sleep(100);
   }
   if (!port) throw new Error("Chrome did not start its DevTools endpoint");
