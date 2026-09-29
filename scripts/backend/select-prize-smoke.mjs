@@ -411,7 +411,7 @@ function scenarios(f) {
         );
         const summary = results.map(
           (r) =>
-            `${r.status}:${r.body?.prize ? "win" : "lose"}:${r.body?.coupon?.code ?? "-"}`,
+            `${r.status}:${r.body?.prize ? "win" : (r.body?.code ?? "lose")}:${r.body?.coupon?.code ?? "-"}`,
         );
         const errors = results.filter((r) => r.status !== 200);
         const winners = results.filter((r) => r.body?.prize);

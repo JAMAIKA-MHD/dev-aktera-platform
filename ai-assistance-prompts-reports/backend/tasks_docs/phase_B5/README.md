@@ -7,7 +7,7 @@ Une documentation détaillée par tâche de [`tasks.md`](../../tasks.md), créé
 | Tâche | Titre                           | Statut               | Commit                                                                        | Documentation                                                                        |
 | ----- | ------------------------------- | -------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | B5.1  | Campagne fermée dès l'ouverture | Terminée (`1334a2c`) | `feat(Player-Experience): show a closed campaign before the player registers` | [B5.1-campagne-fermee-des-l-ouverture.md](./B5.1-campagne-fermee-des-l-ouverture.md) |
-| B5.2  | Nouvelle page `/play/:slug`     | Terminée             | `feat(Player-Experience): serve /play/:slug with the new player runtime`      | [B5.2-nouvelle-page-play-slug.md](./B5.2-nouvelle-page-play-slug.md)                 |
+| B5.2  | Nouvelle page `/play/:slug`     | Terminée (`2511079`) | `feat(Player-Experience): serve /play/:slug with the new player runtime`      | [B5.2-nouvelle-page-play-slug.md](./B5.2-nouvelle-page-play-slug.md)                 |
 
 **Bilan :** phase terminée le 2026-09-29.
 
