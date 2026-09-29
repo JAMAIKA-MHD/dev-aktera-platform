@@ -1,5 +1,6 @@
-import { parseExperienceConfig, type ParseResult } from "../../domain/schema";
+import type { ParseResult } from "../../domain/schema";
 import type { ExperienceConfig } from "../../domain/types";
+import { readStoredExperience } from "../storedExperience";
 import type {
   ExperienceRepository,
   ExperienceScope,
@@ -92,29 +93,21 @@ export function createLocalExperienceRepository(
       }
       if (raw === null) return null;
 
-      const issues: string[] = [];
+      const jsonIssues: string[] = [];
       let data: unknown;
       try {
         data = JSON.parse(raw);
       } catch {
-        issues.push("(root): the stored value is not valid JSON");
+        jsonIssues.push("(root): the stored value is not valid JSON");
       }
-      // parseExperienceConfig migrates older versions, validates and repairs (T1.6, T1.9).
-      const parsed = parseExperienceConfig(data, scope.fallbackGameType);
-      issues.push(...parsed.issues);
-      let config = parsed.config;
-      if (config.campaignId !== scope.campaignId) {
-        issues.push(
-          `campaignId: ${JSON.stringify(config.campaignId)} does not match the storage key, set to ${JSON.stringify(scope.campaignId)}`,
-        );
-        config = { ...config, campaignId: scope.campaignId };
-      }
-      if (issues.length > 0) {
+      // Migrates older versions, validates and repairs (T1.6, T1.9), then checks the campaign.
+      const result = readStoredExperience(data, scope, jsonIssues);
+      if (result.issues.length > 0) {
         warn(
-          `[player-experience] The configuration stored under "${key}" was repaired: ${issues.join("; ")}`,
+          `[player-experience] The configuration stored under "${key}" was repaired: ${result.issues.join("; ")}`,
         );
       }
-      return { config, issues, recovered: issues.length > 0 };
+      return result;
     },
 
     async save(

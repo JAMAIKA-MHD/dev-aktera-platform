@@ -101,6 +101,11 @@ export default [
               message:
                 "The runtime must not import local adapters: receive services through ServicesProvider (useExperienceServices).",
             },
+            {
+              group: ["**/services/supabase", "**/services/supabase/*"],
+              message:
+                "The runtime must not import Supabase adapters: receive services through ServicesProvider (useExperienceServices).",
+            },
           ],
         },
       ],

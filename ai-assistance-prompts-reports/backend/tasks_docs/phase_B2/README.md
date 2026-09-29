@@ -4,9 +4,9 @@ Une documentation détaillée par tâche de [`tasks.md`](../../tasks.md), créé
 
 **Statuts :** À faire · En cours · Terminée · Bloquée
 
-| Tâche | Titre                 | Statut   | Commit                                                                                  | Documentation                                                |
-| ----- | --------------------- | -------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| B2.1  | Durcir `select-prize` | Terminée | `fix(Supabase): enforce consent, idempotent retries and atomic coupons in select-prize` | [B2.1-durcir-select-prize.md](./B2.1-durcir-select-prize.md) |
+| Tâche | Titre                 | Statut               | Commit                                                                                  | Documentation                                                |
+| ----- | --------------------- | -------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| B2.1  | Durcir `select-prize` | Terminée (`244336c`) | `fix(Supabase): enforce consent, idempotent retries and atomic coupons in select-prize` | [B2.1-durcir-select-prize.md](./B2.1-durcir-select-prize.md) |
 
 **Bilan :** phase terminée le 2026-09-29. `select-prize` :
 
