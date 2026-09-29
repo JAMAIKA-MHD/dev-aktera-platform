@@ -8,7 +8,7 @@ Une documentation détaillée par tâche de [`tasks.md`](../../tasks.md), créé
 | ----- | ------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | B4.1  | Le Studio et le sandbox enregistrent sur Supabase | Terminée (`d310fba`) | `feat(Player-Experience): save the Studio design to Supabase`                 | [B4.1-studio-et-sandbox-sur-supabase.md](./B4.1-studio-et-sandbox-sur-supabase.md) |
 | B4.2  | Images Storage dans l'aperçu                      | Terminée (`c029151`) | `feat(Player-Experience): resolve Storage images in the preview frame`        | [B4.2-images-storage-dans-l-apercu.md](./B4.2-images-storage-dans-l-apercu.md)     |
-| B4.3  | Import des anciens designs du navigateur          | Terminée             | `feat(Player-Experience): import designs saved in this browser into Supabase` | [B4.3-import-des-anciens-designs.md](./B4.3-import-des-anciens-designs.md)         |
+| B4.3  | Import des anciens designs du navigateur          | Terminée (`210a00b`) | `feat(Player-Experience): import designs saved in this browser into Supabase` | [B4.3-import-des-anciens-designs.md](./B4.3-import-des-anciens-designs.md)         |
 
 **Bilan :** phase terminée le 2026-09-29. Pour une vraie campagne :
 

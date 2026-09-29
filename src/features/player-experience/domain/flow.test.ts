@@ -467,6 +467,47 @@ describe("coupon", () => {
   });
 });
 
+describe("UNAVAILABLE", () => {
+  const welcome = () =>
+    createInitialFlowState("lucky_wheel", { startedAt: T0 });
+
+  it("shows the closed campaign from the welcome screen or the form", () => {
+    for (const state of [welcome(), run(welcome(), { type: "START" })]) {
+      const closed = flowReducer(state, {
+        type: "UNAVAILABLE",
+        reason: "CLOSED",
+      });
+      expect(closed.screen).toBe("closed");
+      expect(closed.error?.code).toBe("CAMPAIGN_CLOSED");
+    }
+  });
+
+  it("says why when every prize has been won", () => {
+    const soldOut = flowReducer(welcome(), {
+      type: "UNAVAILABLE",
+      reason: "SOLD_OUT",
+    });
+    expect(soldOut.screen).toBe("closed");
+    expect(soldOut.error?.message).toContain("won");
+  });
+
+  it("changes nothing once the player is playing: the server decides then", () => {
+    const state = playing("lucky_wheel");
+    expect(flowReducer(state, { type: "UNAVAILABLE", reason: "CLOSED" })).toBe(
+      state,
+    );
+  });
+
+  it("asks for no draw", () => {
+    const state = welcome();
+    const closed = flowReducer(state, {
+      type: "UNAVAILABLE",
+      reason: "CLOSED",
+    });
+    expect(nextCommand(state, closed)).toBeNull();
+  });
+});
+
 describe("RESTART", () => {
   it("goes back to the welcome screen and keeps the details already sent", () => {
     const win = run(

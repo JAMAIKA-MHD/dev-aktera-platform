@@ -365,6 +365,40 @@ describe("the live gateway", () => {
     await drawWheel(flow);
     expect(draw.mock.calls[0][0].context.source).toBe("web_player");
   });
+
+  it("shows a closed campaign on arrival, before the form", async () => {
+    const services = live();
+    services.participation.checkAvailability = async () => ({
+      open: false,
+      reason: "CLOSED",
+    });
+    const { flow } = setup("lose", { services });
+    await answer(0);
+    expect(screen(flow)).toBe("closed");
+    expect(flow().state.error?.code).toBe("CAMPAIGN_CLOSED");
+  });
+
+  it("stays on the welcome screen of an open campaign", async () => {
+    const { flow } = setup("lose", { services: live() });
+    await answer(0);
+    expect(screen(flow)).toBe("welcome");
+  });
+});
+
+describe("availability outside the live gateway", () => {
+  it("never replaces the welcome screen in the Studio's preview", async () => {
+    const services = createLocalServices({
+      participation: "scripted",
+      scenario: "lose",
+    });
+    const check = vi
+      .spyOn(services.participation, "checkAvailability")
+      .mockResolvedValue({ open: false, reason: "CLOSED" });
+    const { flow } = setup("lose", { services });
+    await answer(0);
+    expect(screen(flow)).toBe("welcome");
+    expect(check).not.toHaveBeenCalled();
+  });
 });
 
 describe("analytics", () => {

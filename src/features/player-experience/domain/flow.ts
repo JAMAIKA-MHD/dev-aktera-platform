@@ -21,6 +21,7 @@ import type { FormConfig, FormFieldKey } from "./types";
 //   play ─INTERACTION_DONE→ resolving      (quiz, mystery box, Hit It: drawn after the player acts)
 //   resolving ─RESOLVED→ revealing ─REVEAL_DONE→ win | lose
 //   resolving ─FAILED→ duplicate | closed | register (invalid input) | error ─RETRY→ resolving
+//   welcome | register ─UNAVAILABLE→ closed (the campaign is closed or sold out before any draw)
 
 export type FlowScreen =
   | "welcome"
@@ -71,7 +72,8 @@ export type FlowEvent =
   | { type: "REVEAL_DONE" }
   | { type: "CONFIRM_COUPON" }
   | { type: "RETRY" }
-  | { type: "RESTART" };
+  | { type: "RESTART" }
+  | { type: "UNAVAILABLE"; reason: "CLOSED" | "SOLD_OUT" };
 
 export type FlowCommand = "DRAW" | "CONFIRM";
 
@@ -247,6 +249,24 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
           timing: state.timing,
         }),
         participant: state.participant,
+      };
+
+    case "UNAVAILABLE":
+      // Known before any draw (backend task B5.1): the player is not asked to fill in the form
+      // for nothing. Once playing, the server's answer decides instead.
+      if (state.screen !== "welcome" && state.screen !== "register") {
+        return state;
+      }
+      return {
+        ...state,
+        screen: "closed",
+        error: {
+          code: "CAMPAIGN_CLOSED",
+          message:
+            event.reason === "SOLD_OUT"
+              ? "All the prizes of this campaign have been won."
+              : "This campaign is not running.",
+        },
       };
   }
 }

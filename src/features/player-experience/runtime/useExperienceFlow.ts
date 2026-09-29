@@ -256,6 +256,29 @@ export function useExperienceFlow(
     track("experience_viewed", state.screen);
   }, [state.screen, track]);
 
+  // Is the campaign still open? Asked on the welcome screen, on arrival and after a restart
+  // (backend task B5.1): on the public page, a closed or sold-out campaign says so before the
+  // player fills in the form for nothing. Live gateway only: the Studio must keep showing the
+  // welcome screen of a draft or paused campaign while the brand designs it. An error is
+  // ignored: the server decides at draw time anyway.
+  const checkOnWelcome = live && state.screen === "welcome";
+  useEffect(() => {
+    if (!checkOnWelcome) return;
+    let active = true;
+    const { services: current, campaign: shown } = latest.current;
+    current.participation.checkAvailability(shown.id).then(
+      (availability) => {
+        if (active && availability.open === false) {
+          dispatch({ type: "UNAVAILABLE", reason: availability.reason });
+        }
+      },
+      () => {},
+    );
+    return () => {
+      active = false;
+    };
+  }, [checkOnWelcome]);
+
   // Each transition: its analytics, then the effect it asks for. Events dispatched in the
   // same batch are seen as one transition; the draw is asynchronous, so a command is never
   // folded into another one.
