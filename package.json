@@ -18,7 +18,8 @@
     "xp:responsive": "node scripts/xp-responsive-check.mjs",
     "prepare": "husky",
     "xp:resize": "node scripts/xp-resize-midgame.mjs",
-    "backend:probe": "node --env-file=.env.local scripts/backend/anon-probe.mjs"
+    "backend:probe": "node --env-file=.env.local scripts/backend/anon-probe.mjs",
+    "backend:smoke": "node --env-file=.env.local scripts/backend/select-prize-smoke.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",

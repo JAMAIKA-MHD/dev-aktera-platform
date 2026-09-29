@@ -70,11 +70,29 @@ describe("server contract", () => {
       resolve(here, "../../../../supabase/functions/select-prize/index.ts"),
       "utf8",
     );
-    const serverCodes = [
-      ...new Set([...server.matchAll(/code: "([A-Z_]+)"/g)].map((m) => m[1])),
-    ].sort();
+    // Every error select-prize returns carries one of the codes of its ErrorCode type.
+    const union = server.match(/type ErrorCode =([^;]+);/)?.[1] ?? "";
+    const serverCodes = [...union.matchAll(/"([A-Z_]+)"/g)]
+      .map((m) => m[1])
+      .sort();
 
-    expect(serverCodes).toEqual(["ALREADY_PARTICIPATED", "CAMPAIGN_CLOSED"]);
-    for (const code of serverCodes) expect(ALL_CODES).toContain(code);
+    expect(serverCodes).toEqual([
+      "ALREADY_PARTICIPATED",
+      "CAMPAIGN_CLOSED",
+      "CONSENT_REQUIRED",
+      "DRAW_FAILED",
+      "INVALID_INPUT",
+      "SERVER_ERROR",
+    ]);
+    // The others are server-side only: the live gateway maps them onto the player's codes
+    // (CONSENT_REQUIRED → INVALID_INPUT, DRAW_FAILED and SERVER_ERROR → retryable failures).
+    const SERVER_ONLY_CODES = [
+      "CONSENT_REQUIRED",
+      "DRAW_FAILED",
+      "SERVER_ERROR",
+    ];
+    for (const code of serverCodes) {
+      expect([...ALL_CODES, ...SERVER_ONLY_CODES]).toContain(code);
+    }
   });
 });

@@ -229,9 +229,17 @@ const anonChecks = [
             apikey: anonKey,
             Authorization: `Bearer ${anonKey}`,
           },
+          // A valid request (consent included, B2.1) on a campaign that does not exist.
           body: JSON.stringify({
             campaign_id: missingId(),
             phone_number: "0550000000",
+            metadata: {
+              consent: {
+                accepted: true,
+                acceptedAt: new Date().toISOString(),
+                policyVersion: "anon-probe",
+              },
+            },
           }),
         });
       } catch (error) {

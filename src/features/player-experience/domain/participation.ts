@@ -37,8 +37,9 @@ export interface DrawRequest {
   };
 }
 
-// ALREADY_PARTICIPATED and CAMPAIGN_CLOSED are the codes select-prize returns.
-// The other three are produced on the client side.
+// select-prize returns ALREADY_PARTICIPATED, CAMPAIGN_CLOSED and INVALID_INPUT as they are;
+// its server-only codes (CONSENT_REQUIRED, DRAW_FAILED, SERVER_ERROR) are mapped onto these by
+// the live gateway. NETWORK and UNKNOWN are produced on the client side.
 export type ParticipationErrorCode =
   | "ALREADY_PARTICIPATED"
   | "CAMPAIGN_CLOSED"

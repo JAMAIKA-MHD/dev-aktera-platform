@@ -8,7 +8,7 @@ Une documentation détaillée par tâche de [`tasks.md`](../../tasks.md), créé
 | ----- | ----------------------------------------- | -------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | B1.1  | Fermer les accès anonymes                 | Terminée (`cb4ad17`) | `fix(Supabase): close anonymous access to entries and internal functions`          | [B1.1-fermer-les-acces-anonymes.md](./B1.1-fermer-les-acces-anonymes.md)                     |
 | B1.2  | Table du design et lecture publique       | Terminée (`50df4d3`) | `feat(Supabase): store the player experience design and expose a safe public read` | [B1.2-table-du-design-et-lecture-publique.md](./B1.2-table-du-design-et-lecture-publique.md) |
-| B1.3  | Pas de tirage après un jeu d'adresse raté | Terminée             | `fix(Supabase): never draw a prize after a failed skill game`                      | [B1.3-pas-de-tirage-apres-un-jeu-rate.md](./B1.3-pas-de-tirage-apres-un-jeu-rate.md)         |
+| B1.3  | Pas de tirage après un jeu d'adresse raté | Terminée (`584515b`) | `fix(Supabase): never draw a prize after a failed skill game`                      | [B1.3-pas-de-tirage-apres-un-jeu-rate.md](./B1.3-pas-de-tirage-apres-un-jeu-rate.md)         |
 
 **Bilan :** phase terminée le 2026-09-29. Trois migrations, appliquées en local et rejouées sans erreur :
 
