@@ -3,6 +3,7 @@ import { createConsoleAnalyticsTracker } from "./local/consoleAnalyticsTracker";
 import { createDataUrlAssetStorage } from "./local/dataUrlAssetStorage";
 import { createDemoParticipationGateway } from "./local/demoParticipationGateway";
 import type { DemoCampaignRules } from "./local/demoRules";
+import { createLocalExperienceRepository } from "./local/localExperienceRepository";
 import { createNoopHumanVerification } from "./local/noopHumanVerification";
 import type {
   Availability,
@@ -13,6 +14,7 @@ import { publicStorageUrl } from "./storageUrl";
 import { createSupabaseAnalyticsTracker } from "./supabase/supabaseAnalyticsTracker";
 import { createSupabaseAssetStorage } from "./supabase/supabaseAssetStorage";
 import { createSupabaseExperienceRepository } from "./supabase/supabaseExperienceRepository";
+import { createImportingExperienceRepository } from "./supabase/importingExperienceRepository";
 import { createSupabaseParticipationGateway } from "./supabase/supabaseParticipationGateway";
 
 // Composition roots on Supabase (backend task B3.4), next to createLocalServices:
@@ -34,7 +36,7 @@ export interface StudioServicesOptions {
   organizationId: string;
   campaignId: string;
   rules: DemoCampaignRules; // buildDemoRules(campaign, prizeTemplates)
-  // Replaces the Supabase repository (B4.3 wraps it to import designs saved in the browser).
+  // Replaces the default repository (Supabase, importing this browser's older designs); tests.
   repository?: ExperienceRepository;
 }
 
@@ -43,8 +45,13 @@ export function createStudioServices(
 ): ExperienceServices {
   const { client, supabaseUrl, organizationId, campaignId, rules } = options;
   return {
+    // The design on Supabase; a design made in this browser before is imported once (B4.3).
     repository:
-      options.repository ?? createSupabaseExperienceRepository({ client }),
+      options.repository ??
+      createImportingExperienceRepository({
+        remote: createSupabaseExperienceRepository({ client }),
+        local: createLocalExperienceRepository(),
+      }),
     participation: createDemoParticipationGateway({ rules }),
     assets: createSupabaseAssetStorage({
       client,
