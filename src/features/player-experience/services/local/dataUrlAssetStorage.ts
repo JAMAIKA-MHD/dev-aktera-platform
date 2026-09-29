@@ -1,5 +1,10 @@
 import type { AssetRef } from "../../domain/types";
 import { MAX_IMAGE_BYTES } from "../../domain/validation";
+import {
+  browserImageCodec,
+  compressImage,
+  type ImageCodec,
+} from "../imageCompression";
 import type {
   AssetErrorCode,
   AssetPurpose,
@@ -7,82 +12,21 @@ import type {
   UploadResult,
 } from "../ports";
 
-// AssetStorage for the MVP (plan §5.3): images are resized, compressed and kept inside the
-// configuration as data URLs. Decoding and encoding go through an ImageCodec: the browser one
-// by default, a fake one in tests (jsdom has no working canvas).
+// AssetStorage for the MVP (plan §5.3): images are resized, compressed (imageCompression.ts)
+// and kept inside the configuration as data URLs.
 
-// Longest side per use: sharp on large screens, light enough for localStorage.
-export const MAX_SIDE_BY_PURPOSE: Readonly<Record<AssetPurpose, number>> = {
-  background: 1920,
-  logo: 512,
-  scratchCover: 1280,
-};
-export const ENCODE_QUALITY = 0.82;
-
-// What a 2D canvas can draw (an ImageBitmap in the browser).
-export type DrawableImage = Parameters<
-  CanvasRenderingContext2D["drawImage"]
->[0];
-
-export interface RasterImage {
-  width: number;
-  height: number;
-  source: DrawableImage;
-  close(): void;
-}
-
-export interface ImageCodec {
-  decode(file: Blob): Promise<RasterImage>; // rejects when the file cannot be decoded
-  encode(
-    image: RasterImage,
-    size: { width: number; height: number },
-    type: string,
-    quality: number,
-  ): Promise<Blob | null>;
-}
-
-export const browserImageCodec: ImageCodec = {
-  async decode(file) {
-    // "from-image": phone photos keep their EXIF orientation.
-    const bitmap = await createImageBitmap(file, {
-      imageOrientation: "from-image",
-    });
-    return {
-      width: bitmap.width,
-      height: bitmap.height,
-      source: bitmap,
-      close: () => bitmap.close(),
-    };
-  },
-  encode(image, size, type, quality) {
-    const canvas = document.createElement("canvas");
-    canvas.width = size.width;
-    canvas.height = size.height;
-    const context = canvas.getContext("2d");
-    if (!context) return Promise.resolve(null);
-    // JPEG has no transparency: paint white rather than let transparent pixels turn black.
-    if (type === "image/jpeg") {
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, size.width, size.height);
-    }
-    context.imageSmoothingQuality = "high";
-    context.drawImage(image.source, 0, 0, size.width, size.height);
-    return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-  },
-};
-
-// Scales down to fit maxSide on the longest side; never scales up.
-export function fitWithin(
-  width: number,
-  height: number,
-  maxSide: number,
-): { width: number; height: number } {
-  const scale = Math.min(1, maxSide / Math.max(width, height));
-  return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
-  };
-}
+// Re-exported: the compression moved to imageCompression.ts (backend task B3.3).
+export {
+  ENCODE_QUALITY,
+  MAX_SIDE_BY_PURPOSE,
+  browserImageCodec,
+  fitWithin,
+} from "../imageCompression";
+export type {
+  DrawableImage,
+  ImageCodec,
+  RasterImage,
+} from "../imageCompression";
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -107,7 +51,8 @@ const failure = (code: AssetErrorCode): UploadResult => ({
 
 export interface DataUrlAssetStorageOptions {
   codec?: ImageCodec;
-  // Public URL of a Supabase Storage object, once that adapter exists; none in the MVP.
+  // Public URL of a Supabase Storage object (publicStorageUrl), for configurations whose
+  // images were uploaded to Storage; none by default.
   resolveStorage?: (bucket: string, path: string) => string | null;
 }
 
@@ -117,46 +62,19 @@ export function createDataUrlAssetStorage(
   const codec = options.codec ?? browserImageCodec;
   const resolveStorage = options.resolveStorage ?? (() => null);
 
-  // WebP first: smallest, and it keeps transparency. Browsers that cannot encode WebP
-  // silently return PNG; then JPEG for photos, PNG for logos (which are often transparent).
-  async function encode(
-    image: RasterImage,
-    purpose: AssetPurpose,
-  ): Promise<Blob | null> {
-    const size = fitWithin(
-      image.width,
-      image.height,
-      MAX_SIDE_BY_PURPOSE[purpose],
-    );
-    const webp = await codec.encode(image, size, "image/webp", ENCODE_QUALITY);
-    if (webp?.type === "image/webp") return webp;
-    const fallback = purpose === "logo" ? "image/png" : "image/jpeg";
-    return codec.encode(image, size, fallback, ENCODE_QUALITY);
-  }
-
   return {
     async upload(file: File, purpose: AssetPurpose): Promise<UploadResult> {
-      if (!file.type.startsWith("image/")) return failure("NOT_AN_IMAGE");
-      let image: RasterImage;
+      const compressed = await compressImage(file, purpose, codec);
+      if (compressed.ok === false) return failure(compressed.code);
+      if (compressed.blob.size > MAX_IMAGE_BYTES) return failure("TOO_LARGE");
       try {
-        image = await codec.decode(file);
-      } catch {
-        return failure("UNREADABLE");
-      }
-      try {
-        const blob = await encode(image, purpose);
-        // The configuration schema only accepts data:image/… URLs.
-        if (!blob?.type.startsWith("image/")) return failure("UNREADABLE");
-        if (blob.size > MAX_IMAGE_BYTES) return failure("TOO_LARGE");
         const asset: AssetRef = {
           kind: "dataUrl",
-          url: await blobToDataUrl(blob),
+          url: await blobToDataUrl(compressed.blob),
         };
         return { ok: true, asset };
       } catch {
         return failure("UNREADABLE");
-      } finally {
-        image.close();
       }
     },
 
