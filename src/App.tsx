@@ -26,6 +26,8 @@ import { useCampaigns } from "./hooks/useCampaigns";
 import { usePrizeTemplates } from "./hooks/usePrizeTemplates";
 import { useEntries } from "./hooks/useEntries";
 import { toFriendlyErrorMessage } from "./lib/errorMessages";
+import { supabase } from "./lib/supabase";
+import type { StudioBackend } from "./features/player-experience";
 import {
   addPrizeTemplateService,
   updatePrizeTemplateService,
@@ -77,6 +79,12 @@ const CampaignSimulator = lazy(() =>
 
 // The Studio's campaign picker offers "standalone" (the demo campaign) besides real campaigns.
 const STANDALONE_STUDIO = "standalone";
+
+// The Studio and the sandbox save and read real campaigns' designs on Supabase (backend B4.1).
+const STUDIO_BACKEND: StudioBackend = {
+  client: supabase,
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL as string,
+};
 
 // "Edit in campaign settings" from the Studio: the wizard step of each part of the rules.
 const WIZARD_STEP = { rules: 2, prizes: 3, questions: 4 } as const;
@@ -781,6 +789,7 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
                 onEditCampaignSettings={handleEditFromStudio}
                 onRefreshCampaign={refetchCampaigns}
                 onClose={() => setActiveTab("campaigns")}
+                backend={STUDIO_BACKEND}
               />
             </Suspense>
           </motion.div>
@@ -860,6 +869,7 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
                   campaigns={campaigns}
                   prizeTemplates={prizes}
                   campaignId={sandboxCampaignId || null}
+                  backend={STUDIO_BACKEND}
                 />
               </Suspense>
             </motion.div>

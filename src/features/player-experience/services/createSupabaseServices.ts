@@ -21,6 +21,13 @@ import { createSupabaseParticipationGateway } from "./supabase/supabaseParticipa
 //     consumes real stock);
 //   createPublicServices — the public player page: the live gateway (select-prize) only.
 
+// What the dashboard gives the Studio and the sandbox to work on Supabase: the app's client
+// and the project URL (public Storage URLs). The organization comes with each campaign.
+export interface StudioBackend {
+  client: SupabaseClient;
+  supabaseUrl: string;
+}
+
 export interface StudioServicesOptions {
   client: SupabaseClient;
   supabaseUrl: string;

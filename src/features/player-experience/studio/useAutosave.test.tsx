@@ -66,6 +66,19 @@ describe("useAutosave", () => {
     expect(hook.result.current.lastSavedAt).toBe("stored-1");
   });
 
+  it("writes nothing while disabled (saved design not loaded yet)", async () => {
+    const store = createStudioStore({
+      config: createDefaultExperience({ gameType: "lucky_wheel" }),
+    });
+    const { repository, saves } = fakeRepository();
+    renderHook(() =>
+      useAutosave({ store, repository, guardUnload: false, enabled: false }),
+    );
+    act(() => store.getState().updateBrand({ name: "Zeta" }));
+    await flush();
+    expect(saves).toHaveLength(0);
+  });
+
   it("never writes for a change of the preview", async () => {
     const { store, saves } = setup();
     act(() => {

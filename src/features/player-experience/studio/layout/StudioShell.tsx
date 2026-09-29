@@ -1,4 +1,4 @@
-import { Eye, X } from "lucide-react";
+import { AlertTriangle, Eye, RotateCcw, X } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import type { StudioCampaignOption } from "../PlayerExperienceStudio";
 import type { Autosave } from "../useAutosave";
@@ -29,6 +29,10 @@ function useWideLayout(): boolean {
 
 export interface StudioShellProps {
   loading: boolean;
+  // The saved design could not be read: the panels and the preview are replaced by this
+  // message, so nothing is edited (nor saved over the real design) until it is.
+  loadError?: string | null;
+  onRetryLoad?: () => void;
   autosave: Autosave;
   campaigns?: readonly StudioCampaignOption[];
   onCampaignChange?: (campaignId: string | null) => void;
@@ -38,6 +42,8 @@ export interface StudioShellProps {
 
 export function StudioShell({
   loading,
+  loadError = null,
+  onRetryLoad,
   autosave,
   campaigns,
   onCampaignChange,
@@ -63,11 +69,17 @@ export function StudioShell({
         <StudioNav />
         <main
           className="min-h-0 flex-1 overflow-y-auto border-card-border bg-card-bg-subtle lg:w-[27rem] lg:flex-none lg:border-r"
-          aria-busy={loading}
+          aria-busy={loading && !loadError}
         >
-          {loading ? <PanelSkeleton /> : <PanelArea />}
+          {loadError ? (
+            <LoadErrorPanel message={loadError} onRetry={onRetryLoad} />
+          ) : loading ? (
+            <PanelSkeleton />
+          ) : (
+            <PanelArea />
+          )}
         </main>
-        {wide && (
+        {wide && !loadError && (
           <section
             className="flex min-h-0 min-w-0 flex-1 flex-col"
             aria-label="Live preview"
@@ -77,7 +89,7 @@ export function StudioShell({
         )}
       </div>
 
-      {!wide && (
+      {!wide && !loadError && (
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
@@ -110,6 +122,42 @@ export function StudioShell({
           <PreviewPane />
         </div>
       )}
+    </div>
+  );
+}
+
+function LoadErrorPanel({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="p-6" role="alert">
+      <div className="space-y-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5">
+        <div className="flex items-center gap-2 text-sm font-bold text-brand-text">
+          <AlertTriangle className="size-4 text-rose-500" aria-hidden />
+          Could not load the saved design.
+        </div>
+        <p className="text-xs leading-relaxed text-brand-text-muted">
+          Nothing can be edited until it is loaded, so that your saved work is
+          never replaced. Check your connection, then retry.
+        </p>
+        <p className="break-words font-mono text-[11px] text-brand-text-muted">
+          {message}
+        </p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-500 active:scale-95"
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+            Retry
+          </button>
+        )}
+      </div>
     </div>
   );
 }

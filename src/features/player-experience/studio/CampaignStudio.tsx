@@ -2,15 +2,20 @@ import { useMemo } from "react";
 import type { Campaign, PrizeTemplate } from "@/src/types";
 import { buildCampaignSnapshot } from "../domain/campaign";
 import { buildDemoRules } from "../services/createLocalServices";
+import type { StudioBackend } from "../services/createSupabaseServices";
 import {
   PlayerExperienceStudio,
   type PlayerExperienceStudioProps,
 } from "./PlayerExperienceStudio";
+import { useCampaignServices } from "./useCampaignServices";
 
 // The Studio as the dashboard mounts it (tasks.md T7.1): it takes the app's own campaigns
 // (useCampaigns) and prize templates, and builds from them what the Studio reads — the
 // campaign snapshot the runtime may see, and, apart, the draw rules shown read-only in the
 // Game panel. The app never has to know either shape.
+//
+// With a backend (backend task B4.1), a real campaign's design and images are saved to
+// Supabase; the standalone Studio (demo campaign) stays in the browser.
 
 export interface CampaignStudioProps extends Pick<
   PlayerExperienceStudioProps,
@@ -20,6 +25,7 @@ export interface CampaignStudioProps extends Pick<
   prizeTemplates: readonly Pick<PrizeTemplate, "id" | "name">[];
   campaignId: string | null; // null or unknown = standalone, on the demo campaign
   onCampaignChange: (campaignId: string | null) => void;
+  backend?: StudioBackend; // without it: the local services of the MVP
 }
 
 export function CampaignStudio({
@@ -27,6 +33,7 @@ export function CampaignStudio({
   prizeTemplates,
   campaignId,
   onCampaignChange,
+  backend,
   ...props
 }: CampaignStudioProps) {
   const campaign = campaigns.find((item) => item.id === campaignId) ?? null;
@@ -38,6 +45,7 @@ export function CampaignStudio({
     () => (campaign ? buildDemoRules(campaign, prizeTemplates) : null),
     [campaign, prizeTemplates],
   );
+  const services = useCampaignServices(backend, campaign, rules);
   const options = useMemo(
     () =>
       campaigns
@@ -51,6 +59,7 @@ export function CampaignStudio({
       rules={rules}
       campaigns={options}
       onCampaignChange={onCampaignChange}
+      services={services}
       {...props}
     />
   );

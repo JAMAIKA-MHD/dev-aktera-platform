@@ -77,16 +77,32 @@ function StudioSession({
     [store],
   );
   const [loaded, setLoaded] = useState(false);
+  // The saved design could not be read (server unreachable): nothing may be edited nor saved
+  // until it is, or the defaults would be saved over it.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
-    void loadIntoStudio(store, services.repository).finally(() => {
-      if (active) setLoaded(true);
-    });
+    setLoaded(false);
+    setLoadError(null);
+    loadIntoStudio(store, services.repository).then(
+      () => {
+        if (active) setLoaded(true);
+      },
+      (error: unknown) => {
+        if (!active) return;
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Could not load the saved design.",
+        );
+      },
+    );
     return () => {
       active = false;
     };
-  }, [store, services]);
+  }, [store, services, loadAttempt]);
 
   // The same campaign, refetched (a prize renamed in the Wizard): new data, same history.
   useEffect(() => {
@@ -95,7 +111,11 @@ function StudioSession({
     }
   }, [store, campaign]);
 
-  const autosave = useAutosave({ store, repository: services.repository });
+  const autosave = useAutosave({
+    store,
+    repository: services.repository,
+    enabled: loaded,
+  });
   const value = useMemo(
     () => ({
       store,
@@ -111,6 +131,8 @@ function StudioSession({
     <StudioProvider value={value}>
       <StudioShell
         loading={!loaded}
+        loadError={loadError}
+        onRetryLoad={() => setLoadAttempt((attempt) => attempt + 1)}
         autosave={autosave}
         campaigns={campaigns}
         onCampaignChange={onCampaignChange}

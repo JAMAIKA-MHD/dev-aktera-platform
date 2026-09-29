@@ -17,6 +17,8 @@ export interface AutosaveOptions {
   debounceMs?: number;
   // Guards the tab against closing on unsaved work; off in tests and in the preview.
   guardUnload?: boolean;
+  // Off while the saved design is not loaded: saving then would write the defaults over it.
+  enabled?: boolean;
 }
 
 export interface Autosave {
@@ -31,7 +33,12 @@ export function useAutosave({
   repository,
   debounceMs = AUTOSAVE_DEBOUNCE_MS,
   guardUnload = true,
+  enabled = true,
 }: AutosaveOptions): Autosave {
+  const enabledRef = useRef(enabled);
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
   const status = useStore(store, (state) => state.saveStatus);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +101,7 @@ export function useAutosave({
         if (state.config === previous.config) return;
         // A configuration loaded from storage is already saved: nothing to write.
         if (state.storedUpdatedAt !== previous.storedUpdatedAt) return;
+        if (!enabledRef.current) return;
         pending.current = state.config;
         clearTimeout(timer.current);
         timer.current = setTimeout(() => void write(), debounceMs);
