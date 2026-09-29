@@ -65,9 +65,13 @@ function readNumber(config: unknown, key: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function buildRules(campaign: Campaign): CampaignRules {
-  const config: unknown = campaign.gameLogicConfig;
-  if (campaign.gameType === "quiz") {
+// The public game rules of a game_logic_config, whatever it comes from: the dashboard's
+// Campaign (buildCampaignSnapshot) or the public read of /play/:slug (publicCampaign.ts).
+export function rulesFromGameLogic(
+  gameType: GameType,
+  config: unknown,
+): CampaignRules {
+  if (gameType === "quiz") {
     const defaults = DEFAULT_RULES.quiz;
     return {
       quiz: {
@@ -84,7 +88,7 @@ function buildRules(campaign: Campaign): CampaignRules {
       },
     };
   }
-  if (campaign.gameType === "hit_it") {
+  if (gameType === "hit_it") {
     const defaults = DEFAULT_RULES.hitIt;
     return {
       hitIt: {
@@ -137,6 +141,6 @@ export function buildCampaignSnapshot(
       text: question.questionText,
       options: [...question.options],
     })),
-    rules: buildRules(campaign),
+    rules: rulesFromGameLogic(campaign.gameType, campaign.gameLogicConfig),
   };
 }

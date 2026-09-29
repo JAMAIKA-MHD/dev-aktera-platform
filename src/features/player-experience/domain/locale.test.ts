@@ -5,6 +5,7 @@ import {
   hasText,
   localized,
   missingLocales,
+  pickInitialLocale,
   resolveText,
   type LocalizedText,
 } from "./locale";
@@ -79,6 +80,20 @@ describe("missingLocales", () => {
       missingLocales({ fr: "Bonjour", ar: "مرحبا" }, ["fr", "ar"]),
     ).toEqual([]);
     expect(missingLocales({ fr: "Bonjour" }, [])).toEqual([]);
+  });
+});
+
+describe("pickInitialLocale", () => {
+  const brand = { default: "fr" as const, enabled: ["fr", "ar"] as const };
+
+  it("uses the first language of the phone that the brand enabled", () => {
+    expect(pickInitialLocale(brand, ["ar-DZ", "fr"])).toBe("ar");
+    expect(pickInitialLocale(brand, ["en-US", "fr-FR"])).toBe("fr");
+  });
+
+  it("falls back to the brand's default language", () => {
+    expect(pickInitialLocale(brand, ["en-US", "de"])).toBe("fr");
+    expect(pickInitialLocale(brand, [])).toBe("fr");
   });
 });
 

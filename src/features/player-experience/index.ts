@@ -22,6 +22,11 @@ export type {
   PublicServicesOptions,
   StudioBackend,
 } from "./services/createSupabaseServices";
+// What the public page /play/:slug reads (backend B5.2): the campaign, its design, its availability.
+export { loadPublicExperience } from "./services/supabase/loadPublicExperience";
+export type { PublicExperience } from "./domain/publicCampaign";
+export { pickInitialLocale } from "./domain/locale";
+export type { Locale } from "./domain/locale";
 export { ServicesProvider } from "./services/ServicesProvider";
 // Document of its own for the runtime (/xp-frame): loaded lazily by AppRouter.
 export { FrameHost } from "./runtime/host/FrameHost";

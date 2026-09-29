@@ -64,6 +64,10 @@ export interface DrawOutcome {
   couponCode: string | null;
 }
 
+// Whether a campaign can still be played, known before any draw (get_public_experience).
+export type Availability =
+  { open: true } | { open: false; reason: "CLOSED" | "SOLD_OUT" };
+
 export type DrawResult =
   | { ok: true; entryId: string; outcome: DrawOutcome }
   | { ok: false; error: ParticipationError };

@@ -26,7 +26,7 @@ export function createSupabaseAnalyticsTracker(
     (() => (typeof navigator === "undefined" ? "" : navigator.userAgent));
   const debug =
     options.debug ??
-    (import.meta.env.DEV
+    (import.meta.env?.DEV
       ? (message: string, event: ExperienceEvent) =>
           console.debug(message, event)
       : () => {});

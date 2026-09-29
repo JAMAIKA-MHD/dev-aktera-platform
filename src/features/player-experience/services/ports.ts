@@ -2,6 +2,7 @@ import type { FlowScreen } from "../domain/flow";
 import type { GameType } from "../domain/gameTypes";
 import type { Locale } from "../domain/locale";
 import type {
+  Availability,
   DrawRequest,
   DrawResult,
   ParticipationError,
@@ -54,8 +55,8 @@ export interface ExperienceRepository {
 
 export type GatewayMode = "demo" | "scripted" | "live";
 
-export type Availability =
-  { open: true } | { open: false; reason: "CLOSED" | "SOLD_OUT" };
+// Defined in the domain (the public campaign read carries it), re-exported here as before.
+export type { Availability };
 
 export type ConfirmCouponResult =
   { ok: true } | { ok: false; error: ParticipationError };

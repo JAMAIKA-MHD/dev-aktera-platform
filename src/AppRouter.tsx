@@ -4,8 +4,11 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import CompleteOrganizationSetupPage from "./pages/auth/CompleteOrganizationSetupPage";
-import PlayerFlowPage from "./pages/play/PlayerFlowPage";
 import App from "./App";
+
+// The public player page on the Player Experience runtime and the live gateway (backend B5.2).
+// Loaded on demand: the dashboard bundle does not carry the runtime.
+const PublicPlayPage = lazy(() => import("./pages/play/PublicPlayPage"));
 
 // Player Experience runtime in a document of its own (Studio preview, responsive checks).
 // Loaded on demand: the dashboard bundle does not carry the runtime.
@@ -78,7 +81,14 @@ export default function AppRouter() {
           )}
 
           {/* Public player portal */}
-          <Route path="/play/:slug" element={<PlayerFlowPage />} />
+          <Route
+            path="/play/:slug"
+            element={
+              <Suspense fallback={<div className="min-h-dvh bg-[#0F0F1A]" />}>
+                <PublicPlayPage />
+              </Suspense>
+            }
+          />
 
           {/* Player Experience frame: demo services only, no server data */}
           <Route
