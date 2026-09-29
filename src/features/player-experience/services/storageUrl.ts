@@ -4,6 +4,14 @@
 
 export const EXPERIENCE_BUCKET = "campaign-media";
 
+// Public URLs of this app's own Supabase project (VITE_SUPABASE_URL), for the preview frame
+// (backend task B4.2): images uploaded from the Studio show in the preview. Resolves to null
+// when the project URL is not configured.
+export function resolveAppStorage(bucket: string, path: string): string | null {
+  const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  return base ? publicStorageUrl(base, bucket, path) : null;
+}
+
 export function publicStorageUrl(
   supabaseUrl: string,
   bucket: string,

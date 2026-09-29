@@ -22,6 +22,12 @@ export function ServicesProvider({
   );
 }
 
+// The services when rendered inside a ServicesProvider, null otherwise: for a small piece of
+// the runtime that also works on its own (the Hit It target resolving its image).
+export function useOptionalExperienceServices(): ExperienceServices | null {
+  return useContext(ServicesContext);
+}
+
 export function useExperienceServices(): ExperienceServices {
   const services = useContext(ServicesContext);
   if (!services) {

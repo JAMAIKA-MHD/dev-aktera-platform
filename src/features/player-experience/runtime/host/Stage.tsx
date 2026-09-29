@@ -4,6 +4,7 @@ import type { Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenKey } from "../../domain/types";
 import { createLocalServices } from "../../services/createLocalServices";
 import type { ExperienceServices } from "../../services/ports";
+import { resolveAppStorage } from "../../services/storageUrl";
 import { ensureFontStylesheet } from "../../theme/fonts";
 import { ThemeScope } from "../../theme/ThemeScope";
 import { StatusBadge } from "../frame/StatusBadge";
@@ -16,9 +17,11 @@ import type { FixtureView } from "./fixtures";
 
 // What /xp-frame draws, whatever the source of its configuration (FrameHost.tsx).
 
-// One set of demo services for the whole frame (the journey will use them from T4.1).
+// One set of demo services for the whole frame (the journey will use them from T4.1). Images
+// uploaded from the Studio live in Supabase Storage (backend B4.2).
 let services: ExperienceServices | null = null;
-export const frameServices = () => (services ??= createLocalServices());
+export const frameServices = () =>
+  (services ??= createLocalServices({ resolveStorage: resolveAppStorage }));
 
 export interface FrameContent {
   config: ExperienceConfig;

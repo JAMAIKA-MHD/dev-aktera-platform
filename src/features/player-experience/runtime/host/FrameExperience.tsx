@@ -9,6 +9,7 @@ import {
 } from "../../services/createLocalServices";
 import type { GatewayMode } from "../../services/ports";
 import { ServicesProvider } from "../../services/ServicesProvider";
+import { resolveAppStorage } from "../../services/storageUrl";
 import { safeAreaStyle, type SafeAreaInsets } from "../layout/safeArea";
 import { PlayerExperience } from "../PlayerExperience";
 
@@ -63,6 +64,8 @@ export function FrameExperience({
         participation: gateway,
         campaign: JSON.parse(campaignKey) as CampaignSnapshot,
         scenario,
+        // Images uploaded from the Studio live in Supabase Storage (backend B4.2).
+        resolveStorage: resolveAppStorage,
       }),
     [campaignKey, gateway, scenario],
   );

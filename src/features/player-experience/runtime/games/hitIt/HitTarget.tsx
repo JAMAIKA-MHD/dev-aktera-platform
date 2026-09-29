@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { AssetRef, IconName } from "../../../domain/types";
 import { ICON_COMPONENTS } from "../../../presets/icons";
+import { useOptionalExperienceServices } from "../../../services/ServicesProvider";
 import { tint } from "../../../theme/recipes";
 
 // The target, drawn once and shared by the engine and the pregame teaser (plan §8.7): the
@@ -17,6 +18,16 @@ export interface HitTargetProps {
 
 export function HitTarget({ icon, image, x, y, style }: HitTargetProps) {
   const Icon = ICON_COMPONENTS[icon];
+  // A stored image (Supabase Storage) has no URL of its own: the services resolve it. Without
+  // services, only an image that already carries its URL can be drawn.
+  const services = useOptionalExperienceServices();
+  const src = !image
+    ? null
+    : services
+      ? services.assets.resolveUrl(image)
+      : "url" in image
+        ? image.url
+        : null;
   return (
     <span
       data-xp-hit-target
@@ -31,11 +42,10 @@ export function HitTarget({ icon, image, x, y, style }: HitTargetProps) {
         ...style,
       }}
     >
-      {/* A stored image is resolved by the services (AssetStorage); what a mechanic can
-          draw on its own is a URL it already has, and the brand's icon otherwise. */}
-      {image && "url" in image ? (
+      {/* The brand's image when it resolves to a URL, its icon otherwise. */}
+      {src ? (
         <img
-          src={image.url}
+          src={src}
           alt=""
           className="size-[70%] rounded-full object-cover"
         />
