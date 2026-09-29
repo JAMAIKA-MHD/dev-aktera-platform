@@ -1,72 +1,64 @@
-# Supabase adapters (after the MVP)
+# Supabase adapters
 
-The MVP runs on the local adapters of `../local/`, composed by `createLocalServices()`.
-After the MVP, this folder will hold the Supabase adapters of the same ports
-(`../ports.ts`), composed by a `createSupabaseServices()` for the public route `/play/:slug`.
-Nothing in `runtime/` or `studio/` will change: they only know the ports.
+The Supabase adapters of the ports of `../ports.ts` (backend tasks B3.1–B3.4, see
+`ai-assistance-prompts-reports/backend/`). `runtime/` and `studio/` never import them: they
+are composed in `../createSupabaseServices.ts` and injected through `ServicesProvider`.
+
+| Composition            | Used by                                        | Repository   | Participation               | Assets                     | Analytics                    |
+| ---------------------- | ---------------------------------------------- | ------------ | --------------------------- | -------------------------- | ---------------------------- |
+| `createStudioServices` | Studio and sandbox, on a real campaign         | Supabase     | **demo** (never real stock) | Supabase Storage           | console (development)        |
+| `createPublicServices` | Public player page `/play/:slug`               | read-only    | **live** (`select-prize`)   | resolve only (Storage URL) | `record_campaign_impression` |
+| `createLocalServices`  | Standalone Studio (demo campaign), `/xp-frame` | localStorage | demo / scripted             | data URLs (+ Storage URLs) | console (development)        |
 
 Rules that stay true:
 
-- **Prize selection happens in `select-prize` only.** The client never draws (N1).
-- **The public route only accepts the `live` gateway** (`allowedGatewayModes: ["live"]`,
-  plan §7.4). A `demo` or `scripted` gateway injected there by mistake shows an error screen.
-- **No change to the database schema is needed** for the configuration: it goes into the
-  existing `campaigns.player_screen_config` JSONB column, under `experience`.
+- **Prize selection happens in `select-prize` only.** The client never draws, scores or writes
+  a participation (CLAUDE.md, rule 1). The live gateway has no fallback of any kind.
+- **The public route only accepts the `live` gateway** (`allowedGatewayModes: ["live"]`). A
+  `demo` or `scripted` gateway injected there by mistake shows an error screen.
+- **The design is stored in its own table**, `campaign_experiences` (one row per campaign),
+  never in `campaigns.player_screen_config`, which the Wizard rewrites on every save.
+- Adapters receive the Supabase client as a parameter and are tested with
+  `__tests__/fakeSupabaseClient.ts` (no network).
 
-## Adapters to write
+## Adapters
 
-| Port                   | Adapter                        | Backend                                                             | Notes                                                                                                                                                                             |
-| ---------------------- | ------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ExperienceRepository` | `supabaseExperienceRepository` | `campaigns.player_screen_config.experience`                         | `load` → `parseExperienceConfig`; `save` with optimistic concurrency on `updatedAt` (compare, then update in one statement or an RPC), keep `uiProject`                           |
-| `ParticipationGateway` | `supabaseParticipationGateway` | Edge Functions `select-prize` and `confirm-coupon`                  | `mode: "live"`; mapping below; `checkAvailability` from the campaign status and stock                                                                                             |
-| `AssetStorage`         | `supabaseAssetStorage`         | Supabase Storage bucket                                             | Upload returns `{ kind: "storage", bucket, path }`; `resolveUrl` builds `<SUPABASE_URL>/storage/v1/object/public/<bucket>/<path>` (see `resolveStorage` in `dataUrlAssetStorage`) |
-| `AnalyticsTracker`     | `supabaseAnalyticsTracker`     | `record_campaign_impression` RPC, then an events table              | Fire-and-forget, batched; never personal data                                                                                                                                     |
-| `HumanVerification`    | `turnstileHumanVerification`   | Cloudflare Turnstile (or hCaptcha), token checked in `select-prize` | Replaces `noopHumanVerification`                                                                                                                                                  |
+| Port                   | Adapter                        | Backend                                                         | Notes                                                                                                                                                                                                                          |
+| ---------------------- | ------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ExperienceRepository` | `supabaseExperienceRepository` | table `campaign_experiences`, function `save_experience_config` | `load` repairs like the local repository and **throws** on a server error (the Studio must never save its defaults over a real design); `save` maps `CONFLICT`, `TOO_LARGE` → `STORAGE_FULL`, the rest → `STORAGE_UNAVAILABLE` |
+| `ParticipationGateway` | `supabaseParticipationGateway` | Edge Functions `select-prize` and `confirm-coupon`              | `mode: "live"`; mapping in `selectPrizeMapping.ts`; `checkAvailability` answers from `get_public_experience`; 15 s timeout                                                                                                     |
+| `AssetStorage`         | `supabaseAssetStorage`         | bucket `campaign-media`, `<org>/experience/<campaign>/…`        | Same compression as the local storage (`../imageCompression.ts`); `resolveUrl` via `../storageUrl.ts`                                                                                                                          |
+| `AnalyticsTracker`     | `supabaseAnalyticsTracker`     | function `record_campaign_impression`                           | `experience_viewed` and `form_submitted` only; fire-and-forget; never personal data                                                                                                                                            |
+| `HumanVerification`    | — (`noopHumanVerification`)    | —                                                               | After the MVP: Turnstile, token checked in `select-prize` (`metadata.human_token` is already sent)                                                                                                                             |
 
-## `DrawRequest` → `select-prize` body
+## `DrawRequest` → `select-prize` body (`toSelectPrizeBody`)
 
-| `DrawRequest`                                                        | `select-prize` body                                                                  |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `campaignId`                                                         | `campaign_id`                                                                        |
-| `participant.phone` (normalized with `normalizeDzPhone`)             | `phone_number`                                                                       |
-| `participant.fullName`                                               | `participant_name`                                                                   |
-| `participant.email`                                                  | `participant_email`                                                                  |
-| `gamePayload` quiz / boxes / hitIt                                   | `game_payload.answers` / `game_payload.selected_box_index` / `game_payload.hits`     |
-| `context.sessionId`, `context.dwellTimeSeconds`, `context.userAgent` | `session_id`, `dwell_time_seconds`, `user_agent`                                     |
-| `clientRequestId`, `consent`, `participant.wilaya`, `context.source` | `metadata.{ client_request_id, consent, wilaya, source }` (existing free-form field) |
+| `DrawRequest`                                                        | `select-prize` body                                             |
+| -------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `campaignId`                                                         | `campaign_id`                                                   |
+| `participant.phone` (normalized with `normalizeDzPhone`)             | `phone_number`                                                  |
+| `participant.fullName` / `participant.email` (when filled)           | `participant_name` / `participant_email`                        |
+| `gamePayload` quiz / boxes / hitIt / none                            | `game_payload.answers` / `.selected_box_index` / `.hits` / `{}` |
+| `context.sessionId`, `context.dwellTimeSeconds`, `context.userAgent` | `session_id`, `dwell_time_seconds`, `user_agent`                |
+| `clientRequestId`, `consent`, `context.source`, `participant.wilaya` | `metadata.{ client_request_id, consent, source, wilaya }`       |
+| `humanToken` (when not null)                                         | `metadata.human_token` (neither checked nor stored yet)         |
 
-## `select-prize` response → `DrawResult`
+## `select-prize` answer → `DrawResult` (`toDrawResult`)
 
-| `select-prize` response                                     | `DrawResult`                                                                                                                                      |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{ ok: true, entry, prize, coupon }`                        | `{ ok: true, entryId: entry.id, outcome: { isWinner: !!prize, prize: { id, name, winMessage: win_message }, couponCode: coupon?.code ?? null } }` |
-| `{ ok: false, code: "ALREADY_PARTICIPATED" }`               | `ALREADY_PARTICIPATED`                                                                                                                            |
-| `{ ok: false, code: "CAMPAIGN_CLOSED" }`                    | `CAMPAIGN_CLOSED`                                                                                                                                 |
-| `{ ok: false, error: "Campaign not found." }` (no code)     | `CAMPAIGN_CLOSED`                                                                                                                                 |
-| `{ ok: false, error: "Campaign is not active." }` (no code) | `CAMPAIGN_CLOSED`                                                                                                                                 |
-| Duplicate insert, Postgres `23505` (race between two tabs)  | `ALREADY_PARTICIPATED`                                                                                                                            |
-| `400` invalid phone or missing fields (no code)             | `INVALID_INPUT`                                                                                                                                   |
-| Network failure, timeout, `5xx`                             | `NETWORK`                                                                                                                                         |
-| Anything else                                               | `UNKNOWN`                                                                                                                                         |
-
-Several server errors have no `code`: the adapter must map them from the HTTP status and
-the message, and a test must pin each message, so that a change of wording on the server
-is noticed.
+| `select-prize` answer                                              | `DrawResult`                                                                                               |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `200 { ok: true, entry, prize, coupon }` (also `replayed: true`)   | `{ ok: true, entryId: entry.id, outcome: { isWinner: !!prize, prize, couponCode: coupon?.code ?? null } }` |
+| `code: ALREADY_PARTICIPATED` / `CAMPAIGN_CLOSED` / `INVALID_INPUT` | the same code                                                                                              |
+| `code: CONSENT_REQUIRED`                                           | `INVALID_INPUT`                                                                                            |
+| `code: DRAW_FAILED` / `SERVER_ERROR`, any `5xx`                    | `NETWORK` (retryable)                                                                                      |
+| no answer (network failure, timeout)                               | `NETWORK`                                                                                                  |
+| messages of a `select-prize` deployed before B2.1 (no code)        | recognized by their wording, each pinned by a test                                                         |
+| anything else                                                      | `UNKNOWN` (retryable)                                                                                      |
 
 ## Server gaps found while writing the demo gateway
 
-The demo gateway (`../local/demoParticipationGateway.ts`) follows the intended rules. The
-server does not, yet; `supabase/` must be fixed separately:
-
-1. **Hit It threshold not enforced.** `draw_and_claim_campaign_prize` only honours a failed
-   skill game when the campaign has `require_quiz = true`, and `campaignService` sets it for
-   quizzes only. A Hit It player below `win_threshold` can therefore win. Fix: in
-   `resolve_game_outcome`, do not draw when `v_passed` is false, for every skill game.
-2. **Consent not checked.** `select-prize` accepts a participation without any consent.
-   Law 18-07 requires it: refuse the request without `metadata.consent.accepted`, and store
-   the `ConsentRecord` (time, policy version, locale) with the entry.
-3. **Correct quiz answers are public.** `/play/:slug` loads `quiz_questions.correct_option_index`
-   in the browser (`PlayerFlowPage.tsx`). The public read must exclude it; the score is
-   computed by `resolve_game_outcome` anyway.
-4. **Auto-pace mode** ignores the win probability and paces prizes per day. The demo engine
-   does not simulate it: for such campaigns, demo odds differ from production.
+All fixed by the backend tasks: Hit It threshold (B1.3), consent check (B2.1), public quiz
+answers (B1.2 `get_public_experience`, B6.2). Known remaining behavior, noted for after the MVP:
+auto-pace mode is not simulated by the demo draw engine (demo odds differ for such campaigns),
+and `draw_and_claim_campaign_prize` may give a loss to a player drawing at the very same
+moment as another one (`FOR UPDATE SKIP LOCKED`).

@@ -40,6 +40,9 @@ export interface LocalServicesOptions {
   rules?: DemoCampaignRules;
   campaign?: CampaignSnapshot;
   scenario?: ScriptedScenario; // for "scripted"; default: "lose"
+  // Public URL of images uploaded to Supabase Storage (publicStorageUrl), so that the preview
+  // shows them; without it, storage images resolve to nothing.
+  resolveStorage?: (bucket: string, path: string) => string | null;
 }
 
 export function createLocalServices(
@@ -60,7 +63,9 @@ export function createLocalServices(
   return {
     repository: createLocalExperienceRepository(),
     participation,
-    assets: createDataUrlAssetStorage(),
+    assets: createDataUrlAssetStorage({
+      resolveStorage: options.resolveStorage,
+    }),
     analytics: createConsoleAnalyticsTracker(),
     humanVerification: createNoopHumanVerification(),
   };

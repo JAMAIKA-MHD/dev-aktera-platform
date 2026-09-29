@@ -73,7 +73,7 @@ Modifiables avant la tâche concernée : il suffit de me le dire.
 | B0    | Préparation              | B0.1        | Terminée | [phase_B0](./tasks_docs/phase_B0/README.md) |
 | B1    | Base de données          | B1.1 – B1.3 | Terminée | [phase_B1](./tasks_docs/phase_B1/README.md) |
 | B2    | Tirage serveur           | B2.1        | Terminée | [phase_B2](./tasks_docs/phase_B2/README.md) |
-| B3    | Adaptateurs Supabase     | B3.1 – B3.4 | À faire  | [phase_B3](./tasks_docs/phase_B3/README.md) |
+| B3    | Adaptateurs Supabase     | B3.1 – B3.4 | Terminée | [phase_B3](./tasks_docs/phase_B3/README.md) |
 | B4    | Studio sur Supabase      | B4.1 – B4.3 | À faire  | [phase_B4](./tasks_docs/phase_B4/README.md) |
 | B5    | Page joueur              | B5.1 – B5.2 | À faire  | [phase_B5](./tasks_docs/phase_B5/README.md) |
 | B6    | Recette et mise en ligne | B6.1 – B6.3 | À faire  | [phase_B6](./tasks_docs/phase_B6/README.md) |
