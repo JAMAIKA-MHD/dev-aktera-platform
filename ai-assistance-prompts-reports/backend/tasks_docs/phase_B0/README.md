@@ -4,9 +4,9 @@ Une documentation détaillée par tâche de [`tasks.md`](../../tasks.md), créé
 
 **Statuts :** À faire · En cours · Terminée · Bloquée
 
-| Tâche | Titre                                                 | Statut   | Commit                                                                 | Documentation                                                                          |
-| ----- | ----------------------------------------------------- | -------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| B0.1  | Branche, pile Supabase locale et documents de travail | Terminée | `chore(Backend): prepare the local Supabase stack and the wiring plan` | [B0.1-branche-pile-locale-et-documents.md](./B0.1-branche-pile-locale-et-documents.md) |
+| Tâche | Titre                                                 | Statut               | Commit                                                                 | Documentation                                                                          |
+| ----- | ----------------------------------------------------- | -------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| B0.1  | Branche, pile Supabase locale et documents de travail | Terminée (`eef9ac2`) | `chore(Backend): prepare the local Supabase stack and the wiring plan` | [B0.1-branche-pile-locale-et-documents.md](./B0.1-branche-pile-locale-et-documents.md) |
 
 **Bilan :** phase terminée le 2026-09-29.
 
