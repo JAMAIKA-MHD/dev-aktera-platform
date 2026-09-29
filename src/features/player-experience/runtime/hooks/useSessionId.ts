@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 // The visit identifier sent with a participation (DrawRequest.context.sessionId). Same
-// sessionStorage key and same format as the production page (PlayerFlowPage.tsx), so that
+// sessionStorage key and same format as the legacy player page (removed in B6.2), so that
 // a visit keeps one identifier from the impression to the draw. Storage may be blocked
 // (private mode, sandboxed iframe): the page then keeps an identifier in memory.
 

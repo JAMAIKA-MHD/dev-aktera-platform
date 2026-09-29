@@ -15,6 +15,8 @@ npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm run verify       # lint + typecheck + test + build (runs on pre-push)
 npm run db:seed      # Seed local Supabase DB via scripts/seed.cjs
+npm run backend:probe  # Local security probe: what the anon key must not reach (+ member checks with BACKEND_PROBE_EMAIL/PASSWORD)
+npm run backend:smoke  # Local end-to-end check of select-prize (needs `npx supabase functions serve --env-file .env.local`)
 ```
 
 Tests run with Vitest + Testing Library (jsdom): `npm test` (single run), `npx vitest run <file>` for one file.
@@ -43,7 +45,7 @@ firebase deploy --only hosting:stable  # Deploy to stable channel
 ### Two separate UIs in one SPA
 
 - **Dashboard** (`src/App.tsx` + `src/components/`) — Protected B2B interface, tab-based (`TabType`). Requires auth + organization setup.
-- **Player Portal** (`src/pages/play/PlayerFlowPage.tsx`) — Public-facing gamified experience, accessed via `/play/:slug`. No auth required. Not yet wired to the Player Experience runtime (post-MVP, see below): it still uses the older `src/components/Player*.tsx` screens.
+- **Player Portal** (`src/pages/play/PublicPlayPage.tsx`, lazy-loaded) — Public-facing gamified experience, accessed via `/play/:slug`. No auth required. It renders the Player Experience runtime (see below) with the design saved in the Studio and the live gateway only.
 
 Routing is in `src/AppRouter.tsx` (React Router v7). `ProtectedRoute` wraps all dashboard paths; missing org setup redirects to `CompleteOrganizationSetupPage`.
 
@@ -62,11 +64,18 @@ Custom hooks (`useCampaigns`, `usePrizeTemplates`, `useEntries`, etc.) return ma
 
 Located in `supabase/functions/`. Three functions:
 
-- **`select-prize`** — Core server-side prize selection. POST with `campaign_id`, `phone_number`, game payload. Normalizes Algerian phone numbers (`0541234567` / `+213541234567`). Returns winner status, prize, coupon code.
+- **`select-prize`** — Core server-side prize selection. POST with `campaign_id`, `phone_number`, game payload and `metadata` (consent proof, `client_request_id`, `source`, `wilaya`). Normalizes Algerian phone numbers (`0541234567` / `+213541234567`), refuses a participation without consent, replays the same answer for the same `client_request_id` (`replayed: true`), checks the campaign period, and claims the coupon atomically (`claim_campaign_prize_coupon`). Every error has a `code` (`INVALID_INPUT`, `CONSENT_REQUIRED`, `CAMPAIGN_CLOSED`, `ALREADY_PARTICIPATED`, `DRAW_FAILED`, `SERVER_ERROR`). Returns winner status, prize, coupon code.
 - **`create-organization`** — Gated by `REGISTRATION_ENABLED` env var.
 - **`confirm-coupon`** — Coupon redemption confirmation.
 
 **Prize selection must always happen in `select-prize`, never client-side.** This is a security invariant.
+
+### Database access for players
+
+- **Anonymous visitors read nothing directly**: no RLS policy opens `campaigns`, `prizes`, `quiz_questions`, `entries` or `campaign_experiences` to `anon`. The public page calls `get_public_experience(p_slug)` (`SECURITY DEFINER`, safe fields only: no correct answers, weights, stock or probability), `record_campaign_impression` for visits, and the Edge Functions for participations.
+- **The Studio design** lives in its own table, `campaign_experiences` (one row per campaign, org members only), written through `save_experience_config` (`authenticated`, optimistic concurrency on `updated_at`, returns `CONFLICT`). The Wizard never touches it.
+- **Every new SQL function**: `SET search_path = public`, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, then an explicit `GRANT EXECUTE` to the one role that needs it. Internal draw functions (`draw_and_claim_campaign_prize`, `resolve_game_outcome`, `claim_campaign_prize_coupon`) are `service_role` only. Check with `npm run backend:probe`.
+- **Deployment order matters** (front before the hardened `select-prize`, anonymous-read removal last): follow `ai-assistance-prompts-reports/backend/deploiement.md`.
 
 ### Player Experience (`src/features/player-experience/`)
 
@@ -74,15 +83,15 @@ Everything players see and play (welcome, registration, game, result) and the **
 
 - **Layers**: `domain/` (types, zod schema + migrations, flow state machine, validation — pure TypeScript, no React), `services/` (ports and adapters), `theme/` + `presets/`, `runtime/` (player UI: layout, 8-slot frame, screens, game engines), `studio/` (editor).
 - **Configuration is data**: `ExperienceConfig` is plain JSON (content and style only). Rules that decide a win (prizes, weights, stock, correct answers) never enter it; they stay in the campaign and the Wizard.
-- **Ports and adapters**: `ExperienceRepository`, `ParticipationGateway`, `AssetStorage`, `AnalyticsTracker`, `HumanVerification`. MVP adapters are in `services/local/`: configurations are stored in **`localStorage`**, and a demo gateway draws outcomes in the browser for previews only (`DEMO-…` codes; a runtime mounted with `allowedGatewayModes={["live"]}` refuses it). Supabase adapters come later without touching runtime or Studio.
+- **Ports and adapters**: `ExperienceRepository`, `ParticipationGateway`, `AssetStorage`, `AnalyticsTracker`, `HumanVerification`. Adapters in `services/supabase/` and `services/local/`, composed in `services/createSupabaseServices.ts`: `createStudioServices` (Studio and sandbox on a real campaign: design in Supabase, images in Storage, **demo** gateway — never real stock) and `createPublicServices` (`/play/:slug`: **live** gateway on `select-prize`, read-only design). The standalone Studio and `/xp-frame` keep `localStorage` and the demo gateway (`DEMO-…` codes; a runtime mounted with `allowedGatewayModes={["live"]}` refuses it).
 - **Outcome authority**: game engines receive the outcome from the gateway and only animate towards it. In production the outcome comes from `select-prize` — never computed in the browser.
 - **The runtime always renders in a document of its own**: the page itself in production, or a same-origin iframe (`/xp-frame`) at the device's exact CSS size in the Studio and the dashboard sandbox, zoomed with `transform: scale()` around the iframe. Never render `PlayerExperience` inside another page's `div`.
 - **Responsive rules**: it must work at every size from 280–2560 × 320–1600 px, portrait and landscape. Breakpoints live only in `runtime/layout/breakpoints.ts` (variants `split:`, `tight:`, `roomy:`, `compact:`, `wide:`); no `sm:`/`md:`/`lg:`/`xl:`, no fixed pixel sizes, no `100vh`, no hard-coded colors in `runtime/` (tests fail otherwise). Game engines size on their container (`cqw`/`cqh`), never on the screen.
 - **In the app**: `CampaignStudio` renders the `playerScreen` tab and `/studio` (`/ui-maker` redirects there); its "Edit in campaign settings" opens `CampaignWizard` over the Studio on the right step. `CampaignSimulator` renders the "Interactive Player Sandbox" drawer (390 × 844). Both are lazy-loaded.
 - **Checks**: `npm run xp:responsive -- <url>… [--quick | --full]` sweeps sizes with the runtime's own layout audit (e.g. `http://localhost:3000/xp-frame?fixture=all-games`; for long sweeps use `npm run build` + `npx vite preview --port 4173`, since the dev server reloads on any file change). `npm run xp:resize` resizes each game mid-play.
-- **`/play/:slug` will be wired later** (Supabase adapters, `PlayerExperience` with the live gateway only). Until then it is unchanged.
+- **`/play/:slug`**: `PublicPlayPage` loads `get_public_experience` (`loadPublicExperience`), then renders `PlayerExperience` directly in the page with `createPublicServices` and `allowedGatewayModes={["live"]}`. The audit used by `xp:responsive` is exposed by `/xp-frame` only.
 
-Planning documents (French): `ai-assistance-prompts-reports/playereditor/` (`rules.md`, `plan&tasks/plan.md`, `plan&tasks/tasks.md`, one doc per task in `tasks_docs/`).
+Planning documents (French): `ai-assistance-prompts-reports/playereditor/` (`rules.md`, `plan&tasks/plan.md`, `plan&tasks/tasks.md`, one doc per task in `tasks_docs/`) and, for the Supabase wiring, `ai-assistance-prompts-reports/backend/` (`rules.md`, `tasks.md`, `tasks_docs/`, deployment runbook `deploiement.md`).
 
 ## Non-Negotiable Rules
 

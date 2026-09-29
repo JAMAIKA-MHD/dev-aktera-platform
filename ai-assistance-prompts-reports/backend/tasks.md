@@ -76,7 +76,7 @@ Modifiables avant la tâche concernée : il suffit de me le dire.
 | B3    | Adaptateurs Supabase     | B3.1 – B3.4 | Terminée | [phase_B3](./tasks_docs/phase_B3/README.md) |
 | B4    | Studio sur Supabase      | B4.1 – B4.3 | Terminée | [phase_B4](./tasks_docs/phase_B4/README.md) |
 | B5    | Page joueur              | B5.1 – B5.2 | Terminée | [phase_B5](./tasks_docs/phase_B5/README.md) |
-| B6    | Recette et mise en ligne | B6.1 – B6.3 | À faire  | [phase_B6](./tasks_docs/phase_B6/README.md) |
+| B6    | Recette et mise en ligne | B6.1 – B6.3 | En cours | [phase_B6](./tasks_docs/phase_B6/README.md) |
 
 **Statuts :** À faire · En cours · Terminée · Bloquée
 
@@ -547,7 +547,7 @@ Modifiables avant la tâche concernée : il suffit de me le dire.
 - aucune bonne réponse dans l'onglet réseau ;
 - pas de badge « Demo ».
 
-**Vérification :** `npm run verify`, `npm run build` + `npx vite preview --port 4173` + `npm run xp:responsive -- http://localhost:4173/play/<slug> --quick`
+**Vérification :** `npm run verify`, `npm run build` + `npx vite preview --port 4173` + `npm run xp:responsive -- http://localhost:4173/play/<slug> --quick` _(impossible tel quel : l'audit de mise en page n'existe que sur `/xp-frame` ; contrôle équivalent fait en B6.1, §5.2 de sa documentation)_
 **Commit :** `feat(Player-Experience): serve /play/:slug with the new player runtime`
 
 ---

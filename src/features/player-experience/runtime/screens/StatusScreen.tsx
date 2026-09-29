@@ -11,7 +11,7 @@ import { press, type ScreenProps } from "./screenProps";
 import { textContent } from "./textContent";
 
 // The three non-winning outcomes of a draw (plan §8.5, tasks.md T4.3), reused from
-// PlayerFlowPage.tsx's "duplicate", "inactive" and "error" screens. Each one names what
+// the legacy player page's "duplicate", "inactive" and "error" screens. Each one names what
 // happened, in the player's language, and always offers a way out (B9): the phone that
 // already played and the closed campaign go back to the start; a network error offers
 // "Try again" first, which retries the exact same attempt (RETRY keeps clientRequestId and

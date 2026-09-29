@@ -14,15 +14,17 @@ This document serves as the complete technical reference for developers on the t
 
 ### Daily Workflow Commands
 
-| Command             | Description                                                                     |
-| :------------------ | :------------------------------------------------------------------------------ |
-| `npm run dev`       | Starts Vite development server at `http://localhost:3000`                       |
-| `npm run db:seed`   | Seeds deterministic sample campaigns, vouchers, and participant entries         |
-| `npm run typecheck` | Type-checks the entire TypeScript codebase (`tsc --noEmit`)                     |
-| `npm run lint`      | Runs ESLint rules across the repository                                         |
-| `npm run build`     | Builds the production Vite bundle                                               |
-| `npm run verify`    | Runs lint + typecheck + test + build (executed automatically by pre-push hooks) |
-| `supabase db reset` | Applies all migrations from scratch and runs `seed.sql` automatically           |
+| Command                 | Description                                                                               |
+| :---------------------- | :---------------------------------------------------------------------------------------- |
+| `npm run dev`           | Starts Vite development server at `http://localhost:3000`                                 |
+| `npm run db:seed`       | Seeds deterministic sample campaigns, vouchers, and participant entries                   |
+| `npm run typecheck`     | Type-checks the entire TypeScript codebase (`tsc --noEmit`)                               |
+| `npm run lint`          | Runs ESLint rules across the repository                                                   |
+| `npm run build`         | Builds the production Vite bundle                                                         |
+| `npm run verify`        | Runs lint + typecheck + test + build (executed automatically by pre-push hooks)           |
+| `supabase db reset`     | Applies all migrations from scratch and runs `seed.sql` automatically                     |
+| `npm run backend:probe` | Security probe of the local stack: what the anon key must not reach (section 5, Method C) |
+| `npm run backend:smoke` | End-to-end check of `select-prize` on the local stack (section 5, Method C)               |
 
 ---
 
@@ -110,7 +112,16 @@ You do not need to write raw SQL to test campaign mechanics. You can simulate pl
 
 ### Method B: Public Player Screen (`/play/:slug`)
 
-- Open `http://localhost:3000/play/[campaign-slug]` in your browser to play the full consumer flow (landing screen $\rightarrow$ trivia quiz $\rightarrow$ wheel spin $\rightarrow$ coupon code reveal $\rightarrow$ copy code confirmation).
+- Open `http://localhost:3000/play/[campaign-slug]` in your browser to play the full consumer flow with the design saved in the Studio (welcome $\rightarrow$ registration with consent $\rightarrow$ game $\rightarrow$ coupon code reveal $\rightarrow$ "I've copied my code" confirmation).
+- The campaign must be `active` and inside its dates, with prizes in stock; otherwise the page shows "Campaign ended" from the start. The seeded campaigns are already over: extend one in the Wizard first.
+- Participations go through the `select-prize` Edge Function: run `npx supabase functions serve --env-file .env.local` alongside `npm run dev`.
+
+### Method C: Security and `select-prize` checks (local stack only)
+
+Both scripts refuse to run unless `VITE_SUPABASE_URL` points to the local stack (`http://127.0.0.1:54321`). They create their own test data and delete it before exiting.
+
+- **`npm run backend:probe`** tries, with the anon key only, everything a visitor must not do: read or write `entries`, read `campaign_experiences`, the correct quiz answers, prize weights or win probabilities, call the internal draw functions or the dashboard functions. It also checks that `get_public_experience`, `record_campaign_impression` and `select-prize` still answer. Set `BACKEND_PROBE_EMAIL` and `BACKEND_PROBE_PASSWORD` (a local test account, never committed) to add the organization-isolation checks of a signed-in member.
+- **`npm run backend:smoke`** plays the `select-prize` scenarios as an anonymous player: consent required, invalid phone, win with coupon and consent stored, same attempt replayed, duplicate phone, paused or ended campaign, Hit It below the threshold, quiz, 10 simultaneous winners with distinct codes, sold out. It needs `npx supabase functions serve --env-file .env.local`.
 
 ---
 

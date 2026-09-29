@@ -57,8 +57,18 @@ Rules that stay true:
 
 ## Server gaps found while writing the demo gateway
 
-All fixed by the backend tasks: Hit It threshold (B1.3), consent check (B2.1), public quiz
-answers (B1.2 `get_public_experience`, B6.2). Known remaining behavior, noted for after the MVP:
-auto-pace mode is not simulated by the demo draw engine (demo odds differ for such campaigns),
-and `draw_and_claim_campaign_prize` may give a loss to a player drawing at the very same
-moment as another one (`FOR UPDATE SKIP LOCKED`).
+All fixed by the backend tasks:
+
+- Hit It and quiz: no draw after a failed game (B1.3);
+- consent required and stored, idempotent retries, period checked, error codes (B2.1);
+- quiz answers never public: `get_public_experience` (B1.2), and the direct anonymous reads of
+  `campaigns`, `prizes` and `quiz_questions` removed with the legacy player page (B6.2);
+- two simultaneous winners never share a coupon code (`claim_campaign_prize_coupon`, fixed
+  during the local acceptance, B6.1).
+
+Known remaining behavior, noted for after the MVP:
+
+- auto-pace mode is not simulated by the demo draw engine (demo odds differ for such campaigns);
+- `draw_and_claim_campaign_prize` may give a loss to a player drawing at the very same moment as
+  another one (`FOR UPDATE SKIP LOCKED`);
+- the Hit It hit count is declared by the browser; the server only applies the threshold.

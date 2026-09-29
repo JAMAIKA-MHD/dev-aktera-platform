@@ -7,7 +7,7 @@ export type GameType =
 // - after-interaction: the player plays first; the draw uses what they did (answers, chosen box, hits).
 export type OutcomeTiming = "before-animation" | "after-interaction";
 
-// Mirrors the production flow (handleRegister in src/pages/play/PlayerFlowPage.tsx).
+// Mirrors the flow of the legacy player page (its handleRegister), removed in B6.2.
 export const OUTCOME_TIMING: Readonly<Record<GameType, OutcomeTiming>> = {
   lucky_wheel: "before-animation",
   scratch_card: "before-animation",

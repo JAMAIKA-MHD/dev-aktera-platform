@@ -332,6 +332,19 @@ const anonChecks = [
       return { ok: data.length === 0, detail: `${data.length} rows visible` };
     },
   },
+  // B6.2: the public page reads get_public_experience only; the tables stay closed to anon.
+  ...[
+    ["quiz_questions", "correct_option_index"],
+    ["prizes", "weight"],
+    ["campaigns", "win_probability"],
+  ].map(([table, column]) => ({
+    name: `anon cannot read ${table}.${column}`,
+    run: async () => {
+      const { data, error } = await anon.from(table).select(`id, ${column}`);
+      if (error) return { ok: true, detail: `${error.code} ${error.message}` };
+      return { ok: data.length === 0, detail: `${data.length} rows visible` };
+    },
+  })),
 ];
 
 // What get_public_experience must never return, at any depth.

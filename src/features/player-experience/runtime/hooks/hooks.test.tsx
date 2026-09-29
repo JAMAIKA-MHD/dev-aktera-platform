@@ -47,7 +47,7 @@ describe("useReducedMotion", () => {
 
 describe("useSessionId", () => {
   it("keeps the identifier of the visit, with the production key", () => {
-    expect(SESSION_STORAGE_KEY).toBe("octoreach_session_id"); // PlayerFlowPage.tsx
+    expect(SESSION_STORAGE_KEY).toBe("octoreach_session_id"); // key of the legacy player page
     sessionStorage.setItem(SESSION_STORAGE_KEY, "sess_1_abc");
     expect(renderHook(() => useSessionId()).result.current).toBe("sess_1_abc");
   });

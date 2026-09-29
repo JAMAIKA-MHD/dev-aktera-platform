@@ -27,22 +27,29 @@ ESLint blocks three of these rules: deep imports from outside the module, `servi
 
 ## How the app uses it
 
-| Entry point (`index.ts`) | Mounted by                                        | What it does                                                                                              |
-| ------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `CampaignStudio`         | `App.tsx`, tab `playerScreen` and route `/studio` | The Studio on the app's own campaigns; "Edit in campaign settings" opens the Wizard over it               |
-| `CampaignSimulator`      | `App.tsx`, "Interactive Player Sandbox" drawer    | The runtime at 390 × 844 in its own iframe, full journey on the demo gateway                              |
-| `FrameHost`              | `AppRouter.tsx`, route `/xp-frame`                | The runtime's own document: driven by the Studio through the preview bridge, or by `?fixture=` for checks |
-| `PlayerExperience`       | (after the MVP) `/play/:slug`                     | The runtime itself, always rendered in a document of its own, never inside another page's `div`           |
+| Entry point (`index.ts`) | Mounted by                                         | What it does                                                                                              |
+| ------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `CampaignStudio`         | `App.tsx`, tab `playerScreen` and route `/studio`  | The Studio on the app's own campaigns; "Edit in campaign settings" opens the Wizard over it               |
+| `CampaignSimulator`      | `App.tsx`, "Interactive Player Sandbox" drawer     | The runtime at 390 × 844 in its own iframe, full journey on the demo gateway                              |
+| `FrameHost`              | `AppRouter.tsx`, route `/xp-frame`                 | The runtime's own document: driven by the Studio through the preview bridge, or by `?fixture=` for checks |
+| `PlayerExperience`       | `src/pages/play/PublicPlayPage.tsx`, `/play/:slug` | The runtime itself, always rendered in a document of its own, never inside another page's `div`           |
 
-- **Storage (MVP)**: configurations are saved in `localStorage` (`services/local/`), one per campaign.
-  The Supabase adapters come after the MVP (plan §12) and change neither the runtime nor the Studio.
-- **Demo gateway only**: the Studio and the sandbox draw outcomes in the browser for the demo (`DEMO-…`
-  codes). Real prize selection stays in the `select-prize` Edge Function.
-- **`/play/:slug` is not wired yet**: it still renders `src/pages/play/PlayerFlowPage.tsx` and its older
-  `Player*` components.
+- **Storage**: on a real campaign, the design is saved in Supabase (table `campaign_experiences`,
+  function `save_experience_config`) and images in Storage (bucket `campaign-media`); a design made
+  in this browser before the wiring is imported once. The standalone Studio and `/xp-frame` keep
+  `localStorage`. Compositions: `services/createSupabaseServices.ts`, details in
+  `services/supabase/README.md`.
+- **Gateways**: the Studio and the sandbox always draw on the demo gateway (`DEMO-…` codes, never
+  real stock). `/play/:slug` accepts only the live gateway, which calls `select-prize`: real prize
+  selection stays server-side.
+- **`/play/:slug`**: `src/pages/play/PublicPlayPage.tsx` reads `get_public_experience` through
+  `loadPublicExperience` (safe fields only), composes `createPublicServices` and renders
+  `PlayerExperience` with `allowedGatewayModes={["live"]}`. A closed or sold-out campaign shows the
+  closed screen from the start; an unknown slug shows "not found" in fr / ar / en.
 - **Checks**: `npm run xp:responsive -- <url>… [--quick | --full]` sweeps every size with the runtime's
   own layout audit (run it on `npm run build` + `vite preview` for long sweeps: the dev server reloads
-  on any file change); `npm run xp:resize` resizes each game mid-play.
+  on any file change). The audit is exposed by `/xp-frame` only, not by `/play/:slug`, which renders
+  the same runtime. `npm run xp:resize` resizes each game mid-play.
 
 ## Responsive rules (plan §8.3)
 
