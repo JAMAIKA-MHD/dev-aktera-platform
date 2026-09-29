@@ -249,7 +249,105 @@ const anonChecks = [
       return { ok: response.status === 404, detail: `HTTP ${response.status}` };
     },
   },
+  // B1.2: the design table and the public read.
+  {
+    name: "anon get_public_experience answers without secret fields",
+    run: async () => {
+      const { data: published } = await admin
+        .from("campaigns")
+        .select("slug")
+        .not("status", "in", "(draft,archived)")
+        .limit(1)
+        .maybeSingle();
+      if (!published)
+        return { ok: true, detail: "SKIP: no published campaign" };
+      const { data, error } = await anon.rpc("get_public_experience", {
+        p_slug: published.slug,
+      });
+      if (error) return { ok: false, detail: `${error.code} ${error.message}` };
+      const leaked = [...keysOf(data)].filter((key) =>
+        SECRET_KEYS.includes(key),
+      );
+      return {
+        ok: data?.found === true && leaked.length === 0,
+        detail: leaked.length
+          ? `leaks: ${leaked.join(", ")}`
+          : `found, keys: ${Object.keys(data).join(", ")}`,
+      };
+    },
+  },
+  {
+    name: "anon get_public_experience hides drafts and unknown slugs",
+    run: async () => {
+      const { data: draft } = await admin
+        .from("campaigns")
+        .select("slug")
+        .eq("status", "draft")
+        .limit(1)
+        .maybeSingle();
+      const slugs = [
+        `anon-probe-${randomUUID()}`,
+        ...(draft ? [draft.slug] : []),
+      ];
+      for (const slug of slugs) {
+        const { data, error } = await anon.rpc("get_public_experience", {
+          p_slug: slug,
+        });
+        if (error)
+          return { ok: false, detail: `${error.code} ${error.message}` };
+        if (data?.found !== false)
+          return { ok: false, detail: `${slug}: ${JSON.stringify(data)}` };
+      }
+      return { ok: true, detail: `found: false for ${slugs.length} slugs` };
+    },
+  },
+  {
+    name: "anon cannot call save_experience_config",
+    run: async () =>
+      blocked(
+        (
+          await anon.rpc("save_experience_config", {
+            p_campaign_id: missingId(),
+            p_config: {},
+            p_expected_updated_at: null,
+          })
+        ).error,
+      ),
+  },
+  {
+    name: "anon cannot read campaign_experiences",
+    run: async () => {
+      const { data, error } = await anon
+        .from("campaign_experiences")
+        .select("campaign_id");
+      if (error) return { ok: true, detail: `${error.code} ${error.message}` };
+      return { ok: data.length === 0, detail: `${data.length} rows visible` };
+    },
+  },
 ];
+
+// What get_public_experience must never return, at any depth.
+const SECRET_KEYS = [
+  "correct_option_index",
+  "weight",
+  "quantity",
+  "quantity_won",
+  "win_probability",
+  "max_entries",
+  "organization_id",
+  "coupon",
+  "item_value",
+];
+function* keysOf(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) yield* keysOf(item);
+  } else if (value && typeof value === "object") {
+    for (const [key, child] of Object.entries(value)) {
+      yield key;
+      yield* keysOf(child);
+    }
+  }
+}
 
 // Organization isolation, as a signed-in member (optional).
 async function memberChecks() {
@@ -387,6 +485,154 @@ async function memberChecks() {
           ok: others === 0,
           detail: `${data.length} rows, ${others} from another organization`,
         };
+      },
+    },
+    // B1.2: saving a design.
+    {
+      name: "member saves a design with optimistic concurrency",
+      run: async () => {
+        if (!ownDraft)
+          return {
+            ok: true,
+            detail: "SKIP: no draft campaign in the member's organization",
+          };
+        const { data: existing } = await admin
+          .from("campaign_experiences")
+          .select("campaign_id")
+          .eq("campaign_id", ownDraft.id)
+          .maybeSingle();
+        // Never overwrite a real design.
+        if (existing)
+          return { ok: true, detail: "SKIP: this draft already has a design" };
+        const save = (expected) =>
+          member.rpc("save_experience_config", {
+            p_campaign_id: ownDraft.id,
+            p_config: { probe: PROBE_SESSION },
+            p_expected_updated_at: expected,
+          });
+        try {
+          const first = await save(null);
+          const firstAt = first.data?.config?.updatedAt;
+          const second = await save(firstAt);
+          const stale = await save(firstAt);
+          const steps = [first, second, stale].map(
+            (r) =>
+              r.error?.message ?? r.data?.code ?? (r.data?.ok ? "ok" : "?"),
+          );
+          const { data: row } = await admin
+            .from("campaign_experiences")
+            .select("organization_id, updated_by, config")
+            .eq("campaign_id", ownDraft.id)
+            .single();
+          return {
+            ok:
+              steps.join(",") === "ok,ok,CONFLICT" &&
+              row.organization_id === ownOrg &&
+              row.updated_by === login.user.id &&
+              row.config.campaignId === ownDraft.id,
+            detail: `first, second, stale → ${steps.join(", ")}`,
+          };
+        } finally {
+          await admin
+            .from("campaign_experiences")
+            .delete()
+            .eq("campaign_id", ownDraft.id);
+        }
+      },
+    },
+    {
+      name: "member cannot save a design for another organization",
+      run: async () => {
+        if (!foreign)
+          return {
+            ok: true,
+            detail: "SKIP: no draft campaign in another organization",
+          };
+        const { data, error: saveError } = await member.rpc(
+          "save_experience_config",
+          {
+            p_campaign_id: foreign.id,
+            p_config: { probe: PROBE_SESSION },
+            p_expected_updated_at: null,
+          },
+        );
+        if (saveError) return { ok: false, detail: saveError.message };
+        return { ok: data?.code === "NOT_FOUND", detail: JSON.stringify(data) };
+      },
+    },
+    {
+      name: "member cannot attach a design to the wrong organization",
+      run: async () => {
+        if (!ownDraft || !foreign)
+          return {
+            ok: true,
+            detail: "SKIP: needs a draft in each organization",
+          };
+        const attempts = [
+          // Another organization's campaign, filed under the member's organization.
+          { campaign_id: foreign.id, organization_id: ownOrg },
+          // The member's campaign, filed under another organization.
+          {
+            campaign_id: ownDraft.id,
+            organization_id: foreign.organization_id,
+          },
+        ];
+        for (const attempt of attempts) {
+          const { error: insertError } = await member
+            .from("campaign_experiences")
+            .insert({ ...attempt, config: { probe: PROBE_SESSION } });
+          if (!isDenied(insertError)) {
+            await admin
+              .from("campaign_experiences")
+              .delete()
+              .eq("campaign_id", attempt.campaign_id)
+              .eq("config->>probe", PROBE_SESSION);
+            return {
+              ok: false,
+              detail: `went through: ${JSON.stringify(attempt)}`,
+            };
+          }
+        }
+        return { ok: true, detail: "42501 for both attempts" };
+      },
+    },
+    {
+      name: "member cannot read another organization's design",
+      run: async () => {
+        if (!foreign)
+          return {
+            ok: true,
+            detail: "SKIP: no draft campaign in another organization",
+          };
+        const { data: existing } = await admin
+          .from("campaign_experiences")
+          .select("campaign_id")
+          .eq("campaign_id", foreign.id)
+          .maybeSingle();
+        if (!existing) {
+          await admin.from("campaign_experiences").insert({
+            campaign_id: foreign.id,
+            organization_id: foreign.organization_id,
+            config: { probe: PROBE_SESSION },
+          });
+        }
+        try {
+          const { data, error: readError } = await member
+            .from("campaign_experiences")
+            .select("campaign_id")
+            .eq("campaign_id", foreign.id);
+          if (readError) return { ok: true, detail: readError.message };
+          return {
+            ok: data.length === 0,
+            detail: `${data.length} rows visible`,
+          };
+        } finally {
+          if (!existing)
+            await admin
+              .from("campaign_experiences")
+              .delete()
+              .eq("campaign_id", foreign.id);
+        }
       },
     },
   ];
