@@ -14,17 +14,19 @@ This document serves as the complete technical reference for developers on the t
 
 ### Daily Workflow Commands
 
-| Command                 | Description                                                                               |
-| :---------------------- | :---------------------------------------------------------------------------------------- |
-| `npm run dev`           | Starts Vite development server at `http://localhost:3000`                                 |
-| `npm run db:seed`       | Seeds deterministic sample campaigns, vouchers, and participant entries                   |
-| `npm run typecheck`     | Type-checks the entire TypeScript codebase (`tsc --noEmit`)                               |
-| `npm run lint`          | Runs ESLint rules across the repository                                                   |
-| `npm run build`         | Builds the production Vite bundle                                                         |
-| `npm run verify`        | Runs lint + typecheck + test + build (executed automatically by pre-push hooks)           |
-| `supabase db reset`     | Applies all migrations from scratch and runs `seed.sql` automatically                     |
-| `npm run backend:probe` | Security probe of the local stack: what the anon key must not reach (section 5, Method C) |
-| `npm run backend:smoke` | End-to-end check of `select-prize` on the local stack (section 5, Method C)               |
+| Command                     | Description                                                                                           |
+| :-------------------------- | :---------------------------------------------------------------------------------------------------- |
+| `npm run dev`               | Starts Vite development server at `http://localhost:3000`                                             |
+| `npm run db:seed`           | Seeds deterministic sample campaigns, vouchers, and participant entries                               |
+| `npm run typecheck`         | Type-checks the entire TypeScript codebase (`tsc --noEmit`)                                           |
+| `npm run lint`              | Runs ESLint rules across the repository                                                               |
+| `npm run build`             | Builds the production Vite bundle                                                                     |
+| `npm run verify`            | Runs lint + typecheck + test + build (executed automatically by pre-push hooks)                       |
+| `supabase db reset`         | Applies all migrations from scratch and runs `seed.sql` automatically                                 |
+| `npm run backend:probe`     | Security probe of the local stack: what the anon key must not reach (section 5, Method C)             |
+| `npm run backend:smoke`     | End-to-end check of `select-prize` on the local stack (section 5, Method C)                           |
+| `npm run studio:seed`       | Adds 14 test campaigns for the Player Studio table, without touching other data (section 5, Method D) |
+| `npm run studio:seed:clean` | Removes those test campaigns, and nothing else (section 5, Method D)                                  |
 
 ---
 
@@ -122,6 +124,16 @@ Both scripts refuse to run unless `VITE_SUPABASE_URL` points to the local stack 
 
 - **`npm run backend:probe`** tries, with the anon key only, everything a visitor must not do: read or write `entries`, read `campaign_experiences`, the correct quiz answers, prize weights or win probabilities, call the internal draw functions or the dashboard functions. It also checks that `get_public_experience`, `record_campaign_impression` and `select-prize` still answer. Set `BACKEND_PROBE_EMAIL` and `BACKEND_PROBE_PASSWORD` (a local test account, never committed) to add the organization-isolation checks of a signed-in member.
 - **`npm run backend:smoke`** plays the `select-prize` scenarios as an anonymous player: consent required, invalid phone, win with coupon and consent stored, same attempt replayed, duplicate phone, paused or ended campaign, Hit It below the threshold, quiz, 10 simultaneous winners with distinct codes, sold out. It needs `npx supabase functions serve --env-file .env.local`.
+
+### Method D: Test campaigns for the Player Studio table (local stack only)
+
+`npm run studio:seed` adds 14 campaigns to the organization of `studio.test@octoreach.local`: the five games, active, ended, paused, draft and archived campaigns, fictitious participants, voucher codes, and 8 Studio designs saved at different dates (the other 6 show "Default"). Sign in and open **Player Studio** to try the table (two pages, filters, sorting) and the Studio.
+
+- **Additive:** every row it writes has a `5eed…` id (slugs `seed-…`); it never deletes or changes anything else. Unlike `npm run db:seed`, it keeps your campaigns and their saved designs.
+- **Replayable:** running it again gives the same 14 campaigns.
+- **Remove:** `npm run studio:seed:clean` deletes the seed rows only (and images uploaded to their Studio designs).
+- **Another account:** `npm run studio:seed -- --email <local account>`. In PowerShell, quote the separator: `npm run studio:seed '--' --email <local account>` (the npm wrapper drops a bare `--`).
+- The active seed campaigns can be played on `/play/seed-…` (with `npx supabase functions serve --env-file .env.local`).
 
 ---
 

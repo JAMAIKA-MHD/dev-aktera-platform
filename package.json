@@ -19,14 +19,19 @@
     "prepare": "husky",
     "xp:resize": "node scripts/xp-resize-midgame.mjs",
     "backend:probe": "node --env-file=.env.local scripts/backend/anon-probe.mjs",
-    "backend:smoke": "node --env-file=.env.local scripts/backend/select-prize-smoke.mjs"
+    "backend:smoke": "node --env-file=.env.local scripts/backend/select-prize-smoke.mjs",
+    "studio:seed": "node --env-file=.env.local scripts/studio/seed-studio-campaigns.mjs",
+    "studio:seed:clean": "node --env-file=.env.local scripts/studio/seed-studio-campaigns.mjs --clean"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@tanstack/react-table": "^8.21.3",
     "@types/papaparse": "^5.5.2",
     "@vitejs/plugin-react": "^5.0.4",
     "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "i18next": "^26.3.6",
@@ -40,6 +45,7 @@
     "react-i18next": "^17.0.11",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.10.1",
+    "tailwind-merge": "^3.7.0",
     "vite": "^6.2.3",
     "xlsx": "^0.18.5",
     "zod": "^4.6.5",

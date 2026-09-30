@@ -70,6 +70,13 @@ const CampaignStudio = lazy(() =>
   })),
 );
 
+// The Player Studio page: the brand's campaigns in a table, before the Studio. On demand too.
+const StudioCampaignsPage = lazy(() =>
+  import("./components/playerStudio/StudioCampaignsPage").then((module) => ({
+    default: module.StudioCampaignsPage,
+  })),
+);
+
 // The Portal Simulator (T7.2): the real runtime in a phone-sized frame, loaded on demand.
 const CampaignSimulator = lazy(() =>
   import("./features/player-experience").then((module) => ({
@@ -111,6 +118,7 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
   const {
     campaigns,
     loading: campLoading,
+    error: campError,
     refetch: refetchCampaigns,
   } = useCampaigns(orgId);
   const {
@@ -133,7 +141,11 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
     useState<Campaign | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
-  // Portal Simulator drawer and the campaign it plays (shared with the Studio's picker)
+  // Campaign open in the Studio: null shows the Player Studio table. Separate from the
+  // sandbox's own campaign, so that one never changes the other.
+  const [studioCampaignId, setStudioCampaignId] = useState<string | null>(null);
+
+  // Portal Simulator drawer and the campaign it plays
   const [showSandbox, setShowSandbox] = useState<boolean>(false);
   const [sandboxCampaignId, setSandboxCampaignId] = useState<string>("");
   const [isSidebarHovered, setIsSidebarHovered] = useState<boolean>(false);
@@ -370,13 +382,12 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
     setActiveTab("creator");
   };
 
-  // Handler: Open Player UI Screen Maker for a campaign
+  // Handler: open the Studio on a campaign ("Customize player screen"); without an id (a
+  // campaign not saved yet), the Player Studio table.
   const handleOpenPlayerScreenEditor = (
     camp: Campaign | { id?: string; [key: string]: any },
   ) => {
-    if (camp?.id) {
-      setSandboxCampaignId(camp.id);
-    }
+    setStudioCampaignId(camp?.id ?? null);
     setActiveTab("playerScreen");
   };
 
@@ -384,6 +395,7 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
     setSelectedCampaignId(null);
     setEditingCampaign(null);
     setRelaunchDraftCampaign(null);
+    setStudioCampaignId(null);
     setActiveTab(tab);
   };
 
@@ -464,7 +476,7 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
             },
             {
               id: "playerScreen",
-              label: t("nav.playerScreen", "Player Screen"),
+              label: t("nav.playerScreen", "Player Studio"),
               icon: "fa-solid fa-mobile-screen",
             },
             {
@@ -743,6 +755,36 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
               </motion.div>
             )}
 
+            {activeTab === "playerScreen" && studioCampaignId === null && (
+              <motion.div
+                key="playerStudio"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Suspense
+                  fallback={
+                    <div className="flex h-40 items-center justify-center">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600/30 border-t-blue-600" />
+                    </div>
+                  }
+                >
+                  <StudioCampaignsPage
+                    campaigns={campaigns}
+                    loading={campLoading}
+                    error={campError}
+                    organizationId={orgId}
+                    onOpenCampaign={setStudioCampaignId}
+                    onOpenStandalone={() =>
+                      setStudioCampaignId(STANDALONE_STUDIO)
+                    }
+                    onCreateCampaign={() => handleSidebarNavigate("creator")}
+                    onRetry={() => void refetchCampaigns()}
+                  />
+                </Suspense>
+              </motion.div>
+            )}
+
             {activeTab === "account" && (
               <motion.div
                 key="account"
@@ -759,7 +801,7 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
 
       {/* PLAYER EXPERIENCE STUDIO (full screen) */}
       <AnimatePresence>
-        {activeTab === "playerScreen" && (
+        {activeTab === "playerScreen" && studioCampaignId !== null && (
           <motion.div
             key="playerScreen"
             initial={{ opacity: 0 }}
@@ -779,16 +821,16 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
                 campaigns={campaigns}
                 prizeTemplates={prizes}
                 campaignId={
-                  sandboxCampaignId === STANDALONE_STUDIO
+                  studioCampaignId === STANDALONE_STUDIO
                     ? null
-                    : sandboxCampaignId || null
+                    : studioCampaignId
                 }
                 onCampaignChange={(id) =>
-                  setSandboxCampaignId(id ?? STANDALONE_STUDIO)
+                  setStudioCampaignId(id ?? STANDALONE_STUDIO)
                 }
                 onEditCampaignSettings={handleEditFromStudio}
                 onRefreshCampaign={refetchCampaigns}
-                onClose={() => setActiveTab("campaigns")}
+                onClose={() => setStudioCampaignId(null)}
                 backend={STUDIO_BACKEND}
               />
             </Suspense>
