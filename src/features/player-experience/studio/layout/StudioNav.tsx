@@ -23,7 +23,11 @@ export const PANEL_META: Readonly<
   Record<StudioPanel, { label: string; icon: LucideIcon; hint: string }>
 > = {
   template: { label: "Template", icon: LayoutTemplate, hint: "Starting style" },
-  brand: { label: "Brand", icon: Palette, hint: "Logo, colors, background" },
+  brand: {
+    label: "Brand Identity",
+    icon: Palette,
+    hint: "Logo, colors, background",
+  },
   content: { label: "Content", icon: Type, hint: "Texts of each screen" },
   sections: {
     label: "Sections",

@@ -62,7 +62,7 @@ export function BrandPanel() {
   return (
     <>
       <PanelHeader
-        title="Brand"
+        title="Brand Identity"
         description="Your name, logo and colors, on every screen."
       />
       <PanelBody>
