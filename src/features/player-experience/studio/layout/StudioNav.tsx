@@ -33,7 +33,7 @@ export const PANEL_META: Readonly<
   form: { label: "Form", icon: FileText, hint: "Fields and consent" },
   game: { label: "Game", icon: Gamepad2, hint: "How the game looks" },
   legal: { label: "Legal", icon: Scale, hint: "Organizer, links, terms" },
-  share: { label: "Share", icon: Share2, hint: "Export, import, reset" },
+  share: { label: "Export", icon: Share2, hint: "Export, import, reset" },
   validation: {
     label: "Validation",
     icon: ListChecks,

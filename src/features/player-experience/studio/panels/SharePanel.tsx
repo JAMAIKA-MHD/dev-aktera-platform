@@ -63,7 +63,7 @@ export function SharePanel() {
   return (
     <>
       <PanelHeader
-        title="Share"
+        title="Export"
         description="Save a copy, bring one back, or start the demo over."
       />
       <PanelBody>

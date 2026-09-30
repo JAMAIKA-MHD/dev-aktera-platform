@@ -61,7 +61,7 @@ describe("PlayerExperienceStudio", () => {
       "Form",
       "Game",
       "Legal",
-      "Share",
+      "Export",
     ]) {
       expect(
         screen.getByRole("button", { name: new RegExp(label) }),
