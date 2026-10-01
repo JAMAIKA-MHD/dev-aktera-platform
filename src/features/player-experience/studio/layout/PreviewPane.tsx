@@ -12,18 +12,9 @@ import { PreviewViewport } from "../preview/PreviewViewport";
 import type { PreviewFlowMode, PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
 
-// The preview bar (plan §9.3): which screen, which language, how the journey plays, and the
-// device bar (T6.9). Picking a screen, a mode or a scenario restarts the journey
+// The preview bar (plan §9.3): which language, how the journey plays, and the device bar
+// (T6.9); the screen tabs live in the top bar. Picking a screen, a scenario or an outcome restarts the journey
 // there; switching language does not, the screen simply redraws in it.
-
-const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
-  { id: "welcome", label: "Welcome" },
-  { id: "register", label: "Register" },
-  { id: "play", label: "Play" },
-  { id: "win", label: "Win" },
-  { id: "lose", label: "Lose" },
-  { id: "status", label: "Status" },
-];
 
 const MODES: readonly { id: PreviewFlowMode; label: string; hint: string }[] = [
   {
@@ -60,7 +51,7 @@ export function PreviewPane() {
   const enabled = useStudio((state) => state.config.locales.enabled);
   const campaign = useStudio((state) => state.campaign);
   const gameType = useStudio((state) => state.config.game.type);
-  const setScreen = useStudio((state) => state.setScreen);
+  const setLiveScreen = useStudio((state) => state.setLiveScreen);
   const setLocale = useStudio((state) => state.setLocale);
   const setMode = useStudio((state) => state.setMode);
 
@@ -90,7 +81,6 @@ export function PreviewPane() {
     setRestartKey((key) => key + 1);
   }, [ui.screen, ui.mode, ui.scenario]);
 
-  const [live, setLive] = useState<PreviewScreen | null>(null);
   const custom = useCustomDevices();
   const [editingDevices, setEditingDevices] = useState(false);
 
@@ -99,33 +89,9 @@ export function PreviewPane() {
       <div className="space-y-2 border-b border-card-border bg-card-bg px-3 py-2.5 sm:px-4">
         <div className="flex flex-wrap items-center gap-2">
           <div
-            role="tablist"
-            aria-label="Screen"
-            className="flex flex-wrap gap-0.5 rounded-xl bg-card-bg-subtle p-1 ring-1 ring-card-border"
-          >
-            {SCREENS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={ui.screen === id}
-                onClick={() => setScreen(id)}
-                className={`relative ${pill(ui.screen === id)}`}
-              >
-                {label}
-                {ui.mode === "demo" && live === id && ui.screen !== id && (
-                  <span
-                    className="absolute right-1 top-1 size-1.5 rounded-full bg-emerald-500"
-                    aria-label="(current)"
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-          <div
             role="radiogroup"
             aria-label="Language"
-            className="ml-auto flex gap-0.5 rounded-xl bg-card-bg-subtle p-1 ring-1 ring-card-border"
+            className="flex gap-0.5 rounded-xl bg-card-bg-subtle p-1 ring-1 ring-card-border"
           >
             {LOCALES.map((locale: Locale) => (
               <button
@@ -146,8 +112,6 @@ export function PreviewPane() {
               </button>
             ))}
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-brand-text-muted">
             Scenario
             <select
@@ -203,7 +167,7 @@ export function PreviewPane() {
       <PreviewViewport
         customDevices={custom.devices}
         restartKey={restartKey}
-        onFlowScreen={(screen) => setLive(tabOf(screen))}
+        onFlowScreen={(screen) => setLiveScreen(tabOf(screen))}
       />
       {editingDevices && (
         <CustomDevicesDialog

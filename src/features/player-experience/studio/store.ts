@@ -99,6 +99,7 @@ export interface StudioState {
   issues: DesignIssue[]; // design checks (T1.11), recomputed whenever the config changes
   layoutIssues: LayoutIssue[]; // what the frame reports back from the preview (T6.10)
   layoutSize: { width: number; height: number } | null; // the size they were found at
+  liveScreen: PreviewScreen | null; // where a demo game is, for the dot on the screen tabs
 
   // Edits. Each one is one step of the history, refreshes `updatedAt` and the design issues.
   updateTheme(patch: Partial<ThemeTokens>): void;
@@ -131,6 +132,7 @@ export interface StudioState {
     issues: LayoutIssue[],
     size?: { width: number; height: number } | null,
   ): void;
+  setLiveScreen(screen: PreviewScreen | null): void;
 }
 
 export interface StudioStoreOptions {
@@ -201,6 +203,7 @@ export function createStudioStore(
           issues: checkDesign(config, campaign),
           layoutIssues: [],
           layoutSize: null,
+          liveScreen: null,
 
           updateTheme: (patch) =>
             edit((current) => ({
@@ -331,6 +334,7 @@ export function createStudioStore(
           setSaveStatus: (saveStatus) => set({ saveStatus }),
           setLayoutIssues: (layoutIssues, layoutSize = null) =>
             set({ layoutIssues, layoutSize }),
+          setLiveScreen: (liveScreen) => set({ liveScreen }),
         };
       },
       {

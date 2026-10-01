@@ -16,6 +16,7 @@ import type { StudioCampaignOption } from "../PlayerExperienceStudio";
 import { useLayoutWarnings } from "../preview/useLayoutReport";
 import { useStudio, useStudioHistory } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
+import { ScreenTabs } from "./ScreenTabs";
 
 // Top bar (plan §9.1): which campaign, undo/redo, whether the work is saved, how many
 // problems remain, and the preview in a window of its own.
@@ -213,6 +214,10 @@ export function StudioTopBar({
         >
           <Redo2 className="size-[18px]" aria-hidden />
         </IconButton>
+      </div>
+
+      <div className="order-last flex w-full justify-center sm:order-none sm:w-auto sm:flex-1">
+        <ScreenTabs />
       </div>
 
       <div className="ml-auto flex items-center gap-2">

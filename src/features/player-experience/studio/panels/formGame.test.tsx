@@ -104,6 +104,7 @@ describe("GamePanel", () => {
         "resetToDefaults",
         "setCampaign",
         "setLayoutIssues",
+        "setLiveScreen",
         "setLocale",
         "setMode",
         "setPanel",

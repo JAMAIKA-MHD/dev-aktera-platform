@@ -12,7 +12,7 @@
 | E1    | Renommer « Brand » en « Brand Identity »                    | Terminée | (ce commit) |
 | E2    | Renommer « Mode » en « Scenario » (aperçu)                  | Terminée | (ce commit) |
 | E3    | Retirer les onglets d'écran en double dans Content          | Terminée | (ce commit) |
-| E4    | Les onglets d'écran passent dans la barre du haut, agrandis | À faire  | —           |
+| E4    | Les onglets d'écran passent dans la barre du haut, agrandis | Terminée | (ce commit) |
 | E5    | Menu déroulant des langues, en haut de Content              | À faire  | —           |
 
 ---
