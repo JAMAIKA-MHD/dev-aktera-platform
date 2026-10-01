@@ -16,8 +16,8 @@ import {
 import { useTextLocale } from "./useTextLocale";
 
 // Content (plan §9.2): the texts of each screen, in three languages, and the languages
-// offered. The screen edited and the screen previewed are the same one: picking a screen here
-// shows it, a preview tab opens it here, and a click on a text in the preview lands on it.
+// offered. The screen edited and the screen previewed are the same one: a screen tab opens it
+// here, and a click on a text in the preview lands on it.
 
 const SCREENS: readonly { value: ScreenKey; label: string }[] = [
   { value: "welcome", label: "Welcome" },
@@ -49,7 +49,6 @@ const isScreenKey = (value: string | undefined): value is ScreenKey =>
 export function ContentPanel() {
   const previewScreen = useStudio((state) => state.ui.screen);
   const focusPath = useStudio((state) => state.ui.focusPath);
-  const setScreen = useStudio((state) => state.setScreen);
   const screens = useStudio((state) => state.config.screens);
   const updateScreen = useStudio((state) => state.updateScreen);
   const textLocale = useTextLocale();
@@ -67,10 +66,6 @@ export function ContentPanel() {
       setKey(target);
   }, [focusPath]);
 
-  const pick = (next: ScreenKey) => {
-    setKey(next);
-    setScreen(next);
-  };
   const screen = screens[key];
   const update = (patch: Partial<ScreenContent>) => updateScreen(key, patch);
   const path = (field: string) => `screens.${key}.${field}`;
@@ -82,12 +77,6 @@ export function ContentPanel() {
         description="What each screen says, in every language you offer."
       />
       <PanelBody>
-        <SegmentedControl
-          label="Screen"
-          value={key}
-          onChange={pick}
-          options={SCREENS}
-        />
         <PanelSection title="Texts">
           <PanelIssues prefixes={[`screens.${key}`]} />
           <LocalizedTextField

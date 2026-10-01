@@ -27,30 +27,29 @@ function renderPanel(Panel: ComponentType, withPreview = false) {
 describe("ContentPanel", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("edits the screen shown in the preview, and follows the preview's tab", () => {
+  it("edits the screen shown in the preview, and follows its tab", () => {
     const store = renderPanel(ContentPanel);
-    fireEvent.click(screen.getByRole("radio", { name: "Win" }));
-    // Picking a screen here shows it in the preview.
-    expect(store.getState().ui.screen).toBe("win");
+    expect(screen.queryByRole("radio", { name: "Win" })).toBeNull();
+
+    act(() => store.getState().setScreen("win"));
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Bravo !" },
     });
     expect(store.getState().config.screens.win.title.fr).toBe("Bravo !");
 
     act(() => store.getState().setScreen("lose"));
-    expect(
-      screen.getByRole("radio", { name: "Lose" }).getAttribute("aria-checked"),
-    ).toBe("true");
+    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
+      store.getState().config.screens.lose.title.fr,
+    );
+    expect(store.getState().config.screens.win.title.fr).toBe("Bravo !");
   });
 
   it("opens the screen of a text clicked in the preview", () => {
     const store = renderPanel(ContentPanel);
     act(() => store.getState().setPanel("content", "screens.register.title"));
-    expect(
-      screen
-        .getByRole("radio", { name: "Register" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
+      store.getState().config.screens.register.title.fr,
+    );
   });
 
   it("sends a text to the preview in the right language, without a reload", async () => {
