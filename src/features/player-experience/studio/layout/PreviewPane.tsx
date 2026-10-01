@@ -149,7 +149,7 @@ export function PreviewPane() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-brand-text-muted">
-            Mode
+            Scenario
             <select
               value={ui.mode}
               onChange={(event) =>

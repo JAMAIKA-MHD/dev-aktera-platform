@@ -102,7 +102,7 @@ describe("PlayerExperienceStudio", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Win" }));
     fireEvent.click(screen.getByRole("radio", { name: "ar" }));
-    fireEvent.change(screen.getByLabelText("Mode"), {
+    fireEvent.change(screen.getByLabelText("Scenario"), {
       target: { value: "scripted" },
     });
     const views = posted.filter(
