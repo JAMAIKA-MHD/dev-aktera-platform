@@ -18,6 +18,7 @@
 | E7    | « Back to dashboard » ramène à l'accueil du dashboard       | Terminée | (ce commit) |
 | E8    | Retirer le menu déroulant des campagnes du Studio           | Terminée | (ce commit) |
 | E9    | Retirer le verrou (« Locked ») du champ téléphone           | À faire  | —           |
+| E10   | Un utilisateur connecté ne revoit plus la page de login     | Terminée | (ce commit) |
 
 ---
 
@@ -79,6 +80,12 @@
 
 **Fichiers :** `panels/FormPanel.tsx` (à préciser)
 **Statut :** en attente de précision (voir la conversation).
+
+## E10 — Un utilisateur connecté ne revoit plus la page de login
+
+**Fichiers :** `src/pages/auth/LoginPage.tsx`, `RegisterPage.tsx`, `authPagesRedirect.test.tsx` (nouveau)
+**Description :** le bouton Retour du navigateur depuis le dashboard ou le Studio tombait sur `/login` (resté dans l'historique) et affichait le formulaire alors que la session était active. Ces pages renvoient maintenant vers `/` quand une session existe, et la connexion remplace l'entrée d'historique au lieu d'en ajouter une.
+**Commit :** `fix(Auth): send a signed-in user away from the login and register pages`
 
 ---
 

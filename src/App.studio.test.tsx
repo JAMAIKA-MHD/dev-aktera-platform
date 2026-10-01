@@ -166,7 +166,7 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     await user.click(within(await findTable()).getByText("Winter Wheel"));
     expect(await findStudio()).toContain("studio:c2");
     await user.click(screen.getByRole("button", { name: "Close Studio" }));
-    await findTable();
+    expect(await screen.findByText("dashboard-home")).toBeTruthy();
 
     await user.click(
       screen.getByRole("button", { name: /Interactive Player Sandbox/ }),
