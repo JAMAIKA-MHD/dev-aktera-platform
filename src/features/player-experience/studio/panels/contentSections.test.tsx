@@ -109,6 +109,7 @@ describe("ContentPanel", () => {
   it("offers languages, never without the default one", () => {
     const store = renderPanel(ContentPanel);
     act(() => store.getState().setLocale("en"));
+    fireEvent.click(screen.getByRole("button", { name: /Languages/ }));
     fireEvent.click(screen.getByRole("switch", { name: "English" }));
     expect(store.getState().config.locales.enabled).toEqual(["fr", "ar"]);
     // The preview leaves a language players no longer get.
@@ -116,12 +117,32 @@ describe("ContentPanel", () => {
     expect(
       screen.getByRole("switch", { name: "French (default)" }),
     ).toHaveProperty("disabled", true);
-    fireEvent.change(screen.getByLabelText("Default language"), {
-      target: { value: "ar" },
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Make Arabic the default language" }),
+    );
     expect(store.getState().config.locales.default).toBe("ar");
     fireEvent.click(screen.getByRole("switch", { name: "English" }));
     expect(store.getState().config.locales.enabled).toEqual(["fr", "ar", "en"]);
+  });
+
+  it("enables a disabled language when it is made the default", () => {
+    const store = renderPanel(ContentPanel);
+    fireEvent.click(screen.getByRole("button", { name: /Languages/ }));
+    fireEvent.click(screen.getByRole("switch", { name: "English" }));
+    expect(store.getState().config.locales.enabled).toEqual(["fr", "ar"]);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Make English the default language" }),
+    );
+    expect(store.getState().config.locales.default).toBe("en");
+    expect(store.getState().config.locales.enabled).toEqual(["fr", "ar", "en"]);
+  });
+
+  it("closes the languages menu on Escape", () => {
+    renderPanel(ContentPanel);
+    fireEvent.click(screen.getByRole("button", { name: /Languages/ }));
+    expect(screen.getByRole("switch", { name: "English" })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("switch", { name: "English" })).toBeNull();
   });
 });
 

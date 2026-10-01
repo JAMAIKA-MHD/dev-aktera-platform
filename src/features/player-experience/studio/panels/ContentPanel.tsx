@@ -77,6 +77,7 @@ export function ContentPanel() {
         description="What each screen says, in every language you offer."
       />
       <PanelBody>
+        <LanguagesSection />
         <PanelSection title="Texts">
           <PanelIssues prefixes={[`screens.${key}`]} />
           <LocalizedTextField
@@ -162,8 +163,6 @@ export function ContentPanel() {
             />
           )}
         </PanelSection>
-
-        <LanguagesSection />
       </PanelBody>
     </>
   );
