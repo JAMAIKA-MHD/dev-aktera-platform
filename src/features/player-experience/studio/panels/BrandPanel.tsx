@@ -1,4 +1,3 @@
-import { Moon, Sun } from "lucide-react";
 import { ctaTextColor } from "../../domain/contrast";
 import type { ThemeTokens } from "../../domain/types";
 import { ColorField } from "../fields/ColorField";
@@ -17,7 +16,7 @@ import {
 } from "./PanelLayout";
 import { useTextLocale } from "./useTextLocale";
 
-// Brand (plan §9.2): name, tagline, logo, the five colors, dark or light, background,
+// Brand (plan §9.2): name, tagline, logo, the five colors, background,
 // corners and font. Each change shows at once in the preview (D22). The colors that carry
 // text say whether it stays readable, and the theme's design issues are listed right here.
 
@@ -113,24 +112,6 @@ export function BrandPanel() {
           description="Buttons, highlights, the game and the page."
         >
           <PanelIssues prefixes={["theme.colors"]} />
-          <SegmentedControl
-            label="Mode"
-            path="theme.mode"
-            value={theme.mode}
-            onChange={(mode) => updateTheme({ mode })}
-            options={[
-              {
-                value: "dark",
-                label: "Dark",
-                icon: <Moon className="size-3.5" aria-hidden />,
-              },
-              {
-                value: "light",
-                label: "Light",
-                icon: <Sun className="size-3.5" aria-hidden />,
-              },
-            ]}
-          />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {COLORS.map(({ key, label }) => (
               <ColorField

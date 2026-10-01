@@ -87,8 +87,9 @@ describe("BrandPanel", () => {
       target: { value: "#22c55e" },
     });
     expect(store.getState().config.theme.colors.accent).toBe("#22c55e");
-    fireEvent.click(screen.getByRole("radio", { name: "Light" }));
-    expect(store.getState().config.theme.mode).toBe("light");
+    // The theme mode comes from the template: Brand Identity does not offer it.
+    expect(screen.queryByRole("radio", { name: "Light" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Dark" })).toBeNull();
   });
 
   it("never lets a preset plus a color change break contrast without a warning", () => {

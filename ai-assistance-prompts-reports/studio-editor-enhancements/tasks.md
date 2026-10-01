@@ -14,6 +14,10 @@
 | E3    | Retirer les onglets d'écran en double dans Content          | Terminée | (ce commit) |
 | E4    | Les onglets d'écran passent dans la barre du haut, agrandis | Terminée | (ce commit) |
 | E5    | Menu déroulant des langues, en haut de Content              | Terminée | (ce commit) |
+| E6    | Brand Identity : retirer le choix clair/sombre              | Terminée | (ce commit) |
+| E7    | « Back to dashboard » ramène à l'accueil du dashboard       | Terminée | (ce commit) |
+| E8    | Retirer le menu déroulant des campagnes du Studio           | Terminée | (ce commit) |
+| E9    | Retirer le verrou (« Locked ») du champ téléphone           | À faire  | —           |
 
 ---
 
@@ -53,6 +57,28 @@
 **Critère d'acceptation :** on ne peut jamais désactiver la langue par défaut ; désactiver la langue en cours d'aperçu la fait retomber sur la langue par défaut ; choisir une langue désactivée comme langue par défaut l'active.
 **Vérification :** `npx tsc --noEmit`, `npx eslint`, `npx vitest run src/features/player-experience/studio`
 **Commit :** `feat(Player-Experience): turn the languages section into a dropdown menu`
+
+## E6 — Brand Identity : retirer le choix clair/sombre
+
+**Fichiers :** `panels/BrandPanel.tsx`, `panels/templateBrand.test.tsx`
+**Description :** le contrôle « Mode » (Dark/Light) de Colors disparaît ; le mode vient du modèle choisi (Template), on ne le précise plus ici pour le moment. Les données (`theme.mode`) ne changent pas.
+**Commit :** `refactor(Player-Experience): remove the dark/light choice from Brand Identity`
+
+## E7 — « Back to dashboard » ramène à l'accueil du dashboard
+
+**Fichiers :** `src/App.tsx`, `src/App.studio.test.tsx`
+**Description :** fermer le Studio ouvrait le tableau des campagnes du Player Studio (donc « hors du projet ») ; il ouvre maintenant l'accueil (`home`).
+
+## E8 — Retirer le menu déroulant des campagnes du Studio
+
+**Fichiers :** `layout/StudioTopBar.tsx`, `layout/StudioShell.tsx`, `PlayerExperienceStudio.tsx`, `CampaignStudio.tsx`, `index.ts`, `src/App.tsx` (+ tests)
+**Description :** la barre du haut n'affiche plus que le nom de la campagne ; les props `campaigns` / `onCampaignChange` et le type `StudioCampaignOption` sont supprimés.
+**Commit (E7 + E8) :** `refactor(Player-Experience): return to the dashboard from the Studio and drop the campaign picker`
+
+## E9 — Retirer le verrou du champ téléphone
+
+**Fichiers :** `panels/FormPanel.tsx` (à préciser)
+**Statut :** en attente de précision (voir la conversation).
 
 ---
 
