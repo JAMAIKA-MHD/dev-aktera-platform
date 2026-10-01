@@ -35,8 +35,7 @@ const templates = [
 describe("CampaignStudio", () => {
   beforeEach(() => localStorage.clear());
 
-  it("shows the app's campaign, its real odds and stock, and the picker", async () => {
-    const onCampaignChange = vi.fn();
+  it("shows the app's campaign, its real odds and stock, and no campaign picker", async () => {
     render(
       <CampaignStudio
         campaigns={[
@@ -45,20 +44,13 @@ describe("CampaignStudio", () => {
         ]}
         prizeTemplates={templates}
         campaignId="c-wheel"
-        onCampaignChange={onCampaignChange}
       />,
     );
     await act(async () => {
       await Promise.resolve();
     });
-    const picker = screen.getByLabelText("Campaign") as HTMLSelectElement;
-    // Archived campaigns are not offered.
-    expect([...picker.options].map((option) => option.textContent)).toEqual([
-      "Standalone (demo campaign)",
-      "Rentrée Zeta",
-    ]);
-    fireEvent.change(picker, { target: { value: "" } });
-    expect(onCampaignChange).toHaveBeenCalledWith(null);
+    expect(screen.getByText("Rentrée Zeta")).toBeTruthy();
+    expect(screen.queryByLabelText("Campaign")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /Game/ }));
     const rules = screen.getByRole("region", { name: "Campaign rules" });
@@ -76,7 +68,6 @@ describe("CampaignStudio", () => {
         campaigns={[campaign({})]}
         prizeTemplates={templates}
         campaignId="c-wheel"
-        onCampaignChange={() => {}}
         onEditCampaignSettings={onEditCampaignSettings}
         onRefreshCampaign={onRefreshCampaign}
       />,
@@ -101,7 +92,6 @@ describe("CampaignStudio", () => {
         campaigns={[]}
         prizeTemplates={[]}
         campaignId={null}
-        onCampaignChange={() => {}}
         onClose={onClose}
       />,
     );

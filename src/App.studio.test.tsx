@@ -63,19 +63,19 @@ vi.mock("./components/playerStudio/useExperienceSummaries", () => ({
     refetch: vi.fn(),
   }),
 }));
+vi.mock("./components/DashboardHome", () => ({
+  DashboardHome: () => <p>dashboard-home</p>,
+}));
 vi.mock("./features/player-experience", () => ({
   CampaignStudio: ({
     campaignId,
     onClose,
-    onCampaignChange,
   }: {
     campaignId: string | null;
     onClose: () => void;
-    onCampaignChange: (id: string | null) => void;
   }) => (
     <div role="dialog" aria-label="Studio">
       <p>studio:{String(campaignId)}</p>
-      <button onClick={() => onCampaignChange("c2")}>Switch to c2</button>
       <button onClick={onClose}>Close Studio</button>
     </div>
   ),
@@ -121,27 +121,18 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     expect(await findStudio()).toContain("studio:c2");
   });
 
-  it("goes back to the table when the Studio closes", async () => {
+  it("goes back to the dashboard home when the Studio closes", async () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(within(await findTable()).getByText("Summer Wheel"));
     expect(await findStudio()).toContain("studio:c1");
 
     await user.click(screen.getByRole("button", { name: "Close Studio" }));
-    await findTable();
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Studio" })).toBeNull(),
     );
-  });
-
-  it("follows the Studio's own campaign picker", async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await user.click(within(await findTable()).getByText("Summer Wheel"));
-    await user.click(
-      await screen.findByRole("button", { name: "Switch to c2" }),
-    );
-    expect(await findStudio()).toContain("studio:c2");
+    expect(await screen.findByText("dashboard-home")).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "Your campaigns" })).toBeNull();
   });
 
   it("opens the standalone Studio from the page", async () => {
@@ -164,7 +155,9 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     expect(await findStudio()).toMatch(/studio:c[12]/);
 
     await user.click(screen.getByRole("button", { name: "Close Studio" }));
-    expect(await findTable()).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Studio" })).toBeNull(),
+    );
   });
 
   it("keeps the sandbox on its own campaign", async () => {

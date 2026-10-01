@@ -12,17 +12,9 @@ import { useAutosave } from "./useAutosave";
 // The Studio (plan §9): the brand edits the presentation of one campaign, and sees the real
 // player screens change in a device-sized preview. Rules and prizes stay in the Wizard.
 
-export interface StudioCampaignOption {
-  id: string;
-  name: string;
-}
-
 export interface PlayerExperienceStudioProps {
   // The campaign being dressed; null or absent = standalone, on the demo campaign.
   campaign?: CampaignSnapshot | null;
-  // The top bar's campaign picker; hidden without options.
-  campaigns?: readonly StudioCampaignOption[];
-  onCampaignChange?: (campaignId: string | null) => void;
   onEditCampaignSettings?: StudioContextValue["onEditCampaignSettings"];
   onRefreshCampaign?: () => void;
   // The campaign's draw rules (buildDemoRules), shown read-only in the Game panel.
@@ -38,7 +30,7 @@ export function PlayerExperienceStudio({
   ...props
 }: PlayerExperienceStudioProps) {
   const services = useMemo(() => injected ?? createLocalServices(), [injected]);
-  // One store per campaign: switching campaigns never mixes two histories.
+  // One store per campaign: opening another campaign never mixes two histories.
   return (
     <StudioSession
       key={campaign?.id ?? "standalone"}
@@ -52,8 +44,6 @@ export function PlayerExperienceStudio({
 function StudioSession({
   campaign,
   services,
-  campaigns,
-  onCampaignChange,
   onEditCampaignSettings,
   onRefreshCampaign,
   rules,
@@ -134,8 +124,6 @@ function StudioSession({
         loadError={loadError}
         onRetryLoad={() => setLoadAttempt((attempt) => attempt + 1)}
         autosave={autosave}
-        campaigns={campaigns}
-        onCampaignChange={onCampaignChange}
         onClose={onClose}
         className={className}
       />

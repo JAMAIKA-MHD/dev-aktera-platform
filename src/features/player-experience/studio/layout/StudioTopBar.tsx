@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import type { StudioCampaignOption } from "../PlayerExperienceStudio";
 import { useLayoutWarnings } from "../preview/useLayoutReport";
 import { useStudio, useStudioHistory } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
@@ -20,8 +19,6 @@ import { ScreenTabs } from "./ScreenTabs";
 
 // Top bar (plan §9.1): which campaign, undo/redo, whether the work is saved, how many
 // problems remain, and the preview in a window of its own.
-
-const STANDALONE = "";
 
 function IconButton({
   label,
@@ -146,13 +143,9 @@ function IssuesButton() {
 
 export function StudioTopBar({
   autosave,
-  campaigns,
-  onCampaignChange,
   onClose,
 }: {
   autosave: Autosave;
-  campaigns?: readonly StudioCampaignOption[];
-  onCampaignChange?: (campaignId: string | null) => void;
   onClose?: () => void;
 }) {
   const campaignId = useStudio((state) => state.campaignId);
@@ -175,25 +168,9 @@ export function StudioTopBar({
           <p className="text-[9px] font-black uppercase tracking-wider text-brand-text-muted">
             Player Studio
           </p>
-          {campaigns && campaigns.length > 0 && onCampaignChange ? (
-            <select
-              aria-label="Campaign"
-              value={campaignId ?? STANDALONE}
-              onChange={(event) => onCampaignChange(event.target.value || null)}
-              className="-ml-1 max-w-[14rem] cursor-pointer truncate rounded-lg bg-transparent px-1 text-sm font-bold text-brand-text outline-none hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-blue-500"
-            >
-              <option value={STANDALONE}>Standalone (demo campaign)</option>
-              {campaigns.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="truncate text-sm font-bold">
-              {campaignName ?? "Standalone (demo campaign)"}
-            </p>
-          )}
+          <p className="truncate text-sm font-bold">
+            {campaignName ?? "Standalone (demo campaign)"}
+          </p>
         </div>
       </div>
 

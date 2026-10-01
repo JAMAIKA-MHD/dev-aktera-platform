@@ -3,10 +3,7 @@
 
 export { PlayerExperience } from "./runtime/PlayerExperience";
 export { PlayerExperienceStudio } from "./studio/PlayerExperienceStudio";
-export type {
-  PlayerExperienceStudioProps,
-  StudioCampaignOption,
-} from "./studio/PlayerExperienceStudio";
+export type { PlayerExperienceStudioProps } from "./studio/PlayerExperienceStudio";
 // The Studio on the dashboard's own campaigns (T7.1): loaded lazily by App.
 export { CampaignStudio } from "./studio/CampaignStudio";
 export type { CampaignStudioProps } from "./studio/CampaignStudio";

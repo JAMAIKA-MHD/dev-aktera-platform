@@ -1,6 +1,5 @@
 import { AlertTriangle, Eye, RotateCcw, X } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
-import type { StudioCampaignOption } from "../PlayerExperienceStudio";
 import type { Autosave } from "../useAutosave";
 import { useUndoShortcuts } from "../useUndoShortcuts";
 import { PanelArea } from "./PanelArea";
@@ -34,8 +33,6 @@ export interface StudioShellProps {
   loadError?: string | null;
   onRetryLoad?: () => void;
   autosave: Autosave;
-  campaigns?: readonly StudioCampaignOption[];
-  onCampaignChange?: (campaignId: string | null) => void;
   onClose?: () => void;
   className?: string;
 }
@@ -45,8 +42,6 @@ export function StudioShell({
   loadError = null,
   onRetryLoad,
   autosave,
-  campaigns,
-  onCampaignChange,
   onClose,
   className = "",
 }: StudioShellProps) {
@@ -59,12 +54,7 @@ export function StudioShell({
       className={`relative flex h-full min-h-0 flex-col overflow-clip bg-brand-dark font-sans text-brand-text ${className}`}
       data-xp-studio
     >
-      <StudioTopBar
-        autosave={autosave}
-        campaigns={campaigns}
-        onCampaignChange={onCampaignChange}
-        onClose={onClose}
-      />
+      <StudioTopBar autosave={autosave} onClose={onClose} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <StudioNav />
         <main

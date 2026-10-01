@@ -49,7 +49,6 @@ function renderStudio(handlers: FakeHandlers, patch: Partial<Campaign> = {}) {
       campaigns={[campaign(patch)]}
       prizeTemplates={templates}
       campaignId="c-wheel"
-      onCampaignChange={() => {}}
       backend={{ client: fake.client, supabaseUrl: "http://127.0.0.1:54321" }}
     />,
   );

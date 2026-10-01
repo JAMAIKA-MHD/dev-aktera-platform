@@ -825,12 +825,9 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
                     ? null
                     : studioCampaignId
                 }
-                onCampaignChange={(id) =>
-                  setStudioCampaignId(id ?? STANDALONE_STUDIO)
-                }
                 onEditCampaignSettings={handleEditFromStudio}
                 onRefreshCampaign={refetchCampaigns}
-                onClose={() => setStudioCampaignId(null)}
+                onClose={() => handleSidebarNavigate("home")}
                 backend={STUDIO_BACKEND}
               />
             </Suspense>

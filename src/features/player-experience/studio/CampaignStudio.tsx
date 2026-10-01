@@ -24,7 +24,6 @@ export interface CampaignStudioProps extends Pick<
   campaigns: readonly Campaign[];
   prizeTemplates: readonly Pick<PrizeTemplate, "id" | "name">[];
   campaignId: string | null; // null or unknown = standalone, on the demo campaign
-  onCampaignChange: (campaignId: string | null) => void;
   backend?: StudioBackend; // without it: the local services of the MVP
 }
 
@@ -32,7 +31,6 @@ export function CampaignStudio({
   campaigns,
   prizeTemplates,
   campaignId,
-  onCampaignChange,
   backend,
   ...props
 }: CampaignStudioProps) {
@@ -46,19 +44,10 @@ export function CampaignStudio({
     [campaign, prizeTemplates],
   );
   const services = useCampaignServices(backend, campaign, rules);
-  const options = useMemo(
-    () =>
-      campaigns
-        .filter((item) => item.status !== "archived")
-        .map((item) => ({ id: item.id, name: item.name })),
-    [campaigns],
-  );
   return (
     <PlayerExperienceStudio
       campaign={snapshot}
       rules={rules}
-      campaigns={options}
-      onCampaignChange={onCampaignChange}
       services={services}
       {...props}
     />
