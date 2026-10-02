@@ -775,9 +775,6 @@ export default function App({ initialTab = "home" }: { initialTab?: TabType }) {
                     error={campError}
                     organizationId={orgId}
                     onOpenCampaign={setStudioCampaignId}
-                    onOpenStandalone={() =>
-                      setStudioCampaignId(STANDALONE_STUDIO)
-                    }
                     onCreateCampaign={() => handleSidebarNavigate("creator")}
                     onRetry={() => void refetchCampaigns()}
                   />

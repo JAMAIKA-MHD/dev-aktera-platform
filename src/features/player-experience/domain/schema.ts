@@ -134,11 +134,11 @@ const formSchema = z
       });
     }
     const phone = form.fields.find((field) => field.key === "phone");
-    if (!phone || !phone.enabled || !phone.required) {
+    if (!phone) {
       ctx.addIssue({
         code: "custom",
         path: ["fields"],
-        message: "The phone field must be present, enabled and required",
+        message: "The phone field must be present",
       });
     }
   });

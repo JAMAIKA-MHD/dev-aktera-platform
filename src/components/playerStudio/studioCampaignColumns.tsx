@@ -97,6 +97,7 @@ export function studioCampaignColumns({
         <Button
           variant="ghost"
           size="sm"
+          className="cursor-pointer bg-blue-600 text-white hover:bg-blue-500 hover:text-white dark:bg-blue-600 dark:hover:bg-blue-500"
           onClick={() => onOpen(row.original)}
           aria-label={`${t("playerStudio.open", "Open")} ${row.original.name}`}
         >

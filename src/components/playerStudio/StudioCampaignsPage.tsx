@@ -2,7 +2,7 @@
 // Studio (App.tsx decides what "open" does). The Studio itself is not rendered here.
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnFiltersState } from "@tanstack/react-table";
-import { AlertTriangle, Plus, Sparkles } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 
 import { useLanguage } from "../../contexts/LanguageContext";
 import type { Campaign } from "../../types";
@@ -28,7 +28,6 @@ export interface StudioCampaignsPageProps {
   error: string | null;
   organizationId: string | null;
   onOpenCampaign: (campaignId: string) => void;
-  onOpenStandalone: () => void;
   onCreateCampaign: () => void;
   onRetry: () => void;
 }
@@ -47,7 +46,6 @@ export function StudioCampaignsPage({
   error,
   organizationId,
   onOpenCampaign,
-  onOpenStandalone,
   onCreateCampaign,
   onRetry,
 }: StudioCampaignsPageProps) {
@@ -113,10 +111,6 @@ export function StudioCampaignsPage({
             )}
           </p>
         </div>
-        <Button variant="outline" onClick={onOpenStandalone}>
-          <Sparkles aria-hidden />
-          {t("playerStudio.standalone", "Open standalone demo")}
-        </Button>
       </header>
 
       {error && !loading ? (

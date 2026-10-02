@@ -135,16 +135,6 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     expect(screen.queryByRole("table", { name: "Your campaigns" })).toBeNull();
   });
 
-  it("opens the standalone Studio from the page", async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await findTable();
-    await user.click(
-      screen.getByRole("button", { name: "Open standalone demo" }),
-    );
-    expect(await findStudio()).toContain("studio:null");
-  });
-
   it("still opens the Studio directly from Customize player screen", async () => {
     const user = userEvent.setup();
     renderApp("campaigns");

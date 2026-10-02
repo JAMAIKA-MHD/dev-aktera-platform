@@ -119,8 +119,9 @@ export function createInitialFlowState(
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // What keeps the form from being sent, field by field: an enabled required field left
-// empty, an Algerian mobile number that is missing or invalid (always required: it is the
-// anti-duplicate key), a malformed email when one is typed, the consent box not ticked.
+// empty, an Algerian mobile number that is invalid when typed (the phone is a field like
+// the others in the Studio; the server still refuses a participation without it), a
+// malformed email when one is typed, the consent box not ticked.
 export type FormErrorCode = "required" | "phone" | "email" | "consent";
 export type FormErrors = Partial<
   Record<FormFieldKey | "consent", FormErrorCode>
@@ -128,12 +129,15 @@ export type FormErrors = Partial<
 
 export function formErrors(state: FlowState, form: FormConfig): FormErrors {
   const errors: FormErrors = {};
-  const { phone } = state.participant;
-  if (phone.trim() === "") errors.phone = "required";
-  else if (!isValidDzMobile(phone)) errors.phone = "phone";
   for (const field of form.fields) {
-    if (!field.enabled || field.key === "phone") continue;
+    if (!field.enabled) continue;
     const value = state.participant[field.key].trim();
+    if (field.key === "phone") {
+      if (value === "") {
+        if (field.required) errors.phone = "required";
+      } else if (!isValidDzMobile(value)) errors.phone = "phone";
+      continue;
+    }
     if (field.required && value === "") errors[field.key] = "required";
     else if (field.key === "email" && value !== "" && !EMAIL.test(value)) {
       errors.email = "email";
@@ -325,7 +329,8 @@ export function buildDrawRequest(
     consentAcceptedAt === null ||
     !clientRequestId ||
     !gamePayload ||
-    !isValidDzMobile(state.participant.phone)
+    (state.participant.phone.trim() !== "" &&
+      !isValidDzMobile(state.participant.phone))
   ) {
     return null;
   }

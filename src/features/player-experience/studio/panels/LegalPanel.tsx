@@ -125,7 +125,7 @@ export function LegalPanel() {
           />
         </PanelSection>
 
-        <PanelSection title="Mentions">
+        <PanelSection title="General Rules">
           <PanelIssues prefixes={["legal.legalLine", "legal.termsBody"]} />
           <LocalizedTextField
             label="Short mention"

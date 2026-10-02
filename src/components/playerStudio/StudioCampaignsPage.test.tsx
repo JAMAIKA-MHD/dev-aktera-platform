@@ -66,7 +66,6 @@ const CAMPAIGNS: Campaign[] = [
 function renderPage(props: Partial<StudioCampaignsPageProps> = {}) {
   const handlers = {
     onOpenCampaign: vi.fn(),
-    onOpenStandalone: vi.fn(),
     onCreateCampaign: vi.fn(),
     onRetry: vi.fn(),
   };
@@ -176,15 +175,6 @@ describe("StudioCampaignsPage", () => {
     await user.click(screen.getByRole("button", { name: "Open Summer Wheel" }));
     expect(onOpenCampaign).toHaveBeenCalledTimes(1);
     expect(onOpenCampaign).toHaveBeenCalledWith("wheel");
-  });
-
-  it("opens the standalone Studio", async () => {
-    const user = userEvent.setup();
-    const { onOpenStandalone } = renderPage();
-    await user.click(
-      screen.getByRole("button", { name: "Open standalone demo" }),
-    );
-    expect(onOpenStandalone).toHaveBeenCalled();
   });
 
   it("shows skeleton rows while the campaigns load", () => {

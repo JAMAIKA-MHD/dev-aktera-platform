@@ -273,9 +273,15 @@ describe("canSubmit", () => {
     ).toBe(true);
   });
 
-  it("always requires a valid phone, whatever the form says", () => {
+  it("treats the phone like any other field: required only when the form says so", () => {
     const phoneOff = formWith("phone", { enabled: false, required: false });
-    expect(canSubmit(withFields({ phone: "" }), phoneOff)).toBe(false);
+    expect(canSubmit(withFields({ phone: "" }), phoneOff)).toBe(true);
+    const phoneOptional = formWith("phone", { required: false });
+    expect(canSubmit(withFields({ phone: "" }), phoneOptional)).toBe(true);
+    expect(canSubmit(withFields({ phone: "0212345678" }), phoneOptional)).toBe(
+      false,
+    );
+    expect(canSubmit(withFields({ phone: "" }), FORM)).toBe(false);
   });
 });
 

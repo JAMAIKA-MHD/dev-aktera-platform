@@ -37,15 +37,15 @@ function renderPanel(
 }
 
 describe("FormPanel", () => {
-  it("keeps the phone number shown and required, with the reason", () => {
+  it("lets the brand show, require and hide the phone number like any field", () => {
     renderPanel(FormPanel);
     const card = screen
       .getByText("Phone number")
       .closest("[data-studio-path]")!;
+    expect(within(card as HTMLElement).queryByText("Locked")).toBeNull();
     for (const name of ["Shown", "Required"]) {
       const toggle = within(card as HTMLElement).getByRole("switch", { name });
-      expect(toggle).toHaveProperty("disabled", true);
-      expect(toggle.getAttribute("title")).toMatch(/duplicates/);
+      expect(toggle).toHaveProperty("disabled", false);
     }
   });
 

@@ -101,11 +101,6 @@ describe("experienceConfigSchema", () => {
         (r.form.fields = r.form.fields.filter((f: any) => f.key !== "phone")),
     ],
     [
-      "an optional phone field",
-      (r: any) =>
-        (r.form.fields.find((f: any) => f.key === "phone").required = false),
-    ],
-    [
       "a duplicated form field",
       (r: any) => r.form.fields.push(r.form.fields[0]),
     ],

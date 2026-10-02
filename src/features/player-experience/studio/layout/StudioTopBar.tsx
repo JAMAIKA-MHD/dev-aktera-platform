@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   CircleAlert,
   CloudOff,
@@ -9,7 +10,6 @@ import {
   RotateCw,
   Sparkles,
   Undo2,
-  X,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useLayoutWarnings } from "../preview/useLayoutReport";
@@ -161,6 +161,17 @@ export function StudioTopBar({
   return (
     <header className="flex min-h-16 flex-wrap items-center gap-x-3 gap-y-2 border-b border-card-border bg-card-bg px-3 py-2 sm:px-4">
       <div className="flex min-w-0 items-center gap-2.5">
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Back to dashboard"
+            title="Back to dashboard"
+            className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-card-border text-brand-text transition hover:bg-card-hover focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95"
+          >
+            <ArrowLeft className="size-5" aria-hidden />
+          </button>
+        )}
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-600/25">
           <Sparkles className="size-4" aria-hidden />
         </span>
@@ -209,11 +220,6 @@ export function StudioTopBar({
           <ExternalLink className="size-4" aria-hidden />
           <span className="hidden xl:inline">Open in window</span>
         </button>
-        {onClose && (
-          <IconButton label="Back to dashboard" onClick={onClose}>
-            <X className="size-5" aria-hidden />
-          </IconButton>
-        )}
       </div>
     </header>
   );

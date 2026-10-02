@@ -454,6 +454,18 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
   }
 }
 
+function checkPhone(config: ExperienceConfig, issues: DesignIssue[]): void {
+  const phone = config.form.fields.find((field) => field.key === "phone");
+  if (phone?.enabled && phone.required) return;
+  issues.push({
+    id: "phone-not-required",
+    level: "warning",
+    path: "form.fields",
+    message:
+      "The phone number is not shown and required: the server refuses a participation without it (one entry per phone number).",
+  });
+}
+
 // Errors first, then warnings, each in the order of the checks.
 export function validateExperience(
   config: ExperienceConfig,
@@ -463,6 +475,7 @@ export function validateExperience(
   const texts = playerTexts(config);
   checkContrast(config, issues);
   checkConsentAndLinks(config, issues);
+  checkPhone(config, issues);
   checkTitles(config, issues);
   checkTexts(config, texts, issues);
   checkWheel(config, campaign ?? null, issues);

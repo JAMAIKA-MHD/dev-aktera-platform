@@ -47,10 +47,7 @@ export function RegisterScreen({ flow, config, locale, chrome }: ScreenProps) {
       })),
     [locale],
   );
-  // The phone is always asked, whatever the configuration says.
-  const fields = config.form.fields.filter(
-    (field) => field.enabled || field.key === "phone",
-  );
+  const fields = config.form.fields.filter((field) => field.enabled);
   const onlyConsentLeft =
     errors.consent !== undefined && Object.keys(errors).length === 1;
 
@@ -97,7 +94,7 @@ export function RegisterScreen({ flow, config, locale, chrome }: ScreenProps) {
           </p>
         )}
         {fields.map((field, index) => {
-          const optional = !field.required && field.key !== "phone";
+          const optional = !field.required;
           const value = state.participant[field.key];
           return (
             <FormField

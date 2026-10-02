@@ -155,15 +155,26 @@ describe("RegisterScreen", () => {
     });
   });
 
-  it("marks the optional fields, and always asks for the phone", () => {
+  it("shows the phone like any field: when the brand shows it, and marked optional when not required", () => {
     setup({
       customize: (config) => {
         for (const field of config.form.fields) field.enabled = false;
+        const phoneField = config.form.fields.find((f) => f.key === "phone");
+        if (phoneField) phoneField.enabled = true;
       },
     });
     expect(screen.queryByLabelText("Nom complet")).toBeNull();
-    expect(phone()).toBeTruthy(); // it is the anti-duplicate key (N4)
     expect(phone().required).toBe(true);
+  });
+
+  it("does not ask for the phone when the brand hides it", () => {
+    setup({
+      customize: (config) => {
+        const phoneField = config.form.fields.find((f) => f.key === "phone");
+        if (phoneField) phoneField.enabled = false;
+      },
+    });
+    expect(screen.queryByLabelText("Numéro de téléphone")).toBeNull();
   });
 
   it("checks the email when the brand asks for it, with the keyboard of each field", async () => {
