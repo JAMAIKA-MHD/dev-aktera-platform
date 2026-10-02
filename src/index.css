@@ -68,6 +68,11 @@
   --theme-kpi-border: rgba(59, 130, 246, 0.25);
 }
 
+/* Native dropdown lists (select) follow the dark theme instead of opening white. */
+[data-theme="dark"] select {
+  color-scheme: dark;
+}
+
 @layer base {
   body {
     background-color: var(--color-brand-dark);

@@ -58,13 +58,13 @@ export function StudioCampaignsToolbar({
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder={searchLabel}
           aria-label={searchLabel}
-          className="bg-background pl-9"
+          className="border-border/50 bg-transparent pl-9 shadow-none focus-visible:ring-1"
         />
       </div>
       <div
         role="group"
         aria-label={t("playerStudio.filterStatus", "Filter by status")}
-        className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1"
+        className="flex flex-wrap gap-1 rounded-lg border border-border/50 p-0.5"
       >
         {STATUS_FILTERS.map((option) => (
           <Button
@@ -86,7 +86,7 @@ export function StudioCampaignsToolbar({
         value={game}
         onChange={(event) => onGameChange(event.target.value as GameFilter)}
         aria-label={t("playerStudio.filterGame", "Filter by game")}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-9 rounded-md border border-border/50 bg-card-bg px-3 text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
       >
         <option value="all">{t("playerStudio.allGames", "All games")}</option>
         {GAME_TYPES.map((gameType) => (

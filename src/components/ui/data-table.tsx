@@ -186,7 +186,7 @@ export function DataTable<TData>({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="@container overflow-hidden rounded-xl border border-border bg-background">
+      <div className="@container overflow-hidden rounded-lg">
         <Table aria-label={ariaLabel} aria-busy={loading || undefined}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
