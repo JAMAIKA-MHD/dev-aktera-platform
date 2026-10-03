@@ -1,65 +1,23 @@
-// The dashboard menu, shared by the dashboard shell and the Studio. It rests as an icon rail and
-// opens in two ways at once:
-//   - hover (or keyboard focus): it opens over the page while the pointer is on it, and the page
-//     does not move;
-//   - click on the edge button: it stays open ("pinned") and the page makes room for it. The
-//     choice is remembered across visits.
-import React, { useEffect, useState } from "react";
+// The dashboard menu. It rests as an icon rail and opens by hover (over the page) or by the
+// "keep the menu open" entry at its foot (pinned, remembered): see useCollapsibleMenu.
+import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useCollapsibleMenu } from "../hooks/useCollapsibleMenu";
 import { PATHS } from "./paths";
 
 const PINNED_KEY = "dashboard-sidebar-pinned";
-
-function readPinned(): boolean {
-  try {
-    return localStorage.getItem(PINNED_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function writePinned(pinned: boolean) {
-  try {
-    localStorage.setItem(PINNED_KEY, String(pinned));
-  } catch {
-    // Storage blocked: the sidebar still works for this visit.
-  }
-}
-
-// A click also focuses a button or a link: only a keyboard focus opens the menu, otherwise
-// closing it by click would leave it open.
-function isKeyboardFocus(element: EventTarget): boolean {
-  try {
-    return (element as Element).matches(":focus-visible");
-  } catch {
-    return true;
-  }
-}
 
 export function DashboardSidebar() {
   const { signOut } = useAuth();
   const { t } = useLanguage();
   const { pathname } = useLocation();
 
-  const [pinned, setPinned] = useState(readPinned);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  // After a click that closes the menu, the pointer is still on it: hover must not reopen it
-  // until the pointer has left once.
-  const [hoverMuted, setHoverMuted] = useState(false);
-
-  useEffect(() => writePinned(pinned), [pinned]);
-
-  const expanded = pinned || (hovered && !hoverMuted) || focused;
-
-  const togglePinned = () => {
-    if (pinned) setHoverMuted(true);
-    setPinned(!pinned);
-  };
+  const { pinned, expanded, togglePinned, bind } =
+    useCollapsibleMenu(PINNED_KEY);
 
   // `section` is the first path segment an entry stays active for ("/create" and "/campaigns/…"
   // are separate sections, as the tabs were).
@@ -126,17 +84,7 @@ export function DashboardSidebar() {
     >
       <aside
         data-expanded={expanded}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => {
-          setHovered(false);
-          setHoverMuted(false);
-        }}
-        onFocus={(event) => setFocused(isKeyboardFocus(event.target))}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-            setFocused(false);
-          }
-        }}
+        {...bind}
         className={`glass-panel absolute inset-y-0 left-0 flex flex-col border-r border-brand-border transition-[width,box-shadow] duration-300 ease-in-out ${
           expanded ? "w-64" : "w-20"
         } ${expanded && !pinned ? "shadow-2xl" : ""}`}
@@ -156,22 +104,6 @@ export function DashboardSidebar() {
             Aktera
           </span>
         </div>
-
-        {/* Click mode: keeps the menu open (or closes it back to the rail) */}
-        <button
-          type="button"
-          onClick={togglePinned}
-          aria-pressed={pinned}
-          aria-label={toggleLabel}
-          title={toggleLabel}
-          className="absolute -right-3 top-[4.5rem] z-10 flex size-6 cursor-pointer items-center justify-center rounded-full border border-brand-border bg-card-bg text-brand-textMuted shadow-sm transition-colors hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500"
-        >
-          {pinned ? (
-            <ChevronsLeft className="size-3.5" aria-hidden />
-          ) : (
-            <ChevronsRight className="size-3.5" aria-hidden />
-          )}
-        </button>
 
         {/* Navigation Items */}
         <nav
@@ -203,6 +135,24 @@ export function DashboardSidebar() {
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-brand-border/50 space-y-1.5 overflow-hidden whitespace-nowrap">
+          {/* Click mode: keeps the menu open, or closes it back to the rail */}
+          <button
+            type="button"
+            onClick={togglePinned}
+            aria-pressed={pinned}
+            aria-label={toggleLabel}
+            title={!expanded ? toggleLabel : undefined}
+            className="w-full flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+          >
+            <div className="w-6 flex items-center justify-center shrink-0">
+              {pinned ? (
+                <ChevronsLeft className="size-4" aria-hidden />
+              ) : (
+                <ChevronsRight className="size-4" aria-hidden />
+              )}
+            </div>
+            <span className={labelClass}>{toggleLabel}</span>
+          </button>
           <a
             className="flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
             href="#"

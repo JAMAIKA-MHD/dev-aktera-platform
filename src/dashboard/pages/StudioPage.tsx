@@ -1,13 +1,12 @@
-// The Player Experience Studio of one campaign (/studio/:campaignId), full screen, without the
-// dashboard top bar but with the same menu (a rail, opened by hover or click).
-// "Edit in campaign settings" opens the campaign wizard over it.
+// The Player Experience Studio of one campaign, full screen (/studio/:campaignId), outside the
+// dashboard shell: the Studio has its own menu. "Edit in campaign settings" opens the campaign
+// wizard over it.
 import { Suspense, lazy, useCallback, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { CampaignWizard } from "../../components/CampaignWizard";
 import type { Campaign } from "../../types";
 import { useDashboard } from "../DashboardContext";
-import { DashboardSidebar } from "../DashboardSidebar";
 import { PageSpinner } from "../DashboardShell";
 import { PATHS, STANDALONE_STUDIO } from "../paths";
 import { STUDIO_BACKEND } from "../studioBackend";
@@ -66,23 +65,19 @@ export default function StudioPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex bg-brand-dark text-brand-text">
-      <DashboardSidebar />
-      {/* Its own stacking context: the menu, when it opens over the Studio, stays on top. */}
-      <div className="relative isolate z-0 h-full min-w-0 flex-1">
-        <Suspense fallback={<PageSpinner className="h-full" />}>
-          <CampaignStudio
-            className="h-full"
-            campaigns={campaigns}
-            prizeTemplates={prizes}
-            campaignId={standalone ? null : campaignId}
-            onEditCampaignSettings={editFromStudio}
-            onRefreshCampaign={refetchCampaigns}
-            onClose={() => navigate(PATHS.home)}
-            backend={STUDIO_BACKEND}
-          />
-        </Suspense>
-      </div>
+    <div className="fixed inset-0 z-[100] bg-brand-dark text-brand-text">
+      <Suspense fallback={<PageSpinner className="h-full" />}>
+        <CampaignStudio
+          className="h-full"
+          campaigns={campaigns}
+          prizeTemplates={prizes}
+          campaignId={standalone ? null : campaignId}
+          onEditCampaignSettings={editFromStudio}
+          onRefreshCampaign={refetchCampaigns}
+          onClose={() => navigate(PATHS.home)}
+          backend={STUDIO_BACKEND}
+        />
+      </Suspense>
 
       {wizard && (
         <div
