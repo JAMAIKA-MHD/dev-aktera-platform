@@ -52,100 +52,114 @@ export function DashboardShell() {
   return (
     <div
       id="saas-app-root"
-      className="h-screen flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
+      className="h-screen flex flex-col overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
     >
-      <DashboardSidebar menu={menu} />
-
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* TOPBAR */}
-        <header className="h-18 sm:h-20 flex items-center justify-between px-7 z-40 shrink-0 border-b border-brand-border/20 relative">
+      {/* TOP BAR: full width, above the menu, so the menu never covers its buttons */}
+      <header className="h-18 sm:h-20 flex items-center justify-between px-7 z-50 shrink-0 border-b border-brand-border/20 relative bg-brand-dark">
+        <div className="flex items-center gap-3">
+          <DashboardMenuToggle menu={menu} />
+          <button
+            onClick={() =>
+              document
+                .getElementById("mobile-nav-bar")
+                ?.classList.toggle("hidden")
+            }
+            className="lg:hidden w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-colors shadow-sm"
+          >
+            <i className="fa-solid fa-bars"></i>
+          </button>
           <div className="flex items-center gap-3">
-            <DashboardMenuToggle menu={menu} />
-            <button
-              onClick={() =>
-                document
-                  .getElementById("mobile-nav-bar")
-                  ?.classList.toggle("hidden")
-              }
-              className="lg:hidden w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-colors shadow-sm"
-            >
-              <i className="fa-solid fa-bars"></i>
-            </button>
-          </div>
-          <div className="flex items-center gap-4 ml-auto">
-            {/* Interactive Player Sandbox Pill button */}
-            <button
-              onClick={() => setShowSandbox(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:scale-105 cursor-pointer"
-            >
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 animate-pulse"></div>
-              <span>Interactive Player Sandbox</span>
-            </button>
-
-            {/* Theme toggle circular button */}
-            <button
-              onClick={toggleTheme}
-              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              <i
-                className={`fa-solid ${theme === "dark" ? "fa-sun text-amber-400 text-base" : "fa-moon text-slate-700 text-base"}`}
-              ></i>
-            </button>
-
-            {/* Notifications circular button */}
-            <button
-              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
-              title="Notifications"
-            >
-              <i className="fa-regular fa-bell text-base"></i>
-            </button>
-
-            {/* User Avatar */}
-            <div
-              onClick={() => navigate(PATHS.account)}
-              className="relative cursor-pointer hover:opacity-90 transition-opacity"
-              title="Account Settings"
-            >
+            <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151E30] p-1.5 flex items-center justify-center shrink-0 shadow-md border border-brand-border/60">
               <img
-                alt="User profile"
-                className="w-10 h-10 rounded-full object-cover border border-brand-border shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                src={avatarUrl}
+                src="/aktera-logo.png"
+                alt="Aktera"
+                className="w-full h-full object-contain dark:invert"
               />
             </div>
+            <span className="hidden sm:inline font-black text-xl tracking-wider text-brand-text">
+              Aktera
+            </span>
           </div>
-        </header>
-
-        {/* Action error banner */}
-        {actionError && (
-          <div className="w-full bg-red-900/20 border-b border-red-500/30 px-6 py-2.5 flex items-center justify-between gap-3 z-20 shrink-0">
-            <div className="flex items-center gap-2 text-sm text-red-400">
-              <i className="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
-              <span>{actionError}</span>
-            </div>
-            <button
-              onClick={() => setActionError(null)}
-              className="text-red-400 hover:text-red-300 cursor-pointer"
-            >
-              <i className="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-        )}
-
-        {/* PAGE: the route decides what shows here */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 z-10 scroll-smooth">
-          <motion.div
-            key={currentSection}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <Suspense fallback={<PageSpinner />}>
-              <Outlet />
-            </Suspense>
-          </motion.div>
         </div>
-      </main>
+        <div className="flex items-center gap-4 ml-auto">
+          {/* Interactive Player Sandbox Pill button */}
+          <button
+            onClick={() => setShowSandbox(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:scale-105 cursor-pointer"
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-blue-300 animate-pulse"></div>
+            <span>Interactive Player Sandbox</span>
+          </button>
+
+          {/* Theme toggle circular button */}
+          <button
+            onClick={toggleTheme}
+            className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            <i
+              className={`fa-solid ${theme === "dark" ? "fa-sun text-amber-400 text-base" : "fa-moon text-slate-700 text-base"}`}
+            ></i>
+          </button>
+
+          {/* Notifications circular button */}
+          <button
+            className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
+            title="Notifications"
+          >
+            <i className="fa-regular fa-bell text-base"></i>
+          </button>
+
+          {/* User Avatar */}
+          <div
+            onClick={() => navigate(PATHS.account)}
+            className="relative cursor-pointer hover:opacity-90 transition-opacity"
+            title="Account Settings"
+          >
+            <img
+              alt="User profile"
+              className="w-10 h-10 rounded-full object-cover border border-brand-border shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+              src={avatarUrl}
+            />
+          </div>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1">
+        <DashboardSidebar menu={menu} />
+
+        {/* MAIN CONTENT AREA */}
+        <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+          {/* Action error banner */}
+          {actionError && (
+            <div className="w-full bg-red-900/20 border-b border-red-500/30 px-6 py-2.5 flex items-center justify-between gap-3 z-20 shrink-0">
+              <div className="flex items-center gap-2 text-sm text-red-400">
+                <i className="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
+                <span>{actionError}</span>
+              </div>
+              <button
+                onClick={() => setActionError(null)}
+                className="text-red-400 hover:text-red-300 cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          )}
+
+          {/* PAGE: the route decides what shows here */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 z-10 scroll-smooth">
+            <motion.div
+              key={currentSection}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <Suspense fallback={<PageSpinner />}>
+                <Outlet />
+              </Suspense>
+            </motion.div>
+          </div>
+        </main>
+      </div>
 
       {/* PORTAL SIMULATOR SLIDE-OUT OVERLAY DRAWER */}
       <AnimatePresence>
