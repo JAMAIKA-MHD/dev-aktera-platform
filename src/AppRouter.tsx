@@ -1,10 +1,16 @@
 import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import CompleteOrganizationSetupPage from "./pages/auth/CompleteOrganizationSetupPage";
-import App from "./App";
+import { dashboardRoutes } from "./dashboard/dashboardRoutes";
 
 // The public player page on the Player Experience runtime and the live gateway (backend B5.2).
 // Loaded on demand: the dashboard bundle does not carry the runtime.
@@ -111,27 +117,19 @@ export default function AppRouter() {
             />
           )}
 
-          {/* The Player Experience Studio, in the dashboard (T7.1). The legacy editor route
-              leads there. */}
-          <Route
-            path="/studio"
-            element={
-              <ProtectedRoute>
-                <App initialTab="playerScreen" />
-              </ProtectedRoute>
-            }
-          />
+          {/* The legacy editor route leads to the Studio. */}
           <Route path="/ui-maker" element={<Navigate to="/studio" replace />} />
 
-          {/* Protected operator dashboard */}
+          {/* The protected operator dashboard: one URL per screen (see dashboardRoutes). */}
           <Route
-            path="/*"
             element={
               <ProtectedRoute>
-                <App />
+                <Outlet />
               </ProtectedRoute>
             }
-          />
+          >
+            {dashboardRoutes}
+          </Route>
         </Routes>
       </AuthProvider>
     </BrowserRouter>
