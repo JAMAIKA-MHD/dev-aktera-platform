@@ -3,15 +3,10 @@ import { Field, inputClass } from "../fields/Field";
 import { LocalizedTextField } from "../fields/LocalizedTextField";
 import { ToggleField } from "../fields/ToggleField";
 import { useStudio } from "../StudioContext";
-import {
-  PanelBody,
-  PanelHeader,
-  PanelIssues,
-  PanelSection,
-} from "./PanelLayout";
+import { PanelIssues, PanelSection } from "./PanelLayout";
 import { useTextLocale } from "./useTextLocale";
 
-// Form (plan §9.2): which fields the player fills in, with their labels, and the consent.
+// The registration screen's form (plan §9.2): which fields the player fills in, with their labels, and the consent.
 // The phone number is a field like the others (a warning reminds that the server needs it
 // to stop duplicates, N4). The consent
 // is always shown, never pre-ticked, and asked before playing (Law 18-07, N3): here the brand
@@ -84,7 +79,7 @@ function FieldCard({
   );
 }
 
-export function FormPanel() {
+export function FormSections() {
   const form = useStudio((state) => state.config.form);
   const updateForm = useStudio((state) => state.updateForm);
   const textLocale = useTextLocale();
@@ -98,68 +93,62 @@ export function FormPanel() {
 
   return (
     <>
-      <PanelHeader
-        title="Form"
-        description="What players fill in before they play, and what they agree to."
-      />
-      <PanelBody>
-        <PanelSection
-          title="Fields"
-          description="Keep it short: every extra field loses players."
-        >
-          <PanelIssues prefixes={["form.fields"]} />
-          {form.fields.map((field, index) => (
-            <FieldCard
-              key={field.key}
-              field={field}
-              index={index}
-              onChange={setField(index)}
-            />
-          ))}
-        </PanelSection>
-
-        <PanelSection
-          title="Consent"
-          description="Shown unticked under the form; players must tick it to play (Law 18-07)."
-        >
-          <PanelIssues prefixes={["form.consent"]} />
-          <LocalizedTextField
-            label="Consent text"
-            path="form.consent.text"
-            value={form.consent.text}
-            onChange={(text) =>
-              updateForm({ consent: { ...form.consent, text } })
-            }
-            multiline
-            required
-            maxChars={280}
-            {...textLocale}
+      <PanelSection
+        title="Fields"
+        description="Keep it short: every extra field loses players."
+      >
+        <PanelIssues prefixes={["form.fields"]} />
+        {form.fields.map((field, index) => (
+          <FieldCard
+            key={field.key}
+            field={field}
+            index={index}
+            onChange={setField(index)}
           />
-          <Field
-            label="Policy version"
-            path="form.consent.policyVersion"
-            hint="Stored with every consent. Change it whenever the privacy policy changes."
-          >
-            {(id) => (
-              <input
-                id={id}
-                value={form.consent.policyVersion}
-                maxLength={40}
-                onChange={(event) =>
-                  event.target.value.trim() &&
-                  updateForm({
-                    consent: {
-                      ...form.consent,
-                      policyVersion: event.target.value,
-                    },
-                  })
-                }
-                className={`${inputClass} font-mono`}
-              />
-            )}
-          </Field>
-        </PanelSection>
-      </PanelBody>
+        ))}
+      </PanelSection>
+
+      <PanelSection
+        title="Consent"
+        description="Shown unticked under the form; players must tick it to play (Law 18-07)."
+      >
+        <PanelIssues prefixes={["form.consent"]} />
+        <LocalizedTextField
+          label="Consent text"
+          path="form.consent.text"
+          value={form.consent.text}
+          onChange={(text) =>
+            updateForm({ consent: { ...form.consent, text } })
+          }
+          multiline
+          required
+          maxChars={280}
+          {...textLocale}
+        />
+        <Field
+          label="Policy version"
+          path="form.consent.policyVersion"
+          hint="Stored with every consent. Change it whenever the privacy policy changes."
+        >
+          {(id) => (
+            <input
+              id={id}
+              value={form.consent.policyVersion}
+              maxLength={40}
+              onChange={(event) =>
+                event.target.value.trim() &&
+                updateForm({
+                  consent: {
+                    ...form.consent,
+                    policyVersion: event.target.value,
+                  },
+                })
+              }
+              className={`${inputClass} font-mono`}
+            />
+          )}
+        </Field>
+      </PanelSection>
     </>
   );
 }

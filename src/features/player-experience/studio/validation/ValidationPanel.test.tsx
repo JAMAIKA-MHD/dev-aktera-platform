@@ -50,7 +50,7 @@ describe("ValidationPanel", () => {
     const row = within(errors).getByRole("button", {
       name: /consent text is empty/,
     });
-    expect(row.textContent).toMatch(/Form/);
+    expect(row.textContent).toMatch(/Sections/);
     // The menu counts it too, in red.
     expect(
       screen.getByRole("button", { name: /Validation/ }).textContent,
@@ -58,7 +58,8 @@ describe("ValidationPanel", () => {
 
     fireEvent.click(row);
     expect(store.getState().ui).toMatchObject({
-      panel: "form",
+      panel: "sections",
+      screen: "register",
       focusPath: "form.consent.text",
     });
     const field = document.querySelector<HTMLElement>(
@@ -87,9 +88,9 @@ describe("ValidationPanel", () => {
     expect(groups).toEqual(["Errors", "Warnings", "All sizes"]);
     const warnings = screen.getByRole("region", { name: "Warnings" });
     fireEvent.click(
-      within(warnings).getAllByRole("button", { name: /Content/ })[0],
+      within(warnings).getAllByRole("button", { name: /Sections/ })[0],
     );
-    expect(store.getState().ui.panel).toBe("content");
+    expect(store.getState().ui.panel).toBe("sections");
     expect(store.getState().ui.focusPath).toMatch(/^screens\.welcome/);
   });
 });

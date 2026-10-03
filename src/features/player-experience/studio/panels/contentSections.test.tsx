@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "../../domain/defaults";
@@ -8,8 +8,8 @@ import { PreviewViewport } from "../preview/PreviewViewport";
 import { CONFIG_DEBOUNCE_MS } from "../preview/usePreviewBridge";
 import { createStudioStore, type StudioStore } from "../store";
 import { StudioProvider } from "../StudioContext";
-import { ContentPanel } from "./ContentPanel";
-import { MAX_CHIPS, SectionsPanel } from "./SectionsPanel";
+import { SectionsPanel } from "./SectionsPanel";
+import { MAX_CHIPS } from "./WelcomeSections";
 
 function renderPanel(Panel: ComponentType, withPreview = false) {
   const store: StudioStore = createStudioStore({
@@ -24,11 +24,11 @@ function renderPanel(Panel: ComponentType, withPreview = false) {
   return store;
 }
 
-describe("ContentPanel", () => {
+describe("Sections › the texts of a screen", () => {
   afterEach(() => vi.useRealTimers());
 
   it("edits the screen shown in the preview, and follows its tab", () => {
-    const store = renderPanel(ContentPanel);
+    const store = renderPanel(SectionsPanel);
     expect(screen.queryByRole("radio", { name: "Win" })).toBeNull();
 
     act(() => store.getState().setScreen("win"));
@@ -45,8 +45,8 @@ describe("ContentPanel", () => {
   });
 
   it("opens the screen of a text clicked in the preview", () => {
-    const store = renderPanel(ContentPanel);
-    act(() => store.getState().setPanel("content", "screens.register.title"));
+    const store = renderPanel(SectionsPanel);
+    act(() => store.getState().setPanel("sections", "screens.register.title"));
     expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
       store.getState().config.screens.register.title.fr,
     );
@@ -54,7 +54,7 @@ describe("ContentPanel", () => {
 
   it("sends a text to the preview in the right language, without a reload", async () => {
     vi.useFakeTimers();
-    const store = renderPanel(ContentPanel, true);
+    const store = renderPanel(SectionsPanel, true);
     const frame = document.querySelector("iframe")!.contentWindow!;
     const posted: ToFrameMessage[] = [];
     vi.spyOn(frame, "postMessage").mockImplementation((message) => {
@@ -91,7 +91,7 @@ describe("ContentPanel", () => {
   });
 
   it("turns the second button and the encouragement on and off", () => {
-    const store = renderPanel(ContentPanel);
+    const store = renderPanel(SectionsPanel);
     fireEvent.click(screen.getByRole("switch", { name: /Second button/ }));
     expect(store.getState().config.screens.welcome.secondaryCta).toEqual({});
     fireEvent.change(screen.getByLabelText("Second button text"), {
@@ -107,7 +107,7 @@ describe("ContentPanel", () => {
   });
 
   it("offers languages, never without the default one", () => {
-    const store = renderPanel(ContentPanel);
+    const store = renderPanel(SectionsPanel);
     act(() => store.getState().setLocale("en"));
     fireEvent.click(screen.getByRole("button", { name: /Languages/ }));
     fireEvent.click(screen.getByRole("switch", { name: "English" }));
@@ -126,7 +126,7 @@ describe("ContentPanel", () => {
   });
 
   it("enables a disabled language when it is made the default", () => {
-    const store = renderPanel(ContentPanel);
+    const store = renderPanel(SectionsPanel);
     fireEvent.click(screen.getByRole("button", { name: /Languages/ }));
     fireEvent.click(screen.getByRole("switch", { name: "English" }));
     expect(store.getState().config.locales.enabled).toEqual(["fr", "ar"]);
@@ -138,7 +138,7 @@ describe("ContentPanel", () => {
   });
 
   it("closes the languages menu on Escape", () => {
-    renderPanel(ContentPanel);
+    renderPanel(SectionsPanel);
     fireEvent.click(screen.getByRole("button", { name: /Languages/ }));
     expect(screen.getByRole("switch", { name: "English" })).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape" });
@@ -146,7 +146,7 @@ describe("ContentPanel", () => {
   });
 });
 
-describe("SectionsPanel", () => {
+describe("Sections › Welcome (jackpot card and prize chips)", () => {
   it("edits and hides the jackpot card", () => {
     const store = renderPanel(SectionsPanel);
     fireEvent.change(screen.getByLabelText("Badge"), {
@@ -176,5 +176,89 @@ describe("SectionsPanel", () => {
     const [chip] = chips();
     fireEvent.click(screen.getByRole("radio", { name: "Accent" }));
     expect(chips()[0]).toMatchObject({ id: chip.id, tone: "accent" });
+  });
+});
+
+describe("Sections › the screen menu", () => {
+  const options = () =>
+    within(screen.getByLabelText("Screen to edit")).getAllByRole("option");
+
+  it("lists every screen, and edits the one it shows", () => {
+    const store = renderPanel(SectionsPanel);
+    expect(options().map((option) => option.textContent)).toEqual([
+      "Welcome",
+      "Register",
+      "Play",
+      "Win",
+      "Lose",
+      "Status (already played, closed, error)",
+    ]);
+    // The menu and the preview's screen tabs change the same thing.
+    fireEvent.change(screen.getByLabelText("Screen to edit"), {
+      target: { value: "win" },
+    });
+    expect(store.getState().ui.screen).toBe("win");
+    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
+      store.getState().config.screens.win.title.fr,
+    );
+    act(() => store.getState().setScreen("lose"));
+    expect(
+      (screen.getByLabelText("Screen to edit") as HTMLSelectElement).value,
+    ).toBe("lose");
+  });
+
+  it("shows the blocks of a screen on that screen only", () => {
+    const store = renderPanel(SectionsPanel);
+    const has = (title: string) => screen.queryByText(title) !== null;
+    // Welcome: the jackpot card, the prize chips and the teaser.
+    expect(has("Jackpot card")).toBe(true);
+    expect(has("Prize chips")).toBe(true);
+    expect(has("Welcome teaser")).toBe(true);
+    expect(has("Fields")).toBe(false);
+
+    act(() => store.getState().setScreen("register"));
+    expect(has("Fields")).toBe(true);
+    expect(has("Consent")).toBe(true);
+    expect(has("Jackpot card")).toBe(false);
+
+    act(() => store.getState().setScreen("play"));
+    expect(has("Fields")).toBe(false);
+    // Play: the game, with the rules of the campaign.
+    expect(screen.getByRole("region", { name: "Campaign rules" })).toBeTruthy();
+
+    act(() => store.getState().setScreen("win"));
+    expect(has("Texts")).toBe(true);
+    expect(screen.queryByRole("region", { name: "Campaign rules" })).toBeNull();
+  });
+
+  it("keeps the languages menu on every screen", () => {
+    const store = renderPanel(SectionsPanel);
+    for (const key of ["welcome", "register", "play", "win", "lose"] as const) {
+      act(() => store.getState().setScreen(key));
+      expect(screen.getByRole("button", { name: /Languages/ })).toBeTruthy();
+    }
+  });
+
+  it("says the status screens have nothing to edit yet", () => {
+    const store = renderPanel(SectionsPanel);
+    act(() => store.getState().setScreen("status"));
+    expect(screen.getByText(/nothing to edit yet/)).toBeTruthy();
+    expect(screen.queryByLabelText("Title")).toBeNull();
+  });
+
+  it("opens the screen of a path, whichever the panel showed", () => {
+    const store = renderPanel(SectionsPanel);
+    act(() => store.getState().setPanel("sections", "form.consent.text"));
+    expect(store.getState().ui.screen).toBe("register");
+    expect(screen.getByText("Consent")).toBeTruthy();
+    act(() => store.getState().setPanel("sections", "game.teaser.caption"));
+    expect(store.getState().ui.screen).toBe("welcome");
+    act(() => store.getState().setPanel("sections", "sections.jackpot.title"));
+    expect(store.getState().ui.screen).toBe("welcome");
+    act(() => store.getState().setPanel("sections", "game.wheel.segments"));
+    expect(store.getState().ui.screen).toBe("play");
+    // A path with no screen of its own keeps the screen.
+    act(() => store.getState().setPanel("sections", "locales"));
+    expect(store.getState().ui.screen).toBe("play");
   });
 });

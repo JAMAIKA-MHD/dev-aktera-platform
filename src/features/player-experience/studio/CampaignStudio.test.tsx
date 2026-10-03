@@ -32,6 +32,14 @@ const templates = [
   { id: "t2", name: "Casque audio" },
 ];
 
+// The game's settings are on the Play screen of the Sections panel.
+function openPlayScreen() {
+  fireEvent.click(screen.getByRole("button", { name: /Sections/ }));
+  fireEvent.change(screen.getByLabelText("Screen to edit"), {
+    target: { value: "play" },
+  });
+}
+
 describe("CampaignStudio", () => {
   beforeEach(() => localStorage.clear());
 
@@ -52,7 +60,7 @@ describe("CampaignStudio", () => {
     expect(screen.getByText("Rentrée Zeta")).toBeTruthy();
     expect(screen.queryByLabelText("Campaign")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Game/ }));
+    openPlayScreen();
     const rules = screen.getByRole("region", { name: "Campaign rules" });
     expect(within(rules).getByText("65 %")).toBeTruthy();
     expect(within(rules).getByText("Bon 2000 DA")).toBeTruthy();
@@ -75,7 +83,7 @@ describe("CampaignStudio", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    fireEvent.click(screen.getByRole("button", { name: /Game/ }));
+    openPlayScreen();
     await act(async () => {
       fireEvent.click(
         screen.getAllByRole("button", { name: "Edit in campaign settings" })[0],

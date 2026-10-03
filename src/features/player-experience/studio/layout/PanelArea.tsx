@@ -1,9 +1,6 @@
 import { Construction } from "lucide-react";
 import { useRef, type ComponentType } from "react";
 import { BrandPanel } from "../panels/BrandPanel";
-import { ContentPanel } from "../panels/ContentPanel";
-import { FormPanel } from "../panels/FormPanel";
-import { GamePanel } from "../panels/game/GamePanel";
 import { LegalPanel } from "../panels/LegalPanel";
 import { SharePanel } from "../panels/SharePanel";
 import { ValidationPanel } from "../validation/ValidationPanel";
@@ -18,10 +15,7 @@ import { PANEL_META } from "./StudioNav";
 const PANELS: Partial<Record<StudioPanel, ComponentType>> = {
   template: TemplatePanel,
   brand: BrandPanel,
-  content: ContentPanel,
   sections: SectionsPanel,
-  form: FormPanel,
-  game: GamePanel,
   legal: LegalPanel,
   share: SharePanel,
   validation: ValidationPanel,

@@ -1,163 +1,66 @@
-import type { PrizeChip } from "../../domain/types";
-import { createUuid } from "../../domain/uuid";
-import { IconPicker } from "../fields/IconPicker";
-import { ListEditor } from "../fields/ListEditor";
-import { LocalizedTextField } from "../fields/LocalizedTextField";
-import { SegmentedControl } from "../fields/SegmentedControl";
-import { ToggleField } from "../fields/ToggleField";
+import { Info } from "lucide-react";
+import { SelectField } from "../fields/SelectField";
+import type { PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
-import {
-  PanelBody,
-  PanelHeader,
-  PanelIssues,
-  PanelSection,
-} from "./PanelLayout";
-import { useTextLocale } from "./useTextLocale";
+import { FormSections } from "./FormSections";
+import { GameSections } from "./game/GameSections";
+import { LanguagesSection } from "./LanguagesSection";
+import { PanelBody, PanelHeader, PanelSection } from "./PanelLayout";
+import { ScreenTextFields } from "./ScreenTextFields";
+import { WelcomeSections } from "./WelcomeSections";
 
-// Sections (plan §9.2): the two optional blocks of the welcome screen that put the prizes
-// forward — the jackpot card and the prize chips (1 to 4). They show presentation only:
-// what the player can win is decided by the campaign, never by these texts.
+// Sections (plan §9.2): everything a player sees on one screen, in one place. A menu at the top
+// picks the screen; below it come the texts of that screen and the blocks that belong to it —
+// the jackpot card, prize chips and teaser on Welcome, the form and the consent on Register, the
+// game on Play. The screen picked is the screen previewed: the menu and the preview's screen
+// tabs are two ways to change the same thing, and a click on a text in the preview lands here.
 
-export const MIN_CHIPS = 1;
-export const MAX_CHIPS = 4;
-
-const TONES = [
-  { value: "primary", label: "Primary" },
-  { value: "secondary", label: "Secondary" },
-  { value: "accent", label: "Accent" },
-] as const;
+const SCREENS: readonly { value: PreviewScreen; label: string }[] = [
+  { value: "welcome", label: "Welcome" },
+  { value: "register", label: "Register" },
+  { value: "play", label: "Play" },
+  { value: "win", label: "Win" },
+  { value: "lose", label: "Lose" },
+  { value: "status", label: "Status (already played, closed, error)" },
+];
 
 export function SectionsPanel() {
-  const { jackpot, prizeChips } = useStudio((state) => state.config.sections);
-  const updateSection = useStudio((state) => state.updateSection);
-  const textLocale = useTextLocale();
-
-  const setJackpot = (patch: Partial<typeof jackpot>) =>
-    updateSection({ jackpot: { ...jackpot, ...patch } });
-  const setChips = (patch: Partial<typeof prizeChips>) =>
-    updateSection({ prizeChips: { ...prizeChips, ...patch } });
+  const screen = useStudio((state) => state.ui.screen);
+  const setScreen = useStudio((state) => state.setScreen);
 
   return (
     <>
       <PanelHeader
         title="Sections"
-        description="Two optional blocks that put your prizes forward on the welcome screen."
+        description="Pick a screen, then edit everything it shows."
       />
       <PanelBody>
-        <PanelSection title="Jackpot card">
-          <ToggleField
-            label="Show the jackpot card"
-            description="A highlighted card under the game."
-            checked={jackpot.enabled}
-            onChange={(enabled) => setJackpot({ enabled })}
-            path="sections.jackpot"
-          />
-          {jackpot.enabled && (
-            <>
-              <PanelIssues prefixes={["sections.jackpot"]} />
-              <LocalizedTextField
-                label="Small title"
-                path="sections.jackpot.eyebrow"
-                value={jackpot.eyebrow}
-                onChange={(eyebrow) => setJackpot({ eyebrow })}
-                maxChars={24}
-                {...textLocale}
-              />
-              <LocalizedTextField
-                label="Main text"
-                path="sections.jackpot.title"
-                value={jackpot.title}
-                onChange={(title) => setJackpot({ title })}
-                maxChars={48}
-                {...textLocale}
-              />
-              <LocalizedTextField
-                label="Badge"
-                path="sections.jackpot.badge"
-                value={jackpot.badge}
-                onChange={(badge) => setJackpot({ badge })}
-                maxChars={14}
-                hint="Leave empty for no badge."
-                {...textLocale}
-              />
-              <IconPicker
-                label="Icon"
-                path="sections.jackpot.icon"
-                value={jackpot.icon}
-                onChange={(icon) => icon && setJackpot({ icon })}
-              />
-            </>
-          )}
-        </PanelSection>
+        <SelectField
+          label="Screen to edit"
+          path="ui.screen"
+          value={screen}
+          options={SCREENS}
+          onChange={setScreen}
+        />
+        <LanguagesSection />
 
-        <PanelSection title="Prize chips">
-          <ToggleField
-            label="Show the prize chips"
-            description="Small labels under the jackpot card, 1 to 4."
-            checked={prizeChips.enabled}
-            onChange={(enabled) => setChips({ enabled })}
-            path="sections.prizeChips"
-          />
-          {prizeChips.enabled && (
-            <>
-              <PanelIssues prefixes={["sections.prizeChips"]} />
-              <ListEditor<PrizeChip>
-                label="Chips"
-                path="sections.prizeChips.items"
-                items={prizeChips.items}
-                onChange={(items) => setChips({ items })}
-                min={MIN_CHIPS}
-                max={MAX_CHIPS}
-                addLabel="Add a chip"
-                getKey={(chip) => chip.id}
-                itemLabel={(_, index) => `Chip ${index + 1}`}
-                createItem={() => ({
-                  id: createUuid(),
-                  icon: "gift",
-                  value: {},
-                  caption: {},
-                  tone: "primary",
-                })}
-                renderItem={(chip, index, update) => (
-                  <div className="space-y-3">
-                    <LocalizedTextField
-                      label="Value"
-                      path={`sections.prizeChips.items.${index}.value`}
-                      value={chip.value}
-                      onChange={(value) => update({ ...chip, value })}
-                      maxChars={16}
-                      placeholder={{
-                        fr: "5 000 DA",
-                        ar: "5000 دج",
-                        en: "5,000 DA",
-                      }}
-                      {...textLocale}
-                    />
-                    <LocalizedTextField
-                      label="Caption"
-                      path={`sections.prizeChips.items.${index}.caption`}
-                      value={chip.caption}
-                      onChange={(caption) => update({ ...chip, caption })}
-                      maxChars={24}
-                      {...textLocale}
-                    />
-                    <IconPicker
-                      label="Icon"
-                      value={chip.icon}
-                      onChange={(icon) => icon && update({ ...chip, icon })}
-                    />
-                    <SegmentedControl
-                      label="Color"
-                      value={chip.tone}
-                      onChange={(tone) => update({ ...chip, tone })}
-                      options={TONES}
-                    />
-                  </div>
-                )}
-              />
-            </>
-          )}
-        </PanelSection>
+        {screen === "status" ? (
+          <PanelSection title="Status screens">
+            <p className="flex gap-2 text-xs leading-relaxed text-brand-text-muted">
+              <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+              These screens tell a player they already played, that the campaign
+              is closed, or that something went wrong. They use standard texts
+              in every language and have nothing to edit yet.
+            </p>
+          </PanelSection>
+        ) : (
+          <>
+            <ScreenTextFields screenKey={screen} />
+            {screen === "welcome" && <WelcomeSections />}
+            {screen === "register" && <FormSections />}
+            {screen === "play" && <GameSections />}
+          </>
+        )}
       </PanelBody>
     </>
   );

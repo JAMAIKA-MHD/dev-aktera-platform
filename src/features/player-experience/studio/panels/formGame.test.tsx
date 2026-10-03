@@ -9,8 +9,8 @@ import {
 } from "../../services/createLocalServices";
 import { createStudioStore, type StudioStore } from "../store";
 import { StudioProvider, type StudioContextValue } from "../StudioContext";
-import { FormPanel } from "./FormPanel";
-import { GamePanel } from "./game/GamePanel";
+import { SectionsPanel } from "./SectionsPanel";
+import type { PreviewScreen } from "../store";
 
 const linked = (gameType: CampaignSnapshot["gameType"]): CampaignSnapshot => ({
   ...createDemoCampaign(gameType),
@@ -21,11 +21,13 @@ const linked = (gameType: CampaignSnapshot["gameType"]): CampaignSnapshot => ({
 function renderPanel(
   Panel: ComponentType,
   options: {
+    screen?: PreviewScreen;
     campaign?: CampaignSnapshot | null;
     context?: Partial<StudioContextValue>;
   } = {},
 ): StudioStore {
   const store = createStudioStore({ campaign: options.campaign ?? null });
+  if (options.screen) store.getState().setScreen(options.screen);
   render(
     <StudioProvider
       value={{ store, services: createLocalServices(), ...options.context }}
@@ -36,9 +38,9 @@ function renderPanel(
   return store;
 }
 
-describe("FormPanel", () => {
+describe("Sections › Register (the form)", () => {
   it("lets the brand show, require and hide the phone number like any field", () => {
-    renderPanel(FormPanel);
+    renderPanel(SectionsPanel, { screen: "register" });
     const card = screen
       .getByText("Phone number")
       .closest("[data-studio-path]")!;
@@ -50,7 +52,7 @@ describe("FormPanel", () => {
   });
 
   it("shows, requires and hides a field", () => {
-    const store = renderPanel(FormPanel);
+    const store = renderPanel(SectionsPanel, { screen: "register" });
     const email = () =>
       store
         .getState()
@@ -67,7 +69,7 @@ describe("FormPanel", () => {
   });
 
   it("cannot empty the consent without a blocking error", () => {
-    const store = renderPanel(FormPanel);
+    const store = renderPanel(SectionsPanel, { screen: "register" });
     const consent = store.getState().config.form.consent.text;
     for (const locale of Object.keys(consent)) {
       act(() => store.getState().setLocale(locale as "fr"));
@@ -88,7 +90,7 @@ describe("FormPanel", () => {
   });
 });
 
-describe("GamePanel", () => {
+describe("Sections › Play (the game)", () => {
   it("offers no way to change who wins: the store has no action on the rules", () => {
     const store = createStudioStore({ campaign: linked("quiz") });
     const actions = Object.entries(store.getState())
@@ -133,7 +135,11 @@ describe("GamePanel", () => {
   it("shows the campaign rules read-only, with the right answers and the stock", () => {
     const campaign = linked("quiz");
     const rules = { ...buildStandaloneDemoRules(campaign), winProbability: 35 };
-    renderPanel(GamePanel, { campaign, context: { rules } });
+    renderPanel(SectionsPanel, {
+      screen: "play",
+      campaign,
+      context: { rules },
+    });
     const card = screen.getByRole("region", { name: "Campaign rules" });
     expect(within(card).getByText("35 %")).toBeTruthy();
     expect(within(card).getAllByLabelText("Correct answer")).toHaveLength(
@@ -151,7 +157,8 @@ describe("GamePanel", () => {
   it("sends the brand to the right Wizard step, then refreshes the campaign", async () => {
     const onEditCampaignSettings = vi.fn(async () => {});
     const onRefreshCampaign = vi.fn();
-    renderPanel(GamePanel, {
+    renderPanel(SectionsPanel, {
+      screen: "play",
       campaign: linked("lucky_wheel"),
       context: { onEditCampaignSettings, onRefreshCampaign },
     });
@@ -165,7 +172,10 @@ describe("GamePanel", () => {
 
   it("edits the wheel within 4 to 12 segments, and flags an incoherent one", () => {
     const campaign = linked("lucky_wheel");
-    const store = renderPanel(GamePanel, { campaign });
+    const store = renderPanel(SectionsPanel, {
+      screen: "play",
+      campaign,
+    });
     const segments = () => store.getState().config.game.wheel!.segments;
     const first = segments().findIndex((segment) => segment.prizeId !== null);
     fireEvent.change(screen.getAllByLabelText("Prize")[first], {
@@ -200,7 +210,10 @@ describe("GamePanel", () => {
 
   it("rewords a prize for players and cleans up removed ones", () => {
     const campaign = linked("mystery_box");
-    const store = renderPanel(GamePanel, { campaign });
+    const store = renderPanel(SectionsPanel, {
+      screen: "play",
+      campaign,
+    });
     fireEvent.change(screen.getAllByLabelText("Shown as")[0], {
       target: { value: "Bon d'achat" },
     });
@@ -223,8 +236,13 @@ describe("GamePanel", () => {
   });
 
   it("goes back to the automatic teaser caption when it is emptied", () => {
-    const store = renderPanel(GamePanel, { campaign: linked("hit_it") });
-    const caption = screen.getByLabelText("Caption");
+    const store = renderPanel(SectionsPanel, {
+      screen: "welcome",
+      campaign: linked("hit_it"),
+    });
+    // The prize chips have captions too: the teaser's is the one in its own card.
+    const teaser = screen.getByText("Welcome teaser").closest("section")!;
+    const caption = within(teaser).getByLabelText("Caption");
     expect(caption.getAttribute("placeholder")).toMatch(/touche/);
     fireEvent.change(caption, { target: { value: "Tapez vite !" } });
     expect(store.getState().config.game.teaser.caption).toEqual({
@@ -235,7 +253,7 @@ describe("GamePanel", () => {
   });
 
   it("switches the game of the demo campaign in standalone, texts included", () => {
-    const store = renderPanel(GamePanel);
+    const store = renderPanel(SectionsPanel, { screen: "play" });
     expect(
       screen.getByText("Link a campaign to use real prizes and questions."),
     ).toBeTruthy();
@@ -251,10 +269,11 @@ describe("GamePanel", () => {
 
   it("offers to reset the game when the campaign changed its game", () => {
     const store = createStudioStore({ campaign: linked("lucky_wheel") });
+    store.getState().setScreen("play");
     act(() => store.getState().setCampaign(linked("hit_it")));
     render(
       <StudioProvider value={{ store, services: createLocalServices() }}>
-        <GamePanel />
+        <SectionsPanel />
       </StudioProvider>,
     );
     fireEvent.click(

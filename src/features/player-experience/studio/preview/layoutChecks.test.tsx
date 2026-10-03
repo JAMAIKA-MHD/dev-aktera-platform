@@ -150,7 +150,8 @@ describe("the layout warnings in the Studio", () => {
 
     fireEvent.click(within(group).getByRole("button"));
     expect(store.getState().ui).toMatchObject({
-      panel: "content",
+      panel: "sections",
+      screen: "welcome",
       focusPath: "screens.welcome.title",
     });
   });

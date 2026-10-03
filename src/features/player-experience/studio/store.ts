@@ -19,6 +19,7 @@ import { createDemoCampaign } from "../presets/demoCampaign";
 import { themeFromPreset } from "../presets/themePresets";
 import type { LayoutIssue } from "../runtime/layout/layoutAudit";
 import type { ScriptedScenario } from "../services/createLocalServices";
+import { screenForPath } from "./screenForPath";
 
 // The Studio's own state (plan §9.4, tasks.md T6.1). One rule shapes the whole thing: the
 // history follows the **configuration** and nothing else. Changing the preview's screen,
@@ -28,22 +29,16 @@ import type { ScriptedScenario } from "../services/createLocalServices";
 export type StudioPanel =
   | "template"
   | "brand"
-  | "content"
-  | "sections"
-  | "form"
-  | "game"
+  | "sections" // every screen, one at a time: texts, form, game, jackpot...
   | "legal"
   | "share"
   | "validation"; // the list of issues (T6.8), not a part of the configuration
 
-// The eight settings panels, in menu order.
+// The settings panels, in menu order.
 export const STUDIO_PANELS: readonly StudioPanel[] = [
   "template",
   "brand",
-  "content",
   "sections",
-  "form",
-  "game",
   "legal",
   "share",
 ];
@@ -51,7 +46,7 @@ export const STUDIO_PANELS: readonly StudioPanel[] = [
 // How the preview plays: the demo gateway from end to end, a chosen outcome, or a still screen.
 export type PreviewFlowMode = "demo" | "scripted" | "static";
 
-// The preview's screen tabs: the five editable screens, plus the status screens (already
+// The preview's screen tabs, and the menu of the Sections panel: the five editable screens, plus the status screens (already
 // played, closed, network error), shown by the scripted scenario.
 export type PreviewScreen = ScreenKey | "status";
 
@@ -313,8 +308,19 @@ export function createStudioStore(
               issues: checkDesign(get().config, next),
             }),
           setStoredUpdatedAt: (storedUpdatedAt) => set({ storedUpdatedAt }),
+          // A path that belongs to a screen opens that screen too, so the panel draws the right
+          // one at once and the field is there to be brought into view.
           setPanel: (panel, focusPath = null) =>
-            set((state) => ({ ui: { ...state.ui, panel, focusPath } })),
+            set((state) => ({
+              ui: {
+                ...state.ui,
+                panel,
+                focusPath,
+                screen:
+                  (focusPath ? screenForPath(focusPath) : null) ??
+                  state.ui.screen,
+              },
+            })),
           setScreen: (screen) =>
             set((state) => ({ ui: { ...state.ui, screen } })),
           setLocale: (locale) =>

@@ -1,6 +1,4 @@
 import {
-  FileText,
-  Gamepad2,
   LayoutTemplate,
   ListChecks,
   Palette,
@@ -9,7 +7,6 @@ import {
   Scale,
   Share2,
   SquareStack,
-  Type,
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -63,14 +60,11 @@ export const PANEL_META: Readonly<
     icon: Palette,
     hint: "Logo, colors, background",
   },
-  content: { label: "Content", icon: Type, hint: "Texts of each screen" },
   sections: {
     label: "Sections",
     icon: SquareStack,
-    hint: "Jackpot card, prize chips",
+    hint: "Each screen: texts, form, game",
   },
-  form: { label: "Form", icon: FileText, hint: "Fields and consent" },
-  game: { label: "Game", icon: Gamepad2, hint: "How the game looks" },
   legal: { label: "Legal", icon: Scale, hint: "Organizer, links, terms" },
   share: { label: "Export", icon: Share2, hint: "Export, import, reset" },
   validation: {

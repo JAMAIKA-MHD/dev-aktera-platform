@@ -52,7 +52,7 @@ describe("StudioNav", () => {
     for (const name of [
       "Template",
       "Brand Identity",
-      "Content",
+      "Sections",
       "Validation",
     ]) {
       expect(screen.getByRole("button", { name })).toBeTruthy();

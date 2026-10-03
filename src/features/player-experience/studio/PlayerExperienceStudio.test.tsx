@@ -50,19 +50,10 @@ describe("PlayerExperienceStudio", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("shows the top bar, the eight sections and the device-sized preview", async () => {
+  it("shows the top bar, the sections and the device-sized preview", async () => {
     await renderStudio();
     expect(screen.getByText("Standalone (demo campaign)")).toBeTruthy();
-    for (const label of [
-      "Template",
-      "Brand",
-      "Content",
-      "Sections",
-      "Form",
-      "Game",
-      "Legal",
-      "Export",
-    ]) {
+    for (const label of ["Template", "Brand", "Sections", "Legal", "Export"]) {
       expect(
         screen.getByRole("button", { name: new RegExp(label) }),
       ).toBeTruthy();
@@ -137,13 +128,19 @@ describe("PlayerExperienceStudio", () => {
     );
     expect(
       screen
-        .getByRole("button", { name: /Content/ })
+        .getByRole("button", { name: /Sections/ })
         .getAttribute("aria-current"),
     ).toBe("page");
+    // A click on the consent opens the screen that holds it, in the same panel.
     act(() => fromFrame({ type: "xp:edit-target", path: "form.consent" }));
     expect(
-      screen.getByRole("button", { name: /Form/ }).getAttribute("aria-current"),
+      screen
+        .getByRole("button", { name: /Sections/ })
+        .getAttribute("aria-current"),
     ).toBe("page");
+    expect(
+      (screen.getByLabelText("Screen to edit") as HTMLSelectElement).value,
+    ).toBe("register");
   });
 
   it("ignores messages from any other window", async () => {
