@@ -4,7 +4,7 @@ import type { Autosave } from "../useAutosave";
 import { useUndoShortcuts } from "../useUndoShortcuts";
 import { PanelArea } from "./PanelArea";
 import { PreviewPane } from "./PreviewPane";
-import { StudioNav } from "./StudioNav";
+import { StudioNav, useStudioMenu } from "./StudioNav";
 import { StudioTopBar } from "./StudioTopBar";
 import "../studio.css";
 
@@ -48,15 +48,16 @@ export function StudioShell({
   const wide = useWideLayout();
   const [drawerOpen, setDrawerOpen] = useState(false);
   useUndoShortcuts();
+  const menu = useStudioMenu();
 
   return (
     <div
       className={`relative flex h-full min-h-0 flex-col overflow-clip bg-brand-dark font-sans text-brand-text ${className}`}
       data-xp-studio
     >
-      <StudioTopBar autosave={autosave} onClose={onClose} />
+      <StudioTopBar autosave={autosave} onClose={onClose} menu={menu} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <StudioNav />
+        <StudioNav menu={menu} />
         <main
           className="min-h-0 flex-1 overflow-y-auto border-card-border bg-card-bg-subtle lg:w-[27rem] lg:flex-none lg:border-r"
           aria-busy={loading && !loadError}

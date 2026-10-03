@@ -8,9 +8,20 @@ import { createDefaultExperience } from "../../domain/defaults";
 import { createLocalServices } from "../../services/createLocalServices";
 import { createStudioStore } from "../store";
 import { StudioProvider } from "../StudioContext";
-import { StudioNav } from "./StudioNav";
+import { StudioMenuToggle, StudioNav, useStudioMenu } from "./StudioNav";
 
 const PINNED_KEY = "studio-nav-pinned";
+
+// What StudioShell does: one menu state, shared by the menu and the top bar's button.
+function Harness() {
+  const menu = useStudioMenu();
+  return (
+    <>
+      <StudioMenuToggle menu={menu} />
+      <StudioNav menu={menu} />
+    </>
+  );
+}
 
 function setup() {
   const store = createStudioStore({
@@ -19,7 +30,7 @@ function setup() {
   const user = userEvent.setup();
   const view = render(
     <StudioProvider value={{ store, services: createLocalServices() }}>
-      <StudioNav />
+      <Harness />
     </StudioProvider>,
   );
   const nav = screen.getByRole("navigation", { name: "Studio sections" });
@@ -76,13 +87,12 @@ describe("StudioNav", () => {
     expect(setup().open()).toBe(true);
   });
 
-  it("closing by click closes it at once, then hover works again", async () => {
+  it("closing with the top bar button closes it, then hover opens it again", async () => {
     const { user, nav, open, toggle } = setup();
     await user.click(toggle());
     await user.click(toggle());
     expect(open()).toBe(false);
     expect(localStorage.getItem(PINNED_KEY)).toBe("false");
-    await user.unhover(nav);
     await user.hover(nav);
     expect(open()).toBe(true);
   });

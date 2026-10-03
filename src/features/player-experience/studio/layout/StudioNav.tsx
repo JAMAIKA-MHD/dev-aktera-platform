@@ -1,11 +1,11 @@
 import {
-  ChevronsLeft,
-  ChevronsRight,
   FileText,
   Gamepad2,
   LayoutTemplate,
   ListChecks,
   Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
   Scale,
   Share2,
   SquareStack,
@@ -23,10 +23,35 @@ import { useStudio } from "../StudioContext";
 // shows how many issues point into it, so the brand sees where the work is.
 //
 // On a wide screen the menu rests as an icon rail and opens in two ways at once: by hover (over
-// the panel, which does not move) and by click on its last entry (pinned open, remembered).
+// the panel, which does not move) and by click on the top bar's button (pinned open,
+// remembered). StudioShell owns the state (useStudioMenu) and hands it to both.
 // Under 1024 px it is the row of tabs, always open.
 
 const PINNED_KEY = "studio-nav-pinned";
+
+export type StudioMenu = ReturnType<typeof useCollapsibleMenu>;
+
+export function useStudioMenu(): StudioMenu {
+  return useCollapsibleMenu(PINNED_KEY);
+}
+
+/** Click mode: keeps the menu open, or closes it back to the rail. Lives in the top bar. */
+export function StudioMenuToggle({ menu }: { menu: StudioMenu }) {
+  const label = menu.pinned ? "Collapse the menu" : "Keep the menu open";
+  const Icon = menu.pinned ? PanelLeftClose : PanelLeftOpen;
+  return (
+    <button
+      type="button"
+      onClick={menu.togglePinned}
+      aria-pressed={menu.pinned}
+      aria-label={label}
+      title={label}
+      className="hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 lg:flex"
+    >
+      <Icon className="size-5" aria-hidden />
+    </button>
+  );
+}
 
 export const PANEL_META: Readonly<
   Record<StudioPanel, { label: string; icon: LucideIcon; hint: string }>
@@ -117,7 +142,7 @@ function NavItem({
   );
 }
 
-export function StudioNav() {
+export function StudioNav({ menu }: { menu: StudioMenu }) {
   const issues = useStudio((state) => state.issues);
   const layoutIssues = useStudio((state) => state.layoutIssues);
 
@@ -141,9 +166,7 @@ export function StudioNav() {
     return byPanel;
   }, [issues, layoutIssues]);
 
-  const { pinned, expanded, togglePinned, bind } =
-    useCollapsibleMenu(PINNED_KEY);
-  const toggleLabel = pinned ? "Collapse the menu" : "Keep the menu open";
+  const { pinned, expanded, bind } = menu;
 
   return (
     // The wrapper holds the room the panel leaves to the menu (the rail, or the full menu when
@@ -180,26 +203,6 @@ export function StudioNav() {
             expanded={expanded}
           />
         </ul>
-        {/* Click mode: keeps the menu open, or closes it back to the rail */}
-        <div className="mt-auto hidden border-t border-card-border p-3 lg:block">
-          <button
-            type="button"
-            onClick={togglePinned}
-            aria-pressed={pinned}
-            aria-label={toggleLabel}
-            title={toggleLabel}
-            className="flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 text-left text-sm font-semibold text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500"
-          >
-            {pinned ? (
-              <ChevronsLeft className="size-[18px] shrink-0" aria-hidden />
-            ) : (
-              <ChevronsRight className="size-[18px] shrink-0" aria-hidden />
-            )}
-            <span className={`flex-1 ${expanded ? "" : RAIL_HIDDEN}`}>
-              {toggleLabel}
-            </span>
-          </button>
-        </div>
       </nav>
     </div>
   );

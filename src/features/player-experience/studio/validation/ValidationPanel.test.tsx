@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import { createDefaultExperience } from "../../domain/defaults";
 import { createLocalServices } from "../../services/createLocalServices";
 import { PanelArea } from "../layout/PanelArea";
-import { StudioNav } from "../layout/StudioNav";
+import { StudioNav, useStudioMenu } from "../layout/StudioNav";
 import { createStudioStore } from "../store";
 import { StudioProvider } from "../StudioContext";
+
+function Nav() {
+  return <StudioNav menu={useStudioMenu()} />;
+}
 
 // The validation panel (T6.8), inside the real menu and panel area, as the brand uses it.
 function renderStudio() {
@@ -14,7 +18,7 @@ function renderStudio() {
   });
   render(
     <StudioProvider value={{ store, services: createLocalServices() }}>
-      <StudioNav />
+      <Nav />
       <main style={{ overflowY: "auto" }}>
         <PanelArea />
       </main>
