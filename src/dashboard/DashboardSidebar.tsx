@@ -99,8 +99,7 @@ export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
   }`;
   return (
     // The wrapper holds the room the page leaves to the menu: the rail, or the full menu when
-    // pinned. The menu itself is laid over it, so hovering never pushes the page. It sits below
-    // the top bar, which it never covers.
+    // pinned. The menu itself is laid over it, so hovering never pushes the page.
     <div
       className={`relative z-40 hidden h-full shrink-0 transition-[width] duration-300 ease-in-out lg:block ${
         pinned ? "w-64" : "w-20"
@@ -113,6 +112,22 @@ export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
           expanded ? "w-64" : "w-20"
         } ${expanded && !pinned ? "shadow-2xl" : ""}`}
       >
+        {/* Brand Header */}
+        <div className="p-5 flex items-center gap-3.5 border-b border-brand-border/50 overflow-hidden whitespace-nowrap">
+          <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151E30] p-1.5 flex items-center justify-center shrink-0 shadow-md border border-brand-border/60">
+            <img
+              src="/aktera-logo.png"
+              alt="Aktera"
+              className="w-full h-full object-contain dark:invert"
+            />
+          </div>
+          <span
+            className={`font-black text-xl tracking-wider text-brand-text ${labelClass}`}
+          >
+            Aktera
+          </span>
+        </div>
+
         {/* Navigation Items */}
         <nav
           aria-label="Dashboard"
