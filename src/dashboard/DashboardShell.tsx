@@ -1,14 +1,13 @@
 // The dashboard frame shared by every page: sidebar (real links), top bar, the action-error
 // banner and the Portal Simulator drawer. The page itself comes from the router (<Outlet />).
 import React, { Suspense, lazy, useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Smartphone, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
-import { useAuth } from "../contexts/AuthContext";
-import { useLanguage } from "../contexts/LanguageContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useDashboard } from "./DashboardContext";
+import { DashboardSidebar } from "./DashboardSidebar";
 import { PATHS, STANDALONE_STUDIO } from "./paths";
 import { STUDIO_BACKEND } from "./studioBackend";
 
@@ -28,15 +27,11 @@ export function PageSpinner({ className = "h-40" }: { className?: string }) {
 }
 
 export function DashboardShell() {
-  const { signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { t } = useLanguage();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { campaigns, prizes, avatarUrl, actionError, setActionError } =
     useDashboard();
-
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   // Portal Simulator drawer and the campaign it plays: its own, never the Studio's.
   const [showSandbox, setShowSandbox] = useState(false);
@@ -47,52 +42,6 @@ export function DashboardShell() {
     }
   }, [campaigns, sandboxCampaignId]);
 
-  // `to` is where the link goes; `section` is the first path segment it stays active for
-  // ("/create" and "/campaigns/…" are separate sections, as before with the tabs).
-  const navItems = [
-    {
-      to: PATHS.home,
-      section: "",
-      label: t("nav.overview", "Overview"),
-      icon: "fa-solid fa-border-all",
-    },
-    {
-      to: PATHS.campaigns,
-      section: "campaigns",
-      label: t("nav.campaigns", "Campaign Radios"),
-      icon: "fa-solid fa-list-ul",
-    },
-    {
-      to: PATHS.prizes,
-      section: "prizes",
-      label: t("nav.rewards", "Reward Library"),
-      icon: "fa-solid fa-gift",
-    },
-    {
-      to: PATHS.analytics,
-      section: "analytics",
-      label: t("nav.analytics", "Analytics Desk"),
-      icon: "fa-solid fa-chart-line",
-    },
-    {
-      to: PATHS.billing,
-      section: "billing",
-      label: t("nav.billing", "Billing & Quota"),
-      icon: "fa-solid fa-file-invoice-dollar",
-    },
-    {
-      to: PATHS.studio,
-      section: "studio",
-      label: t("nav.playerScreen", "Player Studio"),
-      icon: "fa-solid fa-mobile-screen",
-    },
-    {
-      to: PATHS.account,
-      section: "account",
-      label: t("nav.organization", "Organization"),
-      icon: "fa-regular fa-user",
-    },
-  ];
   const currentSection = pathname.split("/")[1] ?? "";
 
   return (
@@ -100,114 +49,7 @@ export function DashboardShell() {
       id="saas-app-root"
       className="h-screen flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
     >
-      {/* SIDEBAR NAVIGATION (Dynamic auto-shrinking & auto-expanding on hover) */}
-      <aside
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`hidden lg:flex flex-col h-full z-20 flex-shrink-0 relative glass-panel border-r border-brand-border transition-all duration-300 ease-in-out ${
-          isSidebarHovered ? "w-64" : "w-20"
-        }`}
-      >
-        {/* Brand Header */}
-        <div className="p-5 flex items-center gap-3.5 border-b border-brand-border/50 overflow-hidden whitespace-nowrap">
-          <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151E30] p-1.5 flex items-center justify-center shrink-0 shadow-md border border-brand-border/60">
-            <img
-              src="/aktera-logo.png"
-              alt="Aktera"
-              className="w-full h-full object-contain dark:invert"
-            />
-          </div>
-          <span
-            className={`font-black text-xl tracking-wider text-brand-text transition-opacity duration-200 ${
-              isSidebarHovered
-                ? "opacity-100"
-                : "opacity-0 w-0 pointer-events-none"
-            }`}
-          >
-            Aktera
-          </span>
-        </div>
-
-        {/* Navigation Items */}
-        <nav
-          aria-label="Dashboard"
-          className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1.5 overflow-x-hidden"
-        >
-          {navItems.map((item) => {
-            const isActive = currentSection === item.section;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={!isSidebarHovered ? item.label : undefined}
-                aria-current={isActive ? "page" : undefined}
-                className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 cursor-pointer overflow-hidden whitespace-nowrap ${
-                  isActive
-                    ? "bg-blue-600/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)] font-bold"
-                    : "text-brand-textMuted hover:text-brand-text hover:bg-black/5 dark:hover:bg-white/5 border border-transparent"
-                }`}
-              >
-                <div className="w-6 flex items-center justify-center shrink-0 text-base">
-                  <i className={item.icon}></i>
-                </div>
-                <span
-                  className={`transition-opacity duration-200 text-sm ${
-                    isSidebarHovered
-                      ? "opacity-100"
-                      : "opacity-0 w-0 pointer-events-none"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        {/* Footer Actions */}
-        <div className="p-3 border-t border-brand-border/50 space-y-1.5 overflow-hidden whitespace-nowrap">
-          <a
-            className="flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
-            href="#"
-            title={
-              !isSidebarHovered
-                ? t("nav.docs", "Full documentation")
-                : undefined
-            }
-          >
-            <div className="w-6 flex items-center justify-center shrink-0">
-              <i className="fa-solid fa-book"></i>
-            </div>
-            <span
-              className={`transition-opacity duration-200 ${
-                isSidebarHovered
-                  ? "opacity-100"
-                  : "opacity-0 w-0 pointer-events-none"
-              }`}
-            >
-              {t("nav.docs", "Full documentation")}
-            </span>
-          </a>
-          <button
-            onClick={signOut}
-            title={!isSidebarHovered ? t("nav.signOut", "Sign out") : undefined}
-            className="w-full flex items-center gap-3.5 px-3 py-2.5 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 text-xs transition-colors rounded-xl cursor-pointer"
-          >
-            <div className="w-6 flex items-center justify-center shrink-0">
-              <i className="fa-solid fa-sign-out-alt"></i>
-            </div>
-            <span
-              className={`transition-opacity duration-200 font-bold ${
-                isSidebarHovered
-                  ? "opacity-100"
-                  : "opacity-0 w-0 pointer-events-none"
-              }`}
-            >
-              {t("nav.signOut", "Sign out")}
-            </span>
-          </button>
-        </div>
-      </aside>
+      <DashboardSidebar />
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">

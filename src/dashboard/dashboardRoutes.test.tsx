@@ -243,8 +243,11 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
   it("opens the Studio straight from its URL", async () => {
     renderAt("/studio/c1");
     expect(await findStudio()).toContain("studio:c1");
-    // Full screen, outside the dashboard frame.
-    expect(screen.queryByRole("navigation", { name: "Dashboard" })).toBeNull();
+    // Full screen: the dashboard menu is there, but not the dashboard top bar.
+    expect(screen.getByRole("navigation", { name: "Dashboard" })).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /Interactive Player Sandbox/ }),
+    ).toBeNull();
   });
 
   it("opens the demo experience on /studio/standalone", async () => {
