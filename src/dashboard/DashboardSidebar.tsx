@@ -1,5 +1,6 @@
-// The dashboard menu. It rests as an icon rail and opens by hover (over the page) or by the
-// "keep the menu open" button of the top bar (pinned, remembered): see useCollapsibleMenu. The
+// The dashboard menu. It rests as an icon rail and opens by hover or by the "keep the menu open"
+// button of the top bar (pinned, remembered): see useCollapsibleMenu. Either way the page makes
+// room for it, so the top bar's button always stays outside the menu. The
 // shell owns the menu's state (useDashboardMenu) and hands it to the menu and to the button.
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -44,7 +45,7 @@ export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
   const { t } = useLanguage();
   const { pathname } = useLocation();
 
-  const { pinned, expanded, bind } = menu;
+  const { expanded, bind } = menu;
 
   // `section` is the first path segment an entry stays active for ("/create" and "/campaigns/…"
   // are separate sections, as the tabs were).
@@ -98,11 +99,11 @@ export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
     expanded ? "opacity-100" : "opacity-0 w-0 pointer-events-none"
   }`;
   return (
-    // The wrapper holds the room the page leaves to the menu: the rail, or the full menu when
-    // pinned. The menu itself is laid over it, so hovering never pushes the page.
+    // The wrapper holds the room the page leaves to the menu: the rail, or the full menu when it
+    // is open (hovered or pinned), so the page moves aside instead of being covered.
     <div
       className={`relative z-40 hidden h-full shrink-0 transition-[width] duration-300 ease-in-out lg:block ${
-        pinned ? "w-64" : "w-20"
+        expanded ? "w-64" : "w-20"
       }`}
     >
       <aside
@@ -110,7 +111,7 @@ export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
         {...bind}
         className={`glass-panel absolute inset-y-0 left-0 flex flex-col border-r border-brand-border transition-[width,box-shadow] duration-300 ease-in-out ${
           expanded ? "w-64" : "w-20"
-        } ${expanded && !pinned ? "shadow-2xl" : ""}`}
+        }`}
       >
         {/* Brand Header */}
         <div className="p-5 flex items-center gap-3.5 border-b border-brand-border/50 overflow-hidden whitespace-nowrap">
