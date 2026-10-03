@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import { LeadEntry } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
+import { LeadEntry } from "../types";
 
 interface DbEntry {
   id: string;
@@ -19,15 +19,17 @@ function mapToUi(e: DbEntry): LeadEntry {
   return {
     id: e.id,
     campaignId: e.campaign_id,
-    campaignName: e.campaigns?.name ?? '—',
-    playerName: e.participant_name ?? 'Anonymous',
-    phoneNumber: e.phone_number ?? '',
-    prizeWon: e.is_winner ? (e.prizes?.name ?? 'Prize') : 'Better Luck Next Time',
+    campaignName: e.campaigns?.name ?? "—",
+    playerName: e.participant_name ?? "Anonymous",
+    phoneNumber: e.phone_number ?? "",
+    prizeWon: e.is_winner
+      ? (e.prizes?.name ?? "Prize")
+      : "Better Luck Next Time",
     prizeTemplateId: e.prizes?.prize_template_id,
     couponCode: e.redeemed_coupon_value ?? undefined,
-    timestamp: e.created_at.replace('T', ' ').substring(0, 16),
+    timestamp: e.created_at.replace("T", " ").substring(0, 16),
     consentGiven: true, // implied by Loi 18-07 gate on player landing
-    status: e.coupon_confirmed ? 'confirmed' : 'pending',
+    status: e.coupon_confirmed ? "confirmed" : "pending",
   };
 }
 
@@ -48,18 +50,20 @@ export function useEntries(organizationId: string | null) {
 
     try {
       const { data, error: err } = await supabase
-        .from('entries')
-        .select('id, campaign_id, phone_number, participant_name, is_winner, redeemed_coupon_value, coupon_confirmed, created_at, prizes(name, prize_template_id), campaigns(name)')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
+        .from("entries")
+        .select(
+          "id, campaign_id, phone_number, participant_name, is_winner, redeemed_coupon_value, coupon_confirmed, created_at, prizes(name, prize_template_id), campaigns(name)",
+        )
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
         .limit(500);
 
       if (err) throw err;
 
       setEntries(((data ?? []) as unknown as DbEntry[]).map(mapToUi));
     } catch (err) {
-      setError('Failed to load entries.');
-      console.error('[useEntries]', err);
+      setError("Failed to load entries.");
+      console.error("[useEntries]", err);
     } finally {
       setLoading(false);
     }

@@ -5,7 +5,11 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LanguageProvider } from "../contexts/LanguageContext";
-import { DashboardSidebar } from "./DashboardSidebar";
+import {
+  DashboardMenuToggle,
+  DashboardSidebar,
+  useDashboardMenu,
+} from "./DashboardSidebar";
 
 vi.mock("../contexts/AuthContext", () => ({
   useAuth: () => ({ signOut: vi.fn() }),
@@ -13,12 +17,23 @@ vi.mock("../contexts/AuthContext", () => ({
 
 const PINNED_KEY = "dashboard-sidebar-pinned";
 
+// What the shell does: one menu state, shared by the menu and the top bar's button.
+function Harness() {
+  const menu = useDashboardMenu();
+  return (
+    <>
+      <DashboardMenuToggle menu={menu} />
+      <DashboardSidebar menu={menu} />
+    </>
+  );
+}
+
 function setup() {
   const user = userEvent.setup();
   const view = render(
     <LanguageProvider>
       <MemoryRouter initialEntries={["/studio/c1"]}>
-        <DashboardSidebar />
+        <Harness />
       </MemoryRouter>
     </LanguageProvider>,
   );
@@ -74,21 +89,21 @@ describe("DashboardSidebar", () => {
     expect(open()).toBe(true);
   });
 
-  it("closing by click closes it at once, even with the pointer still on it", async () => {
+  it("closing with the top bar button closes it, and hover opens it again", async () => {
     const { user, aside, open, toggle } = setup();
-    await user.click(toggle()); // pinned (the pointer is on the menu)
-    await user.click(toggle()); // closed by click
+    await user.click(toggle()); // pinned
+    await user.click(toggle()); // closed
     expect(open()).toBe(false);
     expect(localStorage.getItem(PINNED_KEY)).toBe("false");
-    // Hover works again once the pointer has left and come back.
-    await user.unhover(aside);
     await user.hover(aside);
     expect(open()).toBe(true);
   });
 
   it("opens with the keyboard focus too", async () => {
     const { user, open } = setup();
-    await user.tab();
+    await user.tab(); // the top bar button
+    expect(open()).toBe(false);
+    await user.tab(); // the first entry of the menu
     expect(open()).toBe(true);
   });
 });

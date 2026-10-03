@@ -7,7 +7,11 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { useTheme } from "../contexts/ThemeContext";
 import { useDashboard } from "./DashboardContext";
-import { DashboardSidebar } from "./DashboardSidebar";
+import {
+  DashboardMenuToggle,
+  DashboardSidebar,
+  useDashboardMenu,
+} from "./DashboardSidebar";
 import { PATHS, STANDALONE_STUDIO } from "./paths";
 import { STUDIO_BACKEND } from "./studioBackend";
 
@@ -42,6 +46,7 @@ export function DashboardShell() {
     }
   }, [campaigns, sandboxCampaignId]);
 
+  const menu = useDashboardMenu();
   const currentSection = pathname.split("/")[1] ?? "";
 
   return (
@@ -49,13 +54,14 @@ export function DashboardShell() {
       id="saas-app-root"
       className="h-screen flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
     >
-      <DashboardSidebar />
+      <DashboardSidebar menu={menu} />
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* TOPBAR */}
         <header className="h-18 sm:h-20 flex items-center justify-between px-7 z-40 shrink-0 border-b border-brand-border/20 relative">
           <div className="flex items-center gap-3">
+            <DashboardMenuToggle menu={menu} />
             <button
               onClick={() =>
                 document

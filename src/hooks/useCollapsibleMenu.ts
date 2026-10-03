@@ -4,7 +4,7 @@
 //   - click: it is pinned open ("pinned"), the page makes room for it, and the choice is
 //     remembered across visits.
 // The caller lays the menu out; this hook owns the state and the pointer / focus wiring.
-import { useEffect, useState, type FocusEvent } from "react";
+import { useEffect, useRef, useState, type FocusEvent } from "react";
 
 function readPinned(key: string): boolean {
   try {
@@ -22,16 +22,6 @@ function writePinned(key: string, pinned: boolean) {
   }
 }
 
-// A click also focuses a button or a link: only a keyboard focus opens the menu, otherwise
-// closing it by click would leave it open.
-function isKeyboardFocus(element: EventTarget): boolean {
-  try {
-    return (element as Element).matches(":focus-visible");
-  } catch {
-    return true;
-  }
-}
-
 export function useCollapsibleMenu(storageKey: string) {
   const [pinned, setPinned] = useState(() => readPinned(storageKey));
   const [hovered, setHovered] = useState(false);
@@ -40,12 +30,19 @@ export function useCollapsibleMenu(storageKey: string) {
   // until the pointer has left once.
   const [hoverMuted, setHoverMuted] = useState(false);
 
+  // A click also focuses a button or a link: only a keyboard focus opens the menu, otherwise
+  // closing it by click would leave it open. (`:focus-visible` says the same in a browser, but
+  // is not reliable everywhere, so the input mode is tracked here.)
+  const pointerFocus = useRef(false);
+
   useEffect(() => writePinned(storageKey, pinned), [storageKey, pinned]);
 
   const expanded = pinned || (hovered && !hoverMuted) || focused;
 
   const togglePinned = () => {
-    if (pinned) setHoverMuted(true);
+    // Only when the pointer is on the menu (a button inside it): a button elsewhere, like the
+    // top bar's, takes the pointer away from the menu, and the next hover must open it.
+    if (pinned && hovered) setHoverMuted(true);
     setPinned(!pinned);
   };
 
@@ -56,11 +53,17 @@ export function useCollapsibleMenu(storageKey: string) {
       setHovered(false);
       setHoverMuted(false);
     },
-    onFocus: (event: FocusEvent<HTMLElement>) =>
-      setFocused(isKeyboardFocus(event.target)),
+    onPointerDown: () => {
+      pointerFocus.current = true;
+    },
+    onKeyDown: () => {
+      pointerFocus.current = false;
+    },
+    onFocus: () => setFocused(!pointerFocus.current),
     onBlur: (event: FocusEvent<HTMLElement>) => {
       if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
         setFocused(false);
+        pointerFocus.current = false;
       }
     },
   };

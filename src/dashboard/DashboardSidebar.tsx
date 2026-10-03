@@ -1,8 +1,9 @@
 // The dashboard menu. It rests as an icon rail and opens by hover (over the page) or by the
-// "keep the menu open" entry at its foot (pinned, remembered): see useCollapsibleMenu.
+// "keep the menu open" button of the top bar (pinned, remembered): see useCollapsibleMenu. The
+// shell owns the menu's state (useDashboardMenu) and hands it to the menu and to the button.
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -11,13 +12,39 @@ import { PATHS } from "./paths";
 
 const PINNED_KEY = "dashboard-sidebar-pinned";
 
-export function DashboardSidebar() {
+export type DashboardMenu = ReturnType<typeof useCollapsibleMenu>;
+
+export function useDashboardMenu(): DashboardMenu {
+  return useCollapsibleMenu(PINNED_KEY);
+}
+
+/** Click mode: keeps the menu open, or closes it back to the rail. Lives in the top bar. */
+export function DashboardMenuToggle({ menu }: { menu: DashboardMenu }) {
+  const { t } = useLanguage();
+  const label = menu.pinned
+    ? t("nav.collapseSidebar", "Collapse the menu")
+    : t("nav.pinSidebar", "Keep the menu open");
+  const Icon = menu.pinned ? PanelLeftClose : PanelLeftOpen;
+  return (
+    <button
+      type="button"
+      onClick={menu.togglePinned}
+      aria-pressed={menu.pinned}
+      aria-label={label}
+      title={label}
+      className="hidden lg:flex w-10 h-10 rounded-full bg-card-bg border border-brand-border items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
+    >
+      <Icon className="size-4" aria-hidden />
+    </button>
+  );
+}
+
+export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
   const { signOut } = useAuth();
   const { t } = useLanguage();
   const { pathname } = useLocation();
 
-  const { pinned, expanded, togglePinned, bind } =
-    useCollapsibleMenu(PINNED_KEY);
+  const { pinned, expanded, bind } = menu;
 
   // `section` is the first path segment an entry stays active for ("/create" and "/campaigns/…"
   // are separate sections, as the tabs were).
@@ -70,10 +97,6 @@ export function DashboardSidebar() {
   const labelClass = `transition-opacity duration-200 ${
     expanded ? "opacity-100" : "opacity-0 w-0 pointer-events-none"
   }`;
-  const toggleLabel = pinned
-    ? t("nav.collapseSidebar", "Collapse the menu")
-    : t("nav.pinSidebar", "Keep the menu open");
-
   return (
     // The wrapper holds the room the page leaves to the menu: the rail, or the full menu when
     // pinned. The menu itself is laid over it, so hovering never pushes the page.
@@ -135,24 +158,6 @@ export function DashboardSidebar() {
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-brand-border/50 space-y-1.5 overflow-hidden whitespace-nowrap">
-          {/* Click mode: keeps the menu open, or closes it back to the rail */}
-          <button
-            type="button"
-            onClick={togglePinned}
-            aria-pressed={pinned}
-            aria-label={toggleLabel}
-            title={!expanded ? toggleLabel : undefined}
-            className="w-full flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
-          >
-            <div className="w-6 flex items-center justify-center shrink-0">
-              {pinned ? (
-                <ChevronsLeft className="size-4" aria-hidden />
-              ) : (
-                <ChevronsRight className="size-4" aria-hidden />
-              )}
-            </div>
-            <span className={labelClass}>{toggleLabel}</span>
-          </button>
           <a
             className="flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
             href="#"
