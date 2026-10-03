@@ -12,7 +12,7 @@ import { StudioMenuToggle, StudioNav, useStudioMenu } from "./StudioNav";
 
 const PINNED_KEY = "studio-nav-pinned";
 
-// What StudioShell does: one menu state, shared by the menu and the top bar's button.
+// What StudioShell does: one menu state, shared by the menu and the settings panel's button.
 function Harness() {
   const menu = useStudioMenu();
   return (
@@ -87,7 +87,7 @@ describe("StudioNav", () => {
     expect(setup().open()).toBe(true);
   });
 
-  it("closing with the top bar button closes it, then hover opens it again", async () => {
+  it("closing with the panel button closes it, then hover opens it again", async () => {
     const { user, nav, open, toggle } = setup();
     await user.click(toggle());
     await user.click(toggle());

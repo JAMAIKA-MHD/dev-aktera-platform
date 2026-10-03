@@ -10,11 +10,12 @@ import { CustomDevicesDialog } from "../preview/CustomDevicesDialog";
 import { DeviceToolbar } from "../preview/DeviceToolbar";
 import { PreviewViewport } from "../preview/PreviewViewport";
 import type { PreviewFlowMode, PreviewScreen } from "../store";
+import { ScreenTabs } from "./ScreenTabs";
 import { useStudio } from "../StudioContext";
 
-// The preview bar (plan §9.3): which language, how the journey plays, and the device bar
-// (T6.9); the screen tabs live in the top bar. Picking a screen, a scenario or an outcome restarts the journey
-// there; switching language does not, the screen simply redraws in it.
+// The preview bar (plan §9.3): which language, how the journey plays, the screen tabs in the
+// middle, and the device bar (T6.9). Picking a screen, a scenario or an outcome restarts the
+// journey there; switching language does not, the screen simply redraws in it.
 
 const MODES: readonly { id: PreviewFlowMode; label: string; hint: string }[] = [
   {
@@ -147,10 +148,14 @@ export function PreviewPane() {
               </select>
             </label>
           )}
+          {/* The screen tabs, in the middle; on a narrow bar they take a line of their own. */}
+          <div className="flex min-w-max flex-1 justify-center">
+            <ScreenTabs />
+          </div>
           <button
             type="button"
             onClick={() => setRestartKey((key) => key + 1)}
-            className="ml-auto flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text active:scale-95"
+            className="flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text active:scale-95"
           >
             <RotateCcw className="size-3.5" aria-hidden />
             Restart
