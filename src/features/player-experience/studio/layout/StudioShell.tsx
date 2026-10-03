@@ -1,10 +1,17 @@
 import { AlertTriangle, Eye, RotateCcw, X } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
+import { useStudio } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
 import { useUndoShortcuts } from "../useUndoShortcuts";
 import { PanelArea } from "./PanelArea";
 import { PreviewPane } from "./PreviewPane";
-import { StudioNav, useStudioMenu } from "./StudioNav";
+import {
+  PANEL_META,
+  StudioMenuToggle,
+  StudioNav,
+  useStudioMenu,
+  type StudioMenu,
+} from "./StudioNav";
 import { StudioTopBar } from "./StudioTopBar";
 import "../studio.css";
 
@@ -55,13 +62,14 @@ export function StudioShell({
       className={`relative flex h-full min-h-0 flex-col overflow-clip bg-brand-dark font-sans text-brand-text ${className}`}
       data-xp-studio
     >
-      <StudioTopBar autosave={autosave} onClose={onClose} menu={menu} />
+      <StudioTopBar autosave={autosave} onClose={onClose} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <StudioNav menu={menu} />
         <main
           className="min-h-0 flex-1 overflow-y-auto border-card-border bg-card-bg-subtle lg:w-[27rem] lg:flex-none lg:border-r"
           aria-busy={loading && !loadError}
         >
+          <SettingsHeader menu={menu} />
           {loadError ? (
             <LoadErrorPanel message={loadError} onRetry={onRetryLoad} />
           ) : loading ? (
@@ -113,6 +121,20 @@ export function StudioShell({
           <PreviewPane />
         </div>
       )}
+    </div>
+  );
+}
+
+// The head of the settings area: the button that keeps the section menu open sits here, with
+// the editing, and moves with the panel when the menu opens (by hover or by click).
+function SettingsHeader({ menu }: { menu: StudioMenu }) {
+  const panel = useStudio((state) => state.ui.panel);
+  return (
+    <div className="sticky top-0 z-10 hidden items-center gap-2 border-b border-card-border bg-card-bg-subtle px-3 py-1 lg:flex">
+      <StudioMenuToggle menu={menu} />
+      <span className="text-[10px] font-black uppercase tracking-wider text-brand-text-muted">
+        {PANEL_META[panel].label}
+      </span>
     </div>
   );
 }

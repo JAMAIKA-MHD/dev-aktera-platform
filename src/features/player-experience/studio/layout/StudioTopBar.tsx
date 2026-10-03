@@ -16,7 +16,6 @@ import { useLayoutWarnings } from "../preview/useLayoutReport";
 import { useStudio, useStudioHistory } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
 import { ScreenTabs } from "./ScreenTabs";
-import { StudioMenuToggle, type StudioMenu } from "./StudioNav";
 
 // Top bar (plan §9.1): which campaign, undo/redo, whether the work is saved, how many
 // problems remain, and the preview in a window of its own.
@@ -145,12 +144,9 @@ function IssuesButton() {
 export function StudioTopBar({
   autosave,
   onClose,
-  menu,
 }: {
   autosave: Autosave;
   onClose?: () => void;
-  // The section menu's state: its pin button sits at the left of the bar, away from the menu.
-  menu?: StudioMenu;
 }) {
   const campaignId = useStudio((state) => state.campaignId);
   const campaignName = useStudio((state) => state.campaign?.name ?? null);
@@ -165,7 +161,6 @@ export function StudioTopBar({
   return (
     <header className="flex min-h-16 flex-wrap items-center gap-x-3 gap-y-2 border-b border-card-border bg-card-bg px-3 py-2 sm:px-4">
       <div className="flex min-w-0 items-center gap-2.5">
-        {menu && <StudioMenuToggle menu={menu} />}
         {onClose && (
           <button
             type="button"

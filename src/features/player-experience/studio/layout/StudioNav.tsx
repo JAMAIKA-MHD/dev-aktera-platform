@@ -22,9 +22,10 @@ import { useStudio } from "../StudioContext";
 // the panel on a wide screen, a scrollable row of tabs above it on a narrow one. Each entry
 // shows how many issues point into it, so the brand sees where the work is.
 //
-// On a wide screen the menu rests as an icon rail and opens in two ways at once: by hover (over
-// the panel, which does not move) and by click on the top bar's button (pinned open,
-// remembered). StudioShell owns the state (useStudioMenu) and hands it to both.
+// On a wide screen the menu rests as an icon rail and opens in two ways at once: by hover and by
+// click on the button at the head of the settings panel (pinned open, remembered). Either way the
+// panel makes room for it, so that button always stays outside the menu. StudioShell owns the
+// state (useStudioMenu) and hands it to both.
 // Under 1024 px it is the row of tabs, always open.
 
 const PINNED_KEY = "studio-nav-pinned";
@@ -35,7 +36,7 @@ export function useStudioMenu(): StudioMenu {
   return useCollapsibleMenu(PINNED_KEY);
 }
 
-/** Click mode: keeps the menu open, or closes it back to the rail. Lives in the top bar. */
+/** Click mode: keeps the menu open, or closes it back to the rail. Lives in the settings panel. */
 export function StudioMenuToggle({ menu }: { menu: StudioMenu }) {
   const label = menu.pinned ? "Collapse the menu" : "Keep the menu open";
   const Icon = menu.pinned ? PanelLeftClose : PanelLeftOpen;
@@ -46,7 +47,7 @@ export function StudioMenuToggle({ menu }: { menu: StudioMenu }) {
       aria-pressed={menu.pinned}
       aria-label={label}
       title={label}
-      className="hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 lg:flex"
+      className="hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 lg:flex"
     >
       <Icon className="size-5" aria-hidden />
     </button>
@@ -166,14 +167,14 @@ export function StudioNav({ menu }: { menu: StudioMenu }) {
     return byPanel;
   }, [issues, layoutIssues]);
 
-  const { pinned, expanded, bind } = menu;
+  const { expanded, bind } = menu;
 
   return (
-    // The wrapper holds the room the panel leaves to the menu (the rail, or the full menu when
-    // pinned); on a wide screen the menu is laid over it, so hovering never pushes the panel.
+    // The wrapper holds the room the panel leaves to the menu: the rail, or the full menu when it
+    // is open (hovered or pinned), so the panel moves aside instead of being covered.
     <div
       className={`shrink-0 transition-[width] duration-300 ease-in-out lg:relative lg:z-20 ${
-        pinned ? "lg:w-52" : "lg:w-[4.5rem]"
+        expanded ? "lg:w-52" : "lg:w-[4.5rem]"
       }`}
     >
       <nav
@@ -182,7 +183,7 @@ export function StudioNav({ menu }: { menu: StudioMenu }) {
         {...bind}
         className={`border-b border-card-border bg-card-bg transition-[width,box-shadow] duration-300 ease-in-out lg:absolute lg:inset-y-0 lg:left-0 lg:flex lg:flex-col lg:border-b-0 lg:border-r ${
           expanded ? "lg:w-52" : "lg:w-[4.5rem]"
-        } ${expanded && !pinned ? "lg:shadow-2xl" : ""}`}
+        }`}
       >
         <ul className="flex gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible lg:p-3">
           {STUDIO_PANELS.map((panel) => (
