@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CampaignSnapshot } from "../../../domain/campaign";
 import { resolveQuizQuestion } from "../../../domain/display";
 import { createDemoCampaign } from "../../../presets/demoCampaign";
-import {
-  buildStandaloneDemoRules,
-  createLocalServices,
-} from "../../../services/createLocalServices";
+import { createLocalServices } from "../../../services/createLocalServices";
 import { createStudioStore } from "../../store";
 import { StudioProvider } from "../../StudioContext";
 import { QuizTranslationsEditor } from "./QuizTranslationsEditor";
@@ -19,14 +16,7 @@ const quiz: CampaignSnapshot = {
 function renderEditor() {
   const store = createStudioStore({ campaign: quiz });
   render(
-    <StudioProvider
-      value={{
-        store,
-        services: createLocalServices(),
-        rules: buildStandaloneDemoRules(quiz),
-        onEditCampaignSettings: () => {},
-      }}
-    >
+    <StudioProvider value={{ store, services: createLocalServices() }}>
       <QuizTranslationsEditor />
     </StudioProvider>,
   );
@@ -39,16 +29,16 @@ const firstCard = () =>
   )!;
 
 describe("QuizTranslationsEditor", () => {
-  it("shows each question as typed in the campaign, the right answer marked", () => {
+  it("shows each question as typed in the campaign, never its right answer", () => {
     renderEditor();
     const card = firstCard();
     expect(card.textContent).toContain(quiz.quiz[0].text);
-    expect(within(card).getAllByLabelText("Correct answer")).toHaveLength(1);
+    expect(within(card).queryAllByLabelText("Correct answer")).toHaveLength(0);
+    expect(card.textContent).not.toMatch(/right answer/i);
+    // No way to the campaign settings: the rules are not the Studio's.
     expect(
-      screen.getByRole("button", {
-        name: /Edit questions in campaign settings/,
-      }),
-    ).toBeTruthy();
+      screen.queryByRole("button", { name: /campaign settings/ }),
+    ).toBeNull();
     // Nothing in the editor can pick another answer: no radio, no select, no checkbox.
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
     expect(screen.queryAllByRole("combobox")).toHaveLength(0);

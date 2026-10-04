@@ -223,12 +223,12 @@ describe("Sections › the screen menu", () => {
 
     act(() => store.getState().setScreen("play"));
     expect(has("Fields")).toBe(false);
-    // Play: the game, with the rules of the campaign.
-    expect(screen.getByRole("region", { name: "Campaign rules" })).toBeTruthy();
+    // Play: the look of the game (the standalone demo is a wheel), never its rules.
+    expect(has("Wheel")).toBe(true);
 
     act(() => store.getState().setScreen("win"));
     expect(has("Texts")).toBe(true);
-    expect(screen.queryByRole("region", { name: "Campaign rules" })).toBeNull();
+    expect(has("Wheel")).toBe(false);
   });
 
   it("keeps the languages menu on every screen", () => {

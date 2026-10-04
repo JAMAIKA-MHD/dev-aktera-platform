@@ -1,4 +1,4 @@
-import { Info, Wand2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import {
   buildDefaultWheelSegments,
   MAX_WHEEL_SEGMENTS,
@@ -48,10 +48,6 @@ export function WheelSegmentsEditor({ wheel }: { wheel: Wheel }) {
   return (
     <PanelSection title="Wheel">
       <PanelIssues prefixes={["game.wheel"]} />
-      <p className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-900 dark:bg-blue-500/10 dark:text-blue-100">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-        Segment size does not reflect odds — odds are set in campaign settings.
-      </p>
       <button
         type="button"
         onClick={() => setWheel(buildDefaultWheelSegments(campaign.prizes))}

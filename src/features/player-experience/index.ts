@@ -7,7 +7,6 @@ export type { PlayerExperienceStudioProps } from "./studio/PlayerExperienceStudi
 // The Studio on the dashboard's own campaigns (T7.1): loaded lazily by App.
 export { CampaignStudio } from "./studio/CampaignStudio";
 export type { CampaignStudioProps } from "./studio/CampaignStudio";
-export type { CampaignSettingsSection } from "./studio/StudioContext";
 // The dashboard's player sandbox on the real runtime (T7.2): loaded lazily by App.
 export { CampaignSimulator } from "./studio/CampaignSimulator";
 export type { CampaignSimulatorProps } from "./studio/CampaignSimulator";

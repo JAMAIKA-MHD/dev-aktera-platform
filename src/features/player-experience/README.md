@@ -27,12 +27,12 @@ ESLint blocks three of these rules: deep imports from outside the module, `servi
 
 ## How the app uses it
 
-| Entry point (`index.ts`) | Mounted by                                         | What it does                                                                                              |
-| ------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `CampaignStudio`         | `App.tsx`, tab `playerScreen` and route `/studio`  | The Studio on the app's own campaigns; "Edit in campaign settings" opens the Wizard over it               |
-| `CampaignSimulator`      | `App.tsx`, "Interactive Player Sandbox" drawer     | The runtime at 390 × 844 in its own iframe, full journey on the demo gateway                              |
-| `FrameHost`              | `AppRouter.tsx`, route `/xp-frame`                 | The runtime's own document: driven by the Studio through the preview bridge, or by `?fixture=` for checks |
-| `PlayerExperience`       | `src/pages/play/PublicPlayPage.tsx`, `/play/:slug` | The runtime itself, always rendered in a document of its own, never inside another page's `div`           |
+| Entry point (`index.ts`) | Mounted by                                         | What it does                                                                                                              |
+| ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `CampaignStudio`         | `App.tsx`, tab `playerScreen` and route `/studio`  | The Studio on the app's own campaigns; it never shows or edits the rules (odds, stock, answers), which stay in the Wizard |
+| `CampaignSimulator`      | `App.tsx`, "Interactive Player Sandbox" drawer     | The runtime at 390 × 844 in its own iframe, full journey on the demo gateway                                              |
+| `FrameHost`              | `AppRouter.tsx`, route `/xp-frame`                 | The runtime's own document: driven by the Studio through the preview bridge, or by `?fixture=` for checks                 |
+| `PlayerExperience`       | `src/pages/play/PublicPlayPage.tsx`, `/play/:slug` | The runtime itself, always rendered in a document of its own, never inside another page's `div`                           |
 
 - **Storage**: on a real campaign, the design is saved in Supabase (table `campaign_experiences`,
   function `save_experience_config`) and images in Storage (bucket `campaign-media`); a design made

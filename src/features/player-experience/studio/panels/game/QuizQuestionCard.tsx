@@ -1,4 +1,4 @@
-import { Check, CheckCheck, History } from "lucide-react";
+import { CheckCheck, History } from "lucide-react";
 import type { CampaignQuizQuestion } from "../../../domain/campaign";
 import { resolveText, type LocalizedText } from "../../../domain/locale";
 import {
@@ -12,7 +12,7 @@ import { useStudio } from "../../StudioContext";
 import { useTextLocale } from "../useTextLocale";
 
 // One question of the campaign, and its translations (tasks.md T6.11). The source, as typed in
-// the Wizard, is read-only here, with the right answer marked; the brand translates the
+// the Wizard, is read-only here, without its right answer; the brand translates the
 // question and each option, in the database order, and can neither add, remove nor reorder an
 // option — so the answer a player sends never depends on the language.
 
@@ -25,13 +25,11 @@ const same = (text: string): LocalizedText => ({
 export function QuizQuestionCard({
   question,
   index,
-  correctIndex,
   translation,
   onChange,
 }: {
   question: CampaignQuizQuestion;
   index: number;
-  correctIndex: number | undefined;
   translation: QuizQuestionTranslation | undefined;
   onChange: (next: QuizQuestionTranslation | null) => void;
 }) {
@@ -78,15 +76,8 @@ export function QuizQuestionCard({
             <li
               key={at}
               dir="auto"
-              className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-xs ${
-                at === correctIndex
-                  ? "bg-emerald-50 font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                  : "bg-card-bg text-brand-text-muted ring-1 ring-card-border"
-              }`}
+              className="flex items-center gap-1 rounded-md bg-card-bg px-2 py-0.5 text-xs text-brand-text-muted ring-1 ring-card-border"
             >
-              {at === correctIndex && (
-                <Check className="size-3" aria-label="Correct answer" />
-              )}
               {option}
             </li>
           ))}
@@ -145,7 +136,7 @@ export function QuizQuestionCard({
       {question.options.map((option, at) => (
         <LocalizedTextField
           key={at}
-          label={`Option ${at + 1}${at === correctIndex ? " · right answer" : ""}`}
+          label={`Option ${at + 1}`}
           path={`${path}.options.${at}`}
           value={translation?.options[at] ?? {}}
           placeholder={same(option)}

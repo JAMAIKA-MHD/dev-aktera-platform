@@ -1,10 +1,10 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Campaign } from "@/src/types";
 import { CampaignStudio } from "./CampaignStudio";
 
-// The Studio as the dashboard mounts it (T7.1): the app's own campaigns in, the snapshot and
-// the read-only rules built inside, the picker and the Wizard callbacks wired out.
+// The Studio as the dashboard mounts it (T7.1): the app's own campaigns in, the snapshot built
+// inside, and none of the campaign's rules shown or editable.
 
 const campaign = (patch: Partial<Campaign>): Campaign => ({
   id: "c-wheel",
@@ -43,7 +43,7 @@ function openPlayScreen() {
 describe("CampaignStudio", () => {
   beforeEach(() => localStorage.clear());
 
-  it("shows the app's campaign, its real odds and stock, and no campaign picker", async () => {
+  it("shows the app's campaign, no campaign picker and none of its rules", async () => {
     render(
       <CampaignStudio
         campaigns={[
@@ -60,37 +60,10 @@ describe("CampaignStudio", () => {
     expect(screen.getByText("Rentrée Zeta")).toBeTruthy();
     expect(screen.queryByLabelText("Campaign")).toBeNull();
 
+    // The play screen offers the look of the game, never the odds or the stock.
     openPlayScreen();
-    const rules = screen.getByRole("region", { name: "Campaign rules" });
-    expect(within(rules).getByText("65 %")).toBeTruthy();
-    expect(within(rules).getByText("Bon 2000 DA")).toBeTruthy();
-    // 30 allocated, 8 won: 22 left.
-    expect(within(rules).getByText("22")).toBeTruthy();
-  });
-
-  it("opens the Wizard on the right part, then asks for the campaign again", async () => {
-    const onEditCampaignSettings = vi.fn(async () => {});
-    const onRefreshCampaign = vi.fn();
-    render(
-      <CampaignStudio
-        campaigns={[campaign({})]}
-        prizeTemplates={templates}
-        campaignId="c-wheel"
-        onEditCampaignSettings={onEditCampaignSettings}
-        onRefreshCampaign={onRefreshCampaign}
-      />,
-    );
-    await act(async () => {
-      await Promise.resolve();
-    });
-    openPlayScreen();
-    await act(async () => {
-      fireEvent.click(
-        screen.getAllByRole("button", { name: "Edit in campaign settings" })[0],
-      );
-    });
-    expect(onEditCampaignSettings).toHaveBeenCalledWith("c-wheel", "rules");
-    expect(onRefreshCampaign).toHaveBeenCalled();
+    expect(screen.queryByRole("region", { name: "Campaign rules" })).toBeNull();
+    expect(screen.queryByText("65 %")).toBeNull();
   });
 
   it("offers a way back to the dashboard", () => {

@@ -6,7 +6,7 @@ import { StudioShell } from "./layout/StudioShell";
 import { loadIntoStudio } from "./loadIntoStudio";
 import { loadViewportPrefs, saveViewportPrefs } from "./preview/viewportPrefs";
 import { createStudioStore, type StudioStore } from "./store";
-import { StudioProvider, type StudioContextValue } from "./StudioContext";
+import { StudioProvider } from "./StudioContext";
 import { useAutosave } from "./useAutosave";
 
 // The Studio (plan §9): the brand edits the presentation of one campaign, and sees the real
@@ -15,10 +15,6 @@ import { useAutosave } from "./useAutosave";
 export interface PlayerExperienceStudioProps {
   // The campaign being dressed; null or absent = standalone, on the demo campaign.
   campaign?: CampaignSnapshot | null;
-  onEditCampaignSettings?: StudioContextValue["onEditCampaignSettings"];
-  onRefreshCampaign?: () => void;
-  // The campaign's draw rules (buildDemoRules), shown read-only in the Game panel.
-  rules?: StudioContextValue["rules"];
   services?: ExperienceServices; // default: the local services of the MVP
   onClose?: () => void; // a "Back to dashboard" button in the top bar
   className?: string;
@@ -44,9 +40,6 @@ export function PlayerExperienceStudio({
 function StudioSession({
   campaign,
   services,
-  onEditCampaignSettings,
-  onRefreshCampaign,
-  rules,
   onClose,
   className,
 }: Omit<PlayerExperienceStudioProps, "campaign" | "services"> & {
@@ -106,16 +99,7 @@ function StudioSession({
     repository: services.repository,
     enabled: loaded,
   });
-  const value = useMemo(
-    () => ({
-      store,
-      services,
-      onEditCampaignSettings,
-      onRefreshCampaign,
-      rules,
-    }),
-    [store, services, onEditCampaignSettings, onRefreshCampaign, rules],
-  );
+  const value = useMemo(() => ({ store, services }), [store, services]);
 
   return (
     <StudioProvider value={value}>

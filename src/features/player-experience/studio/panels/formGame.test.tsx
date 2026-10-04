@@ -1,12 +1,9 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { CampaignSnapshot } from "../../domain/campaign";
 import { createDemoCampaign } from "../../presets/demoCampaign";
-import {
-  buildStandaloneDemoRules,
-  createLocalServices,
-} from "../../services/createLocalServices";
+import { createLocalServices } from "../../services/createLocalServices";
 import { createStudioStore, type StudioStore } from "../store";
 import { StudioProvider, type StudioContextValue } from "../StudioContext";
 import { SectionsPanel } from "./SectionsPanel";
@@ -132,42 +129,33 @@ describe("Sections › Play (the game)", () => {
     );
   });
 
-  it("shows the campaign rules read-only, with the right answers and the stock", () => {
-    const campaign = linked("quiz");
-    const rules = { ...buildStandaloneDemoRules(campaign), winProbability: 35 };
-    renderPanel(SectionsPanel, {
-      screen: "play",
-      campaign,
-      context: { rules },
-    });
-    const card = screen.getByRole("region", { name: "Campaign rules" });
-    expect(within(card).getByText("35 %")).toBeTruthy();
-    expect(within(card).getAllByLabelText("Correct answer")).toHaveLength(
-      campaign.quiz.length,
-    );
-    expect(within(card).getAllByText("100").length).toBe(
-      campaign.prizes.length,
-    );
-    // No input in the rules: nothing there can be edited.
-    expect(within(card).queryByRole("textbox")).toBeNull();
-    // Without the app's callback, no button to the Wizard.
-    expect(within(card).queryByText("Edit in campaign settings")).toBeNull();
-  });
-
-  it("sends the brand to the right Wizard step, then refreshes the campaign", async () => {
-    const onEditCampaignSettings = vi.fn(async () => {});
-    const onRefreshCampaign = vi.fn();
-    renderPanel(SectionsPanel, {
-      screen: "play",
-      campaign: linked("lucky_wheel"),
-      context: { onEditCampaignSettings, onRefreshCampaign },
-    });
-    const buttons = screen.getAllByRole("button", {
-      name: "Edit in campaign settings",
-    });
-    await act(async () => fireEvent.click(buttons[1]));
-    expect(onEditCampaignSettings).toHaveBeenCalledWith("campaign-1", "prizes");
-    expect(onRefreshCampaign).toHaveBeenCalledTimes(1);
+  it("keeps the rules out of the game panels: no odds, stock, answers, nor way to edit them", () => {
+    for (const gameType of [
+      "lucky_wheel",
+      "quiz",
+      "scratch_card",
+      "mystery_box",
+      "hit_it",
+    ] as const) {
+      const store = createStudioStore({ campaign: linked(gameType) });
+      store.getState().setScreen("play");
+      const { container, unmount: close } = render(
+        <StudioProvider value={{ store, services: createLocalServices() }}>
+          <SectionsPanel />
+        </StudioProvider>,
+      );
+      expect(
+        screen.queryByRole("region", { name: "Campaign rules" }),
+      ).toBeNull();
+      expect(screen.queryAllByLabelText("Correct answer")).toHaveLength(0);
+      expect(
+        screen.queryByRole("button", { name: /campaign settings/ }),
+      ).toBeNull();
+      expect(container.textContent).not.toMatch(
+        /\b(odds|win probability|stock|right answer|allocated)\b/i,
+      );
+      close();
+    }
   });
 
   it("edits the wheel within 4 to 12 segments, and flags an incoherent one", () => {
@@ -204,7 +192,8 @@ describe("Sections › Play (the game)", () => {
     expect(
       screen.getByRole("button", { name: /^Remove Segment 1/ }),
     ).toHaveProperty("disabled", true);
-    expect(screen.getByText(/Segment size does not reflect odds/)).toBeTruthy();
+    // The wheel has no setting about odds, and no word about them.
+    expect(screen.queryByText(/odds/i)).toBeNull();
     // Many segment edits, each re-rendering the panel: slow under a full parallel run.
   }, 20_000);
 

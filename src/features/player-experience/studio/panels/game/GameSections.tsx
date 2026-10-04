@@ -3,14 +3,14 @@ import { GAME_LABELS, type GameType } from "../../../domain/gameTypes";
 import { SelectField } from "../../fields/SelectField";
 import { useStudio } from "../../StudioContext";
 import { PanelIssues, PanelSection } from "../PanelLayout";
-import { CampaignRulesCard } from "./CampaignRulesCard";
 import { BoxesSettings, HitItSettings, ScratchSettings } from "./GameSettings";
 import { PrizeDisplayEditor } from "./PrizeDisplayEditor";
 import { QuizTranslationsEditor } from "./QuizTranslationsEditor";
 import { WheelSegmentsEditor } from "./WheelSegmentsEditor";
 
-// The play screen's game (plan §6.6): the rules on top, read-only, from the campaign; below them, everything
-// that is presentation and belongs to the brand. Nothing in this panel can change who wins.
+// The play screen's game (plan §6.6): only what the brand customizes — the look of the game, its
+// prizes as players read them, its texts. No odds, stock, answers or other rule: those are the
+// campaign's, and nothing in this panel can change who wins.
 
 const GAME_OPTIONS = (Object.keys(GAME_LABELS) as GameType[]).map((type) => ({
   value: type,
@@ -58,7 +58,6 @@ export function GameSections() {
         </div>
       )}
 
-      <CampaignRulesCard />
       <PrizeDisplayEditor />
 
       {game.type === "lucky_wheel" && game.wheel && (

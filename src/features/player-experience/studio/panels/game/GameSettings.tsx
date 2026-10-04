@@ -9,8 +9,8 @@ import { useTextLocale } from "../useTextLocale";
 import { OptionalColorField } from "./OptionalColorField";
 
 // The look of the scratch card, the mystery boxes and the Hit It target (plan §6.6). Durations
-// and thresholds that decide a win are the campaign's (shown in the rules card), never here;
-// the scratch reveal threshold only says when the card uncovers itself, not what is under it.
+// and thresholds that decide a win are the campaign's, never here; the scratch reveal threshold
+// only says when the card uncovers itself, not what is under it.
 
 type Scratch = NonNullable<GameSettings["scratch"]>;
 type Boxes = NonNullable<GameSettings["boxes"]>;
@@ -84,10 +84,7 @@ export function HitItSettings({ hitIt }: { hitIt: HitIt }) {
   const set = (patch: Partial<HitIt>) =>
     updateGame({ hitIt: { ...hitIt, ...patch } });
   return (
-    <PanelSection
-      title="Hit It target"
-      description="The number of hits and the time allowed are campaign rules (above)."
-    >
+    <PanelSection title="Hit It target">
       <IconPicker
         label="Target icon"
         path="game.hitIt.targetIcon"

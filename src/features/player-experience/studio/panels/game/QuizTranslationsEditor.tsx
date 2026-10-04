@@ -3,27 +3,20 @@ import { countTranslated } from "../../../domain/quizTranslation";
 import { LOCALE_LABELS } from "../LanguagesSection";
 import { useStudio } from "../../StudioContext";
 import { PanelIssues, PanelSection } from "../PanelLayout";
-import { EditButton } from "./CampaignRulesCard";
 import { QuizQuestionCard } from "./QuizQuestionCard";
 import { useCampaignView } from "./useCampaignView";
 
 // Quiz translations (plan §6.6, tasks.md T6.11): every question of the campaign, in its order,
 // with a translation per language the players are offered. The questions themselves, their
-// options and the right answer are edited in the Wizard, never here.
+// options and the right answer are the campaign's: never shown or edited here.
 
 export function QuizTranslationsEditor() {
-  const { campaign, rules } = useCampaignView();
+  const { campaign } = useCampaignView();
   const translations = useStudio(
     (state) => state.config.game.quiz?.translations ?? {},
   );
   const locales = useStudio((state) => state.config.locales);
   const updateGame = useStudio((state) => state.updateGame);
-  const correct = new Map(
-    rules?.quiz?.questions.map((question) => [
-      question.id,
-      question.correctIndex,
-    ]),
-  );
   // The database text counts as the default language: the others need a translation.
   const others = locales.enabled.filter((locale) => locale !== locales.default);
 
@@ -58,12 +51,6 @@ export function QuizTranslationsEditor() {
             </span>
           );
         })}
-        <span className="ml-auto">
-          <EditButton
-            section="questions"
-            label="Edit questions in campaign settings"
-          />
-        </span>
       </div>
       {others.length === 0 && (
         <p className="text-xs text-brand-text-muted">
@@ -77,7 +64,6 @@ export function QuizTranslationsEditor() {
             key={question.id}
             question={question}
             index={index}
-            correctIndex={correct.get(question.id)}
             translation={translations[question.id]}
             onChange={set(question.id)}
           />
