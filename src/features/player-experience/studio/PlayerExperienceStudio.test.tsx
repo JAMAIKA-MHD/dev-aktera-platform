@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDemoCampaign } from "../presets/demoCampaign";
 import { createLocalServices } from "../services/createLocalServices";
@@ -81,20 +81,31 @@ describe("PlayerExperienceStudio", () => {
     // Standalone: the frame plays the demo campaign of the configured game.
     expect(config.campaign).toEqual(createDemoCampaign("lucky_wheel"));
     const ui = posted[1] as Extract<ToFrameMessage, { type: "xp:ui" }>;
-    expect(ui).toMatchObject({ screen: "welcome", locale: "fr", mode: "demo" });
+    // The preview is a still picture: the journey plays in "Open in window".
+    expect(ui).toMatchObject({
+      screen: "welcome",
+      locale: "fr",
+      mode: "static",
+    });
     // The iPhone's notch and home indicator become the runtime's safe areas.
     expect(ui.safeArea).toEqual({ top: 47, right: 0, bottom: 34, left: 0 });
   });
 
-  it("switches screen, language and mode without losing the configuration", async () => {
+  it("switches screen, language and status message without losing the configuration", async () => {
     const { posted } = await renderStudio();
     act(() => fromFrame({ type: "xp:ready" }));
     posted.length = 0;
 
+    // No choice of how the journey plays: the preview does not play it.
+    expect(screen.queryByLabelText("Scenario")).toBeNull();
+    expect(screen.queryByLabelText("Outcome")).toBeNull();
+    expect(screen.queryByLabelText("Message")).toBeNull();
+
     fireEvent.click(screen.getByRole("tab", { name: "Win" }));
     fireEvent.click(screen.getByRole("radio", { name: "ar" }));
-    fireEvent.change(screen.getByLabelText("Scenario"), {
-      target: { value: "scripted" },
+    fireEvent.click(screen.getByRole("tab", { name: "Status" }));
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "closed" },
     });
     const views = posted.filter(
       (message): message is Extract<ToFrameMessage, { type: "xp:ui" }> =>
@@ -102,11 +113,12 @@ describe("PlayerExperienceStudio", () => {
     );
     const last = views[views.length - 1];
     expect(last).toMatchObject({
-      screen: "win",
+      screen: "status",
       locale: "ar",
-      mode: "scripted",
+      mode: "static",
+      scenario: "closed",
     });
-    // Each change of screen or mode restarts the journey there.
+    // Each change of screen or message draws the screen again.
     expect(last.restartKey).toBeGreaterThan(0);
     // The preview is not an edit: no configuration was sent, nothing to undo.
     expect(posted.some((message) => message.type === "xp:config")).toBe(false);
@@ -114,10 +126,12 @@ describe("PlayerExperienceStudio", () => {
       "disabled",
       true,
     );
-    // Scripted mode offers the outcomes, one per prize of the campaign.
+    // The Status tab offers the messages of a player who cannot play.
     expect(
-      screen.getByRole("option", { name: "Win · Bon 2000 DA" }),
-    ).toBeTruthy();
+      within(screen.getByLabelText("Message"))
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Already played", "Campaign closed", "Network error"]);
   });
 
   it("opens the panel of what is clicked in the preview", async () => {

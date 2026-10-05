@@ -378,7 +378,7 @@ describe("BridgeFrame", () => {
     ).toEqual([{ type: "xp:edit-target", path: "screens.welcome.title" }]);
   });
 
-  it("plays the journey and tells the Studio each screen shown", () => {
+  it("is a still picture: nothing a player does moves the journey on", () => {
     const { bridge, posted, send } = fakeBridge();
     render(<BridgeFrame bridge={bridge} />);
     send({
@@ -386,14 +386,58 @@ describe("BridgeFrame", () => {
       config: createDefaultExperience({ gameType: "lucky_wheel" }),
       campaign: createDemoCampaign("lucky_wheel"),
     });
-    expect(screen.getByText("Demo")).toBeTruthy(); // demo gateway by default
-    fireEvent.click(screen.getByText("Lancer le jeu"));
+    const button = screen.getByText("Lancer le jeu");
+    fireEvent.pointerDown(button);
+    fireEvent.mouseDown(button);
+    fireEvent.mouseUp(button);
+    fireEvent.pointerUp(button);
+    fireEvent.click(button);
+    fireEvent.keyDown(button, { key: "Enter" });
+    fireEvent.keyDown(button, { key: " " });
+    // Still the welcome screen: the registration never opened.
+    expect(screen.getByText("Lancer le jeu")).toBeTruthy();
+    expect(screen.queryByText("Vos coordonnées")).toBeNull();
     expect(
       posted.filter((message) => message.type === "xp:flow-event"),
-    ).toEqual([
-      { type: "xp:flow-event", screen: "welcome" },
-      { type: "xp:flow-event", screen: "register" },
-    ]);
+    ).toEqual([{ type: "xp:flow-event", screen: "welcome" }]);
+  });
+
+  it("still points a click on the main button at the field that words it", () => {
+    const { bridge, posted, send } = fakeBridge();
+    render(<BridgeFrame bridge={bridge} />);
+    send({
+      type: "xp:config",
+      config: createDefaultExperience({ gameType: "lucky_wheel" }),
+      campaign: createDemoCampaign("lucky_wheel"),
+    });
+    fireEvent.click(screen.getByText("Lancer le jeu"));
+    expect(
+      posted.filter((message) => message.type === "xp:edit-target"),
+    ).toEqual([{ type: "xp:edit-target", path: "screens.welcome.primaryCta" }]);
+    // …and the click did nothing else.
+    expect(screen.queryByText("Vos coordonnées")).toBeNull();
+  });
+
+  it("takes no text in a field of the form", () => {
+    const { bridge, send } = fakeBridge();
+    render(<BridgeFrame bridge={bridge} />);
+    send({
+      type: "xp:config",
+      config: createDefaultExperience({ gameType: "lucky_wheel" }),
+      campaign: createDemoCampaign("lucky_wheel"),
+    });
+    send({
+      type: "xp:ui",
+      screen: "register",
+      locale: "fr",
+      mode: "static",
+      restartKey: 0,
+    });
+    const input = document.querySelector("input[type=text], input:not([type])");
+    expect(input).not.toBeNull();
+    const field = input as HTMLInputElement;
+    fireEvent.keyDown(field, { key: "a" });
+    expect(field.value).toBe("");
   });
 
   it("follows the preview bar: screen, scripted scenario, still screen and restart", () => {
@@ -418,12 +462,12 @@ describe("BridgeFrame", () => {
       type: "xp:flow-event",
       screen: "duplicate",
     });
-    // A still screen with no tab chosen: the welcome screen.
+    // A still screen with no tab chosen: the welcome screen, and a click does not leave it.
     send({ ...ui, mode: "static" });
     expect(screen.getByText("Lancer le jeu")).toBeTruthy();
     fireEvent.click(screen.getByText("Lancer le jeu"));
-    expect(screen.getByText("Vos coordonnées")).toBeTruthy();
-    // A new restartKey starts the journey again.
+    expect(screen.queryByText("Vos coordonnées")).toBeNull();
+    // A new restartKey draws the screen again.
     send({ ...ui, mode: "static", restartKey: 1 });
     expect(screen.getByText("Lancer le jeu")).toBeTruthy();
   });

@@ -103,7 +103,6 @@ describe("Sections › Play (the game)", () => {
         "resetToDefaults",
         "setCampaign",
         "setLayoutIssues",
-        "setLiveScreen",
         "setLocale",
         "setMode",
         "setPanel",

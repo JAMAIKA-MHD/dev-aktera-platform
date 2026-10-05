@@ -40,7 +40,7 @@ describe("studio store", () => {
       panel: "template",
       screen: "welcome",
       locale: config.locales.default,
-      mode: "demo",
+      mode: "static",
     });
     expect(ui.viewport).toEqual(DEFAULT_VIEWPORT);
     expect(issues.filter((issue) => issue.level === "error")).toEqual([]);

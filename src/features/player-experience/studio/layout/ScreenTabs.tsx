@@ -2,7 +2,7 @@ import type { PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
 
 // The screen tabs (plan §9.3), in the middle of the preview bar: the one place that picks the screen shown in the
-// preview and edited in Content. A dot marks where a demo game is when another tab is open.
+// preview and edited in Sections.
 
 const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
   { id: "welcome", label: "Welcome" },
@@ -15,8 +15,6 @@ const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
 
 export function ScreenTabs() {
   const screen = useStudio((state) => state.ui.screen);
-  const mode = useStudio((state) => state.ui.mode);
-  const liveScreen = useStudio((state) => state.liveScreen);
   const setScreen = useStudio((state) => state.setScreen);
 
   return (
@@ -41,12 +39,6 @@ export function ScreenTabs() {
             }`}
           >
             {label}
-            {mode === "demo" && liveScreen === id && !selected && (
-              <span
-                className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald-500"
-                aria-label="(current)"
-              />
-            )}
           </button>
         );
       })}

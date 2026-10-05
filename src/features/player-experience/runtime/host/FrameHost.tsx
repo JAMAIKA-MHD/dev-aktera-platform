@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CampaignSnapshot } from "../../domain/campaign";
 import { createDefaultExperience } from "../../domain/defaults";
 import type { Locale } from "../../domain/locale";
@@ -49,9 +49,27 @@ function FixtureFrame({ name, locale }: { name: string; locale: Locale }) {
 
 type UiMessage = Extract<ToFrameMessage, { type: "xp:ui" }>;
 
-// Studio preview: waits for the configuration sent by the Studio, then plays the journey as
-// its preview bar says: full flow on the demo gateway, a scripted outcome, or a still screen
-// (scripted, started on the chosen tab). A new restartKey starts the journey again.
+// What a player does with a screen: nothing of it reaches the preview of the Studio (below).
+// Touch events are only stopped, never cancelled, so the preview still scrolls under a finger.
+const INERT_EVENTS = [
+  "pointerdown",
+  "pointerup",
+  "mousedown",
+  "mouseup",
+  "dblclick",
+  "contextmenu",
+  "keydown",
+  "keyup",
+  "submit",
+  "dragstart",
+] as const;
+const INERT_TOUCH_EVENTS = ["touchstart", "touchend", "touchcancel"] as const;
+
+// Studio preview: waits for the configuration sent by the Studio, then shows the screen its
+// preview bar says, as a still picture: nothing a player does works here (no button moves the
+// journey on, no game plays, no field takes text). The one thing a click does is point the
+// Studio at the field that holds the clicked element (data-xp-edit). The journey itself is
+// played in the tab "Open in window" (PopoutFrame). A new restartKey draws the screen again.
 export function BridgeFrame({
   bridge: injected,
 }: {
@@ -87,12 +105,39 @@ export function BridgeFrame({
     return unsubscribe;
   }, [bridge]);
 
-  // A click on an editable element opens the matching field in the Studio.
-  const onClickCapture = (event: MouseEvent) => {
-    const target = (event.target as Element).closest("[data-xp-edit]");
-    const path = target?.getAttribute("data-xp-edit");
-    if (path) bridge.post({ type: "xp:edit-target", path });
-  };
+  // The preview is a picture: every gesture is stopped on its way down, before the screen
+  // can hear it. A click on an editable element opens the matching field in the Studio.
+  const root = useRef<HTMLDivElement>(null);
+  const shown = data !== null;
+  useEffect(() => {
+    const element = root.current;
+    if (!element) return;
+    const stop = (event: Event) => {
+      event.stopPropagation();
+      if (event.cancelable) event.preventDefault();
+    };
+    const stopTouch = (event: Event) => event.stopPropagation();
+    const onClick = (event: MouseEvent) => {
+      const target = (event.target as Element).closest("[data-xp-edit]");
+      const path = target?.getAttribute("data-xp-edit");
+      if (path) bridge.post({ type: "xp:edit-target", path });
+      stop(event);
+    };
+    for (const type of INERT_EVENTS) element.addEventListener(type, stop, true);
+    for (const type of INERT_TOUCH_EVENTS) {
+      element.addEventListener(type, stopTouch, true);
+    }
+    element.addEventListener("click", onClick, true);
+    return () => {
+      for (const type of INERT_EVENTS) {
+        element.removeEventListener(type, stop, true);
+      }
+      for (const type of INERT_TOUCH_EVENTS) {
+        element.removeEventListener(type, stopTouch, true);
+      }
+      element.removeEventListener("click", onClick, true);
+    };
+  }, [bridge, shown]);
 
   // The live layout audit, once there is something to audit (plan §9.3, T6.10).
   useLayoutReport(
@@ -103,7 +148,7 @@ export function BridgeFrame({
 
   if (!data) return <Message title="Waiting for the Studio…" />;
   return (
-    <div onClickCapture={onClickCapture}>
+    <div ref={root}>
       <FrameExperience
         key={ui.restartKey}
         config={data.config}
