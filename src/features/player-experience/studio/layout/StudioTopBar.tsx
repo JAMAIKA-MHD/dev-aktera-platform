@@ -152,7 +152,7 @@ export function StudioTopBar({
   const { canUndo, canRedo, undo, redo } = useStudioHistory();
 
   const openWindow = () => {
-    const params = new URLSearchParams({ source: "local" });
+    const params = new URLSearchParams({ source: "popout" });
     if (campaignId) params.set("campaignId", campaignId);
     window.open(`/xp-frame?${params}`, "_blank", "noopener");
   };

@@ -8,6 +8,7 @@ import { ensureViewportFitCover } from "../layout/safeArea";
 import { FrameExperience, frameScreen } from "./FrameExperience";
 import { FIXTURE_NAMES, getFixture, readFixtureLocale } from "./fixtures";
 import { exposeLayoutAudit, useLayoutReport } from "./layoutReport";
+import { openPopoutChannel } from "./popoutChannel";
 import {
   createFrameBridge,
   type Bridge,
@@ -17,8 +18,9 @@ import {
 import { frameServices, Message, Stage } from "./Stage";
 
 // /xp-frame: the runtime in a document of its own, at the exact size of the simulated device
-// (plan, principle 10). Three sources of configuration, chosen by the URL:
+// (plan, principle 10). Four sources of configuration, chosen by the URL:
 //   ?source=bridge (default)        the Studio preview sends it with postMessage
+//   ?source=popout&campaignId=…     a separate tab, fed live by the Studio that opened it
 //   ?source=local&campaignId=…      a separate tab reads it from the local repository, live
 //   ?fixture=<name>[&locale=ar]     control pages for the responsive sweep (fixtures.ts)
 // The route reads no server data and always runs on demo services (DEMO badge).
@@ -120,7 +122,69 @@ export function BridgeFrame({
   );
 }
 
-// "Open in new window": reads the saved configuration, follows its changes live, and plays
+// "Open in window": the design as the Studio holds it, live, whatever its storage (Supabase for
+// a real campaign, the browser for the standalone one). The tab asks the Studio for it, so the
+// Studio must stay open; the tab plays the demo journey on the demo services.
+export function PopoutFrame({ campaignId }: { campaignId: string | null }) {
+  const [data, setData] = useState<{
+    config: ExperienceConfig;
+    campaign: CampaignSnapshot;
+    locale: Locale;
+  } | null>(null);
+  const [unsupported, setUnsupported] = useState(false);
+
+  useEffect(() => {
+    const channel = openPopoutChannel();
+    if (!channel) {
+      setUnsupported(true);
+      return;
+    }
+    const unsubscribe = channel.subscribe((message) => {
+      if (
+        message.type === "xp:popout-state" &&
+        message.campaignId === campaignId
+      ) {
+        setData({
+          config: message.config,
+          campaign: message.campaign,
+          locale: message.locale,
+        });
+      }
+    });
+    channel.post({ type: "xp:popout-hello", campaignId });
+    return () => {
+      unsubscribe();
+      channel.close();
+    };
+  }, [campaignId]);
+
+  if (unsupported) {
+    return (
+      <Message title="This browser cannot follow the Studio">
+        <p className="text-sm">Use the preview inside the Studio instead.</p>
+      </Message>
+    );
+  }
+  if (!data) {
+    return (
+      <Message title="Waiting for the Studio…">
+        <p className="text-sm">
+          Keep the Studio open: this window shows its design, live.
+        </p>
+      </Message>
+    );
+  }
+  return (
+    <FrameExperience
+      config={data.config}
+      campaign={data.campaign}
+      locale={data.locale}
+      gateway="demo"
+    />
+  );
+}
+
+// Older "Open in new window": reads the saved configuration, follows its changes live, and plays
 // the demo journey.
 export function LocalFrame({ campaignId }: { campaignId: string | null }) {
   const [config, setConfig] = useState<ExperienceConfig | null>(null);
@@ -185,6 +249,9 @@ export function FrameHost() {
         locale={readFixtureLocale(params.get("locale"))}
       />
     );
+  }
+  if (params.get("source") === "popout") {
+    return <PopoutFrame campaignId={params.get("campaignId")} />;
   }
   if (params.get("source") === "local") {
     return <LocalFrame campaignId={params.get("campaignId")} />;

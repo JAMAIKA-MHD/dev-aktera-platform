@@ -2,6 +2,7 @@ import { AlertTriangle, Eye, RotateCcw, X } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useStudio } from "../StudioContext";
 import type { Autosave } from "../useAutosave";
+import { usePopoutPublisher } from "../preview/usePopoutPublisher";
 import { useUndoShortcuts } from "../useUndoShortcuts";
 import { PanelArea } from "./PanelArea";
 import { PreviewPane } from "./PreviewPane";
@@ -55,6 +56,7 @@ export function StudioShell({
   const wide = useWideLayout();
   const [drawerOpen, setDrawerOpen] = useState(false);
   useUndoShortcuts();
+  usePopoutPublisher();
   const menu = useStudioMenu();
 
   return (
