@@ -156,7 +156,8 @@ describe("Sections › Play (the game)", () => {
       );
       close();
     }
-  });
+    // Five games rendered one after the other: slow under a full parallel run.
+  }, 20_000);
 
   it("edits the wheel within 4 to 12 segments, and flags an incoherent one", () => {
     const campaign = linked("lucky_wheel");

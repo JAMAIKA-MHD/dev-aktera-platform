@@ -67,23 +67,6 @@ export function ScreenTextFields({ screenKey: key }: { screenKey: ScreenKey }) {
           maxChars={28}
           {...textLocale}
         />
-        <ToggleField
-          label="Second button"
-          description="A quieter link under the main button."
-          checked={screen.secondaryCta !== null}
-          onChange={(on) => update({ secondaryCta: on ? {} : null })}
-          path={path("secondaryCta")}
-        />
-        {screen.secondaryCta !== null && (
-          <LocalizedTextField
-            label="Second button text"
-            path={`${path("secondaryCta")}.text`}
-            value={screen.secondaryCta}
-            onChange={(secondaryCta) => update({ secondaryCta })}
-            maxChars={28}
-            {...textLocale}
-          />
-        )}
       </PanelSection>
 
       <PanelSection title="Around the text">

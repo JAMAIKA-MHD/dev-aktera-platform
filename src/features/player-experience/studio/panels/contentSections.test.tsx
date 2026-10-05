@@ -90,15 +90,11 @@ describe("Sections › the texts of a screen", () => {
     expect(store.getState().ui.locale).toBe("ar");
   });
 
-  it("turns the second button and the encouragement on and off", () => {
-    const store = renderPanel(SectionsPanel);
-    fireEvent.click(screen.getByRole("switch", { name: /Second button/ }));
-    expect(store.getState().config.screens.welcome.secondaryCta).toEqual({});
-    fireEvent.change(screen.getByLabelText("Second button text"), {
-      target: { value: "Voir le règlement" },
-    });
-    fireEvent.click(screen.getByRole("switch", { name: /Second button/ }));
-    expect(store.getState().config.screens.welcome.secondaryCta).toBeNull();
+  it("offers no second button, and turns the encouragement on and off", () => {
+    renderPanel(SectionsPanel);
+    // The main button is the only one a screen offers.
+    expect(screen.queryByRole("switch", { name: /Second button/ })).toBeNull();
+    expect(screen.queryByLabelText("Second button text")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Encouragement"), {
       target: { value: "attempts" },
