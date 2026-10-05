@@ -159,6 +159,24 @@ export function DashboardSidebar({ menu }: { menu: DashboardMenu }) {
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-brand-border/50 space-y-1.5 overflow-hidden whitespace-nowrap">
+          {/* Client support: just above the documentation */}
+          <NavLink
+            to={PATHS.support}
+            title={!expanded ? t("nav.support", "Client support") : undefined}
+            aria-current={currentSection === "support" ? "page" : undefined}
+            className={`flex items-center gap-3.5 px-3 py-2.5 text-xs transition-colors rounded-xl ${
+              currentSection === "support"
+                ? "bg-blue-600/15 text-blue-600 dark:text-blue-400 font-bold"
+                : "text-brand-textMuted hover:text-brand-text hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            <div className="w-6 flex items-center justify-center shrink-0">
+              <i className="fa-solid fa-headset"></i>
+            </div>
+            <span className={labelClass}>
+              {t("nav.support", "Client support")}
+            </span>
+          </NavLink>
           <a
             className="flex items-center gap-3.5 px-3 py-2.5 text-brand-textMuted hover:text-brand-text text-xs transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
             href="#"

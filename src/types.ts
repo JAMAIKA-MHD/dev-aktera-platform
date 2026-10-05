@@ -27,7 +27,8 @@ export type TabType =
   | "analytics"
   | "billing"
   | "account"
-  | "playerScreen";
+  | "playerScreen"
+  | "support";
 
 /**
  * 1. Organizations Entity
@@ -290,4 +291,37 @@ export interface Prize {
   color?: string;
   textColor?: string;
   couponCode?: string;
+}
+
+/**
+ * Client support tickets (table `support_tickets`).
+ * A client is an organization: `organizationId` is the client id. The account details
+ * (email, phone, plan) are the ones the account had when the ticket was opened.
+ */
+export type SupportPlatformSection =
+  "campaign_creation" | "analytics" | "inventory" | "player_screen_editor";
+
+export type SupportTicketType =
+  "platform_error" | "platform_slowness" | "other";
+
+export type SupportSeverity = "low" | "medium" | "high" | "urgent";
+
+export type SupportTicketState =
+  "new" | "open" | "on_hold" | "cancelled" | "resolved";
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: number;
+  organizationId: string;
+  contactEmail: string;
+  contactPhone: string | null;
+  plan: "free" | "starter" | "pro" | "enterprise";
+  platformSection: SupportPlatformSection;
+  type: SupportTicketType;
+  severity: SupportSeverity;
+  description: string;
+  state: SupportTicketState;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
