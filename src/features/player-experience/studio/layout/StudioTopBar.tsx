@@ -4,11 +4,10 @@ import {
   Check,
   CircleAlert,
   CloudOff,
-  ExternalLink,
+  Eye,
   Loader2,
   Redo2,
   RotateCw,
-  Sparkles,
   Undo2,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -171,9 +170,6 @@ export function StudioTopBar({
             <ArrowLeft className="size-5" aria-hidden />
           </button>
         )}
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-600/25">
-          <Sparkles className="size-4" aria-hidden />
-        </span>
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-wider text-brand-text-muted">
             Player Studio
@@ -212,8 +208,8 @@ export function StudioTopBar({
           className="hidden min-h-11 items-center gap-1.5 rounded-xl border border-card-border px-3 text-xs font-bold text-brand-text transition hover:bg-card-hover active:scale-95 sm:flex"
           title="Open the preview in a new tab, synced live, to use the browser's own DevTools"
         >
-          <ExternalLink className="size-4" aria-hidden />
-          <span className="hidden xl:inline">Open in window</span>
+          <Eye className="size-4" aria-hidden />
+          <span>Preview</span>
         </button>
       </div>
     </header>

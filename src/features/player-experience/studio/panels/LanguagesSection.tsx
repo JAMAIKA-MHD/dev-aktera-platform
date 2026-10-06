@@ -1,4 +1,4 @@
-import { ChevronDown, Languages, Star } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { LOCALES, type Locale } from "../../domain/locale";
 import { usePopover } from "../fields/Field";
 import { useStudio } from "../StudioContext";
@@ -50,9 +50,6 @@ export function LanguagesSection() {
           onClick={() => setOpen(!open)}
           className="flex min-h-11 w-full items-center gap-2.5 rounded-xl border border-card-border bg-card-bg px-3 text-sm text-brand-text shadow-sm transition hover:border-slate-300 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:border-slate-600"
         >
-          <span className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
-            <Languages className="size-4" aria-hidden />
-          </span>
           <span className="min-w-0 flex-1 text-left">
             <span className="block text-sm font-bold">Languages</span>
             <span className="block truncate text-xs text-brand-text-muted">
@@ -68,7 +65,7 @@ export function LanguagesSection() {
           <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-card-border bg-card-bg p-2 shadow-xl">
             <p className="px-2 pb-1 text-xs text-brand-text-muted">
               Players switch language on every screen; missing texts fall back
-              to the default (★).
+              to the default language.
             </p>
             <ul className="divide-y divide-card-border">
               {LOCALES.map((locale) => {
@@ -90,12 +87,13 @@ export function LanguagesSection() {
                           : `Make ${LOCALE_LABELS[locale]} the default language`
                       }
                       onClick={() => makeDefault(locale)}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-lg text-brand-text-muted transition hover:bg-card-hover focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-90 disabled:cursor-default disabled:hover:bg-transparent"
+                      className={`min-h-9 shrink-0 rounded-lg px-2.5 text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 disabled:cursor-default ${
+                        isDefault
+                          ? "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                          : "text-brand-text-muted hover:bg-card-hover hover:text-brand-text"
+                      }`}
                     >
-                      <Star
-                        className={`size-4 ${isDefault ? "fill-amber-400 text-amber-500" : ""}`}
-                        aria-hidden
-                      />
+                      {isDefault ? "Default" : "Make default"}
                     </button>
                     <span className="flex-1 text-sm font-semibold text-brand-text">
                       {LOCALE_LABELS[locale]}

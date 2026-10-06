@@ -59,6 +59,20 @@ describe("StudioNav", () => {
     }
   });
 
+  it("has no icons: the words are the menu, and the rail shows a letter", () => {
+    const { nav } = setup();
+    // Nothing drawn: no SVG anywhere in the menu (the pin button lives in the panel).
+    expect(nav.querySelector("svg")).toBeNull();
+    // On the rail, each entry stands for its first letter; they are all different.
+    const letters = Array.from(
+      nav.querySelectorAll("button > span[aria-hidden]"),
+    )
+      .map((span) => span.textContent)
+      .filter((text) => text && text.trim().length === 1);
+    expect(letters).toEqual(["T", "B", "S", "L", "E", "V"]);
+    expect(new Set(letters).size).toBe(letters.length);
+  });
+
   it("still selects a section from the rail", async () => {
     const { user, store } = setup();
     await user.click(screen.getByRole("button", { name: "Brand Identity" }));

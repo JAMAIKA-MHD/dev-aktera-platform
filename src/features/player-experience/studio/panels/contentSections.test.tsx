@@ -133,6 +133,19 @@ describe("Sections › the texts of a screen", () => {
     expect(store.getState().config.locales.enabled).toEqual(["fr", "ar", "en"]);
   });
 
+  it("has no icon in the languages menu, only words", () => {
+    renderPanel(SectionsPanel);
+    const trigger = screen.getByRole("button", { name: /Languages/ });
+    // Closed: just the words and the arrow of the menu.
+    expect(trigger.querySelectorAll("svg")).toHaveLength(1);
+    fireEvent.click(trigger);
+    const menu = screen.getByRole("switch", { name: "English" }).closest("ul")!;
+    expect(menu.querySelector("svg")).toBeNull();
+    // The default language is told in words.
+    expect(within(menu).getByText("Default")).toBeTruthy();
+    expect(within(menu).getAllByText("Make default")).toHaveLength(2);
+  });
+
   it("closes the languages menu on Escape", () => {
     renderPanel(SectionsPanel);
     fireEvent.click(screen.getByRole("button", { name: /Languages/ }));

@@ -91,6 +91,19 @@ describe("PlayerExperienceStudio", () => {
     expect(ui.safeArea).toEqual({ top: 47, right: 0, bottom: 34, left: 0 });
   });
 
+  it('calls the live window "Preview" and draws an eye on it', async () => {
+    await renderStudio();
+    const button = screen.getByRole("button", { name: "Preview" });
+    expect(button.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("Open in window")).toBeNull();
+    // It opens the tab that follows the Studio (the journey plays there).
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    fireEvent.click(button);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(String(open.mock.calls[0][0])).toMatch(/^\/xp-frame\?source=popout/);
+    open.mockRestore();
+  });
+
   it("switches screen, language and status message without losing the configuration", async () => {
     const { posted } = await renderStudio();
     act(() => fromFrame({ type: "xp:ready" }));
