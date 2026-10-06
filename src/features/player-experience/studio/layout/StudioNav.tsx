@@ -1,4 +1,14 @@
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  LayoutTemplate,
+  ListChecks,
+  Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Scale,
+  Share2,
+  SquareStack,
+  type LucideIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import { useCollapsibleMenu } from "@/src/hooks/useCollapsibleMenu";
 import { panelForPath } from "../panelForPath";
@@ -9,7 +19,7 @@ import { useStudio } from "../StudioContext";
 // the panel on a wide screen, a scrollable row of tabs above it on a narrow one. Each entry
 // shows how many issues point into it, so the brand sees where the work is.
 //
-// On a wide screen the menu rests as a narrow rail and opens in two ways at once: by hover and by
+// On a wide screen the menu rests as an icon rail and opens in two ways at once: by hover and by
 // click on the button at the head of the settings panel (pinned open, remembered). Either way the
 // panel makes room for it, so that button always stays outside the menu. StudioShell owns the
 // state (useStudioMenu) and hands it to both.
@@ -41,17 +51,27 @@ export function StudioMenuToggle({ menu }: { menu: StudioMenu }) {
   );
 }
 
-// No icons in the Studio's menu: the words are the menu. On the rail, an entry shows the first
-// letter of its name (all different).
 export const PANEL_META: Readonly<
-  Record<StudioPanel, { label: string; hint: string }>
+  Record<StudioPanel, { label: string; icon: LucideIcon; hint: string }>
 > = {
-  template: { label: "Template", hint: "Starting style" },
-  brand: { label: "Brand Identity", hint: "Logo, colors, background" },
-  sections: { label: "Sections", hint: "Each screen: texts, form, game" },
-  legal: { label: "Legal", hint: "Organizer, links, terms" },
-  share: { label: "Export", hint: "Export, import, reset" },
-  validation: { label: "Validation", hint: "What to fix before sharing" },
+  template: { label: "Template", icon: LayoutTemplate, hint: "Starting style" },
+  brand: {
+    label: "Brand Identity",
+    icon: Palette,
+    hint: "Logo, colors, background",
+  },
+  sections: {
+    label: "Sections",
+    icon: SquareStack,
+    hint: "Each screen: texts, form, game",
+  },
+  legal: { label: "Legal", icon: Scale, hint: "Organizer, links, terms" },
+  share: { label: "Export", icon: Share2, hint: "Export, import, reset" },
+  validation: {
+    label: "Validation",
+    icon: ListChecks,
+    hint: "What to fix before sharing",
+  },
 };
 
 type Count = { errors: number; total: number };
@@ -70,7 +90,7 @@ function NavItem({
 }) {
   const active = useStudio((state) => state.ui.panel);
   const setPanel = useStudio((state) => state.setPanel);
-  const { label, hint } = PANEL_META[panel];
+  const { label, icon: Icon, hint } = PANEL_META[panel];
   const selected = panel === active;
   return (
     <li className="shrink-0">
@@ -85,14 +105,7 @@ function NavItem({
             : "text-brand-text-muted hover:bg-card-hover hover:text-brand-text"
         }`}
       >
-        <span
-          aria-hidden
-          className={`hidden size-6 shrink-0 items-center justify-center rounded-md text-xs font-black lg:flex ${
-            expanded ? "lg:hidden" : ""
-          } ${selected ? "bg-white/20" : "bg-card-hover"}`}
-        >
-          {label.charAt(0)}
-        </span>
+        <Icon className="size-[18px] shrink-0" aria-hidden />
         <span className={`flex-1 ${expanded ? "" : RAIL_HIDDEN}`}>{label}</span>
         {count && count.total > 0 && !expanded && (
           // The rail has no room for the number: a dot says there is something to fix.
