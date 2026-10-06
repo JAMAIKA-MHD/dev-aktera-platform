@@ -1,0 +1,34 @@
+/*
+ * Adaptive layout of the player runtime (plan §8.3), imported by src/index.css so that the
+ * variants below exist in the Tailwind build.
+ *
+ * The breakpoints mirror runtime/layout/breakpoints.ts: layoutMode.test.ts reads this file
+ * and fails if they differ. Never use sm:, md:, lg: or xl: in the runtime: they would follow
+ * the Studio window instead of the simulated device.
+ */
+
+/* The 8-slot frame's grid: imported here so that it can use the variants below. */
+@import "../frame/frame.css";
+
+@custom-variant compact (@media (max-width: 359px));
+@custom-variant wide (@media (min-width: 600px));
+@custom-variant split (@media (min-aspect-ratio: 6/5) and (min-width: 560px));
+@custom-variant tight (@media (max-height: 599px));
+@custom-variant roomy (@media (min-height: 900px));
+
+/* Safe areas: the real device insets by default; the Studio preview overrides them. */
+:root {
+  --xp-safe-top: env(safe-area-inset-top, 0px);
+  --xp-safe-right: env(safe-area-inset-right, 0px);
+  --xp-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --xp-safe-left: env(safe-area-inset-left, 0px);
+}
+
+/*
+ * Root of the runtime: the only place where the viewport height is used (dvh follows the
+ * mobile address bar). The page may scroll vertically, never horizontally.
+ */
+.xp-runtime {
+  min-height: 100dvh;
+  overflow-x: clip;
+}

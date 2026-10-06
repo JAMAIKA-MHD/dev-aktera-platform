@@ -18,6 +18,7 @@ import {
   Layers,
   Gift,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
@@ -27,6 +28,7 @@ interface CampaignsListProps {
   campaigns: Campaign[];
   onSelectCampaign: (id: string) => void;
   onEditCampaign?: (camp: Campaign) => void;
+  onCustomizePlayerScreen?: (camp: Campaign) => void;
   onRelaunch: (camp: Campaign) => void;
   onToggleStatus: (id: string) => void;
   onArchive: (id: string) => void;
@@ -39,6 +41,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
   campaigns,
   onSelectCampaign,
   onEditCampaign,
+  onCustomizePlayerScreen,
   onRelaunch,
   onToggleStatus,
   onArchive,
@@ -589,6 +592,24 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                 >
                   <Pencil className="w-3 h-3" />
                 </button>
+
+                {/* 2.5 Customize Player Screen UI */}
+                {onCustomizePlayerScreen && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCustomizePlayerScreen(camp);
+                    }}
+                    className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                      isDark
+                        ? "text-slate-400 hover:text-indigo-400 hover:bg-slate-800"
+                        : "text-slate-500 hover:text-indigo-600 hover:bg-slate-100"
+                    }`}
+                    title="Customize Player Screen UI in Editor"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                  </button>
+                )}
 
                 {/* 3. Analytics */}
                 {onOpenAnalytics && (

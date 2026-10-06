@@ -1,0 +1,471 @@
+/*
+ * The 8-slot frame (plan §8.3), imported by layout.css so that it can use the runtime's
+ * variants (split, tight, roomy, wide, compact) and their single source of breakpoints.
+ *
+ * One grid, and the same DOM in every arrangement: a rotation or a preview resize moves the
+ * slots, it never remounts them, so a game in progress (slot 5) keeps its state.
+ *   stack  one column, full width; from `wide`, centred and capped (--xp-column-max).
+ *   split  landscape: brand, texts and CTA on the start pane, the game on the end pane, the
+ *          footer below both. The stage is capped (about 1200 px); the background is not.
+ * Slots are placed by their data-xp-slot name, the names the layout audit reads (T3.8).
+ */
+
+@layer components {
+  .xp-frame {
+    --xp-gutter: clamp(1rem, 5vw, 1.5rem);
+    --xp-space: 1rem;
+    --xp-column-max: 40rem;
+    --xp-pane-start-max: 32rem;
+    --xp-pane-end-max: 40rem;
+    --xp-pane-gap: clamp(1.5rem, 4vw, 4rem);
+    /*
+     * Width of the text column, and the title size it allows: the design checks (T1.11)
+     * promise 22 characters per title line, about 12.5 em of Poppins ExtraBold. A title the
+     * Studio accepts is never cut on a desktop pane or a folded phone.
+     */
+    --xp-available: calc(
+      100vw - var(--xp-safe-left) - var(--xp-safe-right) - 2 * var(--xp-gutter)
+    );
+    --xp-text-width: min(var(--xp-column-max), var(--xp-available));
+    --xp-title-max: calc(var(--xp-text-width) / 12.5);
+    /* Floor of the game zone (slot 5): below it the page scrolls, the game is never squashed. */
+    --xp-game-min: 12.5rem;
+
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+    /* Safe areas are physical insets (notch, home indicator): physical padding. */
+    padding: var(--xp-safe-top) var(--xp-safe-right)
+      calc(var(--xp-safe-bottom) + var(--xp-space)) var(--xp-safe-left);
+    grid-template-columns:
+      minmax(var(--xp-gutter), 1fr)
+      minmax(0, var(--xp-column-max))
+      minmax(var(--xp-gutter), 1fr);
+    grid-template-rows: auto auto auto auto 1fr auto auto auto auto;
+    grid-template-areas:
+      "header header header"
+      ". hero ."
+      ". title ."
+      ". copy ."
+      ". interaction ."
+      ". sections ."
+      ". reinforcement ."
+      ". cta ."
+      ". footer .";
+
+    @variant compact {
+      --xp-gutter: 0.75rem;
+    }
+    @variant tight {
+      --xp-space: 0.5rem;
+    }
+    @variant roomy {
+      --xp-space: 1.5rem;
+      --xp-game-min: 15rem;
+    }
+
+    /* Two panes; the spacer rows (1fr) centre the texts next to the game. */
+    @variant split {
+      /* Both panes grow evenly until the start pane reaches its cap. */
+      --xp-text-width: min(
+        var(--xp-pane-start-max),
+        (var(--xp-available) - var(--xp-pane-gap)) / 2
+      );
+      grid-template-columns:
+        minmax(var(--xp-gutter), 1fr)
+        minmax(0, var(--xp-pane-start-max))
+        var(--xp-pane-gap)
+        minmax(0, var(--xp-pane-end-max))
+        minmax(var(--xp-gutter), 1fr);
+      grid-template-rows: auto 1fr auto auto auto auto auto auto 1fr auto;
+      grid-template-areas:
+        ". header . interaction ."
+        ". . . interaction ."
+        ". hero . interaction ."
+        ". title . interaction ."
+        ". copy . interaction ."
+        ". sections . interaction ."
+        ". reinforcement . interaction ."
+        ". cta . interaction ."
+        ". . . interaction ."
+        ". footer footer footer .";
+    }
+  }
+
+  .xp-frame > [data-xp-slot] {
+    min-width: 0;
+  }
+
+  /* Full-bleed bar on a narrow phone; a floating capsule in the column or the start pane. */
+  .xp-frame > [data-xp-slot="header"] {
+    grid-area: header;
+    @variant wide {
+      grid-column: 2;
+      margin-top: var(--xp-space);
+    }
+    @variant split {
+      margin-top: var(--xp-space);
+    }
+  }
+  /* Header hidden by the screen: the status badge alone, on the end side of the column. */
+  .xp-frame > [data-xp-slot="status"] {
+    grid-area: header;
+    grid-column: 2;
+    margin-top: calc(var(--xp-space) * 0.5);
+  }
+  .xp-frame > [data-xp-slot="hero"] {
+    grid-area: hero;
+    margin-top: var(--xp-space);
+  }
+  .xp-frame > [data-xp-slot="title"] {
+    grid-area: title;
+    margin-top: calc(var(--xp-space) * 1.25);
+  }
+  .xp-frame > [data-xp-slot="copy"] {
+    grid-area: copy;
+    margin-top: calc(var(--xp-space) * 0.5);
+  }
+  /*
+   * A size container: engines size themselves on the space really left (cqw, cqh, cqmin).
+   * Its height comes from the grid, never from its content; the floor keeps it playable.
+   */
+  .xp-frame > [data-xp-slot="interaction"] {
+    grid-area: interaction;
+    margin-top: var(--xp-space);
+    container-type: size;
+    min-height: var(--xp-game-min);
+    display: grid;
+    @variant split {
+      margin-bottom: var(--xp-space);
+    }
+  }
+  .xp-frame > [data-xp-slot="sections"] {
+    grid-area: sections;
+    margin-top: var(--xp-space);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--xp-space) * 0.75);
+  }
+
+  /*
+   * Prize chips (T3.6): one line while they fit, two by two otherwise, never squashed and
+   * never 3 + 1. The columns follow the width really available (container queries), in the
+   * column of a phone as in the start pane of a laptop. An odd last chip spans the line.
+   */
+  .xp-frame .xp-chips-box {
+    container-type: inline-size;
+  }
+  .xp-frame .xp-chips {
+    --xp-chip-columns: 2;
+    --xp-chip-last: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--xp-chip-columns), minmax(0, 1fr));
+    gap: 0.5rem;
+    > :last-child {
+      grid-column: span var(--xp-chip-last);
+    }
+  }
+  .xp-frame .xp-chips[data-xp-chips="1"] {
+    --xp-chip-columns: 1;
+  }
+  .xp-frame .xp-chips[data-xp-chips="3"] {
+    --xp-chip-last: 2;
+  }
+  @container (min-width: 19rem) {
+    .xp-frame .xp-chips[data-xp-chips="3"] {
+      --xp-chip-columns: 3;
+      --xp-chip-last: 1;
+    }
+  }
+  @container (min-width: 29.5rem) {
+    .xp-frame .xp-chips[data-xp-chips="4"] {
+      --xp-chip-columns: 4;
+    }
+  }
+  /*
+   * The coupon code button (T4.4): below this width the "Copier"/"Copié !" label would
+   * squeeze the code itself off the edge (the responsive sweep's own text-clipped check),
+   * so the icon speaks alone.
+   */
+  @container (max-width: 22rem) {
+    .xp-frame .xp-code-copy-label {
+      display: none;
+    }
+  }
+  /*
+   * Quiz options (T5.5): one column, two as soon as the card itself is wide enough for
+   * them — read on the card, never on the screen (plan §8.6).
+   */
+  .xp-frame [data-xp-quiz] {
+    container-type: inline-size;
+  }
+  @container (min-width: 30rem) {
+    .xp-frame .xp-quiz-options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .xp-frame > [data-xp-slot="reinforcement"] {
+    grid-area: reinforcement;
+    margin-top: var(--xp-space);
+  }
+  /*
+   * Sticky at the bottom when the content is taller than the screen: the main action stays
+   * in reach. While it is held there (data-xp-stuck, useIsStuck), a glass dock lifts it
+   * from the content scrolling behind.
+   */
+  .xp-frame > [data-xp-slot="cta"] {
+    grid-area: cta;
+    margin-top: var(--xp-space);
+    position: sticky;
+    bottom: calc(var(--xp-safe-bottom) + 0.5rem);
+    z-index: 10;
+  }
+  .xp-frame > [data-xp-slot="cta"]::before {
+    content: "";
+    position: absolute;
+    inset: -0.5rem;
+    z-index: -1;
+    border: 1px solid color-mix(in srgb, var(--xp-text) 10%, transparent);
+    border-radius: calc(var(--xp-radius-pill) + 0.5rem);
+    background-color: color-mix(in srgb, var(--xp-surface) 78%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 0.75rem 2rem -0.5rem
+      color-mix(in srgb, var(--xp-primary) 30%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease-out;
+  }
+  .xp-frame > [data-xp-slot="cta"][data-xp-stuck]::before {
+    opacity: 1;
+  }
+  .xp-frame > [data-xp-slot="footer"] {
+    grid-area: footer;
+    margin-top: var(--xp-space);
+  }
+
+  /*
+   * Legal line of the footer: it scrolls when it is longer than the screen (FooterSlot
+   * measures it), pauses under the pointer or the focus, and stands still, wrapped, with
+   * reduced motion (one line with an ellipsis when the screen is low).
+   */
+  .xp-frame .xp-band {
+    display: block;
+    overflow: hidden;
+    text-align: center;
+  }
+  .xp-frame .xp-band-track {
+    display: inline-flex;
+  }
+  .xp-frame .xp-band-text {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .xp-frame .xp-band[data-xp-scrolling] {
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      currentColor 6%,
+      currentColor 94%,
+      transparent
+    );
+    .xp-band-track {
+      animation: xp-marquee var(--xp-band-duration) linear infinite;
+    }
+    .xp-band-text {
+      padding-inline-end: 3rem;
+    }
+  }
+  .xp-frame .xp-band:is(:hover, :focus-visible) .xp-band-track {
+    animation-play-state: paused;
+  }
+
+  /* Light sweeping across the primary button (player-editor port), for every brand color. */
+  .xp-frame .xp-shimmer {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    z-index: -1;
+    width: 40%;
+    pointer-events: none;
+    -webkit-backdrop-filter: brightness(1.4);
+    backdrop-filter: brightness(1.4);
+    mask-image: linear-gradient(90deg, transparent, currentColor, transparent);
+    transform: translateX(-120%) skewX(-20deg);
+    animation: xp-shimmer 4.5s ease-in-out 1.2s infinite;
+  }
+  .xp-frame .xp-spin {
+    animation: xp-orbit 0.8s linear infinite;
+  }
+  .xp-frame .xp-sheet-backdrop {
+    animation: xp-fade 200ms ease-out both;
+  }
+  .xp-frame .xp-sheet {
+    animation: xp-sheet-up 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    @variant wide {
+      animation-name: xp-sheet-in;
+    }
+  }
+
+  /* Motion (D10): transform and opacity only; staggered entrance of the slots on opening. */
+  .xp-frame [data-xp-rise] {
+    animation: xp-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--xp-rise-order, 0) * 70ms);
+  }
+  .xp-frame .xp-pop {
+    animation: xp-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .xp-frame .xp-ping {
+    animation: xp-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .xp-frame .xp-wiggle {
+    animation: xp-wiggle 2.6s ease-in-out infinite;
+  }
+  .xp-frame .xp-orbit {
+    animation: xp-orbit 3s linear infinite;
+  }
+  .xp-frame .xp-breathe {
+    animation: xp-breathe 2.2s ease-in-out infinite;
+  }
+  /* Fields of a form rise in one after the other, once their slot is in place. */
+  .xp-frame .xp-field {
+    animation: xp-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(250ms + var(--xp-field-order, 0) * 60ms);
+  }
+
+  /*
+   * Reduced motion (system setting, or features.animations off): the frame's own motions
+   * stand still, in their final state. Games handle their own (useReducedMotion, T3.7).
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .xp-frame
+      :is(
+        [data-xp-rise],
+        .xp-pop,
+        .xp-ping,
+        .xp-wiggle,
+        .xp-orbit,
+        .xp-breathe,
+        .xp-field,
+        .xp-shimmer,
+        .xp-spin,
+        .xp-sheet,
+        .xp-sheet-backdrop
+      ) {
+      animation: none;
+    }
+    .xp-frame .xp-band-track {
+      display: block;
+    }
+    .xp-frame .xp-band-text {
+      display: block;
+      white-space: normal;
+      @variant tight {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+  .xp-frame[data-xp-motion="off"] {
+    :is(
+      [data-xp-rise],
+      .xp-pop,
+      .xp-ping,
+      .xp-wiggle,
+      .xp-orbit,
+      .xp-breathe,
+      .xp-field,
+      .xp-shimmer,
+      .xp-spin,
+      .xp-sheet,
+      .xp-sheet-backdrop
+    ) {
+      animation: none;
+    }
+    .xp-band-track {
+      display: block;
+    }
+    .xp-band-text {
+      display: block;
+      white-space: normal;
+      @variant tight {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+@keyframes xp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+@keyframes xp-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes xp-ping {
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes xp-breathe {
+  50% {
+    transform: scale(1.02);
+  }
+}
+@keyframes xp-marquee {
+  to {
+    transform: translateX(var(--xp-band-to));
+  }
+}
+@keyframes xp-shimmer {
+  0% {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  35%,
+  100% {
+    transform: translateX(320%) skewX(-20deg);
+  }
+}
+@keyframes xp-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes xp-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes xp-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.98);
+  }
+}
+@keyframes xp-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes xp-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(14deg);
+  }
+  75% {
+    transform: rotate(-14deg);
+  }
+}

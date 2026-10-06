@@ -4,22 +4,17 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
@@ -28,6 +23,9 @@
     "node_modules",
     "supabase/functions",
     "old-ui-ode",
-    "old-ui-code"
+    "old-ui-code",
+    "aktera---gamified-marketing-experience",
+    "coverage",
+    "src/**/*.strict-check.ts"
   ]
 }

@@ -1,5 +1,24 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  createClient,
+  type SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2.57.4";
+
+// select-prize: the only authority on a player's outcome (CLAUDE.md, rule 1).
+//
+// Order of the checks (backend task B2.1):
+//   1. input (campaign, phone)            → 400 INVALID_INPUT
+//   2. consent (Law 18-07)                → 400 CONSENT_REQUIRED
+//   3. same attempt replayed              → the same answer, nothing written
+//   4. impression (analytics, never blocking)
+//   5. campaign found, active, in period  → 404/400 CAMPAIGN_CLOSED
+//   6. duplicate participation            → 400 ALREADY_PARTICIPATED
+//   7. stock left                         → 400 CAMPAIGN_CLOSED
+//   8. game outcome (resolve_game_outcome: scoring + atomic draw) → 500 DRAW_FAILED
+//   9. entry recorded (duplicate race)    → 400 ALREADY_PARTICIPATED
+//  10. coupon claimed atomically (claim_campaign_prize_coupon)
+// Every error keeps its English `error` message (read by the legacy player page) and gets
+// a stable `code` (read by the Player Experience gateway).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,19 +27,50 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type ErrorCode =
+  | "INVALID_INPUT"
+  | "CONSENT_REQUIRED"
+  | "CAMPAIGN_CLOSED"
+  | "ALREADY_PARTICIPATED"
+  | "DRAW_FAILED"
+  | "SERVER_ERROR";
+
 interface SelectPrizeBody {
   campaign_id: string;
   phone_number: string;
   participant_name?: string;
   participant_email?: string;
-  quiz_passed?: boolean; // deprecated, use game_payload
-  game_payload?: any;
+  quiz_passed?: boolean; // deprecated, ignored: the server scores the game
+  game_payload?: Record<string, unknown>;
+  // Free-form: source, wilaya, client_request_id and consent (required) are read from it.
   metadata?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
   session_id?: string;
   dwell_time_seconds?: number;
 }
+
+interface ConsentRecord {
+  accepted: true;
+  acceptedAt: string;
+  policyVersion: string;
+  locale: string | null;
+}
+
+interface PrizeSummary {
+  id: string;
+  name: string;
+  win_message: string | null;
+}
+
+const json = (status: number, body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const fail = (status: number, code: ErrorCode, error: string) =>
+  json(status, { ok: false, code, error });
 
 const normalizeDzPhone = (rawPhone: string): string => {
   const digitsOnly = rawPhone.replace(/\D/g, "");
@@ -33,21 +83,81 @@ const normalizeDzPhone = (rawPhone: string): string => {
   return digitsOnly;
 };
 
-interface PrizeInventoryPayload {
-  id: string;
-  remaining: number;
+// The consent proof sent by the player page: accepted, when, and which policy version.
+// Anything else is refused: no participation without consent (Law 18-07).
+function readConsent(metadata: Record<string, unknown>): ConsentRecord | null {
+  const consent = metadata.consent;
+  if (typeof consent !== "object" || consent === null) return null;
+  const { accepted, acceptedAt, policyVersion, locale } = consent as Record<
+    string,
+    unknown
+  >;
+  if (accepted !== true) return null;
+  if (typeof acceptedAt !== "string" || Number.isNaN(Date.parse(acceptedAt))) {
+    return null;
+  }
+  if (typeof policyVersion !== "string" || policyVersion.trim() === "") {
+    return null;
+  }
+  return {
+    accepted: true,
+    acceptedAt,
+    policyVersion: policyVersion.trim(),
+    locale: typeof locale === "string" ? locale : null,
+  };
 }
 
-interface ActivePrizePayload {
-  id: string;
-  name: string;
-  weight: number | null;
-  win_message: string | null;
-  prize_inventory: PrizeInventoryPayload[] | PrizeInventoryPayload | null;
+function readClientRequestId(metadata: Record<string, unknown>): string | null {
+  const value = metadata.client_request_id;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
 }
 
-interface ClaimPrizeInventoryRow {
-  inventory_id: string;
+async function loadPrize(
+  admin: SupabaseClient,
+  prizeId: string | null,
+): Promise<PrizeSummary | null> {
+  if (!prizeId) return null;
+  const { data } = await admin
+    .from("prizes")
+    .select("id, name, win_message")
+    .eq("id", prizeId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+// Hands out the next unused code of the prize, atomically (FOR UPDATE SKIP LOCKED): two
+// winners at the same time never get the same code. The function also records it in
+// coupon_redemptions and on the entry. A failure leaves the win without a code.
+async function claimCoupon(
+  admin: SupabaseClient,
+  prizeId: string,
+  entryId: string,
+): Promise<string | null> {
+  const { data: code, error } = await admin.rpc("claim_campaign_prize_coupon", {
+    p_prize_id: prizeId,
+    p_entry_id: entryId,
+  });
+  if (error) {
+    console.warn("[select-prize] coupon claim failed:", error.message);
+    return null;
+  }
+  if (typeof code !== "string" || code.trim() === "") return null;
+
+  // Keep the item's is_used flag in step, as before.
+  const { data: redemption } = await admin
+    .from("coupon_redemptions")
+    .select("prize_template_item_id")
+    .eq("entry_id", entryId)
+    .maybeSingle();
+  if (redemption?.prize_template_item_id) {
+    await admin
+      .from("prize_template_items")
+      .update({ is_used: true, redeemed_at: new Date().toISOString() })
+      .eq("id", redemption.prize_template_item_id);
+  }
+  return code.trim();
 }
 
 serve(async (req) => {
@@ -56,80 +166,100 @@ serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Method not allowed" }),
-      {
-        status: 405,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return json(405, { ok: false, error: "Method not allowed" });
   }
 
   try {
-    const body = (await req.json()) as SelectPrizeBody;
+    const body = ((await req.json()) ?? {}) as Partial<SelectPrizeBody>;
     const {
       campaign_id,
       phone_number,
       participant_name,
       participant_email,
-      quiz_passed,
       game_payload = {},
-      metadata = {},
       ip_address,
       user_agent,
       session_id,
       dwell_time_seconds,
-    } = body ?? {};
+    } = body;
+    const metadata =
+      typeof body.metadata === "object" && body.metadata !== null
+        ? body.metadata
+        : {};
 
+    // 1. Input
     if (!campaign_id || !phone_number) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "campaign_id and phone_number are required.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+      return fail(
+        400,
+        "INVALID_INPUT",
+        "campaign_id and phone_number are required.",
       );
     }
     const normalizedPhoneNumber = normalizeDzPhone(phone_number);
     if (!/^(05|06|07)[0-9]{8}$/.test(normalizedPhoneNumber)) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Invalid Algerian phone number format.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+      return fail(
+        400,
+        "INVALID_INPUT",
+        "Invalid Algerian phone number format.",
       );
     }
+
+    // 2. Consent
+    const consent = readConsent(metadata);
+    if (!consent) {
+      return fail(
+        400,
+        "CONSENT_REQUIRED",
+        "Consent is required before playing.",
+      );
+    }
+    const clientRequestId = readClientRequestId(metadata);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
     if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Server configuration is missing.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return fail(500, "SERVER_ERROR", "Server configuration is missing.");
     }
-
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
 
+    // 3. Same attempt replayed (network retry after a success): same answer, nothing written.
+    if (clientRequestId) {
+      const { data: previous } = await supabaseAdmin
+        .from("entries")
+        .select("id, is_winner, prize_id, redeemed_coupon_value, quiz_passed")
+        .eq("campaign_id", campaign_id)
+        .eq("phone_number", normalizedPhoneNumber)
+        .eq("metadata->>client_request_id", clientRequestId)
+        .limit(1)
+        .maybeSingle();
+      if (previous) {
+        const prize = previous.is_winner
+          ? await loadPrize(supabaseAdmin, previous.prize_id)
+          : null;
+        return json(200, {
+          ok: true,
+          replayed: true,
+          entry: {
+            id: previous.id,
+            redeemed_coupon_value: previous.redeemed_coupon_value,
+          },
+          prize,
+          coupon: previous.redeemed_coupon_value
+            ? { code: previous.redeemed_coupon_value }
+            : null,
+          game_outcome: {
+            ok: true,
+            is_winner: Boolean(previous.is_winner),
+            prize_id: previous.prize_id,
+            passed: previous.quiz_passed,
+          },
+        });
+      }
+    }
+
+    // 4. Impression (analytics only: never blocks the participation)
     if (session_id) {
       try {
         const { error: impErr } = await supabaseAdmin.rpc(
@@ -152,36 +282,34 @@ serve(async (req) => {
       }
     }
 
-    // 1. Fetch Campaign and verify it is active
+    // 5. Campaign found, active and within its dates
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from("campaigns")
       .select(
-        "id, organization_id, status, require_quiz, win_probability, max_entries",
+        "id, organization_id, status, max_entries, start_date, end_date, game_type",
       )
       .eq("id", campaign_id)
       .single();
 
     if (campaignError || !campaign) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Campaign not found." }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return fail(404, "CAMPAIGN_CLOSED", "Campaign not found.");
     }
-
     if (campaign.status !== "active") {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Campaign is not active." }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return fail(400, "CAMPAIGN_CLOSED", "Campaign is not active.");
+    }
+    const now = Date.now();
+    const startsAt = campaign.start_date
+      ? Date.parse(campaign.start_date)
+      : NaN;
+    const endsAt = campaign.end_date ? Date.parse(campaign.end_date) : NaN;
+    if (
+      (Number.isFinite(startsAt) && now < startsAt) ||
+      (Number.isFinite(endsAt) && now > endsAt)
+    ) {
+      return fail(400, "CAMPAIGN_CLOSED", "Campaign is not running.");
     }
 
-    // 2. Check for duplicate entry (Anti-Fraud)
+    // 6. Duplicate participation (anti-fraud)
     const { count: existingEntriesCount, error: entryCheckError } =
       await supabaseAdmin
         .from("entries")
@@ -190,40 +318,26 @@ serve(async (req) => {
         .eq("phone_number", normalizedPhoneNumber);
 
     if (entryCheckError) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Failed to validate existing participation.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+      return fail(
+        500,
+        "SERVER_ERROR",
+        "Failed to validate existing participation.",
       );
     }
 
     const maxEntries = campaign.max_entries ?? 1;
-    const hasEntryLimit = maxEntries > 0;
-    if (hasEntryLimit && (existingEntriesCount ?? 0) >= maxEntries) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "You have already participated in this campaign.",
-          code: "ALREADY_PARTICIPATED",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    if (maxEntries > 0 && (existingEntriesCount ?? 0) >= maxEntries) {
+      return fail(
+        400,
+        "ALREADY_PARTICIPATED",
+        "You have already participated in this campaign.",
       );
     }
 
-    // 3. Check if all campaign prizes / voucher stock have been completely claimed
+    // 7. Stock left
     const { data: campaignPrizes } = await supabaseAdmin
       .from("prizes")
-      .select(
-        "id, name, weight, win_message, quantity, quantity_won, prize_template_id, prize_inventory(id, remaining)",
-      )
+      .select("quantity")
       .eq("campaign_id", campaign_id)
       .eq("is_active", true);
 
@@ -238,30 +352,18 @@ serve(async (req) => {
       .eq("campaign_id", campaign_id)
       .eq("is_winner", true);
 
-    const totalWinnersSoFar = winningEntriesCount ?? 0;
-    const isCampaignFullyClaimed =
-      totalAllocatedPrizes > 0 && totalWinnersSoFar >= totalAllocatedPrizes;
-
-    if (isCampaignFullyClaimed) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error:
-            "This campaign is closed. All voucher rewards have been claimed.",
-          code: "CAMPAIGN_CLOSED",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    if (
+      totalAllocatedPrizes > 0 &&
+      (winningEntriesCount ?? 0) >= totalAllocatedPrizes
+    ) {
+      return fail(
+        400,
+        "CAMPAIGN_CLOSED",
+        "This campaign is closed. All voucher rewards have been claimed.",
       );
     }
 
-    // 4. Atomic Prize Selection & Inventory Claim (Server-side & Auto-Paced)
-    let isWinner = false;
-    let selectedPrizeId: string | null = null;
-    let selectedPrize: ActivePrizePayload | null = null;
-
+    // 8. Game outcome: scoring (quiz, Hit It) and atomic draw, all in the database.
     const { data: drawResult, error: drawError } = await supabaseAdmin.rpc(
       "resolve_game_outcome",
       {
@@ -275,121 +377,30 @@ serve(async (req) => {
         "[select-prize] resolve_game_outcome error:",
         drawError.message,
       );
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Failed to process prize draw.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+      return fail(500, "DRAW_FAILED", "Failed to process prize draw.");
+    }
+    if (drawResult?.ok === false) {
+      // The campaign changed state between step 5 and the draw.
+      return fail(
+        400,
+        "CAMPAIGN_CLOSED",
+        String(drawResult.error ?? "Campaign is not active."),
       );
     }
 
-    if (drawResult?.ok && drawResult?.is_winner && drawResult?.prize_id) {
-      isWinner = true;
-      selectedPrizeId = drawResult.prize_id;
-      selectedPrize = {
-        id: drawResult.prize_id,
-        name: drawResult.prize_name || "Prize",
-        win_message: drawResult.win_message || null,
-        weight: null,
-        prize_inventory: null,
-      };
-      console.log(
-        `[select-prize] Winner selected atomically: prize="${drawResult.prize_name}" id=${drawResult.prize_id}`,
-      );
-    } else {
-      isWinner = false;
-      selectedPrizeId = null;
-      selectedPrize = null;
-      console.log(
-        `[select-prize] Non-winner outcome determined atomically for campaign ${campaign_id}.`,
-      );
-    }
-
-    // 5. If winner, fetch and reserve a coupon code from prize_template_items
-    let couponCode: string | null = null;
-    let couponItemId: string | null = null;
-
-    if (isWinner && selectedPrizeId) {
-      // Fetch the prize to get prize_template_id
-      const { data: prizeData, error: prizeError } = await supabaseAdmin
-        .from("prizes")
-        .select("prize_template_id")
-        .eq("id", selectedPrizeId)
-        .single();
-
-      if (!prizeError && prizeData?.prize_template_id) {
-        // Step A: get list of already-used coupon item IDs
-        const { data: usedRows } = await supabaseAdmin
-          .from("coupon_redemptions")
-          .select("prize_template_item_id");
-
-        const usedIds = new Set<string>(
-          (usedRows ?? [])
-            .map(
-              (r: { prize_template_item_id?: string | null }) =>
-                r.prize_template_item_id,
-            )
-            .filter((id): id is string => Boolean(id)),
-        );
-
-        // Step B: fetch all items for this prize template ordered by item_index ASC
-        const { data: templateItems, error: itemsError } = await supabaseAdmin
-          .from("prize_template_items")
-          .select("id, item_value, item_index")
-          .eq("prize_template_id", prizeData.prize_template_id)
-          .not("item_value", "is", null)
-          .order("item_index", { ascending: true });
-
-        if (!itemsError && templateItems && templateItems.length > 0) {
-          const availableItem = templateItems.find(
-            (item: { id: string; item_value: string | null }) =>
-              item.item_value &&
-              item.item_value.trim().length > 0 &&
-              !usedIds.has(item.id),
-          );
-
-          if (availableItem && availableItem.item_value) {
-            couponCode = availableItem.item_value.trim();
-            couponItemId = availableItem.id;
-
-            // Safely attempt to mark this voucher code as used on prize_template_items
-            try {
-              await supabaseAdmin
-                .from("prize_template_items")
-                .update({
-                  is_used: true,
-                  redeemed_at: new Date().toISOString(),
-                })
-                .eq("id", couponItemId);
-            } catch {
-              // Ignore if is_used column not present
-            }
-          }
+    const isWinner = Boolean(
+      drawResult?.ok && drawResult?.is_winner && drawResult?.prize_id,
+    );
+    const selectedPrize: PrizeSummary | null = isWinner
+      ? {
+          id: drawResult.prize_id,
+          name: drawResult.prize_name || "Prize",
+          win_message: drawResult.win_message || null,
         }
+      : null;
 
-        // Step C: Fallback to prize_templates default item_value if no individual item row
-        if (!couponCode) {
-          const { data: templateData } = await supabaseAdmin
-            .from("prize_templates")
-            .select("item_value")
-            .eq("id", prizeData.prize_template_id)
-            .single();
-
-          if (
-            templateData?.item_value &&
-            templateData.item_value.trim().length > 0
-          ) {
-            couponCode = templateData.item_value.trim();
-          }
-        }
-      }
-    }
-
-    // 6. Create Entry Record
+    // 9. Entry, with the consent proof. The captcha token is never stored.
+    const { human_token: _humanToken, ...storedMetadata } = metadata;
     const { data: newEntry, error: insertError } = await supabaseAdmin
       .from("entries")
       .insert({
@@ -400,87 +411,49 @@ serve(async (req) => {
         participant_email: participant_email || null,
         quiz_passed: drawResult?.passed ?? null,
         is_winner: isWinner,
-        prize_id: selectedPrizeId,
-        redeemed_coupon_value: couponCode,
+        prize_id: selectedPrize?.id ?? null,
         dwell_time_seconds: dwell_time_seconds || 0,
         metadata: {
-          ...metadata,
+          ...storedMetadata,
+          consent,
+          client_request_id: clientRequestId,
+          game_type: campaign.game_type,
           server_timestamp: new Date().toISOString(),
         },
         ip_address: ip_address || null,
         user_agent: user_agent || null,
       })
-      .select()
+      .select("id")
       .single();
 
     if (insertError?.code === "23505") {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "You have already participated in this campaign.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+      // Two requests of the same phone at the same time: the unique index wins.
+      return fail(
+        400,
+        "ALREADY_PARTICIPATED",
+        "You have already participated in this campaign.",
       );
     }
-
-    if (insertError) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Failed to record campaign entry.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    if (insertError || !newEntry) {
+      return fail(500, "SERVER_ERROR", "Failed to record campaign entry.");
     }
 
-    // 7. If coupon was assigned, track it in coupon_redemptions for audit trail
-    if (couponCode && couponItemId && newEntry?.id) {
-      const { error: trackError } = await supabaseAdmin
-        .from("coupon_redemptions")
-        .insert({
-          entry_id: newEntry.id,
-          prize_template_item_id: couponItemId,
-          coupon_value: couponCode,
-          redeemed_by_player: false,
-        });
+    // 10. Coupon, claimed atomically once the entry exists.
+    const couponCode =
+      isWinner && selectedPrize
+        ? await claimCoupon(supabaseAdmin, selectedPrize.id, newEntry.id)
+        : null;
 
-      if (trackError) {
-        console.warn("Failed to track coupon redemption:", trackError);
-        // Don't fail the whole request - the coupon is already in the entry
-      }
-    }
-
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        entry: newEntry,
-        prize: selectedPrize
-          ? {
-              id: selectedPrize.id,
-              name: selectedPrize.name,
-              win_message: selectedPrize.win_message,
-            }
-          : null,
-        coupon: couponCode ? { code: couponCode } : null,
-        game_outcome: drawResult,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return json(200, {
+      ok: true,
+      entry: { id: newEntry.id, redeemed_coupon_value: couponCode },
+      prize: selectedPrize,
+      coupon: couponCode ? { code: couponCode } : null,
+      game_outcome: drawResult,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected server error";
-    return new Response(JSON.stringify({ ok: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return fail(500, "SERVER_ERROR", message);
   }
 });

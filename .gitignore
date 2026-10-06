@@ -7,7 +7,7 @@
 # Local environment variables
 .env*
 !.env.example
-
+.env.local
 # Log files
 npm-debug.log*
 yarn-debug.log*
@@ -31,6 +31,8 @@ Thumbs.db
 
 #old ui code
 old-ui-code
+# AI Studio design prototype (read-only reference for the Player Experience refactor)
+/aktera---gamified-marketing-experience/
 # =========================
 # Supabase local development
 # =========================

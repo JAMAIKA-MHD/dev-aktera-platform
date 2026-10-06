@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   Building2,
   User,
@@ -10,11 +10,13 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { toFriendlyErrorMessage } from "../../lib/errorMessages";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
 
   const [orgName, setOrgName] = useState("");
@@ -91,7 +93,7 @@ export default function RegisterPage() {
         setSuccess(true);
         setTimeout(() => navigate("/login"), 3000);
       } else {
-        navigate("/");
+        navigate("/", { replace: true });
       }
     } catch (err) {
       setLoading(false);
@@ -114,6 +116,9 @@ export default function RegisterPage() {
       </div>
     );
   }
+
+  // Already signed in (the browser's Back button lands here): the dashboard, not the form.
+  if (!authLoading && session) return <Navigate to="/" replace />;
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#f7f9fb] dark:bg-[#0B1120] text-[#191c1e] dark:text-slate-100 antialiased font-sans">

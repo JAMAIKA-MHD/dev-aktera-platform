@@ -250,3 +250,15 @@ export async function createOrUpdateCampaignFullService(
     errors: [],
   };
 }
+
+export async function updateCampaignPlayerScreenService(
+  campaignId: string,
+  playerScreenConfig: any,
+): Promise<void> {
+  const { error } = await supabase
+    .from("campaigns")
+    .update({ player_screen_config: playerScreenConfig })
+    .eq("id", campaignId);
+
+  if (error) throw error;
+}

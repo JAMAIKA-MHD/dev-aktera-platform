@@ -16,6 +16,8 @@
  * - billing
  */
 
+import type { ExperienceConfig } from "./features/player-experience";
+
 export type TabType =
   | "home"
   | "campaigns"
@@ -154,21 +156,28 @@ export interface FormFieldConfig {
 }
 
 export interface PlayerScreenConfig {
-  theme: {
+  // New versioned configuration of the player screens (Player Experience module).
+  // Replaces uiProject, which is obsolete and removed in phase 7.
+  experience?: ExperienceConfig;
+  uiProject?: any;
+  theme?: {
     logoUrl?: string;
     faviconUrl?: string;
     showBrandWatermark: boolean;
     primaryColor: string;
     secondaryColor: string;
     accentColor: string;
-    background: { type: "solid" | "gradient" | "image"; value: string };
+    background: {
+      type: "solid" | "gradient" | "image" | "mesh" | "dots" | "brandImage";
+      value: string;
+    };
     fontFamily: string;
     customFontUrl?: string;
     borderRadius: "sharp" | "rounded" | "pill";
-    modalShadow: boolean;
+    modalShadow?: boolean;
     mode: "light" | "dark";
   };
-  gameAssets: {
+  gameAssets?: {
     wheel?: {
       slices: { color: string; label: string; icon?: string }[];
       centerPinImageUrl?: string;
@@ -189,7 +198,7 @@ export interface PlayerScreenConfig {
       muted: boolean;
     };
   };
-  content: {
+  content?: {
     preGame: {
       title: string;
       subHeader: string;

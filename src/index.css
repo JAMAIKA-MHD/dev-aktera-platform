@@ -1,6 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
+/* Player Experience runtime: breakpoint variants (split:, tight:, roomy:, compact:, wide:) and safe areas. */
+@import "./features/player-experience/runtime/layout/layout.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -19,6 +21,23 @@
   --color-card-hover: var(--theme-card-hover);
   --color-kpi-card: var(--theme-kpi-card);
   --color-kpi-border: var(--theme-kpi-border);
+
+  /* shadcn/ui tokens (src/components/ui), mapped on the dashboard theme so that light and
+     dark follow data-theme. Only new names: no global base style, no existing token changed. */
+  --color-background: var(--theme-card);
+  --color-foreground: var(--theme-text);
+  --color-muted: var(--theme-card-subtle);
+  --color-muted-foreground: var(--theme-text-muted);
+  --color-border: var(--theme-card-border);
+  --color-input: var(--theme-card-border);
+  --color-ring: var(--color-brand-accent);
+  --color-primary: var(--color-brand-accent);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--theme-card-subtle);
+  --color-secondary-foreground: var(--theme-text);
+  --color-accent: var(--theme-card-hover);
+  --color-accent-foreground: var(--theme-text);
+  --color-destructive: #ef4444;
 }
 
 :root {
@@ -47,6 +66,11 @@
   --theme-card-hover: #1a233a;
   --theme-kpi-card: #151e30;
   --theme-kpi-border: rgba(59, 130, 246, 0.25);
+}
+
+/* Native dropdown lists (select) follow the dark theme instead of opening white. */
+[data-theme="dark"] select {
+  color-scheme: dark;
 }
 
 @layer base {

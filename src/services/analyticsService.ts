@@ -57,7 +57,7 @@ export async function fetchAnalyticsSummaryService(
       ? null
       : selectedCampaignId;
 
-  // 1. Fetch campaigns (prefer org campaigns if available, fallback to all database campaigns)
+  // 1. Fetch the organization's campaigns (RLS only returns the user's own organization)
   const { data: orgCampData } = organizationId
     ? await supabase
         .from("campaigns")
@@ -65,19 +65,14 @@ export async function fetchAnalyticsSummaryService(
         .eq("organization_id", organizationId)
     : { data: null };
 
-  const { data: allCampData } = await supabase
-    .from("campaigns")
-    .select("id, name, status, organization_id");
+  const rawCampaigns = orgCampData ?? [];
 
-  const rawCampaigns =
-    orgCampData && orgCampData.length > 0 ? orgCampData : (allCampData ?? []);
-
-  // 2. Call server RPCs safely (3-tier fail-safe: org scope -> global scope -> no-args call)
+  // 2. Call the server RPCs, scoped to the organization. They run with the caller's rights
+  // (SECURITY INVOKER), so RLS limits them to the user's own organization.
   let rpcSummaryData: any = null;
   let rpcParticipantsData: any[] | null = null;
 
   try {
-    // Tier 1: Try with current organizationId & campaignId
     const [summaryRes, partRes] = await Promise.all([
       supabase.rpc("get_campaign_analytics_v2", {
         p_organization_id: organizationId,
@@ -98,73 +93,6 @@ export async function fetchAnalyticsSummaryService(
       partRes.data.length > 0
     ) {
       rpcParticipantsData = partRes.data;
-    }
-
-    // Tier 2: Try with NULL organizationId (global database scope)
-    if (
-      !rpcParticipantsData ||
-      rpcParticipantsData.length === 0 ||
-      !rpcSummaryData ||
-      (Number(rpcSummaryData.total_entries ?? 0) === 0 &&
-        Number(rpcSummaryData.total_impressions ?? 0) === 0)
-    ) {
-      const [globalSummaryRes, globalPartRes] = await Promise.all([
-        supabase.rpc("get_campaign_analytics_v2", {
-          p_organization_id: null,
-          p_campaign_id: targetCampId,
-        }),
-        supabase.rpc("get_campaign_participants", {
-          p_organization_id: null,
-          p_campaign_id: targetCampId,
-        }),
-      ]);
-
-      if (
-        !globalSummaryRes.error &&
-        globalSummaryRes.data &&
-        (Number(globalSummaryRes.data.total_entries ?? 0) > 0 ||
-          !rpcSummaryData)
-      ) {
-        rpcSummaryData = globalSummaryRes.data;
-      }
-      if (
-        !globalPartRes.error &&
-        Array.isArray(globalPartRes.data) &&
-        globalPartRes.data.length > 0
-      ) {
-        rpcParticipantsData = globalPartRes.data;
-      }
-    }
-
-    // Tier 3: Explicit NULL parameter fallback (matches (uuid, uuid) PostgREST signature)
-    if (!rpcParticipantsData || rpcParticipantsData.length === 0) {
-      const globalNullPartRes = await supabase.rpc(
-        "get_campaign_participants",
-        {
-          p_organization_id: null,
-          p_campaign_id: null,
-        },
-      );
-      if (
-        !globalNullPartRes.error &&
-        Array.isArray(globalNullPartRes.data) &&
-        globalNullPartRes.data.length > 0
-      ) {
-        rpcParticipantsData = globalNullPartRes.data;
-      }
-    }
-
-    if (!rpcSummaryData) {
-      const globalNullSummaryRes = await supabase.rpc(
-        "get_campaign_analytics_v2",
-        {
-          p_organization_id: null,
-          p_campaign_id: null,
-        },
-      );
-      if (!globalNullSummaryRes.error && globalNullSummaryRes.data) {
-        rpcSummaryData = globalNullSummaryRes.data;
-      }
     }
   } catch (err) {
     console.warn("[AnalyticsService] RPC call notice:", err);
