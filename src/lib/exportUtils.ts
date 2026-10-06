@@ -74,6 +74,23 @@ export function exportToExcel(
 }
 
 /**
+ * Downloads a Word document blob as a .docx file
+ */
+export function downloadDocxFile(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute(
+    "download",
+    filename.endsWith(".docx") ? filename : `${filename}.docx`,
+  );
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Parses CSV file using PapaParse
  */
 export function parseCSVFile<T = Record<string, string>>(

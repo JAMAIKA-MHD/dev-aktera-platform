@@ -4,6 +4,8 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { exportToCSV, exportToExcel } from "../lib/exportUtils";
+import { useCampaignReport } from "../hooks/useCampaignReport";
+import { CampaignAnalyticsDashboard } from "./analytics/CampaignAnalyticsDashboard";
 
 const formatDwellTime = (seconds: number): string => {
   if (!seconds || seconds <= 0) return "0s";
@@ -39,6 +41,13 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   // Pass selectedCampId into useAnalytics hook to trigger instant dynamic filtering
   const { analytics, loading, error } = useAnalytics(selectedCampId);
   const [exportFormat] = useState<"csv" | "xlsx">("xlsx");
+  const {
+    generateReport,
+    generating: generatingReport,
+    error: reportError,
+  } = useCampaignReport();
+  // Reports are generated per campaign; the combined view has no report yet.
+  const canGenerateReport = selectedCampId !== "all";
 
   const selectedCampaign = useMemo(
     () =>
@@ -185,384 +194,403 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
             Data
           </button>
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 font-bold transition-all cursor-pointer border shadow-sm ${
+            className={`px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 font-bold transition-all cursor-pointer border shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
               isDark
                 ? "bg-black text-white border-slate-700 hover:bg-black/80"
                 : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
             }`}
-            onClick={handleExportData}
+            onClick={() => void generateReport(selectedCampId)}
+            disabled={!canGenerateReport || generatingReport}
+            title={
+              canGenerateReport
+                ? "Download the full analytics report for this campaign"
+                : "Select a campaign to generate its report"
+            }
           >
-            <i className="fa-regular fa-file-lines text-xs"></i> Report
+            <i className="fa-regular fa-file-lines text-xs"></i>{" "}
+            {generatingReport ? "Generating…" : "Report"}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-4 mb-4 relative">
-        {/* Left Column: KPIs & Win Rate */}
-        <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-3 gap-4">
-            {/* Impressions */}
-            <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
-              <div className="absolute -right-5 -top-5 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
-              <div className="relative z-10">
-                <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
-                  <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
-                    visibility
-                  </span>
-                  TOTAL IMPRESSIONS
-                </h3>
-                <div className="text-2xl font-bold text-brand-text mt-0.5">
-                  {analytics?.total_impressions.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-brand-textMuted mt-0.5">
-                  Unique views
-                </div>
-              </div>
-              <div className="absolute bottom-0 left-0 w-full h-12 z-0">
-                <svg
-                  className="w-full h-full preserve-3d"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 100 30"
-                >
-                  <defs>
-                    <linearGradient
-                      id="grad-green"
-                      x1="0%"
-                      x2="0%"
-                      y1="0%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor="rgba(74, 222, 128, 0.4)"
-                      ></stop>
-                      <stop
-                        offset="100%"
-                        stopColor="rgba(74, 222, 128, 0)"
-                      ></stop>
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M0,30 L0,25 C10,25 15,10 25,10 C35,10 40,20 50,20 C60,20 65,5 75,5 C85,5 90,15 100,15 L100,30 Z"
-                    fill="url(#grad-green)"
-                  ></path>
-                  <path
-                    className="sparkline sparkline-glow"
-                    d="M0,25 C10,25 15,10 25,10 C35,10 40,20 50,20 C60,20 65,5 75,5 C85,5 90,15 100,15"
-                    stroke="#4ade80"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-            {/* Entries */}
-            <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
-              <div className="absolute -right-5 -top-5 w-20 h-20 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
-              <div className="relative z-10">
-                <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
-                  <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
-                    receipt_long
-                  </span>
-                  TOTAL ENTRIES
-                </h3>
-                <div className="text-2xl font-bold text-brand-text mt-0.5">
-                  {analytics?.total_entries.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-brand-textMuted mt-0.5">
-                  Captured form
-                </div>
-              </div>
-              <div className="absolute bottom-0 left-0 w-full h-12 z-0">
-                <svg
-                  className="w-full h-full preserve-3d"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 100 30"
-                >
-                  <defs>
-                    <linearGradient
-                      id="grad-blue"
-                      x1="0%"
-                      x2="0%"
-                      y1="0%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor="rgba(56, 189, 248, 0.4)"
-                      ></stop>
-                      <stop
-                        offset="100%"
-                        stopColor="rgba(56, 189, 248, 0)"
-                      ></stop>
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M0,30 L0,20 C15,20 20,25 30,25 C40,25 50,10 60,10 C70,10 80,18 90,18 C95,18 98,12 100,12 L100,30 Z"
-                    fill="url(#grad-blue)"
-                  ></path>
-                  <path
-                    className="sparkline sparkline-blue-glow"
-                    d="M0,20 C15,20 20,25 30,25 C40,25 50,10 60,10 C70,10 80,18 90,18 C95,18 98,12 100,12"
-                    stroke="#38bdf8"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-            {/* Conversion */}
-            <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
-              <div className="absolute -right-5 -top-5 w-20 h-20 bg-white/5 rounded-full blur-xl group-hover:bg-white/10 transition-all"></div>
-              <div className="relative z-10">
-                <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
-                  <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
-                    trending_up
-                  </span>
-                  Conversion Rate
-                </h3>
-                <div className="text-2xl font-bold text-brand-text mt-0.5">
-                  {(analytics?.form_completion_rate || 0).toFixed(1)}%
-                </div>
-                <div className="text-[10px] text-brand-textMuted mt-0.5">
-                  Plays / Impa
-                </div>
-              </div>
-              <div className="absolute bottom-0 left-0 w-full h-12 z-0">
-                <svg
-                  className="w-full h-full preserve-3d"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 100 30"
-                >
-                  <path
-                    d="M0,30 L0,15 C10,15 20,5 30,5 C40,5 45,20 55,20 C65,20 75,8 85,8 C90,8 95,15 100,15 L100,30 Z"
-                    fill="url(#grad-blue)"
-                  ></path>
-                  <path
-                    className="sparkline"
-                    d="M0,15 C10,15 20,5 30,5 C40,5 45,20 55,20 C65,20 75,8 85,8 C90,8 95,15 100,15"
-                    stroke="rgba(255,255,255,0.3)"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-          {/* Win Rate Chart */}
-          <div className="glass-panel rounded-xl p-4 flex-1 relative min-h-[180px]">
-            <div className="flex justify-between items-start mb-3">
-              <h2 className="text-base font-semibold text-brand-text">
-                Win Rate %
-              </h2>
-            </div>
-            <div className="absolute inset-0 pt-16 pb-6 px-6 flex items-end">
-              <div className="w-full h-full flex flex-col justify-between relative">
-                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
-                  <span className="absolute -left-6">100%</span>
-                </div>
-                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
-                  <span className="absolute -left-6">80%</span>
-                </div>
-                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
-                  <span className="absolute -left-6">60%</span>
-                </div>
-                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
-                  <span className="absolute -left-6">40%</span>
-                </div>
-                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
-                  <span className="absolute -left-6">20%</span>
-                </div>
-                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
-                  <span className="absolute -left-6">0%</span>
-                </div>
+      {reportError && (
+        <div className="glass-panel rounded-xl px-3 py-2 mb-5 text-xs text-red-400 font-medium">
+          {reportError}
+        </div>
+      )}
 
-                <div className="absolute inset-0 top-0 bottom-0 left-0 right-0 flex justify-between items-end px-2 pt-2">
-                  {[
-                    { day: "Sun", v1: 45, v2: 55 },
-                    { day: "Mon", v1: 50, v2: 50 },
-                    { day: "Tue", v1: 50, v2: 50 },
-                    { day: "Wed", v1: 45, v2: 55 },
-                    { day: "Thu", v1: 55, v2: 45 },
-                    { day: "Fri", v1: 50, v2: 50 },
-                    { day: "Sat", v1: 50, v2: 50 },
-                    { day: "Sun", v1: 50, v2: 50 },
-                  ].map((d, i) => (
-                    <div
-                      key={i}
-                      className="w-8 flex flex-col justify-end gap-0.5 relative"
-                      style={{ height: Math.random() * 40 + 50 + "%" }}
-                    >
-                      <div
-                        className="w-full bg-blue-500 rounded-t-sm"
-                        style={{ height: d.v1 + "%" }}
-                      ></div>
-                      <div
-                        className="w-full bg-blue-600 rounded-b-sm"
-                        style={{ height: d.v2 + "%" }}
-                      ></div>
-                      <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-brand-textMuted">
-                        {d.day}
-                      </span>
-                    </div>
-                  ))}
+      {selectedCampId !== "all" ? (
+        <div className="mb-4">
+          <CampaignAnalyticsDashboard campaignId={selectedCampId} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-12 gap-4 mb-4 relative">
+          {/* Left Column: KPIs & Win Rate */}
+          <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              {/* Impressions */}
+              <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
+                <div className="absolute -right-5 -top-5 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
+                <div className="relative z-10">
+                  <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                    <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
+                      visibility
+                    </span>
+                    TOTAL IMPRESSIONS
+                  </h3>
+                  <div className="text-2xl font-bold text-brand-text mt-0.5">
+                    {analytics?.total_impressions.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-brand-textMuted mt-0.5">
+                    Unique views
+                  </div>
                 </div>
-
-                <div className="absolute inset-0 top-0 bottom-0 left-0 right-0 px-6 pt-2 pointer-events-none">
+                <div className="absolute bottom-0 left-0 w-full h-12 z-0">
                   <svg
                     className="w-full h-full preserve-3d"
                     preserveAspectRatio="none"
-                    viewBox="0 0 100 100"
+                    viewBox="0 0 100 30"
+                  >
+                    <defs>
+                      <linearGradient
+                        id="grad-green"
+                        x1="0%"
+                        x2="0%"
+                        y1="0%"
+                        y2="100%"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="rgba(74, 222, 128, 0.4)"
+                        ></stop>
+                        <stop
+                          offset="100%"
+                          stopColor="rgba(74, 222, 128, 0)"
+                        ></stop>
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M0,30 L0,25 C10,25 15,10 25,10 C35,10 40,20 50,20 C60,20 65,5 75,5 C85,5 90,15 100,15 L100,30 Z"
+                      fill="url(#grad-green)"
+                    ></path>
+                    <path
+                      className="sparkline sparkline-glow"
+                      d="M0,25 C10,25 15,10 25,10 C35,10 40,20 50,20 C60,20 65,5 75,5 C85,5 90,15 100,15"
+                      stroke="#4ade80"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              {/* Entries */}
+              <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
+                <div className="absolute -right-5 -top-5 w-20 h-20 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+                <div className="relative z-10">
+                  <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                    <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
+                      receipt_long
+                    </span>
+                    TOTAL ENTRIES
+                  </h3>
+                  <div className="text-2xl font-bold text-brand-text mt-0.5">
+                    {analytics?.total_entries.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-brand-textMuted mt-0.5">
+                    Captured form
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-12 z-0">
+                  <svg
+                    className="w-full h-full preserve-3d"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 100 30"
+                  >
+                    <defs>
+                      <linearGradient
+                        id="grad-blue"
+                        x1="0%"
+                        x2="0%"
+                        y1="0%"
+                        y2="100%"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="rgba(56, 189, 248, 0.4)"
+                        ></stop>
+                        <stop
+                          offset="100%"
+                          stopColor="rgba(56, 189, 248, 0)"
+                        ></stop>
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M0,30 L0,20 C15,20 20,25 30,25 C40,25 50,10 60,10 C70,10 80,18 90,18 C95,18 98,12 100,12 L100,30 Z"
+                      fill="url(#grad-blue)"
+                    ></path>
+                    <path
+                      className="sparkline sparkline-blue-glow"
+                      d="M0,20 C15,20 20,25 30,25 C40,25 50,10 60,10 C70,10 80,18 90,18 C95,18 98,12 100,12"
+                      stroke="#38bdf8"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              {/* Conversion */}
+              <div className="glass-panel rounded-xl p-3 flex flex-col justify-between relative overflow-hidden h-28 group hover:bg-white/5 transition-all cursor-default">
+                <div className="absolute -right-5 -top-5 w-20 h-20 bg-white/5 rounded-full blur-xl group-hover:bg-white/10 transition-all"></div>
+                <div className="relative z-10">
+                  <h3 className="text-[8px] uppercase font-semibold text-brand-textMuted tracking-wider">
+                    <span className="material-symbols-outlined text-xs mr-1 align-middle text-brand-text/50">
+                      trending_up
+                    </span>
+                    Conversion Rate
+                  </h3>
+                  <div className="text-2xl font-bold text-brand-text mt-0.5">
+                    {(analytics?.form_completion_rate || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-brand-textMuted mt-0.5">
+                    Plays / Impa
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-12 z-0">
+                  <svg
+                    className="w-full h-full preserve-3d"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 100 30"
                   >
                     <path
-                      className="drop-shadow-[0_2px_4px_rgba(168,85,247,0.4)]"
-                      d="M4,25 L17,20 L31,55 L44,40 L58,35 L71,45 L85,25 L98,60"
-                      fill="none"
-                      stroke="#a855f7"
-                      strokeWidth="2"
+                      d="M0,30 L0,15 C10,15 20,5 30,5 C40,5 45,20 55,20 C65,20 75,8 85,8 C90,8 95,15 100,15 L100,30 Z"
+                      fill="url(#grad-blue)"
                     ></path>
-                    <circle cx="4" cy="25" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="17" cy="20" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="31" cy="55" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="44" cy="40" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="58" cy="35" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="71" cy="45" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="85" cy="25" fill="#a855f7" r="1.5"></circle>
-                    <circle cx="98" cy="60" fill="#a855f7" r="1.5"></circle>
+                    <path
+                      className="sparkline"
+                      d="M0,15 C10,15 20,5 30,5 C40,5 45,20 55,20 C65,20 75,8 85,8 C90,8 95,15 100,15"
+                      stroke="rgba(255,255,255,0.3)"
+                    ></path>
                   </svg>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+            {/* Win Rate Chart */}
+            <div className="glass-panel rounded-xl p-4 flex-1 relative min-h-[180px]">
+              <div className="flex justify-between items-start mb-3">
+                <h2 className="text-base font-semibold text-brand-text">
+                  Win Rate %
+                </h2>
+              </div>
+              <div className="absolute inset-0 pt-16 pb-6 px-6 flex items-end">
+                <div className="w-full h-full flex flex-col justify-between relative">
+                  <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                    <span className="absolute -left-6">100%</span>
+                  </div>
+                  <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                    <span className="absolute -left-6">80%</span>
+                  </div>
+                  <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                    <span className="absolute -left-6">60%</span>
+                  </div>
+                  <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                    <span className="absolute -left-6">40%</span>
+                  </div>
+                  <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                    <span className="absolute -left-6">20%</span>
+                  </div>
+                  <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted">
+                    <span className="absolute -left-6">0%</span>
+                  </div>
 
-        {/* Right Column: Line Percentage */}
-        <div className="col-span-12 xl:col-span-4 glass-panel rounded-2xl p-5 flex flex-col relative overflow-hidden pl-32 xl:pl-5">
-          <div>
-            <h2 className="text-lg font-semibold text-brand-text">
-              Line Percentage
-            </h2>
-            <p className="text-xs text-brand-textMuted">
-              User Engagement Goal Progress
-            </p>
-          </div>
-          <div className="flex-1 relative mt-6 mb-4 min-h-[180px]">
-            <div className="absolute inset-0 flex flex-col justify-between">
-              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
-                <span className="absolute -left-6 bottom-[-6px]">100%</span>
+                  <div className="absolute inset-0 top-0 bottom-0 left-0 right-0 flex justify-between items-end px-2 pt-2">
+                    {[
+                      { day: "Sun", v1: 45, v2: 55 },
+                      { day: "Mon", v1: 50, v2: 50 },
+                      { day: "Tue", v1: 50, v2: 50 },
+                      { day: "Wed", v1: 45, v2: 55 },
+                      { day: "Thu", v1: 55, v2: 45 },
+                      { day: "Fri", v1: 50, v2: 50 },
+                      { day: "Sat", v1: 50, v2: 50 },
+                      { day: "Sun", v1: 50, v2: 50 },
+                    ].map((d, i) => (
+                      <div
+                        key={i}
+                        className="w-8 flex flex-col justify-end gap-0.5 relative"
+                        style={{ height: Math.random() * 40 + 50 + "%" }}
+                      >
+                        <div
+                          className="w-full bg-blue-500 rounded-t-sm"
+                          style={{ height: d.v1 + "%" }}
+                        ></div>
+                        <div
+                          className="w-full bg-blue-600 rounded-b-sm"
+                          style={{ height: d.v2 + "%" }}
+                        ></div>
+                        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-brand-textMuted">
+                          {d.day}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="absolute inset-0 top-0 bottom-0 left-0 right-0 px-6 pt-2 pointer-events-none">
+                    <svg
+                      className="w-full h-full preserve-3d"
+                      preserveAspectRatio="none"
+                      viewBox="0 0 100 100"
+                    >
+                      <path
+                        className="drop-shadow-[0_2px_4px_rgba(168,85,247,0.4)]"
+                        d="M4,25 L17,20 L31,55 L44,40 L58,35 L71,45 L85,25 L98,60"
+                        fill="none"
+                        stroke="#a855f7"
+                        strokeWidth="2"
+                      ></path>
+                      <circle cx="4" cy="25" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="17" cy="20" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="31" cy="55" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="44" cy="40" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="58" cy="35" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="71" cy="45" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="85" cy="25" fill="#a855f7" r="1.5"></circle>
+                      <circle cx="98" cy="60" fill="#a855f7" r="1.5"></circle>
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
-                <span className="absolute -left-6 bottom-[-6px]">75%</span>
-              </div>
-              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
-                <span className="absolute -left-6 bottom-[-6px]">50%</span>
-              </div>
-              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
-                <span className="absolute -left-6 bottom-[-6px]">25%</span>
-              </div>
-              <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
-                <span className="absolute -left-6 bottom-[-6px]">0%</span>
-              </div>
-            </div>
-            <div className="absolute inset-0 px-2">
-              <svg
-                className="w-full h-full preserve-3d"
-                preserveAspectRatio="none"
-                viewBox="0 0 100 100"
-              >
-                <path
-                  className="drop-shadow-[0_0_8px_rgba(103,232,249,0.6)]"
-                  d="M0,80 L15,65 L30,55 L45,30 L60,35 L75,20 L90,10"
-                  fill="none"
-                  stroke="#67e8f9"
-                  strokeWidth="1.5"
-                ></path>
-                <circle
-                  cx="0"
-                  cy="80"
-                  fill="#0b0e14"
-                  r="1.5"
-                  stroke="#67e8f9"
-                  strokeWidth="1"
-                ></circle>
-                <circle
-                  cx="15"
-                  cy="65"
-                  fill="#0b0e14"
-                  r="1.5"
-                  stroke="#67e8f9"
-                  strokeWidth="1"
-                ></circle>
-                <circle
-                  cx="30"
-                  cy="55"
-                  fill="#0b0e14"
-                  r="1.5"
-                  stroke="#67e8f9"
-                  strokeWidth="1"
-                ></circle>
-                <circle
-                  cx="45"
-                  cy="30"
-                  fill="#0b0e14"
-                  r="1.5"
-                  stroke="#67e8f9"
-                  strokeWidth="1"
-                ></circle>
-                <circle
-                  cx="60"
-                  cy="35"
-                  fill="#0b0e14"
-                  r="1.5"
-                  stroke="#67e8f9"
-                  strokeWidth="1"
-                ></circle>
-                <circle
-                  cx="75"
-                  cy="20"
-                  fill="#0b0e14"
-                  r="1.5"
-                  stroke="#67e8f9"
-                  strokeWidth="1"
-                ></circle>
-                <circle
-                  className="drop-shadow-[0_0_5px_rgba(103,232,249,1)]"
-                  cx="90"
-                  cy="10"
-                  fill="#67e8f9"
-                  r="2"
-                ></circle>
-              </svg>
-            </div>
-            <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between px-2 text-[10px] text-brand-textMuted">
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
-              <span>Sun</span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-brand-border/30">
+
+          {/* Right Column: Line Percentage */}
+          <div className="col-span-12 xl:col-span-4 glass-panel rounded-2xl p-5 flex flex-col relative overflow-hidden pl-32 xl:pl-5">
             <div>
-              <div className="text-xl font-bold text-brand-text">
-                {Math.round(analytics?.form_completion_rate || 78)}%
+              <h2 className="text-lg font-semibold text-brand-text">
+                Line Percentage
+              </h2>
+              <p className="text-xs text-brand-textMuted">
+                User Engagement Goal Progress
+              </p>
+            </div>
+            <div className="flex-1 relative mt-6 mb-4 min-h-[180px]">
+              <div className="absolute inset-0 flex flex-col justify-between">
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                  <span className="absolute -left-6 bottom-[-6px]">100%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                  <span className="absolute -left-6 bottom-[-6px]">75%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                  <span className="absolute -left-6 bottom-[-6px]">50%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                  <span className="absolute -left-6 bottom-[-6px]">25%</span>
+                </div>
+                <div className="border-b border-brand-border/30 w-full flex items-end text-[10px] text-brand-textMuted h-0">
+                  <span className="absolute -left-6 bottom-[-6px]">0%</span>
+                </div>
               </div>
-              <div className="text-[8px] font-semibold text-brand-textMuted uppercase tracking-wider mt-0.5">
-                CURRENT
+              <div className="absolute inset-0 px-2">
+                <svg
+                  className="w-full h-full preserve-3d"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 100 100"
+                >
+                  <path
+                    className="drop-shadow-[0_0_8px_rgba(103,232,249,0.6)]"
+                    d="M0,80 L15,65 L30,55 L45,30 L60,35 L75,20 L90,10"
+                    fill="none"
+                    stroke="#67e8f9"
+                    strokeWidth="1.5"
+                  ></path>
+                  <circle
+                    cx="0"
+                    cy="80"
+                    fill="#0b0e14"
+                    r="1.5"
+                    stroke="#67e8f9"
+                    strokeWidth="1"
+                  ></circle>
+                  <circle
+                    cx="15"
+                    cy="65"
+                    fill="#0b0e14"
+                    r="1.5"
+                    stroke="#67e8f9"
+                    strokeWidth="1"
+                  ></circle>
+                  <circle
+                    cx="30"
+                    cy="55"
+                    fill="#0b0e14"
+                    r="1.5"
+                    stroke="#67e8f9"
+                    strokeWidth="1"
+                  ></circle>
+                  <circle
+                    cx="45"
+                    cy="30"
+                    fill="#0b0e14"
+                    r="1.5"
+                    stroke="#67e8f9"
+                    strokeWidth="1"
+                  ></circle>
+                  <circle
+                    cx="60"
+                    cy="35"
+                    fill="#0b0e14"
+                    r="1.5"
+                    stroke="#67e8f9"
+                    strokeWidth="1"
+                  ></circle>
+                  <circle
+                    cx="75"
+                    cy="20"
+                    fill="#0b0e14"
+                    r="1.5"
+                    stroke="#67e8f9"
+                    strokeWidth="1"
+                  ></circle>
+                  <circle
+                    className="drop-shadow-[0_0_5px_rgba(103,232,249,1)]"
+                    cx="90"
+                    cy="10"
+                    fill="#67e8f9"
+                    r="2"
+                  ></circle>
+                </svg>
+              </div>
+              <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between px-2 text-[10px] text-brand-textMuted">
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+                <span>Sun</span>
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-brand-text">65%</div>
-              <div className="text-[8px] text-brand-textMuted uppercase">
-                Previous
+            <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-brand-border/30">
+              <div>
+                <div className="text-xl font-bold text-brand-text">
+                  {Math.round(analytics?.form_completion_rate || 78)}%
+                </div>
+                <div className="text-[8px] font-semibold text-brand-textMuted uppercase tracking-wider mt-0.5">
+                  CURRENT
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-emerald-400">+13%</div>
-              <div className="text-[8px] text-brand-textMuted uppercase">
-                Growth
+              <div className="text-center">
+                <div className="text-xl font-bold text-brand-text">65%</div>
+                <div className="text-[8px] text-brand-textMuted uppercase">
+                  Previous
+                </div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-emerald-400">+13%</div>
+                <div className="text-[8px] text-brand-textMuted uppercase">
+                  Growth
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* DYNAMIC PERFORMANCE TABLE: Switches based on Toggle Mode or Dropdown Selection */}
       <div className="glass-panel rounded-xl p-4 mb-6">

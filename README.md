@@ -125,9 +125,41 @@ npm run build
 
 ---
 
-## 7) Sample Data, Seeding & Testing
+## 7) Docker Database Setup & Seeding
 
-To quickly populate realistic sample data for local development (seeded organizations, unified franchise campaigns, prize inventory, and realistic entries with Algerian mobile numbers across the last 14 days):
+### Running the Database with Docker Compose:
+
+Start PostgreSQL in Docker (auto-initialized with schema and seed data):
+
+```bash
+npm run docker:db:start
+# or: docker compose up -d postgres
+```
+
+Stop the database:
+
+```bash
+npm run docker:db:stop
+# or: docker compose down
+```
+
+Reset database to a fresh state (re-runs migrations + seed data):
+
+```bash
+npm run docker:db:reset
+# or: docker compose down -v && docker compose up -d postgres
+```
+
+Start database + pgAdmin 4 web manager (accessible at `http://localhost:5050`):
+
+```bash
+npm run docker:all
+# or: docker compose up -d
+```
+
+### Seeding Sample Data:
+
+To populate/refresh realistic sample data for local development:
 
 ```bash
 npm run db:seed

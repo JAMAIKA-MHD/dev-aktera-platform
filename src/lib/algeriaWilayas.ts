@@ -1,0 +1,171 @@
+/**
+ * Reference list of the 58 Algerian wilayas (official numbering) and a resolver
+ * that maps free-text location labels (wilaya or chief-town names in French,
+ * English or Arabic, or a wilaya code) to a wilaya code.
+ */
+
+export interface Wilaya {
+  code: number;
+  name: string;
+}
+
+export const ALGERIA_WILAYAS: Wilaya[] = [
+  { code: 1, name: "Adrar" },
+  { code: 2, name: "Chlef" },
+  { code: 3, name: "Laghouat" },
+  { code: 4, name: "Oum El Bouaghi" },
+  { code: 5, name: "Batna" },
+  { code: 6, name: "Béjaïa" },
+  { code: 7, name: "Biskra" },
+  { code: 8, name: "Béchar" },
+  { code: 9, name: "Blida" },
+  { code: 10, name: "Bouira" },
+  { code: 11, name: "Tamanrasset" },
+  { code: 12, name: "Tébessa" },
+  { code: 13, name: "Tlemcen" },
+  { code: 14, name: "Tiaret" },
+  { code: 15, name: "Tizi Ouzou" },
+  { code: 16, name: "Alger" },
+  { code: 17, name: "Djelfa" },
+  { code: 18, name: "Jijel" },
+  { code: 19, name: "Sétif" },
+  { code: 20, name: "Saïda" },
+  { code: 21, name: "Skikda" },
+  { code: 22, name: "Sidi Bel Abbès" },
+  { code: 23, name: "Annaba" },
+  { code: 24, name: "Guelma" },
+  { code: 25, name: "Constantine" },
+  { code: 26, name: "Médéa" },
+  { code: 27, name: "Mostaganem" },
+  { code: 28, name: "M'Sila" },
+  { code: 29, name: "Mascara" },
+  { code: 30, name: "Ouargla" },
+  { code: 31, name: "Oran" },
+  { code: 32, name: "El Bayadh" },
+  { code: 33, name: "Illizi" },
+  { code: 34, name: "Bordj Bou Arréridj" },
+  { code: 35, name: "Boumerdès" },
+  { code: 36, name: "El Tarf" },
+  { code: 37, name: "Tindouf" },
+  { code: 38, name: "Tissemsilt" },
+  { code: 39, name: "El Oued" },
+  { code: 40, name: "Khenchela" },
+  { code: 41, name: "Souk Ahras" },
+  { code: 42, name: "Tipaza" },
+  { code: 43, name: "Mila" },
+  { code: 44, name: "Aïn Defla" },
+  { code: 45, name: "Naâma" },
+  { code: 46, name: "Aïn Témouchent" },
+  { code: 47, name: "Ghardaïa" },
+  { code: 48, name: "Relizane" },
+  { code: 49, name: "Timimoun" },
+  { code: 50, name: "Bordj Badji Mokhtar" },
+  { code: 51, name: "Ouled Djellal" },
+  { code: 52, name: "Béni Abbès" },
+  { code: 53, name: "In Salah" },
+  { code: 54, name: "In Guezzam" },
+  { code: 55, name: "Touggourt" },
+  { code: 56, name: "Djanet" },
+  { code: 57, name: "El M'Ghair" },
+  { code: 58, name: "El Menia" },
+];
+
+// Alternative spellings seen in forms, IP geolocation and Arabic input.
+const WILAYA_ALIASES: Record<number, string[]> = {
+  1: ["أدرار"],
+  2: ["Chlef", "Ech Chlef", "الشلف"],
+  3: ["الأغواط"],
+  4: ["Oum el Bouaghi", "أم البواقي"],
+  5: ["باتنة"],
+  6: ["Bejaia", "Bgayet", "بجاية"],
+  7: ["بسكرة"],
+  8: ["Bechar", "بشار"],
+  9: ["البليدة"],
+  10: ["البويرة"],
+  11: ["Tamanghasset", "تمنراست"],
+  12: ["Tebessa", "تبسة"],
+  13: ["تلمسان"],
+  14: ["تيارت"],
+  15: ["Tizi-Ouzou", "تيزي وزو"],
+  16: ["Algiers", "Algier", "El Djazair", "الجزائر", "الجزائر العاصمة"],
+  17: ["الجلفة"],
+  18: ["جيجل"],
+  19: ["Setif", "سطيف"],
+  20: ["Saida", "سعيدة"],
+  21: ["سكيكدة"],
+  22: ["Sidi Bel Abbes", "سيدي بلعباس"],
+  23: ["عنابة"],
+  24: ["قالمة"],
+  25: ["Qacentina", "قسنطينة"],
+  26: ["Medea", "المدية"],
+  27: ["مستغانم"],
+  28: ["Msila", "المسيلة"],
+  29: ["معسكر"],
+  30: ["ورقلة"],
+  31: ["Wahran", "وهران"],
+  32: ["البيض"],
+  33: ["إليزي"],
+  34: ["Bordj Bou Arreridj", "BBA", "برج بوعريريج"],
+  35: ["Boumerdes", "بومرداس"],
+  36: ["الطارف"],
+  37: ["تندوف"],
+  38: ["تيسمسيلت"],
+  39: ["الوادي"],
+  40: ["خنشلة"],
+  41: ["سوق أهراس"],
+  42: ["Tipasa", "تيبازة"],
+  43: ["ميلة"],
+  44: ["Ain Defla", "عين الدفلى"],
+  45: ["Naama", "النعامة"],
+  46: ["Ain Temouchent", "عين تموشنت"],
+  47: ["Ghardaia", "غرداية"],
+  48: ["غليزان"],
+  49: ["تيميمون"],
+  50: ["برج باجي مختار"],
+  51: ["أولاد جلال"],
+  52: ["Beni Abbes", "بني عباس"],
+  53: ["Ain Salah", "عين صالح"],
+  54: ["Ain Guezzam", "عين قزام"],
+  55: ["تقرت"],
+  56: ["جانت"],
+  57: ["El Meghaier", "El Mghair", "المغير"],
+  58: ["El Meniaa", "El Golea", "المنيعة"],
+};
+
+const normalizeLabel = (value: string): string =>
+  value
+    .normalize("NFD")
+    .replace(/[̀-ًͯ-ْ]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+
+const WILAYA_CODE_BY_LABEL: Map<string, number> = (() => {
+  const index = new Map<string, number>();
+  for (const wilaya of ALGERIA_WILAYAS) {
+    index.set(normalizeLabel(wilaya.name), wilaya.code);
+    for (const alias of WILAYA_ALIASES[wilaya.code] ?? []) {
+      index.set(normalizeLabel(alias), wilaya.code);
+    }
+  }
+  return index;
+})();
+
+/**
+ * Resolves a location label to a wilaya code, or null when it is not recognised.
+ * Accepts names ("Oran", "وهران"), codes ("31") and "code - name" ("16 - Alger").
+ */
+export function resolveWilayaCode(
+  label: string | null | undefined,
+): number | null {
+  if (!label) return null;
+  const trimmed = label.trim();
+  if (!trimmed) return null;
+
+  const leadingCode = /^(\d{1,2})(?!\d)/.exec(trimmed);
+  if (leadingCode) {
+    const code = Number(leadingCode[1]);
+    return code >= 1 && code <= ALGERIA_WILAYAS.length ? code : null;
+  }
+
+  return WILAYA_CODE_BY_LABEL.get(normalizeLabel(trimmed)) ?? null;
+}

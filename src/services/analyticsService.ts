@@ -9,6 +9,7 @@ import {
   OSDistribution,
   PrizeBurnRateItem,
 } from "../hooks/useAnalytics";
+import { CampaignAnalyticsReport, CampaignDashboardAnalytics } from "../types";
 
 const HOURLY_BUCKETS = [
   { label: "00:00 - 04:00", start: 0, end: 4 },
@@ -41,6 +42,38 @@ export async function importParticipantEntries(
     .select();
   if (error) throw error;
   return { count: data?.length ?? entries.length };
+}
+
+/**
+ * Loads the per-campaign analytics dashboard. Everything is computed by the
+ * `get_campaign_dashboard_analytics` RPC; there is no client-side fallback,
+ * so a failure (including missing access to the campaign) is thrown to the caller.
+ */
+export async function fetchCampaignDashboardAnalytics(
+  campaignId: string,
+): Promise<CampaignDashboardAnalytics> {
+  const { data, error } = await supabase.rpc(
+    "get_campaign_dashboard_analytics",
+    { p_campaign_id: campaignId },
+  );
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Analytics unavailable for this campaign.");
+  return data as CampaignDashboardAnalytics;
+}
+
+/**
+ * Loads the full report payload for one campaign (analytics + participants)
+ * from the `get_campaign_analytics_report` RPC. Failures are thrown to the caller.
+ */
+export async function fetchCampaignAnalyticsReport(
+  campaignId: string,
+): Promise<CampaignAnalyticsReport> {
+  const { data, error } = await supabase.rpc("get_campaign_analytics_report", {
+    p_campaign_id: campaignId,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Report unavailable for this campaign.");
+  return data as CampaignAnalyticsReport;
 }
 
 export async function fetchAnalyticsSummaryService(

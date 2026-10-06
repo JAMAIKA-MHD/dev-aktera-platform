@@ -256,6 +256,117 @@ export interface BillingPlan {
   priceAmount: number;
 }
 
+/**
+ * 11. Campaign Dashboard Analytics
+ * Payload of the `get_campaign_dashboard_analytics` RPC (one campaign).
+ * Rates are null when their denominator is zero (nothing to measure yet).
+ */
+export interface CampaignDailyPoint {
+  date: string; // YYYY-MM-DD in the analytics timezone
+  entries: number;
+  winners: number;
+}
+
+export interface CampaignPrizeDailyWins {
+  date: string; // YYYY-MM-DD in the analytics timezone
+  prize_id: string | null;
+  prize_name: string;
+  wins: number;
+}
+
+export interface CampaignPrizeStock {
+  id: string;
+  name: string;
+  quantity: number;
+  quantity_won: number;
+  remaining: number;
+  burn_rate_percentage: number | null;
+}
+
+export interface CampaignOsDistribution {
+  android: number;
+  ios: number;
+  desktop: number;
+  other: number;
+}
+
+export interface CampaignLocationCount {
+  location: string; // Raw wilaya / city label captured on the entry
+  count: number;
+}
+
+export interface CampaignHourlyPoint {
+  hour: number; // 0-23
+  entries: number;
+  winners: number;
+}
+
+export interface CampaignWeekdayPoint {
+  weekday: number; // ISO: 1 = Monday ... 7 = Sunday
+  entries: number;
+  winners: number;
+}
+
+export interface CampaignDashboardAnalytics {
+  campaign: {
+    id: string;
+    name: string;
+    status: string;
+    start_date: string | null;
+    end_date: string | null;
+  };
+  timezone: string;
+  total_entries: number;
+  total_wins: number;
+  win_rate: number | null;
+  avg_dwell_time_seconds: number | null;
+  total_impressions: number;
+  completed_impressions: number;
+  completion_rate: number | null;
+  prize_burn_rate: {
+    total_quantity: number;
+    total_won: number;
+    remaining: number;
+    percentage: number | null;
+  };
+  prizes: CampaignPrizeStock[];
+  os_distribution: CampaignOsDistribution;
+  participants_over_time: CampaignDailyPoint[];
+  prize_distribution: CampaignPrizeDailyWins[];
+  location_distribution: CampaignLocationCount[];
+  location_unknown_count: number;
+  hourly_distribution: CampaignHourlyPoint[];
+  weekday_distribution: CampaignWeekdayPoint[];
+}
+
+/**
+ * 12. Campaign Analytics Report
+ * Payload of the `get_campaign_analytics_report` RPC: the dashboard analytics
+ * plus the organization and the participant list, used to build the exported report.
+ */
+export interface CampaignReportParticipant {
+  id: string;
+  participant_name: string | null;
+  phone_number: string | null;
+  is_winner: boolean;
+  prize_name: string | null;
+  quiz_passed: boolean | null;
+  redeemed_coupon_value: string | null;
+  coupon_confirmed: boolean;
+  dwell_time_seconds: number;
+  location: string | null;
+  submitted_at: string; // YYYY-MM-DD HH:mm in the analytics timezone
+}
+
+export interface CampaignAnalyticsReport {
+  generated_at: string; // YYYY-MM-DD HH:mm in the analytics timezone
+  organization: { id: string; name: string } | null;
+  analytics: CampaignDashboardAnalytics;
+  participants: CampaignReportParticipant[]; // Most recent first, capped at participants_limit
+  participants_total: number;
+  participants_limit: number;
+}
+
 // --- CLIENT SIDE PLAYERS PRESETS & SIMULATORS STATE ---
 
 export interface BrandPreset {
