@@ -1,0 +1,25 @@
+/* The Studio's own styles, beyond Tailwind utilities. The field a preview click or an issue
+   leads to (useRevealFocusPath) glows for a moment, so the eye finds it. */
+[data-xp-studio] [data-studio-flash="true"] {
+  border-radius: 0.75rem;
+  animation: xp-studio-flash 1.6s ease-out;
+}
+
+@keyframes xp-studio-flash {
+  0%,
+  45% {
+    box-shadow:
+      0 0 0 3px rgb(59 130 246 / 0.55),
+      0 0 0 9px rgb(59 130 246 / 0.12);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(59 130 246 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-xp-studio] [data-studio-flash="true"] {
+    animation: none;
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.55);
+  }
+}

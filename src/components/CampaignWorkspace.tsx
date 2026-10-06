@@ -32,6 +32,7 @@ interface CampaignWorkspaceProps {
   leads: LeadEntry[];
   onBack: () => void;
   onEditCampaign: (campaign: Campaign) => void;
+  onCustomizePlayerScreen?: (campaign: Campaign) => void;
   onRelaunch: (campaign: Campaign) => void;
   onToggleStatus: (id: string) => void;
   onOpenAnalytics: (id: string) => void;
@@ -43,6 +44,7 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   leads,
   onBack,
   onEditCampaign,
+  onCustomizePlayerScreen,
   onRelaunch,
   onToggleStatus,
   onOpenAnalytics,
@@ -336,6 +338,18 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               <Pencil className="h-4 w-4 stroke-[2.5]" />
               <span>Edit Campaign</span>
             </button>
+
+            {/* Customize Player Screen UI */}
+            {onCustomizePlayerScreen && (
+              <button
+                type="button"
+                onClick={() => onCustomizePlayerScreen(campaign)}
+                className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-black shadow-sm transition-all hover:scale-102 cursor-pointer border bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-indigo-500/25"
+              >
+                <Sparkles className="h-4 w-4 stroke-[2.5]" />
+                <span>Customize Player UI</span>
+              </button>
+            )}
 
             {/* Prepare Relaunch */}
             <button

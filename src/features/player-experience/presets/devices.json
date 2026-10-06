@@ -1,0 +1,212 @@
+[
+  {
+    "id": "android-compact",
+    "label": "Android compact",
+    "group": "phone",
+    "width": 360,
+    "height": 640,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "android-360",
+    "label": "Android 360 (entry level)",
+    "group": "phone",
+    "width": 360,
+    "height": 800,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "galaxy-s8-plus",
+    "label": "Galaxy S8+",
+    "group": "phone",
+    "width": 360,
+    "height": 740,
+    "dpr": 4,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "iphone-se",
+    "label": "iPhone SE",
+    "group": "phone",
+    "width": 375,
+    "height": 667,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "iphone-12",
+    "label": "iPhone 12–14",
+    "group": "phone",
+    "width": 390,
+    "height": 844,
+    "dpr": 3,
+    "touch": true,
+    "safeArea": { "top": 47, "right": 0, "bottom": 34, "left": 0 }
+  },
+  {
+    "id": "redmi-note",
+    "label": "Redmi Note",
+    "group": "phone",
+    "width": 393,
+    "height": 873,
+    "dpr": 2.75,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "galaxy-a5x",
+    "label": "Galaxy A5x",
+    "group": "phone",
+    "width": 412,
+    "height": 915,
+    "dpr": 2.625,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "iphone-pro-max",
+    "label": "iPhone Pro Max",
+    "group": "phone",
+    "width": 430,
+    "height": 932,
+    "dpr": 3,
+    "touch": true,
+    "safeArea": { "top": 59, "right": 0, "bottom": 34, "left": 0 }
+  },
+  {
+    "id": "galaxy-z-fold-folded",
+    "label": "Galaxy Z Fold (folded)",
+    "group": "phone",
+    "width": 344,
+    "height": 882,
+    "dpr": 3,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "galaxy-fold",
+    "label": "Galaxy Fold (1st gen, folded)",
+    "group": "phone",
+    "width": 280,
+    "height": 653,
+    "dpr": 3,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "ipad-mini",
+    "label": "iPad Mini",
+    "group": "tablet",
+    "width": 768,
+    "height": 1024,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "android-tablet",
+    "label": "Android tablet",
+    "group": "tablet",
+    "width": 800,
+    "height": 1280,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "ipad-air",
+    "label": "iPad Air",
+    "group": "tablet",
+    "width": 820,
+    "height": 1180,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 20, "left": 0 }
+  },
+  {
+    "id": "ipad-pro-11",
+    "label": "iPad Pro 11\"",
+    "group": "tablet",
+    "width": 834,
+    "height": 1194,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 20, "left": 0 }
+  },
+  {
+    "id": "ipad-pro-13",
+    "label": "iPad Pro 12.9\"",
+    "group": "tablet",
+    "width": 1024,
+    "height": 1366,
+    "dpr": 2,
+    "touch": true,
+    "safeArea": { "top": 0, "right": 0, "bottom": 20, "left": 0 }
+  },
+  {
+    "id": "laptop-hd",
+    "label": "Laptop HD (1366 × 768 screen)",
+    "group": "laptop",
+    "width": 1366,
+    "height": 657,
+    "dpr": 1,
+    "touch": false,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "laptop-1280",
+    "label": "Laptop (1280 × 800 screen)",
+    "group": "laptop",
+    "width": 1280,
+    "height": 689,
+    "dpr": 1,
+    "touch": false,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "laptop-1440",
+    "label": "Laptop (1440 × 900 screen)",
+    "group": "laptop",
+    "width": 1440,
+    "height": 789,
+    "dpr": 2,
+    "touch": false,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "laptop-1536",
+    "label": "Laptop (1920 × 1080 screen at 125 %)",
+    "group": "laptop",
+    "width": 1536,
+    "height": 753,
+    "dpr": 1.25,
+    "touch": false,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "desktop-fhd",
+    "label": "Desktop FHD",
+    "group": "laptop",
+    "width": 1920,
+    "height": 969,
+    "dpr": 1,
+    "touch": false,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  },
+  {
+    "id": "desktop-qhd",
+    "label": "Desktop QHD",
+    "group": "laptop",
+    "width": 2560,
+    "height": 1329,
+    "dpr": 1,
+    "touch": false,
+    "safeArea": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+  }
+]
