@@ -76,8 +76,12 @@ export const PANEL_META: Readonly<
 
 type Count = { errors: number; total: number };
 
-// On a wide screen, the labels leave the rail (still read by screen readers).
-const RAIL_HIDDEN = "lg:w-0 lg:overflow-hidden lg:opacity-0";
+// On a wide screen, the labels fade out on the rail (still read by screen readers). They never
+// change size: only their opacity moves, and they come in a moment after the menu has begun to
+// open, so no text ever sticks out of a menu that is still narrow or wraps on two lines.
+const FADE = "whitespace-nowrap transition-opacity duration-150";
+const fade = (expanded: boolean) =>
+  expanded ? "opacity-100 delay-100" : "lg:pointer-events-none lg:opacity-0";
 
 function NavItem({
   panel,
@@ -99,28 +103,28 @@ function NavItem({
         onClick={() => setPanel(panel)}
         aria-current={selected ? "page" : undefined}
         title={hint}
-        className={`group relative flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-semibold transition active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-blue-500 ${
+        className={`group relative flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-semibold transition-[color,background-color,box-shadow,transform] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-blue-500 ${
           selected
             ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
             : "text-brand-text-muted hover:bg-card-hover hover:text-brand-text"
         }`}
       >
         <Icon className="size-[18px] shrink-0" aria-hidden />
-        <span className={`flex-1 ${expanded ? "" : RAIL_HIDDEN}`}>{label}</span>
-        {count && count.total > 0 && !expanded && (
+        <span className={`flex-1 ${FADE} ${fade(expanded)}`}>{label}</span>
+        {count && count.total > 0 && (
           // The rail has no room for the number: a dot says there is something to fix.
           <span
             aria-hidden
-            className={`absolute right-1.5 top-1.5 hidden size-2 rounded-full lg:block ${
-              count.errors > 0 ? "bg-red-500" : "bg-amber-400"
-            }`}
+            className={`absolute right-1.5 top-1.5 hidden size-2 rounded-full transition-opacity duration-150 lg:block ${
+              expanded ? "opacity-0" : "opacity-100"
+            } ${count.errors > 0 ? "bg-red-500" : "bg-amber-400"}`}
           />
         )}
         {count && count.total > 0 && (
           <span
-            className={`min-w-5 rounded-full px-1.5 text-center text-[10px] font-black leading-5 ${
-              expanded ? "" : "lg:hidden"
-            } ${
+            className={`min-w-5 rounded-full px-1.5 text-center text-[10px] font-black leading-5 ${FADE} ${fade(
+              expanded,
+            )} ${
               selected
                 ? "bg-white/25 text-white"
                 : count.errors > 0
@@ -167,7 +171,7 @@ export function StudioNav({ menu }: { menu: StudioMenu }) {
     // The wrapper holds the room the panel leaves to the menu: the rail, or the full menu when it
     // is open (hovered or pinned), so the panel moves aside instead of being covered.
     <div
-      className={`shrink-0 transition-[width] duration-300 ease-in-out lg:relative lg:z-20 ${
+      className={`shrink-0 transition-[width] duration-200 ease-out lg:relative lg:z-20 ${
         expanded ? "lg:w-52" : "lg:w-[4.5rem]"
       }`}
     >
@@ -175,7 +179,7 @@ export function StudioNav({ menu }: { menu: StudioMenu }) {
         aria-label="Studio sections"
         data-expanded={expanded}
         {...bind}
-        className={`border-b border-card-border bg-card-bg transition-[width,box-shadow] duration-300 ease-in-out lg:absolute lg:inset-y-0 lg:left-0 lg:flex lg:flex-col lg:border-b-0 lg:border-r ${
+        className={`border-b border-card-border bg-card-bg transition-[width,box-shadow] duration-200 ease-out lg:absolute lg:inset-y-0 lg:left-0 lg:flex lg:flex-col lg:overflow-hidden lg:border-b-0 lg:border-r ${
           expanded ? "lg:w-52" : "lg:w-[4.5rem]"
         }`}
       >

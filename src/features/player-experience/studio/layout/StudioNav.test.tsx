@@ -75,6 +75,28 @@ describe("StudioNav", () => {
     expect(nav.querySelectorAll("svg")).toHaveLength(6);
   });
 
+  it("opens without a glitch: the labels only fade, they never change size", async () => {
+    const { user, nav, open } = setup();
+    const label = () =>
+      screen
+        .getByRole("button", { name: "Brand Identity" })
+        .querySelector("span.flex-1")!;
+    // On the rail: invisible, on one line, still in place (and read by screen readers).
+    expect(open()).toBe(false);
+    expect(label().className).toMatch(/lg:opacity-0/);
+    expect(label().className).toMatch(/whitespace-nowrap/);
+    expect(label().className).not.toMatch(/(^|\s)(lg:)?w-0|hidden/);
+    // Open: the same label, only more opaque, and after the menu has begun to open.
+    await user.hover(nav);
+    expect(label().className).toMatch(/opacity-100/);
+    expect(label().className).toMatch(/delay-100/);
+    expect(label().className).toMatch(/whitespace-nowrap/);
+    // The menu clips what is wider than itself, and animates its width, not the entries'.
+    expect(nav.className).toMatch(/lg:overflow-hidden/);
+    const entry = screen.getByRole("button", { name: "Brand Identity" });
+    expect(entry.className).not.toMatch(/(^|\s)transition(\s|$)/);
+  });
+
   it("still selects a section from the rail", async () => {
     const { user, store } = setup();
     await user.click(screen.getByRole("button", { name: "Brand Identity" }));
