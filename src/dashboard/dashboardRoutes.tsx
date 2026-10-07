@@ -4,7 +4,7 @@
 //   DashboardProvider        shared data, loaded once
 //   ├─ DashboardShell        sidebar + top bar, the page in <Outlet />
 //   │   /  /campaigns  /campaigns/:id  /create  /create/:id/edit  /create/:id/relaunch
-//   │   /prizes  /analytics  /analytics/:id  /billing  /account  /studio
+//   │   /prizes  /analytics  /analytics/:id  /billing  /account  /support  /studio
 //   └─ /studio/:campaignId   the Studio, full screen, no shell
 //
 // Pages are loaded on demand, so the dashboard bundle carries only what is opened.
@@ -24,6 +24,7 @@ const PrizesPage = lazy(() => import("./pages/PrizesPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const BillingPage = lazy(() => import("./pages/BillingPage"));
 const AccountPage = lazy(() => import("./pages/AccountPage"));
+const SupportPage = lazy(() => import("./pages/SupportPage"));
 const StudioCampaignsRoute = lazy(() => import("./pages/StudioCampaignsRoute"));
 const StudioPage = lazy(() => import("./pages/StudioPage"));
 
@@ -53,6 +54,7 @@ export const dashboardRoutes = (
       <Route path="analytics/:campaignId" element={<AnalyticsPage />} />
       <Route path="billing" element={<BillingPage />} />
       <Route path="account" element={<AccountPage />} />
+      <Route path="support" element={<SupportPage />} />
       <Route path="studio" element={<StudioCampaignsRoute />} />
     </Route>
     <Route

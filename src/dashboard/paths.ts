@@ -16,6 +16,7 @@ export const PATHS = {
   analyticsFor: (id: string) => `/analytics/${id}`,
   billing: "/billing",
   account: "/account",
+  support: "/support",
   studio: "/studio",
   studioFor: (id: string) => `/studio/${id}`,
 } as const;
@@ -36,6 +37,8 @@ export function tabPath(tab: TabType): string {
       return PATHS.billing;
     case "account":
       return PATHS.account;
+    case "support":
+      return PATHS.support;
     case "playerScreen":
       return PATHS.studio;
     default:
