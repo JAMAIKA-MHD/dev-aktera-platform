@@ -25,8 +25,13 @@ import {
   CampaignWeekdayPoint,
 } from "../../types";
 import {
+  availableTimeRanges,
   buildPrizeSeries,
+  campaignLifespan,
   formatDayLabel,
+  sliceDailyPoints,
+  TIME_RANGES,
+  type TimeRangeKey,
   OTHER_SERIES_COLOR,
   SERIES_COLORS_DARK,
   SERIES_COLORS_LIGHT,
@@ -128,23 +133,96 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
 
 interface ParticipantsLineChartProps {
   data: CampaignDailyPoint[];
+  campaign: { start_date: string | null; end_date: string | null };
+  timezone: string;
 }
 
 export const ParticipantsLineChart: React.FC<ParticipantsLineChartProps> = ({
   data,
+  campaign,
+  timezone,
 }) => {
   const chart = useChartTheme();
+  const [chosenRange, setChosenRange] = useState<TimeRangeKey | null>(null);
+
+  const lifespan = useMemo(
+    () => campaignLifespan(data, campaign, timezone),
+    [data, campaign, timezone],
+  );
+  const available = useMemo(
+    () => (lifespan ? availableTimeRanges(lifespan.days) : []),
+    [lifespan],
+  );
+  // Until the user picks one, show the widest range the campaign can fill.
+  const range =
+    chosenRange && available.includes(chosenRange)
+      ? chosenRange
+      : (available[available.length - 1] ?? TIME_RANGES[0].key);
+
+  const points = useMemo(
+    () => (lifespan ? sliceDailyPoints(data, lifespan, range) : []),
+    [data, lifespan, range],
+  );
   const rows = useMemo(
     () =>
-      data.map((d) => ({ label: formatDayLabel(d.date), entries: d.entries })),
-    [data],
+      points.map((d) => ({
+        label: formatDayLabel(d.date),
+        entries: d.entries,
+      })),
+    [points],
   );
+  const hasEntries = data.length > 0;
+  const period =
+    points.length > 0
+      ? `${formatDayLabel(points[0].date)} – ${formatDayLabel(points[points.length - 1].date)}`
+      : "";
+  const lifespanDays = lifespan?.days ?? 0;
 
   return (
     <ChartPanel
       title="Participants over time"
-      subtitle="Entries recorded per day."
-      isEmpty={rows.length === 0}
+      subtitle={
+        hasEntries && period
+          ? `Entries recorded per day · ${period}`
+          : "Entries recorded per day."
+      }
+      actions={
+        hasEntries && (
+          <div
+            role="group"
+            aria-label="Time range"
+            className="flex items-center glass-panel p-0.5 rounded-xl text-[11px]"
+          >
+            {TIME_RANGES.map((option) => {
+              const enabled = available.includes(option.key);
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  disabled={!enabled}
+                  aria-pressed={range === option.key}
+                  onClick={() => setChosenRange(option.key)}
+                  title={
+                    enabled
+                      ? `Show the last ${option.label}`
+                      : `This campaign has only run for ${lifespanDays} ${lifespanDays === 1 ? "day" : "days"}`
+                  }
+                  className={`px-2.5 py-0.5 font-semibold rounded-full transition-colors ${
+                    range === option.key
+                      ? "bg-brand-accent/20 text-brand-accent shadow-sm"
+                      : enabled
+                        ? "text-brand-text-muted hover:text-brand-text cursor-pointer"
+                        : "text-brand-text-muted opacity-40 cursor-not-allowed"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        )
+      }
+      isEmpty={!hasEntries}
       emptyMessage="No participants recorded yet."
       className="h-full"
     >

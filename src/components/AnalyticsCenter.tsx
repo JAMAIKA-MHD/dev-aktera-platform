@@ -1,19 +1,17 @@
 import React, { useMemo, useState } from "react";
-import { Users, Trophy } from "lucide-react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { exportToCSV, exportToExcel } from "../lib/exportUtils";
+import { exportToExcel } from "../lib/exportUtils";
 import { useCampaignReport } from "../hooks/useCampaignReport";
 import { CampaignAnalyticsDashboard } from "./analytics/CampaignAnalyticsDashboard";
-
-const formatDwellTime = (seconds: number): string => {
-  if (!seconds || seconds <= 0) return "0s";
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60);
-  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
-};
+import { PlayerParticipantsTable } from "./analytics/PlayerParticipantsTable";
+import {
+  filterPlayers,
+  NO_PLAYER_FILTERS,
+  toPlayerExportRows,
+  type PlayerFilters,
+} from "./analytics/playerParticipantRows";
 
 interface AnalyticsCenterProps {
   initialCampaignId?: string | null;
@@ -40,7 +38,17 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
   // Pass selectedCampId into useAnalytics hook to trigger instant dynamic filtering
   const { analytics, loading, error } = useAnalytics(selectedCampId);
-  const [exportFormat] = useState<"csv" | "xlsx">("xlsx");
+  const isAllCampaigns = selectedCampId === "all";
+  // The campaign breakdown only exists for the combined view.
+  const tableMode = isAllCampaigns ? tableViewMode : "participants";
+  const [playerQuery, setPlayerQuery] = useState("");
+  const [playerFilters, setPlayerFilters] =
+    useState<PlayerFilters>(NO_PLAYER_FILTERS);
+  const players = useMemo(() => analytics?.participants ?? [], [analytics]);
+  const shownPlayers = useMemo(
+    () => filterPlayers(players, playerQuery, playerFilters),
+    [players, playerQuery, playerFilters],
+  );
   const {
     generateReport,
     generating: generatingReport,
@@ -57,83 +65,57 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
     [analytics, selectedCampId],
   );
 
-  const handleExportData = () => {
-    if (!analytics) return;
-
-    if (selectedCampId === "all") {
-      // Export Overview of All Campaigns
-      const formattedRows = analytics.by_campaign.map((row) => ({
-        "Campaign Name": row.campaign_name,
-        Status: row.status,
-        "Total Visitors / Impressions": analytics.total_impressions,
-        "Total Entries": row.total_entries,
-        "Total Winners": row.total_winners,
-        "Win Rate (%)": `${row.win_rate}%`,
-        "Game Play Rate (%)": `${analytics.game_play_rate}%`,
-        "Form Completion Rate (%)": `${analytics.form_completion_rate}%`,
-        "Avg Dwell Time": formatDwellTime(analytics.avg_dwell_time_seconds),
-        "Repeat Users Count": analytics.repeat_users_count,
-        "Avg Participations / User": analytics.avg_participations_per_user,
-        "Quiz Pass Rate (%)": `${row.quiz_pass_rate}%`,
-        "Coupon Confirmation Rate (%)": `${row.coupon_confirmation_rate}%`,
-      }));
-
-      const filename = `octoreach_all_campaigns_${
-        new Date().toISOString().split("T")[0]
-      }`;
-
-      if (exportFormat === "xlsx") {
-        exportToExcel(
-          formattedRows as unknown as Record<string, unknown>[],
-          filename,
-          "All Campaigns Performance",
-        );
-      } else {
-        exportToCSV(
-          formattedRows as unknown as Record<string, unknown>[],
-          filename,
-        );
-      }
-    } else {
-      // Export Detailed Player Participants List for Selected Campaign
-      const campName = selectedCampaign?.campaign_name ?? selectedCampId;
-      const formattedRows = analytics.participants.map((p) => ({
-        "Participant Name": p.participant_name || "Anonymous Player",
-        "Phone Number": p.phone_number,
-        "Game Outcome": p.is_winner ? "WINNER" : "NO WIN",
-        "Prize Awarded": p.is_winner
-          ? p.prize_name || "Winning Reward"
-          : "None",
-        "Time Spent in Game": formatDwellTime(p.dwell_time_seconds),
-        "Dwell Time (seconds)": p.dwell_time_seconds,
-        "Quiz Status":
-          p.quiz_passed === true
-            ? "Passed"
-            : p.quiz_passed === false
-              ? "Failed"
-              : "N/A",
-        "Coupon Code": p.redeemed_coupon_value || "N/A",
-        "Coupon Confirmed": p.coupon_confirmed ? "Yes" : "No",
-        "Date Submitted": new Date(p.created_at).toLocaleString(),
-      }));
-
-      const filename = `octoreach_players_${campName.replace(/\s+/g, "_")}_${
-        new Date().toISOString().split("T")[0]
-      }`;
-
-      if (exportFormat === "xlsx") {
-        exportToExcel(
-          formattedRows as unknown as Record<string, unknown>[],
-          filename,
-          `${campName} Players`,
-        );
-      } else {
-        exportToCSV(
-          formattedRows as unknown as Record<string, unknown>[],
-          filename,
-        );
-      }
+  // Exports the table currently on screen: every row behind the pagination, with the
+  // search and the filters applied.
+  const exportTable = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    if (tableMode === "summary") {
+      return {
+        rows: (analytics?.by_campaign ?? []).map((row) => ({
+          Campaign: row.campaign_name,
+          Status: row.status,
+          Entries: row.total_entries,
+          Winners: row.total_winners,
+          "Win Rate (%)": row.win_rate,
+          "Quiz Pass (%)": row.quiz_pass_rate,
+          "Coupon Claim (%)": row.coupon_confirmation_rate,
+        })) as Record<string, unknown>[],
+        filename: `octoreach_campaign_breakdown_${today}`,
+        sheetName: "Campaign Breakdown",
+      };
     }
+    const scope = isAllCampaigns
+      ? "all_campaigns"
+      : (selectedCampaign?.campaign_name ?? selectedCampId).replace(
+          /\s+/g,
+          "_",
+        );
+    return {
+      rows: toPlayerExportRows(shownPlayers, isAllCampaigns),
+      filename: `octoreach_players_${scope}_${today}`,
+      sheetName: "Players",
+    };
+  }, [
+    analytics,
+    tableMode,
+    isAllCampaigns,
+    selectedCampaign,
+    selectedCampId,
+    shownPlayers,
+  ]);
+
+  const handleExportData = () => {
+    exportToExcel(
+      exportTable.rows,
+      exportTable.filename,
+      exportTable.sheetName,
+    );
+  };
+
+  const selectCampaign = (campaignId: string) => {
+    setSelectedCampId(campaignId);
+    setPlayerQuery("");
+    setPlayerFilters(NO_PLAYER_FILTERS);
   };
 
   if (loading) {
@@ -159,16 +141,18 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         <h1 className="text-xl font-bold text-brand-text tracking-tight">
           Advanced Statistics
         </h1>
-        <button className="glass-panel px-2.5 py-1 rounded-xl text-[11px] flex items-center gap-1.5 text-brand-textMuted hover:text-brand-text transition-colors shadow-sm cursor-pointer border-transparent">
-          All Time <i className="fa-solid fa-chevron-down text-[9px]"></i>
-        </button>
+        {isAllCampaigns && (
+          <button className="glass-panel px-2.5 py-1 rounded-xl text-[11px] flex items-center gap-1.5 text-brand-textMuted hover:text-brand-text transition-colors shadow-sm cursor-pointer border-transparent">
+            All Time <i className="fa-solid fa-chevron-down text-[9px]"></i>
+          </button>
+        )}
       </div>
 
       <div className="flex justify-between items-center mb-5">
         <div className="relative">
           <select
             value={selectedCampId}
-            onChange={(e) => setSelectedCampId(e.target.value)}
+            onChange={(e) => selectCampaign(e.target.value)}
             className="glass-panel px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-text hover:bg-card-bg-subtle outline-none appearance-none cursor-pointer pr-8"
           >
             <option value="all">All Campaigns Combined</option>
@@ -187,8 +171,14 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
         <div className="flex items-center gap-2.5">
           <button
-            className="glass-panel px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-text hover:bg-card-bg-subtle cursor-pointer transition-colors"
+            className="glass-panel px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-text hover:bg-card-bg-subtle cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleExportData}
+            disabled={exportTable.rows.length === 0}
+            title={
+              exportTable.rows.length === 0
+                ? "The table has no rows to export"
+                : "Download the table below as an Excel file"
+            }
           >
             <i className="fa-solid fa-download text-brand-textMuted"></i> Export
             Data
@@ -597,53 +587,46 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-5">
           <div>
             <h2 className="text-base font-semibold text-brand-text">
-              {tableViewMode === "participants" ? (
-                <span>
-                  Player Participants & Gameplay Times{" "}
-                  {selectedCampId !== "all" && (
-                    <span className="text-blue-400">
-                      for {selectedCampaign?.campaign_name ?? selectedCampId}
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span>Campaign Performance Breakdown</span>
-              )}
+              {tableMode === "participants"
+                ? "Player Participants & Gameplay times"
+                : "Campaign Performance Breakdown"}
             </h2>
             <p className="text-[11px] text-brand-textMuted">
-              {tableViewMode === "participants"
+              {tableMode === "participants"
                 ? "Real-time client player entries, game dwell times, and prize outcomes."
                 : "Aggregated campaign metrics across all active campaigns."}
             </p>
           </div>
 
-          <div className="flex items-center glass-panel p-0.5 rounded-xl text-[11px] flex-shrink-0">
-            <button
-              onClick={() => setTableViewMode("participants")}
-              className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full cursor-pointer transition-colors ${
-                tableViewMode === "participants"
-                  ? "bg-brand-accent/20 text-brand-accent shadow-sm"
-                  : "text-brand-textMuted hover:text-brand-text"
-              }`}
-            >
-              Participants ({analytics?.participants?.length ?? 0})
-            </button>
-            <button
-              onClick={() => setTableViewMode("summary")}
-              className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full cursor-pointer transition-colors ${
-                tableViewMode === "summary"
-                  ? "bg-brand-accent/20 text-brand-accent shadow-sm"
-                  : "text-brand-textMuted hover:text-brand-text"
-              }`}
-            >
-              Breakdown ({analytics?.by_campaign?.length ?? 0})
-            </button>
-          </div>
+          {isAllCampaigns && (
+            <div className="flex items-center glass-panel p-0.5 rounded-xl text-[11px] flex-shrink-0">
+              <button
+                onClick={() => setTableViewMode("participants")}
+                className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full cursor-pointer transition-colors ${
+                  tableMode === "participants"
+                    ? "bg-brand-accent/20 text-brand-accent shadow-sm"
+                    : "text-brand-textMuted hover:text-brand-text"
+                }`}
+              >
+                Participants ({players.length})
+              </button>
+              <button
+                onClick={() => setTableViewMode("summary")}
+                className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full cursor-pointer transition-colors ${
+                  tableMode === "summary"
+                    ? "bg-brand-accent/20 text-brand-accent shadow-sm"
+                    : "text-brand-textMuted hover:text-brand-text"
+                }`}
+              >
+                Breakdown ({analytics?.by_campaign?.length ?? 0})
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="overflow-x-auto">
-          {tableViewMode === "summary" ? (
-            /* MODE A: All Campaigns Summary Breakdown Table */
+        {tableMode === "summary" ? (
+          /* MODE A: All Campaigns Summary Breakdown Table */
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="text-brand-textMuted border-b border-brand-border/50">
@@ -676,7 +659,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                     key={row.campaign_id}
                     className="hover:bg-white/5 transition-colors cursor-pointer group"
                     onClick={() => {
-                      setSelectedCampId(row.campaign_id);
+                      selectCampaign(row.campaign_id);
                       setTableViewMode("participants");
                     }}
                   >
@@ -713,119 +696,19 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                 ))}
               </tbody>
             </table>
-          ) : (
-            /* MODE B: Specific or All Campaign Player Participants Table */
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="text-brand-textMuted border-b border-brand-border/50">
-                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                    Participant Name
-                  </th>
-                  {selectedCampId === "all" && (
-                    <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                      Campaign
-                    </th>
-                  )}
-                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                    Phone Number
-                  </th>
-                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                    Result / Prize
-                  </th>
-                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                    Time Spent in Game
-                  </th>
-                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                    Quiz Status
-                  </th>
-                  <th className="pb-3 px-4 font-medium uppercase text-[10px] tracking-wider">
-                    Coupon Code
-                  </th>
-                  <th className="pb-3 px-4 text-right font-medium uppercase text-[10px] tracking-wider">
-                    Date Submitted
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border/30">
-                {(analytics?.participants ?? []).length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={selectedCampId === "all" ? 8 : 7}
-                      className="py-12 text-center"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <Users className="w-8 h-8 text-brand-textMuted/50" />
-                        <p className="text-sm font-semibold text-brand-textMuted">
-                          No player participations recorded in database yet for
-                          this selection.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  (analytics?.participants ?? []).map((player) => (
-                    <tr
-                      key={player.id}
-                      className="hover:bg-white/5 transition-colors group"
-                    >
-                      <td className="py-4 px-4 font-bold text-brand-text">
-                        {player.participant_name || "Anonymous Player"}
-                      </td>
-                      {selectedCampId === "all" && (
-                        <td className="py-4 px-4 text-blue-400">
-                          {player.campaign_name || "Default Campaign"}
-                        </td>
-                      )}
-                      <td className="py-4 px-4 text-brand-textMuted">
-                        {player.phone_number}
-                      </td>
-                      <td className="py-4 px-4">
-                        {player.is_winner ? (
-                          <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-500/30 w-fit">
-                            <Trophy className="w-3 h-3" />{" "}
-                            {player.prize_name || "WINNER"}
-                          </span>
-                        ) : (
-                          <span className="bg-white/5 text-brand-textMuted text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-border/30 w-fit">
-                            No Win
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-orange-400 font-medium">
-                        {formatDwellTime(player.dwell_time_seconds)}
-                      </td>
-                      <td className="py-4 px-4 text-brand-textMuted">
-                        {player.quiz_passed === true ? (
-                          <span className="text-emerald-400 font-bold">
-                            Passed
-                          </span>
-                        ) : player.quiz_passed === false ? (
-                          <span className="text-red-400 font-bold">Failed</span>
-                        ) : (
-                          <span className="text-brand-textMuted">N/A</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-brand-textMuted">
-                        {player.redeemed_coupon_value || "—"}
-                      </td>
-                      <td className="py-4 px-4 text-right text-brand-textMuted">
-                        {new Date(player.created_at).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* MODE B: Specific or All Campaign Player Participants Table */
+          <PlayerParticipantsTable
+            players={players}
+            shownCount={shownPlayers.length}
+            showCampaign={isAllCampaigns}
+            query={playerQuery}
+            onQueryChange={setPlayerQuery}
+            filters={playerFilters}
+            onFiltersChange={setPlayerFilters}
+          />
+        )}
       </div>
     </div>
   );

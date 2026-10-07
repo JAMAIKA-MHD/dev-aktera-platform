@@ -75,6 +75,113 @@ export const formatDuration = (seconds: number | null): string => {
 export const formatRate = (rate: number | null): string =>
   rate === null ? "—" : `${rate.toFixed(1)}%`;
 
+export const TIME_RANGES = [
+  { key: "1w", label: "1 week", days: 7 },
+  { key: "1m", label: "1 month", days: 30 },
+  { key: "3m", label: "3 months", days: 90 },
+  { key: "6m", label: "6 months", days: 180 },
+] as const;
+
+export type TimeRangeKey = (typeof TIME_RANGES)[number]["key"];
+
+const DAY_MS = 86_400_000;
+const dayToMs = (isoDay: string) => Date.parse(`${isoDay}T00:00:00Z`);
+const msToDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** Calendar day (YYYY-MM-DD) of an instant in the analytics timezone. */
+export function toAnalyticsDay(
+  value: string | Date,
+  timezone: string,
+): string | null {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (isNaN(date.getTime())) return null;
+  try {
+    return date.toLocaleDateString("en-CA", { timeZone: timezone });
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
+export interface CampaignLifespan {
+  start: string; // YYYY-MM-DD
+  end: string; // YYYY-MM-DD
+  days: number;
+}
+
+/**
+ * The days a campaign has actually existed so far: from its start date (or its
+ * first entry, whichever is earlier) to today, or to its end date once it is
+ * over. Entries recorded outside the scheduled dates still count.
+ */
+export function campaignLifespan(
+  data: CampaignDailyPoint[],
+  campaign: { start_date: string | null; end_date: string | null },
+  timezone: string,
+  now: Date = new Date(),
+): CampaignLifespan | null {
+  const today = toAnalyticsDay(now, timezone);
+  const firstEntry = data[0]?.date ?? null;
+  const lastEntry = data[data.length - 1]?.date ?? null;
+  const scheduledStart = campaign.start_date
+    ? toAnalyticsDay(campaign.start_date, timezone)
+    : null;
+  const scheduledEnd = campaign.end_date
+    ? toAnalyticsDay(campaign.end_date, timezone)
+    : null;
+
+  const starts = [scheduledStart, firstEntry].filter(
+    (day): day is string => day !== null,
+  );
+  if (starts.length === 0 || today === null) return null;
+  const start = starts.sort()[0];
+  if (start > today && lastEntry === null) return null; // Not started yet.
+
+  let end =
+    scheduledEnd !== null && scheduledEnd < today ? scheduledEnd : today;
+  if (lastEntry !== null && lastEntry > end) end = lastEntry;
+  if (end < start) end = start;
+
+  return {
+    start,
+    end,
+    days: Math.round((dayToMs(end) - dayToMs(start)) / DAY_MS) + 1,
+  };
+}
+
+/**
+ * A range is offered only when it shows more than the previous, shorter one:
+ * "3 months" is pointless for a campaign that has existed for three weeks.
+ */
+export function availableTimeRanges(lifespanDays: number): TimeRangeKey[] {
+  return TIME_RANGES.filter(
+    (range, index) => index === 0 || lifespanDays > TIME_RANGES[index - 1].days,
+  ).map((range) => range.key);
+}
+
+/**
+ * One point per day for the last `range` of the campaign's lifespan (never
+ * before its start), with zero for the days without entries.
+ */
+export function sliceDailyPoints(
+  data: CampaignDailyPoint[],
+  lifespan: CampaignLifespan,
+  rangeKey: TimeRangeKey,
+): CampaignDailyPoint[] {
+  const range = TIME_RANGES.find((r) => r.key === rangeKey) ?? TIME_RANGES[0];
+  const endMs = dayToMs(lifespan.end);
+  const fromMs = Math.max(
+    dayToMs(lifespan.start),
+    endMs - (range.days - 1) * DAY_MS,
+  );
+  const byDay = new Map(data.map((point) => [point.date, point]));
+  const points: CampaignDailyPoint[] = [];
+  for (let ms = fromMs; ms <= endMs; ms += DAY_MS) {
+    const date = msToDay(ms);
+    points.push(byDay.get(date) ?? { date, entries: 0, winners: 0 });
+  }
+  return points;
+}
+
 export interface PrizeSeries {
   key: string;
   name: string;

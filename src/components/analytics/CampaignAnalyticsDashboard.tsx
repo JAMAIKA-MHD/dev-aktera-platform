@@ -94,7 +94,12 @@ export const CampaignAnalyticsDashboard: React.FC<
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 xl:col-span-8">
-          <ParticipantsLineChart data={analytics.participants_over_time} />
+          <ParticipantsLineChart
+            key={campaignId}
+            data={analytics.participants_over_time}
+            campaign={analytics.campaign}
+            timezone={analytics.timezone}
+          />
         </div>
         <div className="col-span-12 xl:col-span-4">
           <OsDonutChart data={analytics.os_distribution} />

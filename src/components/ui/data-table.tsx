@@ -52,6 +52,7 @@ export interface DataTableProps<TData> {
   columnFilters?: ColumnFiltersState;
   initialSorting?: SortingState;
   pageSize?: number;
+  pageNumbers?: boolean;
   loading?: boolean;
   emptyState?: ReactNode;
   noResultsState?: ReactNode;
@@ -77,6 +78,7 @@ export function DataTable<TData>({
   columnFilters = [],
   initialSorting = [],
   pageSize = 10,
+  pageNumbers = false,
   loading = false,
   emptyState,
   noResultsState,
@@ -212,7 +214,9 @@ export function DataTable<TData>({
           </TableBody>
         </Table>
       </div>
-      {!loading && <DataTablePagination table={table} />}
+      {!loading && (
+        <DataTablePagination table={table} pageNumbers={pageNumbers} />
+      )}
     </div>
   );
 }

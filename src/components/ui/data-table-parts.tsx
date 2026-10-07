@@ -81,13 +81,34 @@ export function DataTableHead<TData>({
   );
 }
 
-// "Rows 11–20 of 23", Previous / Next. Only shown when there is more than one page.
+// Page indexes to show between Previous and Next: all of them while they fit, otherwise the
+// first, the last and the neighbours of the current page, with "gap" where pages are skipped.
+export function pageWindow(
+  pageIndex: number,
+  pageCount: number,
+): (number | "gap")[] {
+  if (pageCount <= 7) return Array.from({ length: pageCount }, (_, i) => i);
+  const shown = new Set([0, pageCount - 1]);
+  // Three pages around the current one, kept inside the list at both edges.
+  const from = Math.min(Math.max(pageIndex - 1, 1), pageCount - 4);
+  for (let i = from; i < from + 3; i++) shown.add(i);
+  const pages = [...shown].sort((a, b) => a - b);
+  return pages.flatMap((page, i): (number | "gap")[] =>
+    i > 0 && page - pages[i - 1] > 1 ? ["gap", page] : [page],
+  );
+}
+
+// "Rows 11–20 of 23", Previous / Next, with numbered page buttons in between when
+// `pageNumbers` is set. Only shown when there is more than one page.
 export function DataTablePagination<TData>({
   table,
+  pageNumbers = false,
 }: {
   table: TanstackTable<TData>;
+  pageNumbers?: boolean;
 }) {
-  if (table.getPageCount() <= 1) return null;
+  const pageCount = table.getPageCount();
+  if (pageCount <= 1) return null;
   const total = table.getFilteredRowModel().rows.length;
   const { pageIndex, pageSize } = table.getState().pagination;
   const from = total === 0 ? 0 : pageIndex * pageSize + 1;
@@ -96,7 +117,7 @@ export function DataTablePagination<TData>({
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-end gap-3 text-xs text-muted-foreground"
+      className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-xs text-muted-foreground"
     >
       <span>
         Rows {from}–{to} of {total}
@@ -109,6 +130,32 @@ export function DataTablePagination<TData>({
       >
         Previous
       </Button>
+      {pageNumbers && (
+        <div className="flex items-center gap-1">
+          {pageWindow(pageIndex, pageCount).map((page, i) =>
+            page === "gap" ? (
+              <span key={`gap-${i}`} aria-hidden className="px-1">
+                …
+              </span>
+            ) : (
+              <Button
+                key={page}
+                variant={page === pageIndex ? "secondary" : "ghost"}
+                size="sm"
+                aria-label={`Page ${page + 1}`}
+                aria-current={page === pageIndex ? "page" : undefined}
+                onClick={() => table.setPageIndex(page)}
+                className={cn(
+                  "min-w-8 px-2",
+                  page === pageIndex && "font-semibold text-foreground",
+                )}
+              >
+                {page + 1}
+              </Button>
+            ),
+          )}
+        </div>
+      )}
       <Button
         variant="outline"
         size="sm"
