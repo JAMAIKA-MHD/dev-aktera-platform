@@ -38,7 +38,7 @@ function IconButton({
       disabled={disabled}
       aria-label={label}
       title={shortcut ? `${label} (${shortcut})` : label}
-      className="flex size-11 items-center justify-center rounded-xl text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
+      className="flex size-11 items-center justify-center rounded-xl text-brand-text-muted transition short:size-9 hover:bg-card-hover hover:text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
     >
       {children}
     </button>
@@ -126,7 +126,7 @@ function IssuesButton() {
       type="button"
       onClick={() => setPanel("validation")}
       title={`${summary} — ${first.message}`}
-      className={`flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition active:scale-95 ${
+      className={`flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition short:min-h-9 active:scale-95 ${
         errors > 0
           ? "bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300"
           : "bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300"
@@ -157,7 +157,7 @@ export function StudioTopBar({
   };
 
   return (
-    <header className="flex min-h-16 flex-wrap items-center gap-x-3 gap-y-2 border-b border-card-border bg-card-bg px-3 py-2 sm:px-4">
+    <header className="flex min-h-16 flex-wrap items-center gap-x-3 gap-y-2 border-b border-card-border bg-card-bg px-3 py-2 sm:px-4 short:min-h-12 short:py-1">
       <div className="flex min-w-0 items-center gap-2.5">
         {onClose && (
           <button
@@ -165,7 +165,7 @@ export function StudioTopBar({
             onClick={onClose}
             aria-label="Back to dashboard"
             title="Back to dashboard"
-            className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-card-border text-brand-text transition hover:bg-card-hover focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95"
+            className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-card-border text-brand-text transition short:size-9 hover:bg-card-hover focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95"
           >
             <ArrowLeft className="size-5" aria-hidden />
           </button>
@@ -205,7 +205,7 @@ export function StudioTopBar({
         <button
           type="button"
           onClick={openWindow}
-          className="hidden min-h-11 items-center gap-1.5 rounded-xl border border-card-border px-3 text-xs font-bold text-brand-text transition hover:bg-card-hover active:scale-95 sm:flex"
+          className="hidden min-h-11 items-center gap-1.5 rounded-xl border border-card-border px-3 text-xs font-bold text-brand-text transition short:min-h-9 hover:bg-card-hover active:scale-95 sm:flex"
           title="Open the preview in a new tab, synced live, to use the browser's own DevTools"
         >
           <Eye className="size-4" aria-hidden />

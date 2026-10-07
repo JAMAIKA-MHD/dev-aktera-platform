@@ -1,17 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { mostReadable } from "../../domain/contrast";
 import type { FlowScreen } from "../../domain/flow";
-import {
-  computeLayoutMode,
-  describeLayoutMode,
-} from "../../runtime/layout/layoutMode";
 import { useStudio } from "../StudioContext";
 import { chromeFor, chromeInsets, outerSize } from "./chromeMetrics";
 import { DeviceChrome } from "./DeviceChrome";
 import { deviceSafeArea, findDevice, type Device } from "./devices";
 import { ResizableViewport } from "./ResizableViewport";
 import { usePreviewBridge } from "./usePreviewBridge";
-import { computeFitZoom } from "./viewportMath";
+import { computeFitWidthZoom, computeFitZoom } from "./viewportMath";
 
 // The preview at the exact size of the device (plan §9.3). The iframe's width and height are
 // the device's CSS size, whatever the zoom: inside it, window.innerWidth is 390 on a 390-wide
@@ -26,12 +22,15 @@ export interface PreviewViewportProps {
   restartKey: number;
   customDevices?: readonly Device[];
   onFlowScreen?: (screen: FlowScreen) => void;
+  // The zoom on show, for the summary of the device bar (it is "fit" most of the time).
+  onZoomChange?: (zoom: number) => void;
 }
 
 export function PreviewViewport({
   restartKey,
   customDevices = [],
   onFlowScreen,
+  onZoomChange,
 }: PreviewViewportProps) {
   const viewport = useStudio((state) => state.ui.viewport);
   const setViewport = useStudio((state) => state.setViewport);
@@ -69,15 +68,23 @@ export function PreviewViewport({
   // While a handle is dragged, the zoom holds still: a "fit" zoom that shrinks under the
   // pointer would make the drag run away from it.
   const [dragZoom, setDragZoom] = useState<number | null>(null);
-  const fit = computeFitZoom(viewport, chromeInsets(metrics), room);
-  const zoom = dragZoom ?? (viewport.zoom === "fit" ? fit : viewport.zoom);
+  const insets = chromeInsets(metrics);
+  const fit = computeFitZoom(viewport, insets, room);
+  // "Fit width" fills the width of the pane; a tall screen then scrolls in it.
+  const fitWidth = computeFitWidthZoom(viewport, insets, room);
+  const zoom =
+    dragZoom ??
+    (viewport.zoom === "fit"
+      ? fit
+      : viewport.zoom === "fit-width"
+        ? fitWidth
+        : viewport.zoom);
+  useEffect(() => {
+    onZoomChange?.(zoom);
+  }, [zoom, onZoomChange]);
 
   const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null);
   usePreviewBridge(iframe, { safeArea, restartKey, onFlowScreen });
-
-  const mode = describeLayoutMode(
-    computeLayoutMode(viewport.width, viewport.height),
-  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -139,20 +146,6 @@ export function PreviewViewport({
           </ResizableViewport>
         </div>
       </div>
-      <p
-        className="flex items-center justify-center gap-2 border-t border-card-border bg-card-bg px-4 py-2 text-[11px] font-semibold tabular-nums text-brand-text-muted"
-        aria-live="polite"
-      >
-        <span className="text-brand-text">
-          {viewport.width} × {viewport.height}
-        </span>
-        <span aria-hidden>·</span>
-        <span>{mode}</span>
-        <span aria-hidden>·</span>
-        <span>{Math.round(zoom * 100)} %</span>
-        <span aria-hidden>·</span>
-        <span className="truncate">{device?.label ?? "Responsive"}</span>
-      </p>
     </div>
   );
 }

@@ -168,6 +168,36 @@ describe("DeviceToolbar", () => {
     expect(document.querySelector("iframe")!.getAttribute("width")).toBe("390");
   });
 
+  it("offers a zoom that fills the width and lets the screen scroll", () => {
+    const store = renderPane();
+    const zoom = screen.getByLabelText("Zoom") as HTMLSelectElement;
+    expect(
+      Array.from(zoom.options).map((option) => option.textContent),
+    ).toEqual([
+      "Fit",
+      "Fit width (scroll)",
+      "50 %",
+      "75 %",
+      "100 %",
+      "125 %",
+      "150 %",
+    ]);
+    fireEvent.change(zoom, { target: { value: "fit-width" } });
+    expect(viewport(store).zoom).toBe("fit-width");
+    expect(zoom.value).toBe("fit-width");
+    // The device keeps its CSS size, and the pane around it scrolls.
+    expect(document.querySelector("iframe")!.getAttribute("height")).toBe(
+      "844",
+    );
+    expect(
+      document.querySelector("[data-xp-preview-zoom]")!.parentElement!
+        .className,
+    ).toMatch(/overflow-auto/);
+    // And it is remembered, like every zoom.
+    saveViewportPrefs(viewport(store));
+    expect(loadViewportPrefs().zoom).toBe("fit-width");
+  });
+
   it("jumps to a layout tier from the ruler", () => {
     const store = renderPane();
     fireEvent.click(screen.getByRole("button", { name: /Two panes/ }));

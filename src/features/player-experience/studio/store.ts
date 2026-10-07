@@ -55,7 +55,8 @@ export interface ViewportState {
   width: number;
   height: number;
   orientation: "portrait" | "landscape";
-  zoom: number | "fit";
+  // "fit": the whole device in the room; "fit-width": the width of the room, the screen scrolls
+  zoom: number | "fit" | "fit-width";
   chrome: boolean; // the device shell around the iframe
 }
 

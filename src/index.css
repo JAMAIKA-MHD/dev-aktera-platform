@@ -5,6 +5,9 @@
 @import "./features/player-experience/runtime/layout/layout.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* A short screen (a laptop): the Studio's bars get thinner. Same threshold as SHORT_SCREEN_QUERY
+   in src/features/player-experience/studio/preview/shortScreen.ts. */
+@custom-variant short (@media (max-height: 45rem));
 
 @theme {
   --font-sans: "Hanken Grotesk", "Poppins", "Noto Sans Arabic", sans-serif;

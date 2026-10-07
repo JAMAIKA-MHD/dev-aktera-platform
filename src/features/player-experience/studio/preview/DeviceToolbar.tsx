@@ -137,12 +137,15 @@ export function DeviceToolbar({
         onChange={(event) =>
           setViewport({
             zoom:
-              event.target.value === "fit" ? "fit" : Number(event.target.value),
+              event.target.value === "fit" || event.target.value === "fit-width"
+                ? event.target.value
+                : Number(event.target.value),
           })
         }
         className={`${control} cursor-pointer`}
       >
         <option value="fit">Fit</option>
+        <option value="fit-width">Fit width (scroll)</option>
         {ZOOM_LEVELS.map((level) => (
           <option key={level} value={level}>
             {Math.round(level * 100)} %
