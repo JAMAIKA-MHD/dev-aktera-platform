@@ -73,6 +73,9 @@ vi.mock("../components/playerStudio/useExperienceSummaries", () => ({
     refetch: vi.fn(),
   }),
 }));
+vi.mock("../components/support/ClientSupport", () => ({
+  ClientSupport: () => <h2>support-page</h2>,
+}));
 vi.mock("../components/DashboardHome", () => ({
   DashboardHome: () => <p>dashboard-home</p>,
 }));
@@ -186,6 +189,37 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
         .getByRole("link", { name: /Overview/ })
         .getAttribute("aria-current"),
     ).toBeNull();
+  });
+
+  it("puts Client support in the sidebar, just above the documentation", async () => {
+    renderAt("/campaigns");
+    const support = screen.getByRole("link", { name: /Client support/ });
+    const docs = screen.getByRole("link", { name: /Full documentation/ });
+    expect(support.getAttribute("href")).toBe("/support");
+    // Right before the documentation in the menu.
+    expect(
+      support.compareDocumentPosition(docs) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(support.nextElementSibling).toBe(docs);
+    expect(support.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("opens Client support from its link and straight from its URL", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderAt("/campaigns");
+    await user.click(screen.getByRole("link", { name: /Client support/ }));
+    expect(await screen.findByText("support-page")).toBeTruthy();
+    expect(url()).toBe("/support");
+    expect(
+      screen
+        .getByRole("link", { name: /Client support/ })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+    unmount();
+
+    // As after a refresh on that page.
+    renderAt("/support");
+    expect(await screen.findByText("support-page")).toBeTruthy();
   });
 
   it("opens a screen directly from its URL, as after a refresh", async () => {
