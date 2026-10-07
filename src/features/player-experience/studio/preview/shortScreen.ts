@@ -1,5 +1,5 @@
 // A short screen: a laptop, where the Studio's own bars take a big share of the height and the
-// preview is what suffers. The bars get thinner and the device bar starts closed.
+// preview is what suffers. The bars get thinner and the preview bar starts folded.
 //
 // The same threshold is the `short:` variant of Tailwind (src/index.css): keep the two in step.
 
