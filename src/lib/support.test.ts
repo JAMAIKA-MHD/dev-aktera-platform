@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatTicketNumber,
+  isTicketClosed,
+  mapSupportComment,
   mapSupportTicket,
   planLabel,
+  SUPPORT_COMMENT_MAX,
   SUPPORT_DESCRIPTION_MAX,
   SUPPORT_SECTIONS,
   SUPPORT_SEVERITIES,
   SUPPORT_STATES,
   SUPPORT_TYPES,
   toSupportErrorMessage,
+  validateSupportComment,
   validateSupportTicketInput,
+  type DbSupportCommentRow,
   type DbSupportTicketRow,
   type SupportTicketInput,
 } from "./support";
@@ -29,6 +34,7 @@ describe("the choices of a ticket", () => {
       "Analytics",
       "Inventory",
       "Player screen editor",
+      "Other",
     ]);
     expect(SUPPORT_TYPES.map((o) => o.value)).toEqual([
       "platform_error",
@@ -174,6 +180,125 @@ describe("mapSupportTicket", () => {
       resolvedAt: null,
       createdAt: "2026-10-05T10:00:00Z",
       updatedAt: "2026-10-05T11:00:00Z",
+      commentsCount: 0,
+    });
+  });
+
+  it("reads how many comments the ticket holds from the embedded count", () => {
+    const row = {
+      id: "t1",
+      ticket_number: 1,
+      organization_id: "org-1",
+      contact_email: "ops@brand.dz",
+      contact_phone: null,
+      plan: "free",
+      platform_section: "other",
+      type: "other",
+      severity: "low",
+      description: "A question about something else.",
+      state: "open",
+      resolved_at: null,
+      created_at: "2026-10-05T10:00:00Z",
+      updated_at: "2026-10-05T10:00:00Z",
+    } as DbSupportTicketRow;
+    expect(
+      mapSupportTicket({ ...row, support_ticket_comments: [{ count: 4 }] })
+        .commentsCount,
+    ).toBe(4);
+    // No count asked for, or an empty answer: none.
+    expect(mapSupportTicket(row).commentsCount).toBe(0);
+    expect(
+      mapSupportTicket({ ...row, support_ticket_comments: [] }).commentsCount,
+    ).toBe(0);
+    expect(mapSupportTicket(row).platformSection).toBe("other");
+  });
+});
+
+describe("comments", () => {
+  it("knows which tickets take comments: all but the resolved and the cancelled", () => {
+    expect(isTicketClosed("resolved")).toBe(true);
+    expect(isTicketClosed("cancelled")).toBe(true);
+    for (const state of ["new", "open", "on_hold"] as const) {
+      expect(isTicketClosed(state)).toBe(false);
+    }
+  });
+
+  it("checks a comment before it is sent", () => {
+    expect(validateSupportComment("Still broken.")).toBeNull();
+    expect(validateSupportComment("a")).toBeNull();
+    expect(validateSupportComment("")).toMatch(/Write your comment/);
+    expect(validateSupportComment("   \n  ")).toMatch(/Write your comment/);
+    expect(validateSupportComment("x".repeat(SUPPORT_COMMENT_MAX))).toBeNull();
+    expect(validateSupportComment("x".repeat(SUPPORT_COMMENT_MAX + 1))).toMatch(
+      /limited to 2000/,
+    );
+    // Spaces around do not count.
+    expect(
+      validateSupportComment(`  ${"x".repeat(SUPPORT_COMMENT_MAX)}  `),
+    ).toBeNull();
+  });
+
+  it("tells the client, about a comment, what the database answered", () => {
+    expect(
+      toSupportErrorMessage(
+        { message: "SUPPORT_TICKET_CLOSED: this ticket is closed" },
+        "comment",
+      ),
+    ).toMatch(/closed.*new ticket/);
+    expect(
+      toSupportErrorMessage(
+        { message: "SUPPORT_TICKET_NOT_FOUND: no such ticket" },
+        "comment",
+      ),
+    ).toMatch(/could not be found/);
+    expect(
+      toSupportErrorMessage(
+        { message: "SUPPORT_RATE_LIMITED: too many comments in the last hour" },
+        "comment",
+      ),
+    ).toMatch(/comments in the last hour/);
+    expect(
+      toSupportErrorMessage(
+        { message: "SUPPORT_INVALID_INPUT: the comment" },
+        "comment",
+      ),
+    ).toMatch(/comment is not valid/);
+    // The same rate limit, said about tickets, is not about comments.
+    expect(
+      toSupportErrorMessage({ message: "SUPPORT_RATE_LIMITED: x" }),
+    ).toMatch(/tickets/);
+  });
+
+  it("never lets a raw database message through, for a comment either", () => {
+    expect(
+      toSupportErrorMessage(
+        {
+          message:
+            'new row violates check constraint "support_ticket_comments_body_check"',
+        },
+        "comment",
+      ),
+    ).toBe("We could not send your comment. Please try again.");
+  });
+
+  it("maps the row of the table to a comment", () => {
+    const row: DbSupportCommentRow = {
+      id: "c1",
+      ticket_id: "t1",
+      author_id: null,
+      author_name: "Support",
+      author_type: "support",
+      body: "We are looking into it.",
+      created_at: "2026-10-06T09:00:00Z",
+    };
+    expect(mapSupportComment(row)).toEqual({
+      id: "c1",
+      ticketId: "t1",
+      authorId: null,
+      authorName: "Support",
+      authorType: "support",
+      body: "We are looking into it.",
+      createdAt: "2026-10-06T09:00:00Z",
     });
   });
 });

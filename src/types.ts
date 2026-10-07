@@ -299,7 +299,11 @@ export interface Prize {
  * (email, phone, plan) are the ones the account had when the ticket was opened.
  */
 export type SupportPlatformSection =
-  "campaign_creation" | "analytics" | "inventory" | "player_screen_editor";
+  | "campaign_creation"
+  | "analytics"
+  | "inventory"
+  | "player_screen_editor"
+  | "other";
 
 export type SupportTicketType =
   "platform_error" | "platform_slowness" | "other";
@@ -324,4 +328,21 @@ export interface SupportTicket {
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** How many comments the thread of the ticket holds. */
+  commentsCount: number;
+}
+
+/**
+ * A comment on a ticket (table `support_ticket_comments`): written by a member of the client, or
+ * by the support team (`authorType: "support"`) answering.
+ */
+export interface SupportTicketComment {
+  id: string;
+  ticketId: string;
+  /** The profile that wrote it; null when the account is gone, or for the support team. */
+  authorId: string | null;
+  authorName: string;
+  authorType: "client" | "support";
+  body: string;
+  createdAt: string;
 }

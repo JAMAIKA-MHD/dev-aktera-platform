@@ -1,6 +1,6 @@
 // Columns of the support tickets table (DataTable, src/components/ui/data-table.tsx).
 import type { ColumnDef, FilterFn } from "@tanstack/react-table";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageSquare } from "lucide-react";
 
 import { formatTicketNumber, sectionLabel, typeLabel } from "../../lib/support";
 import type { SupportSeverity, SupportTicket } from "../../types";
@@ -22,6 +22,19 @@ export function formatTicketDate(iso: string): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+}
+
+/** "05 Oct 2026, 14:32": when a comment was written. */
+export function formatTicketDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -112,6 +125,24 @@ export function supportTicketColumns({
           {row.original.description}
         </span>
       ),
+    },
+    {
+      id: "comments",
+      accessorKey: "commentsCount",
+      header: "Comments",
+      sortingFn: "basic",
+      cell: ({ row }) => {
+        const count = row.original.commentsCount;
+        return (
+          <span
+            className="inline-flex items-center gap-1 tabular-nums text-muted-foreground"
+            aria-label={`${count} comment${count === 1 ? "" : "s"}`}
+          >
+            <MessageSquare className="size-3.5" aria-hidden />
+            {count}
+          </span>
+        );
+      },
     },
     {
       id: "created",

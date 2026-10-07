@@ -1,12 +1,15 @@
 import { supabase } from "../lib/supabase";
 import {
+  mapSupportComment,
   mapSupportTicket,
   toSupportErrorMessage,
+  validateSupportComment,
   validateSupportTicketInput,
+  type DbSupportCommentRow,
   type DbSupportTicketRow,
   type SupportTicketInput,
 } from "../lib/support";
-import type { SupportTicket } from "../types";
+import type { SupportTicket, SupportTicketComment } from "../types";
 
 /** A ticket that could not be sent; `message` is fit to show to the client. */
 export class SupportTicketError extends Error {
@@ -47,4 +50,27 @@ export async function createSupportTicketService(
     throw new SupportTicketError(toSupportErrorMessage(error));
   }
   return mapSupportTicket(data as DbSupportTicketRow);
+}
+
+/**
+ * Adds a comment of the signed-in client to one of its tickets. The author and the organization
+ * come from the account, as for a ticket; a ticket that is resolved or cancelled takes none.
+ */
+export async function addSupportCommentService(
+  ticketId: string,
+  body: string,
+): Promise<SupportTicketComment> {
+  const problem = validateSupportComment(body);
+  if (problem) throw new SupportTicketError(problem);
+
+  const { data, error } = await supabase.rpc("add_support_ticket_comment", {
+    p_ticket_id: ticketId,
+    p_body: body.trim(),
+  });
+
+  if (error || !data) {
+    if (error) console.error("[addSupportCommentService]", error);
+    throw new SupportTicketError(toSupportErrorMessage(error, "comment"));
+  }
+  return mapSupportComment(data as DbSupportCommentRow);
 }

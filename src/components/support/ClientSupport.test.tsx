@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SupportTicket } from "../../types";
+import type { SupportTicket, SupportTicketComment } from "../../types";
 
 const rpc = vi.fn();
 vi.mock("../../lib/supabase", () => ({
@@ -17,7 +17,7 @@ vi.mock("../../contexts/AuthContext", () => ({
       phone_number: "0557882828",
       plan: "pro",
     },
-    profile: { email: "ops@brand.dz" },
+    profile: { id: "user-1", email: "ops@brand.dz" },
   }),
 }));
 
@@ -29,6 +29,17 @@ const hook = {
 };
 vi.mock("../../hooks/useSupportTickets", () => ({
   useSupportTickets: () => hook,
+}));
+
+// The thread of the ticket opened in the detail window.
+const commentsHook = {
+  comments: [] as SupportTicketComment[],
+  loading: false,
+  error: null as string | null,
+  refetch: vi.fn(),
+};
+vi.mock("../../hooks/useSupportComments", () => ({
+  useSupportComments: () => commentsHook,
 }));
 
 import { ClientSupport } from "./ClientSupport";
@@ -50,6 +61,7 @@ function ticket(
     resolvedAt: null,
     createdAt: "2026-10-01T10:00:00Z",
     updatedAt: "2026-10-01T10:00:00Z",
+    commentsCount: 0,
     ...patch,
   };
 }
@@ -70,6 +82,7 @@ const TICKETS: SupportTicket[] = [
     platformSection: "inventory",
     severity: "urgent",
     state: "open",
+    commentsCount: 3,
     createdAt: "2026-10-04T10:00:00Z",
     description: "Importing a voucher list never ends.\nTried three times.",
   }),
@@ -110,6 +123,10 @@ beforeEach(() => {
   hook.loading = false;
   hook.error = null;
   hook.refetch = vi.fn();
+  commentsHook.comments = [];
+  commentsHook.loading = false;
+  commentsHook.error = null;
+  commentsHook.refetch = vi.fn();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -328,5 +345,143 @@ describe("ClientSupport: reading a ticket", () => {
     expect(within(dialog).getByText("03 Oct 2026")).toBeTruthy();
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("ClientSupport: commenting on a ticket", () => {
+  const COMMENT_ROW = {
+    id: "c1",
+    ticket_id: "t2",
+    author_id: "user-1",
+    author_name: "Ops",
+    author_type: "client",
+    body: "It still happens this morning.",
+    created_at: "2026-10-06T08:00:00Z",
+  };
+
+  it("shows how many comments each ticket holds", () => {
+    render(<ClientSupport />);
+    const counts = bodyRows().map((row) =>
+      within(row)
+        .getByLabelText(/comments?$/)
+        .getAttribute("aria-label"),
+    );
+    // Newest first: SUP-0002 (3), SUP-0003 (0), SUP-0001 (0).
+    expect(counts).toEqual(["3 comments", "0 comments", "0 comments"]);
+  });
+
+  it("shows the conversation of a ticket in its detail window", async () => {
+    commentsHook.comments = [
+      {
+        id: "c1",
+        ticketId: "t2",
+        authorId: "user-1",
+        authorName: "Ops",
+        authorType: "client",
+        body: "It still happens this morning.",
+        createdAt: "2026-10-06T08:00:00Z",
+      },
+      {
+        id: "c2",
+        ticketId: "t2",
+        authorId: null,
+        authorName: "Support",
+        authorType: "support",
+        body: "We are looking into it.",
+        createdAt: "2026-10-06T09:00:00Z",
+      },
+    ];
+    const user = userEvent.setup();
+    render(<ClientSupport />);
+    await user.click(
+      within(table()).getByRole("button", { name: "View ticket SUP-0002" }),
+    );
+    const comments = within(screen.getByRole("dialog")).getByLabelText(
+      "Comments",
+    );
+    const items = within(comments).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    // The client's own words are "You"; the support team is named as such.
+    expect(within(items[0]).getByText("You")).toBeTruthy();
+    expect(within(items[1]).getByText("Support team")).toBeTruthy();
+    expect(within(items[1]).getByText("We are looking into it.")).toBeTruthy();
+  });
+
+  it("adds a comment to an open ticket, then reloads the thread and the history", async () => {
+    rpc.mockResolvedValue({ data: COMMENT_ROW, error: null });
+    const user = userEvent.setup();
+    render(<ClientSupport />);
+    await user.click(
+      within(table()).getByRole("button", { name: "View ticket SUP-0002" }),
+    );
+    await user.type(
+      screen.getByLabelText("Add a comment"),
+      "  It still happens this morning.  ",
+    );
+    await user.click(screen.getByRole("button", { name: "Add comment" }));
+
+    await waitFor(() => expect(commentsHook.refetch).toHaveBeenCalledTimes(1));
+    expect(rpc).toHaveBeenCalledWith("add_support_ticket_comment", {
+      p_ticket_id: "t2",
+      p_body: "It still happens this morning.",
+    });
+    // The history shows the new count.
+    expect(hook.refetch).toHaveBeenCalledTimes(1);
+    // The box is empty again, ready for the next one.
+    expect(
+      (screen.getByLabelText("Add a comment") as HTMLTextAreaElement).value,
+    ).toBe("");
+  });
+
+  it("takes no comment on a ticket that is resolved, but still shows its thread", async () => {
+    const user = userEvent.setup();
+    render(<ClientSupport />);
+    await user.click(
+      within(table()).getByRole("button", { name: "View ticket SUP-0001" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Ticket SUP-0001" });
+    expect(within(dialog).getByLabelText("Comments")).toBeTruthy();
+    expect(within(dialog).queryByLabelText("Add a comment")).toBeNull();
+    expect(within(dialog).getByRole("note").textContent).toMatch(
+      /closed.*Open a new ticket/,
+    );
+  });
+
+  it("does not throw away a comment being written when the window is closed", async () => {
+    const confirm = vi.spyOn(window, "confirm");
+    const user = userEvent.setup();
+    render(<ClientSupport />);
+    await user.click(
+      within(table()).getByRole("button", { name: "View ticket SUP-0002" }),
+    );
+    await user.type(screen.getByLabelText("Add a comment"), "Half a thought");
+
+    // Asked first: "No" keeps the window and the draft.
+    confirm.mockReturnValueOnce(false);
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(confirm).toHaveBeenCalledWith("Discard your unsent comment?");
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(
+      (screen.getByLabelText("Add a comment") as HTMLTextAreaElement).value,
+    ).toBe("Half a thought");
+
+    // "Yes" closes it.
+    confirm.mockReturnValueOnce(true);
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    confirm.mockRestore();
+  });
+
+  it("closes at once, without asking, when nothing is being written", async () => {
+    const confirm = vi.spyOn(window, "confirm");
+    const user = userEvent.setup();
+    render(<ClientSupport />);
+    await user.click(
+      within(table()).getByRole("button", { name: "View ticket SUP-0002" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    confirm.mockRestore();
   });
 });

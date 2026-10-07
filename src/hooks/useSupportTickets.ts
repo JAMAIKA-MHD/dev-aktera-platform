@@ -24,7 +24,8 @@ export function useSupportTickets(organizationId: string | null) {
     try {
       const { data, error: queryError } = await supabase
         .from("support_tickets")
-        .select("*")
+        // Each ticket comes with how many comments it holds.
+        .select("*, support_ticket_comments(count)")
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });
 

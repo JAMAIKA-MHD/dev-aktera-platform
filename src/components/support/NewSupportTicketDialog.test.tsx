@@ -108,6 +108,7 @@ describe("NewSupportTicketDialog", () => {
       "Analytics",
       "Inventory",
       "Player screen editor",
+      "Other",
     ]);
     expect(options("Type")).toEqual([
       "Choose a type…",

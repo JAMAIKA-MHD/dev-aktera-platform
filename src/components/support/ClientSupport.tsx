@@ -186,6 +186,7 @@ export function ClientSupport() {
             loading={loading}
             hiddenColumnsBelow={{
               type: "md",
+              comments: "lg",
               description: "xl",
               created: "sm",
             }}
@@ -245,6 +246,8 @@ export function ClientSupport() {
       <SupportTicketDetailDialog
         ticket={viewing}
         onClose={() => setViewing(null)}
+        // A comment is one more on the ticket: the history shows the new count.
+        onCommentPosted={() => void refetch()}
       />
     </div>
   );

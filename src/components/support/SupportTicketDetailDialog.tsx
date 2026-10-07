@@ -1,6 +1,6 @@
-// One ticket of the history, read-only: what was reported, and the account details it was
-// sent with (as they were when it was opened).
-import type { ReactNode } from "react";
+// One ticket of the history: what was reported, the account details it was sent with (as they
+// were when it was opened), and its conversation, where the client can comment while it is open.
+import { useCallback, useState, type ReactNode } from "react";
 
 import {
   formatTicketNumber,
@@ -12,6 +12,7 @@ import type { SupportTicket } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { formatTicketDate } from "./supportTicketColumns";
 import { SeverityBadge, StateBadge } from "./SupportBadges";
+import { SupportComments } from "./SupportComments";
 
 function Item({ term, children }: { term: string; children: ReactNode }) {
   return (
@@ -25,14 +26,26 @@ function Item({ term, children }: { term: string; children: ReactNode }) {
 export function SupportTicketDetailDialog({
   ticket,
   onClose,
+  onCommentPosted,
 }: {
   ticket: SupportTicket | null;
   onClose: () => void;
+  /** A comment was added to the ticket. */
+  onCommentPosted?: () => void;
 }) {
+  // A comment written and not sent: closing the window by mistake (Escape, a click beside it)
+  // must not throw it away without asking.
+  const [draftDirty, setDraftDirty] = useState(false);
+  const requestClose = () => {
+    if (draftDirty && !window.confirm("Discard your unsent comment?")) return;
+    onClose();
+  };
+  const trackDraft = useCallback((dirty: boolean) => setDraftDirty(dirty), []);
+
   return (
     <Dialog
       open={ticket !== null}
-      onOpenChange={(open) => !open && onClose()}
+      onOpenChange={(open) => !open && requestClose()}
       title={
         ticket ? `Ticket ${formatTicketNumber(ticket.ticketNumber)}` : "Ticket"
       }
@@ -69,6 +82,14 @@ export function SupportTicketDetailDialog({
               {ticket.description}
             </p>
           </section>
+
+          <SupportComments
+            // One thread per ticket: another ticket starts from its own comments and draft.
+            key={ticket.id}
+            ticket={ticket}
+            onPosted={onCommentPosted}
+            onDirtyChange={trackDraft}
+          />
 
           <section
             aria-label="Account details"
