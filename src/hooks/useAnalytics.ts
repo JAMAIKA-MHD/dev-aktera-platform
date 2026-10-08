@@ -137,15 +137,25 @@ export function useAnalytics(selectedCampaignId?: string) {
             ? summary.participants
             : [];
 
+        // The RPC names these *_users_count; the older names are kept as aliases.
+        const uniqueUsers = summary.unique_users_count ?? 0;
+        const repeatUsers = summary.repeat_users_count ?? 0;
+        const maxUserPlays = summary.max_user_participations ?? 0;
+
         setAnalytics({
           ...summary,
           by_campaign: byCampaignList,
           campaign_breakdown: byCampaignList,
-          unique_users_count: summary.unique_participants ?? 0,
-          repeat_users_count: summary.repeat_participants ?? 0,
-          max_user_participations:
-            summary.max_participations_by_single_user ?? 0,
-          avg_participations_per_user: summary.avg_participations_per_user ?? 1,
+          active_campaigns: byCampaignList.filter(
+            (campaign) => campaign.status === "active",
+          ).length,
+          unique_users_count: uniqueUsers,
+          unique_participants: uniqueUsers,
+          repeat_users_count: repeatUsers,
+          repeat_participants: repeatUsers,
+          max_user_participations: maxUserPlays,
+          max_participations_by_single_user: maxUserPlays,
+          avg_participations_per_user: summary.avg_participations_per_user ?? 0,
           os_distribution: summary.os_distribution ?? {
             android: 0,
             ios: 0,

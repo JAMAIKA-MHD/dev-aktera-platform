@@ -43,6 +43,21 @@ export const CampaignAnalyticsDashboard: React.FC<
     );
   }
 
+  // Nobody has opened or played the campaign: there is nothing to chart yet.
+  if (analytics.total_entries === 0 && analytics.total_impressions === 0) {
+    return (
+      <div className="glass-panel rounded-xl px-6 py-14 text-center">
+        <h2 className="text-base font-semibold text-brand-text">
+          No analytics yet for {analytics.campaign.name}
+        </h2>
+        <p className="mt-1 text-xs text-brand-text-muted">
+          Nobody has opened or played this campaign so far. Its numbers appear
+          here after the first visit.
+        </p>
+      </div>
+    );
+  }
+
   const burn = analytics.prize_burn_rate;
 
   return (
