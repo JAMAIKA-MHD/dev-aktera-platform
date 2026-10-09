@@ -24,6 +24,16 @@ function renderPanel(Panel: ComponentType, store?: StudioStore) {
 }
 
 describe("TemplatePanel", () => {
+  it("offers the style presets only: no layout card to choose", () => {
+    renderPanel(TemplatePanel);
+    expect(screen.queryByText("Eight zones")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Layout" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Style" })).toBeTruthy();
+    expect(
+      screen.getByRole("radiogroup", { name: "Style presets" }),
+    ).toBeTruthy();
+  });
+
   it("knows when the style was changed after its preset", () => {
     const theme = themeFromPreset("clean-light");
     expect(isCustomized(theme)).toBe(false);

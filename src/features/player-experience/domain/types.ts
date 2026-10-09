@@ -97,6 +97,7 @@ export interface LegalLink {
 export interface LegalConfig {
   organizerName: string;
   links: LegalLink[];
+  showLegalLine: boolean; // the short mention scrolls above the footer links (the client's choice)
   legalLine: LocalizedText; // short footer mention / scrolling banner
   termsBody: LocalizedText; // full text of the legal sheet
 }

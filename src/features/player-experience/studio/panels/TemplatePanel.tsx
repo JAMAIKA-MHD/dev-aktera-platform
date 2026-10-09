@@ -1,4 +1,4 @@
-import { Check, LayoutPanelTop, Moon, RotateCcw, Sun } from "lucide-react";
+import { Check, Moon, RotateCcw, Sun } from "lucide-react";
 import { useState } from "react";
 import type { ThemeTokens } from "../../domain/types";
 import {
@@ -9,7 +9,7 @@ import {
 import { useStudio } from "../StudioContext";
 import { PanelBody, PanelHeader, PanelSection } from "./PanelLayout";
 
-// Template (plan §9.2): the layout (one in the MVP) and the style presets. A preset replaces
+// Template (plan §9.2): the style presets (the layout is one in the MVP, so nothing to choose). A preset replaces
 // the style only — colors, background, corners, font — never the brand's texts. When the brand
 // has already changed the style, applying another preset asks first: those changes would be
 // lost. Thumbnails are drawn from the preset's colors, not by rendering the runtime.
@@ -127,22 +127,6 @@ export function TemplatePanel() {
         description="The starting style of every screen. Pick one, then make it yours in Brand."
       />
       <PanelBody>
-        <PanelSection title="Layout">
-          <div className="flex items-center gap-3 rounded-xl border border-blue-500 bg-blue-50/60 p-3 ring-4 ring-blue-500/10 dark:bg-blue-500/10">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/25">
-              <LayoutPanelTop className="size-5" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-brand-text">Eight zones</p>
-              <p className="text-xs text-brand-text-muted">
-                Header, visual, title, text, game, message, button, legal:
-                always in this order, on every screen size.
-              </p>
-            </div>
-            <Check className="size-5 text-blue-600" aria-label="Selected" />
-          </div>
-        </PanelSection>
-
         <PanelSection
           title="Style"
           description="Colors, background, corners and font. Your texts are kept."

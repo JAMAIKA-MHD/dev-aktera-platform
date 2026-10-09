@@ -4,6 +4,7 @@ import { Field, inputClass } from "../fields/Field";
 import { ListEditor } from "../fields/ListEditor";
 import { LocalizedTextField } from "../fields/LocalizedTextField";
 import { SelectField } from "../fields/SelectField";
+import { ToggleField } from "../fields/ToggleField";
 import { useStudio } from "../StudioContext";
 import {
   PanelBody,
@@ -127,15 +128,24 @@ export function LegalPanel() {
 
         <PanelSection title="General Rules">
           <PanelIssues prefixes={["legal.legalLine", "legal.termsBody"]} />
-          <LocalizedTextField
-            label="Short mention"
-            path="legal.legalLine"
-            value={legal.legalLine}
-            onChange={(legalLine) => updateLegal({ legalLine })}
-            maxChars={120}
-            hint="Scrolls at the bottom of the welcome screen."
-            {...textLocale}
+          <ToggleField
+            label="Show the scrolling notice"
+            description="A short line that scrolls above the footer links. Switch it off to remove it."
+            checked={legal.showLegalLine}
+            onChange={(showLegalLine) => updateLegal({ showLegalLine })}
+            path="legal.showLegalLine"
           />
+          {legal.showLegalLine && (
+            <LocalizedTextField
+              label="Short mention"
+              path="legal.legalLine"
+              value={legal.legalLine}
+              onChange={(legalLine) => updateLegal({ legalLine })}
+              maxChars={120}
+              hint="Scrolls at the bottom of the welcome screen."
+              {...textLocale}
+            />
+          )}
           <LocalizedTextField
             label="Legal text"
             path="legal.termsBody"

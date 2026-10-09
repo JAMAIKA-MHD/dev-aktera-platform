@@ -165,6 +165,7 @@ export function createDefaultExperience(
     legal: {
       organizerName,
       links: defaultLegalLinks().map((link) => ({ id: createUuid(), ...link })),
+      showLegalLine: true,
       legalLine: LEGAL_LINE,
       termsBody: defaultTermsBody(organizerName),
     },

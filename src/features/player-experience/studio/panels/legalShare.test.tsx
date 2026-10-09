@@ -68,6 +68,38 @@ describe("shareFile", () => {
   });
 });
 
+describe("LegalPanel: the scrolling notice", () => {
+  it("is shown by default, and the client can switch it off and on", () => {
+    const store = renderPanel(LegalPanel);
+    const toggle = () =>
+      screen.getByRole("switch", { name: /Show the scrolling notice/ });
+    expect(store.getState().config.legal.showLegalLine).toBe(true);
+    expect(toggle().getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByLabelText("Short mention")).toBeTruthy();
+
+    fireEvent.click(toggle());
+    expect(store.getState().config.legal.showLegalLine).toBe(false);
+    expect(toggle().getAttribute("aria-checked")).toBe("false");
+    // Nothing to word for a notice that is not shown, and the text is kept for later.
+    expect(screen.queryByLabelText("Short mention")).toBeNull();
+    expect(store.getState().config.legal.legalLine.fr).toBeTruthy();
+
+    fireEvent.click(toggle());
+    expect(store.getState().config.legal.showLegalLine).toBe(true);
+    expect(screen.getByLabelText("Short mention")).toBeTruthy();
+  });
+
+  it("is one undoable step, like any other edit", () => {
+    const store = renderPanel(LegalPanel);
+    fireEvent.click(
+      screen.getByRole("switch", { name: /Show the scrolling notice/ }),
+    );
+    expect(store.getState().config.legal.showLegalLine).toBe(false);
+    act(() => store.temporal.getState().undo());
+    expect(store.getState().config.legal.showLegalLine).toBe(true);
+  });
+});
+
 describe("LegalPanel", () => {
   it("edits the organizer and the links, and flags an unsafe address", () => {
     const store = renderPanel(LegalPanel);

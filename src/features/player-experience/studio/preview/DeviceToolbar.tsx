@@ -1,7 +1,8 @@
-import { RotateCw, Smartphone } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useStudio } from "../StudioContext";
 import { DEVICES, deviceSize, type Device, type DeviceGroup } from "./devices";
+import { PhoneRotateIcon } from "./PhoneRotateIcon";
 import { clampToEnvelope, ZOOM_LEVELS } from "./viewportMath";
 
 // The device bar (plan §9.3, tasks.md T6.9), as in the browser's device mode: a device or
@@ -160,7 +161,7 @@ export function DeviceToolbar({
         title="Rotate (portrait / landscape)"
         className={`${control} flex w-9 items-center justify-center transition hover:bg-card-hover active:scale-95 disabled:opacity-35`}
       >
-        <RotateCw className="size-4" aria-hidden />
+        <PhoneRotateIcon className="size-[18px]" />
       </button>
       <button
         type="button"

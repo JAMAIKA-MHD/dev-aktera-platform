@@ -81,11 +81,14 @@ describe("one bar for language, screens and device", () => {
     expect(zoomSelect()).not.toBeNull();
   });
 
-  it("keeps Restart on the summary line, folded or not", () => {
+  it("has no Restart button: the bar holds the summary and, open, the controls", () => {
     renderPane();
+    expect(screen.queryByRole("button", { name: "Restart" })).toBeNull();
     fireEvent.click(toggle());
-    expect(screen.getByRole("button", { name: "Restart" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Restart" })).toBeNull();
+    // Folded, the only button of the summary line is the one that opens the bar.
     expect(controls()).toBeNull();
+    expect(toggle().parentElement!.querySelectorAll("button")).toHaveLength(1);
   });
 });
 

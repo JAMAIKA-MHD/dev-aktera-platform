@@ -125,6 +125,25 @@ describe("validateExperience: default configurations", () => {
   });
 });
 
+describe("validateExperience: the scrolling notice", () => {
+  it("does not check the text of a notice that is switched off", () => {
+    const long = { fr: "x".repeat(400), en: "x".repeat(400) };
+    const shown = validateExperience(
+      configFor("lucky_wheel", (c) => (c.legal.legalLine = long)),
+    );
+    expect(shown.some((issue) => issue.path === "legal.legalLine")).toBe(true);
+    const hidden = validateExperience(
+      configFor("lucky_wheel", (c) => {
+        c.legal.legalLine = long;
+        c.legal.showLegalLine = false;
+      }),
+    );
+    expect(hidden.some((issue) => issue.path === "legal.legalLine")).toBe(
+      false,
+    );
+  });
+});
+
 describe("validateExperience: contrast", () => {
   it("refuses text that does not stand out from the background", () => {
     const issues = validateExperience(

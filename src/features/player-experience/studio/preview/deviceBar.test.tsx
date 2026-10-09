@@ -168,6 +168,20 @@ describe("DeviceToolbar", () => {
     expect(document.querySelector("iframe")!.getAttribute("width")).toBe("390");
   });
 
+  it("draws the rotate button as a phone in the middle of a turn", () => {
+    renderPane();
+    const rotate = screen.getByRole("button", { name: "Rotate" });
+    const icon = rotate.querySelector("svg")!;
+    // A phone (its body is a rounded rectangle, tilted) and an arrow around it; not the
+    // plain circular arrow that looks like a reload.
+    expect(icon.querySelector("rect")).not.toBeNull();
+    expect(icon.querySelector("g")?.getAttribute("transform")).toMatch(
+      /rotate\(/,
+    );
+    expect(icon.querySelectorAll("path").length).toBeGreaterThanOrEqual(2);
+    expect(icon.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("offers a zoom that fills the width and lets the screen scroll", () => {
     const store = renderPane();
     const zoom = screen.getByLabelText("Zoom") as HTMLSelectElement;

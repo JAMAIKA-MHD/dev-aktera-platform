@@ -156,6 +156,8 @@ const legalSchema = z.object({
         .optional(),
     }),
   ),
+  // A design saved before the switch existed keeps its notice: shown by default.
+  showLegalLine: z.boolean().default(true),
   legalLine: localizedTextSchema,
   termsBody: localizedTextSchema,
 });

@@ -1,4 +1,4 @@
-import { ChevronDown, RotateCcw } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { LOCALES, type Locale } from "../../domain/locale";
 import type { ScriptedScenario } from "../../services/createLocalServices";
@@ -17,10 +17,11 @@ import { useStudio } from "../StudioContext";
 
 // The preview bar (plan §9.3): which language, the screen tabs, and the device bar (T6.9), in one
 // bar that folds into a one-line summary (screen, language, size, tier, zoom, device) to give the
-// preview its height back. Restart stays on the summary line, folded or not. The preview is a still picture of the screen picked: nothing a player does works in it,
-// and a click on a text or a block opens the field that edits it. The journey is played in the
-// window opened by "Open in window". Picking a screen or a status message draws it again;
-// switching language does not, the screen simply redraws in it.
+// preview its height back. The preview is a still picture of the screen picked: nothing a player
+// does works in it, and a click on a text or a block opens the field that edits it. The journey
+// is played in the window opened by the "Preview" button of the top bar. Picking a screen or a
+// status message draws the screen again; switching language does not, the screen simply redraws
+// in it.
 
 // What the Status tab shows: the screens of a player who cannot play.
 const STATUS_MESSAGES: { id: ScriptedScenario; label: string }[] = [
@@ -48,7 +49,8 @@ export function PreviewPane() {
       ? ui.scenario
       : "network-error";
 
-  // Draw again on screen, mode and status message; the first render is not a redraw.
+  // Draw again on screen, mode and status message; the first render is not a redraw. (The key
+  // is the frame's own "start again" signal; no button of the Studio sends it.)
   const [restartKey, setRestartKey] = useState(0);
   const first = useRef(true);
   useEffect(() => {
@@ -114,14 +116,6 @@ export function PreviewPane() {
               <span aria-hidden>·</span>
               <span className="truncate">{device?.label ?? "Responsive"}</span>
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setRestartKey((key) => key + 1)}
-            className="flex min-h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text active:scale-95"
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
-            Restart
           </button>
         </div>
         {barOpen && (
