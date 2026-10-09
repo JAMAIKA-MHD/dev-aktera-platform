@@ -367,6 +367,104 @@ export interface CampaignAnalyticsReport {
   participants_limit: number;
 }
 
+/**
+ * 13. Program Analytics
+ * Payload of the `get_program_analytics` RPC: every campaign of the organization, over a
+ * period. Rates are null when their denominator is zero (nothing to measure yet).
+ */
+export interface ProgramCampaignStatusCounts {
+  total: number;
+  active: number;
+  paused: number;
+  draft: number;
+  ended: number;
+  archived: number;
+}
+
+export interface ProgramLeaderboardRow {
+  campaign_id: string;
+  campaign_name: string;
+  status: string;
+  game_type: Campaign["gameType"];
+  start_date: string | null;
+  end_date: string | null;
+  entries: number;
+  rewards: number; // Prizes won
+  impressions: number;
+  completed_impressions: number;
+  completion_rate: number | null;
+  new_participants: number; // First seen in this campaign
+  returning_participants: number; // Already seen in an earlier campaign
+}
+
+export interface ProgramMechanicRow {
+  game_type: Campaign["gameType"];
+  campaigns: number;
+  entries: number;
+  rewards: number;
+  impressions: number;
+  completed_impressions: number;
+  completion_rate: number | null;
+}
+
+export interface ProgramDecaySeries {
+  campaign_id: string;
+  campaign_name: string;
+  launch_date: string; // YYYY-MM-DD, the day of the campaign's first entry
+  entries: number; // Entries in the period
+  points: number[]; // Entries per day; index 0 is the launch day
+}
+
+export interface ProgramStockRisk {
+  template_id: string;
+  name: string;
+  category: string;
+  risk: "out" | "critical" | "warning";
+  total_stock: number;
+  won: number;
+  remaining: number;
+  remaining_percentage: number;
+  burn_rate_percentage: number; // Share of the stock already won
+  wins_per_day: number; // Over the last 7 days
+  days_left: number | null; // At that pace; null when nothing was won recently
+  active_campaigns: number;
+}
+
+export interface ProgramAnalytics {
+  timezone: string;
+  period: { from: string | null; to: string | null };
+  totals: {
+    entries: number;
+    prizes_distributed: number;
+    impressions: number;
+    completed_impressions: number;
+    completion_rate: number | null;
+  };
+  campaign_status: ProgramCampaignStatusCounts;
+  leaderboard: ProgramLeaderboardRow[]; // Most entries first
+  mechanics: ProgramMechanicRow[];
+  decay_curve: ProgramDecaySeries[];
+  audience: {
+    unique_audience: number;
+    new_participants: number;
+    returning_participants: number;
+    repeat_participants: number; // Played 2+ campaigns
+    repeat_participation_rate: number | null;
+  };
+  stock_risk: ProgramStockRisk[]; // Most urgent first
+  stock_templates_tracked: number;
+  plan_usage: {
+    plan: "free" | "starter" | "pro" | "enterprise";
+    entries_this_month: number;
+    active_campaigns: number;
+  };
+  os_distribution: CampaignOsDistribution;
+  location_distribution: CampaignLocationCount[];
+  location_unknown_count: number;
+  hourly_distribution: CampaignHourlyPoint[];
+  weekday_distribution: CampaignWeekdayPoint[];
+}
+
 // --- CLIENT SIDE PLAYERS PRESETS & SIMULATORS STATE ---
 
 export interface BrandPreset {

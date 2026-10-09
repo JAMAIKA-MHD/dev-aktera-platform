@@ -70,7 +70,7 @@ export const AlgeriaWilayaMap: React.FC<AlgeriaWilayaMapProps> = ({
       title="Segmentation by wilaya"
       subtitle="Participants per wilaya, from the location captured on each entry."
       isEmpty={locations.length === 0}
-      emptyMessage="No location data has been captured for this campaign's participants yet."
+      emptyMessage="No location data has been captured for these participants yet."
     >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div ref={containerRef} className="relative lg:col-span-7">

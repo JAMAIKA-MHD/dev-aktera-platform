@@ -4,8 +4,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { exportToExcel } from "../lib/exportUtils";
 import { useCampaignReport } from "../hooks/useCampaignReport";
-import { AllCampaignsOverview } from "./analytics/AllCampaignsOverview";
 import { CampaignAnalyticsDashboard } from "./analytics/CampaignAnalyticsDashboard";
+import { ProgramAnalyticsDashboard } from "./analytics/ProgramAnalyticsDashboard";
 import { PlayerParticipantsTable } from "./analytics/PlayerParticipantsTable";
 import {
   filterPlayers,
@@ -210,7 +210,12 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
           <CampaignAnalyticsDashboard campaignId={selectedCampId} />
         </div>
       ) : (
-        <AllCampaignsOverview analytics={analytics} />
+        <ProgramAnalyticsDashboard
+          onSelectCampaign={(campaignId) => {
+            selectCampaign(campaignId);
+            setTableViewMode("participants");
+          }}
+        />
       )}
 
       {/* DYNAMIC PERFORMANCE TABLE: Switches based on Toggle Mode or Dropdown Selection */}

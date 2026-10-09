@@ -199,6 +199,17 @@ const anonChecks = [
       ),
   },
   {
+    name: "anon cannot call get_program_analytics",
+    run: async () =>
+      blocked(
+        (
+          await anon.rpc("get_program_analytics", {
+            p_organization_id: missingId(),
+          })
+        ).error,
+      ),
+  },
+  {
     name: "anon can still call record_campaign_impression",
     run: async () =>
       reachable(
@@ -506,6 +517,27 @@ async function memberChecks() {
           ok: others === 0,
           detail: `${data.length} rows, ${others} from another organization`,
         };
+      },
+    },
+    {
+      name: "member get_program_analytics cannot reach another organization",
+      run: async () => {
+        if (!foreign)
+          return {
+            ok: true,
+            detail: "SKIP: no campaign in another organization",
+          };
+        const own = await member.rpc("get_program_analytics", {
+          p_organization_id: ownOrg,
+        });
+        if (own.error) return { ok: false, detail: own.error.message };
+        return blocked(
+          (
+            await member.rpc("get_program_analytics", {
+              p_organization_id: foreign.organization_id,
+            })
+          ).error,
+        );
       },
     },
     // B1.2: saving a design.

@@ -3,7 +3,11 @@ import {
   AnalyticsSummary,
   PlayerParticipantEntry,
 } from "../hooks/useAnalytics";
-import { CampaignAnalyticsReport, CampaignDashboardAnalytics } from "../types";
+import {
+  CampaignAnalyticsReport,
+  CampaignDashboardAnalytics,
+  ProgramAnalytics,
+} from "../types";
 
 export async function importParticipantEntries(
   entries: {
@@ -59,6 +63,25 @@ export async function fetchCampaignAnalyticsReport(
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Report unavailable for this campaign.");
   return data as CampaignAnalyticsReport;
+}
+
+/**
+ * Loads the cross-campaign analytics of an organization. Everything is computed by the
+ * `get_program_analytics` RPC; there is no client-side fallback, so a failure (including
+ * not being a member of the organization) is thrown to the caller.
+ * `from` is a calendar day (YYYY-MM-DD) in the analytics timezone; null means all time.
+ */
+export async function fetchProgramAnalytics(
+  organizationId: string,
+  from: string | null,
+): Promise<ProgramAnalytics> {
+  const { data, error } = await supabase.rpc("get_program_analytics", {
+    p_organization_id: organizationId,
+    p_from: from,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Analytics unavailable right now.");
+  return data as ProgramAnalytics;
 }
 
 /** A row of the `get_campaign_participants` RPC. */
