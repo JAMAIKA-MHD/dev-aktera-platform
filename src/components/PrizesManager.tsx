@@ -25,6 +25,8 @@ import { Campaign, PrizeTemplate } from "../types";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
 import { useInventoryManager } from "../hooks/useInventoryManager";
+import { useAuth } from "../contexts/AuthContext";
+import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
 import {
   parseCSVFile,
   parseExcelFile,
@@ -71,6 +73,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { profile } = useAuth();
+  // A viewer reads; everyone else may set expiry dates.
+  const canEditExpiry = profile?.role !== "viewer";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreator, setShowCreator] = useState(false);
@@ -119,6 +124,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     clearUnresolvedConflicts,
     loadTemplateItems,
     updateSingleItemValue,
+    updateItemExpiry,
     validateImport,
     resolveConflict,
     executeImport,
@@ -1368,6 +1374,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         <tr>
                           <th className="py-3 px-4 w-16">#</th>
                           <th className="py-3 px-4">Voucher / Unique Code</th>
+                          {activeCodesTemplate.category === "voucher" && (
+                            <th className="py-3 px-4 w-48">Expires</th>
+                          )}
                           <th className="py-3 px-4 w-32 text-center">Status</th>
                           <th className="py-3 px-4 w-24 text-right">Actions</th>
                         </tr>
@@ -1428,6 +1437,19 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                                   }`}
                                 />
                               </td>
+                              {activeCodesTemplate.category === "voucher" && (
+                                <td className="py-2 px-4">
+                                  <CodeExpiryCell
+                                    index={item.item_index}
+                                    value={item.expires_at}
+                                    hasCode={hasValue}
+                                    locked={isRedeemed || !canEditExpiry}
+                                    onChange={(expiresAt) =>
+                                      updateItemExpiry(item.id, expiresAt)
+                                    }
+                                  />
+                                </td>
+                              )}
                               <td className="py-3 px-4 text-center">
                                 {isRedeemed ? (
                                   <span

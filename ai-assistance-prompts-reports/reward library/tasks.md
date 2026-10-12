@@ -123,7 +123,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
       affiche exactement l'écran actuel. « Partner Library » affiche `PartnerLibraryComingSoon`
       (nouveau composant) : cartes Chargily et Gifty, badge « Coming soon », texte court, rien de
       cliquable, aucun appel réseau.
-- [ ] **T4.2 Expiration dans le tableau des codes.** Colonne « Expires » : date par code (champ date,
+- [x] **T4.2 Expiration dans le tableau des codes.** Colonne « Expires » : date par code (champ date,
       vide = n'expire pas), badge « Expired » pour un code périmé (visible, non supprimé), ligne
       grisée. Saisie de la date = **fin de journée à Alger** (23:59:59, `Africa/Algiers`) convertie en
       UTC pour la base. Action « Set expiry for all codes » (option : seulement ceux sans date).
