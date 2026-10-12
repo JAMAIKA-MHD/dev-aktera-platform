@@ -479,3 +479,30 @@ $$;
 
 REVOKE ALL ON FUNCTION public.set_entry_delivery_status(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.set_entry_delivery_status(uuid, text) TO authenticated;
+
+-- A member can update their organization's entries directly (policy update_org_entries). The
+-- delivery status must only change through set_entry_delivery_status, which checks the role and
+-- the kind of reward: inside it (SECURITY DEFINER) current_user is the function owner, while a
+-- direct call from the browser runs as authenticated or anon.
+CREATE OR REPLACE FUNCTION public.guard_entry_delivery_status()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF current_user IN ('authenticated', 'anon')
+     AND (NEW.delivery_status IS DISTINCT FROM OLD.delivery_status
+          OR NEW.delivered_at IS DISTINCT FROM OLD.delivered_at) THEN
+    RAISE EXCEPTION 'Use set_entry_delivery_status to change a delivery status.' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.guard_entry_delivery_status() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_guard_entry_delivery_status ON public.entries;
+CREATE TRIGGER trg_guard_entry_delivery_status
+BEFORE UPDATE OF delivery_status, delivered_at ON public.entries
+FOR EACH ROW
+EXECUTE FUNCTION public.guard_entry_delivery_status();
