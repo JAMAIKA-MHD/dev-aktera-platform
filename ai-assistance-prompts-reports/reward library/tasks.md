@@ -151,14 +151,16 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
 
 - [ ] **T5.1** `npm run verify` (lint + typecheck + tests + build) vert.
 - [ ] **T5.2** `npm run backend:probe` vert (anon et membre).
-- [ ] **T5.3 Parcours manuel complet** (base locale, `npm run dev`) :
-  1. créer un lot numérique avec 3 codes dont 1 expiré ; l'allouer à une campagne (quantité 3) ;
-  2. jouer 3 fois : les 2 premiers gagnent un code **différent** et valide, le 3ᵉ ne gagne pas ;
-  3. créer un lot sans code dans une autre campagne : le joueur gagne, l'écran « You Won! »
-     s'affiche, aucun code ;
-  4. créer un lot physique, gagner, ouvrir « Winners & delivery », passer à `Delivered`, recharger :
-     le statut est conservé ; essayer avec un compte `viewer` : lecture seule ;
-  5. onglet Partner Library : « Coming soon », rien de cliquable.
+- [x] **T5.3 Parcours de bout en bout** contre la vraie Edge Function et la vraie base (`npm run backend:smoke`
+      15/15 et `npm run backend:rewards` 21/21) : codes dont un expiré (T13), lot sans code → « You Won! »
+      sans code (T11), lot physique → statut `not_delivered` (T14), changement de statut par un manager
+      et refus d'un `viewer` (`backend:rewards`). Voir les notes « T5.3 » plus bas.
+- [ ] **T5.3b Contrôle visuel dans le navigateur (à faire par une personne, `npm run dev` + base locale).**
+      Claude n'a pas de navigateur automatisable ici. À vérifier : (1) un lot numérique : colonne
+      « Expires », badge « Expired », résumé « X available · Y used · Z expired », date pour tous les
+      codes ; (2) un lot physique : panneau « Winners & delivery », passer à `Delivered`, recharger, le
+      statut est conservé, un compte `viewer` est en lecture seule ; (3) onglet « Partner Library » :
+      « Coming soon », rien de cliquable ; (4) l'écran « You Won! » côté joueur pour un lot sans code.
 - [ ] **T5.4 Régression** : import CSV, génération de codes, détection de doublons, allocation à une
       campagne, détail d'une campagne et analytics fonctionnent comme avant.
 - [ ] **T5.5 Documentation.** Ajouter au runbook `ai-assistance-prompts-reports/backend/deploiement.md`
@@ -200,6 +202,12 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 **P3 — Écarts.** (a) Les lignes de codes restent en snake_case (`TemplateItemRow.expires_at`), conformément au code existant ; `PrizeTemplateItem` de `types.ts` n'est pas utilisé et n'a pas été touché. (b) T3.3 : les compteurs disponibles / utilisés / expirés sont calculés par `computeCodeCounts` (`src/lib/codeExpiry.ts`) à partir des codes **déjà chargés** par `useInventoryManager` (lecture paginée complète, avec l'état « utilisé »), pas dans `usePrizeTemplates`, dont les requêtes sont plafonnées à 1000 lignes par PostgREST : un compteur faux au-delà serait pire que pas de compteur. (c) Les helpers de date (fin de journée à Alger ↔ UTC) sont dans `src/lib/codeExpiry.ts`. (d) Cas limite connu : remplacer un code par un import (mode « replace ») conserve l'`expires_at` de la ligne ; non traité (rare), à surveiller.
 
 **P4 — Écarts.** (a) T4.1 : le sélecteur Local / Partner est un composant enveloppe `rewards/RewardLibrary.tsx` (utilisé par `PrizesPage`), pas une modification de `PrizesManager` : l'écran local est strictement inchangé. (b) L'action « Expiry for all codes » (demandée en T4.2) vit dans `CodeStockSummary` (T4.3), avec le résumé de stock. (c) Les tests de l'interface ont été écrits avec chaque composant (et pas seulement en T4.6) ; T4.6 consiste à tout relancer ensemble : `npx vitest run src/components/rewards` → 5 fichiers, 35 tests verts, plus `dashboardRoutes.test.tsx` vert. (d) Pas de `jest-dom` dans le projet : assertions avec `toBeTruthy()` / `toBeNull()`. (e) T4.5 : libellés en anglais ; `PrizesManager` n'utilise pas `t()`, les nouveaux composants non plus (cohérence avec le fichier) ; ESLint propre sur tous les fichiers touchés ; champs avec `aria-label`/`label`, onglets avec rôles `tablist`/`tab`/`tabpanel`.
+
+**T5.2 — Sondes.** `npm run backend:probe` : 21/21 (les contrôles membres, qui demandent `BACKEND_PROBE_EMAIL/PASSWORD`, n'ont pas tourné ; le comportement membre est couvert par `npm run backend:rewards`, 21/21, avec de vrais utilisateurs connectés).
+
+**T5.3 — Parcours.** Aucun navigateur automatisable n'est disponible dans cet environnement (pas de Playwright/Puppeteer) : le parcours **visuel** n'a pas pu être exécuté par Claude. Fait à la place, de bout en bout contre la vraie Edge Function et la vraie base : scénarios 1 à 3 du plan (smoke T13 : 1 code valide + 1 expiré, 3 gains attendus → 1 seul gagnant avec le code valide, puis plus personne ; T11 : lot sans code → gagnant « You Won! » sans code ; T14 : lot physique → gagnant sans code, `delivery_status = not_delivered`), le changement de statut par un manager / le refus d'un `viewer` (`backend:rewards`), et l'interface en jsdom (35 tests de composants, dont la fenêtre de codes réelle de `PrizesManager`). `npm run backend:smoke` : **15/15**. Reste **à faire par une personne** : T5.3b (voir plus bas), le contrôle visuel dans `npm run dev`.
+
+**T5.4 — Régression.** Revue du diff depuis le début du travail : `inventoryService.ts` et `PrizesManager.tsx` n'ont **aucune suppression** hormis la chaîne du `select` de `fetchTemplateItemsService` (qui ajoute `expires_at`) ; tout le reste est additif. L'import CSV, la génération, la détection de doublons, l'allocation et les analytics n'ont pas été touchés ; la suite complète de tests (`npm run verify`, voir T5.1) les couvre.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 
