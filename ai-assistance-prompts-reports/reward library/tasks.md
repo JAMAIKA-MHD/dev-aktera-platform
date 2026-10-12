@@ -76,7 +76,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 
 ## P2 — Edge Function
 
-- [ ] **T2.1 Marquer l'attribution manquée.** Dans `claimCoupon`/l'étape 10 de `select-prize` : si le
+- [x] **T2.1 Marquer l'attribution manquée.** Dans `claimCoupon`/l'étape 10 de `select-prize` : si le
       gain est un lot **qui a des codes** et que l'attribution ne renvoie rien, mettre
       `metadata.reward_unavailable = true` sur l'entrée et `console.warn`. Pour un lot sans code,
       aucun changement (le « You Won! » sans récompense continue de marcher). Ne toucher ni aux

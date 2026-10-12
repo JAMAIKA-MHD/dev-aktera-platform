@@ -160,6 +160,38 @@ async function claimCoupon(
   return code.trim();
 }
 
+// A win whose reward has codes but none could be given (the last one went to another winner
+// between the draw and the claim, or the claim failed): flag the entry so the brand sees it and
+// can settle it by hand. A reward with no code at all is a plain "You Won!" and is left alone.
+async function flagMissedReward(
+  admin: SupabaseClient,
+  prizeId: string,
+  entryId: string,
+  entryMetadata: Record<string, unknown>,
+): Promise<void> {
+  const { data: prize } = await admin
+    .from("prizes")
+    .select("prize_template_id")
+    .eq("id", prizeId)
+    .maybeSingle();
+  if (!prize?.prize_template_id) return;
+
+  const { data: loaded } = await admin
+    .from("prize_template_items")
+    .select("id")
+    .eq("prize_template_id", prize.prize_template_id)
+    .not("item_value", "is", null)
+    .neq("item_value", "")
+    .limit(1);
+  if (!loaded || loaded.length === 0) return;
+
+  console.warn("[select-prize] win without a code, entry flagged:", entryId);
+  await admin
+    .from("entries")
+    .update({ metadata: { ...entryMetadata, reward_unavailable: true } })
+    .eq("id", entryId);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -401,6 +433,13 @@ serve(async (req) => {
 
     // 9. Entry, with the consent proof. The captcha token is never stored.
     const { human_token: _humanToken, ...storedMetadata } = metadata;
+    const entryMetadata = {
+      ...storedMetadata,
+      consent,
+      client_request_id: clientRequestId,
+      game_type: campaign.game_type,
+      server_timestamp: new Date().toISOString(),
+    };
     const { data: newEntry, error: insertError } = await supabaseAdmin
       .from("entries")
       .insert({
@@ -413,13 +452,7 @@ serve(async (req) => {
         is_winner: isWinner,
         prize_id: selectedPrize?.id ?? null,
         dwell_time_seconds: dwell_time_seconds || 0,
-        metadata: {
-          ...storedMetadata,
-          consent,
-          client_request_id: clientRequestId,
-          game_type: campaign.game_type,
-          server_timestamp: new Date().toISOString(),
-        },
+        metadata: entryMetadata,
         ip_address: ip_address || null,
         user_agent: user_agent || null,
       })
@@ -443,6 +476,15 @@ serve(async (req) => {
       isWinner && selectedPrize
         ? await claimCoupon(supabaseAdmin, selectedPrize.id, newEntry.id)
         : null;
+
+    if (isWinner && selectedPrize && !couponCode) {
+      await flagMissedReward(
+        supabaseAdmin,
+        selectedPrize.id,
+        newEntry.id,
+        entryMetadata,
+      );
+    }
 
     return json(200, {
       ok: true,
