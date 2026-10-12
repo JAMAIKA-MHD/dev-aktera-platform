@@ -163,7 +163,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
       « Coming soon », rien de cliquable ; (4) l'écran « You Won! » côté joueur pour un lot sans code.
 - [ ] **T5.4 Régression** : import CSV, génération de codes, détection de doublons, allocation à une
       campagne, détail d'une campagne et analytics fonctionnent comme avant.
-- [ ] **T5.5 Documentation.** Ajouter au runbook `ai-assistance-prompts-reports/backend/deploiement.md`
+- [x] **T5.5 Documentation.** Ajouter au runbook `ai-assistance-prompts-reports/backend/deploiement.md`
       l'ordre de déploiement de cette migration (migration → Edge Function → front). Mettre à jour
       `supabase/SEED.md` seulement si le seed est modifié.
 - [ ] **T5.6** Préparer la description de la merge request (changements, migration, compatibilité,
@@ -208,6 +208,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 **T5.3 — Parcours.** Aucun navigateur automatisable n'est disponible dans cet environnement (pas de Playwright/Puppeteer) : le parcours **visuel** n'a pas pu être exécuté par Claude. Fait à la place, de bout en bout contre la vraie Edge Function et la vraie base : scénarios 1 à 3 du plan (smoke T13 : 1 code valide + 1 expiré, 3 gains attendus → 1 seul gagnant avec le code valide, puis plus personne ; T11 : lot sans code → gagnant « You Won! » sans code ; T14 : lot physique → gagnant sans code, `delivery_status = not_delivered`), le changement de statut par un manager / le refus d'un `viewer` (`backend:rewards`), et l'interface en jsdom (35 tests de composants, dont la fenêtre de codes réelle de `PrizesManager`). `npm run backend:smoke` : **15/15**. Reste **à faire par une personne** : T5.3b (voir plus bas), le contrôle visuel dans `npm run dev`.
 
 **T5.4 — Régression.** Revue du diff depuis le début du travail : `inventoryService.ts` et `PrizesManager.tsx` n'ont **aucune suppression** hormis la chaîne du `select` de `fetchTemplateItemsService` (qui ajoute `expires_at`) ; tout le reste est additif. L'import CSV, la génération, la détection de doublons, l'allocation et les analytics n'ont pas été touchés ; la suite complète de tests (`npm run verify`, voir T5.1) les couvre.
+
+**T5.1 — `npm run verify`.** Lancé sur une **copie propre de `HEAD`** (git worktree), car le dossier de travail porte le renommage d'icône indexé qui casse le typecheck (voir T0.4). Résultat : lint 0 erreur (6 avertissements existants) ; typecheck normal et strict OK ; tests **1160 verts, 2 en échec** (`PublicPlayPage.test.tsx` : titre du document ; `CampaignStudio.test.tsx` : délai de 5 s dépassé) — la machine faisait tourner en même temps les sondes, le smoke et la base ; relancés seuls, **les 2 fichiers passent (5/5)** ; build OK (34 s). Aucun de ces deux fichiers n'est touché par ce travail. Dans le dossier de travail, `npm run verify` reste rouge pour la seule raison étrangère décrite en T0.4. Incident : la suppression forcée de la copie a effacé ~118 paquets de `node_modules` (lien de dossier) ; réinstallés avec `npm install` depuis le lockfile (aucun fichier suivi modifié), outils et tests de nouveau OK.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 
