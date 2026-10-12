@@ -67,7 +67,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
   - [ ] lot sans aucun code → toujours éligible (gagnant sans code possible) ;
   - [ ] `set_entry_delivery_status` : membre OK ; `viewer` refusé ; autre organisation refusée ;
         entrée perdante refusée ; lot numérique refusé ; `anon` refusé.
-- [ ] **T1.8 Étendre `npm run backend:probe`** : `anon` ne peut appeler ni `set_entry_delivery_status`
+- [x] **T1.8 Étendre `npm run backend:probe`** : `anon` ne peut appeler ni `set_entry_delivery_status`
       ni `is_code_assignable`.
 
 **Commits :** un par tâche, messages dans les fichiers `Pn/` correspondants.
