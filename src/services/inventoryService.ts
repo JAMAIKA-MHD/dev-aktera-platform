@@ -6,6 +6,7 @@ export interface TemplateItemRow {
   item_index: number;
   item_value: string | null;
   source_type: "manual" | "bulk";
+  expires_at?: string | null;
   is_used?: boolean;
   is_redeemed?: boolean;
   redeemed_at?: string | null;
@@ -68,7 +69,9 @@ export async function fetchTemplateItemsService(
   while (hasMore) {
     const { data: pageData, error: pageError } = await supabase
       .from("prize_template_items")
-      .select("id, prize_template_id, item_index, item_value, source_type")
+      .select(
+        "id, prize_template_id, item_index, item_value, source_type, expires_at",
+      )
       .eq("prize_template_id", prizeTemplateId)
       .order("item_index", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
@@ -209,6 +212,41 @@ export async function updateSingleTemplateItemService(
     .eq("id", id);
 
   if (error) throw error;
+}
+
+/** Sets (or clears, with null) the expiry of one code. */
+export async function updateItemExpiryService(
+  id: string,
+  expiresAt: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("prize_template_items")
+    .update({ expires_at: expiresAt })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+/**
+ * Sets the same expiry on every code of a reward that has a value. By default a date already
+ * set is kept; returns how many codes were updated.
+ */
+export async function setExpiryForTemplateItemsService(
+  prizeTemplateId: string,
+  expiresAt: string | null,
+  options: { onlyWithoutDate?: boolean } = {},
+): Promise<number> {
+  const { onlyWithoutDate = true } = options;
+  let query = supabase
+    .from("prize_template_items")
+    .update({ expires_at: expiresAt })
+    .eq("prize_template_id", prizeTemplateId)
+    .not("item_value", "is", null);
+  if (onlyWithoutDate) query = query.is("expires_at", null);
+
+  const { data, error } = await query.select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
 }
 
 export async function bulkUpdateTemplateItemsService(

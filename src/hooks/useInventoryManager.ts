@@ -11,6 +11,8 @@ import {
   createMissingTemplateItemsService,
   updateSingleTemplateItemService,
   bulkUpdateTemplateItemsService,
+  updateItemExpiryService,
+  setExpiryForTemplateItemsService,
   validateAndPrepareImportService,
   resolveConflictAndRevalidateService,
   generateRandomVoucherCodesService,
@@ -265,6 +267,58 @@ export function useInventoryManager(organizationId: string | null) {
     [templateItems, generateRandomCodes, saveAllItemsBulk],
   );
 
+  /** Sets or clears the expiry of one code; the list is updated in place. */
+  const updateItemExpiry = useCallback(
+    async (id: string, expiresAt: string | null) => {
+      setSaving(true);
+      setError(null);
+
+      try {
+        await updateItemExpiryService(id, expiresAt);
+        setTemplateItems((current) =>
+          current.map((item) =>
+            item.id === id ? { ...item, expires_at: expiresAt } : item,
+          ),
+        );
+        return true;
+      } catch (err) {
+        setError(toFriendlyErrorMessage(err, "Failed to update the expiry."));
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [],
+  );
+
+  /** Same expiry for every code of the reward (by default keeps dates already set). */
+  const setExpiryForAll = useCallback(
+    async (
+      template: PrizeTemplate,
+      expiresAt: string | null,
+      onlyWithoutDate = true,
+    ): Promise<number | null> => {
+      setSaving(true);
+      setError(null);
+
+      try {
+        const updated = await setExpiryForTemplateItemsService(
+          template.id,
+          expiresAt,
+          { onlyWithoutDate },
+        );
+        await loadTemplateItems(template);
+        return updated;
+      } catch (err) {
+        setError(toFriendlyErrorMessage(err, "Failed to set the expiry."));
+        return null;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [loadTemplateItems],
+  );
+
   const clearUnresolvedConflicts = useCallback(() => {
     setUnresolvedConflicts([]);
   }, []);
@@ -281,6 +335,8 @@ export function useInventoryManager(organizationId: string | null) {
     clearUnresolvedConflicts,
     loadTemplateItems,
     updateSingleItemValue,
+    updateItemExpiry,
+    setExpiryForAll,
     saveAllItemsBulk,
     validateImport,
     resolveConflict,

@@ -94,7 +94,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 - [x] **T3.1 Types.** `src/types.ts` : `PrizeTemplateItem.expiresAt?: string | null` ; un type
       `DeliveryStatus = "not_delivered" | "delivered"` ; `PhysicalWinner` (id d'entrée, téléphone,
       nom du participant, nom du lot, date du gain, `deliveryStatus`, `deliveredAt`).
-- [ ] **T3.2 Lecture/écriture de l'expiration.** `inventoryService.ts` et le hook
+- [x] **T3.2 Lecture/écriture de l'expiration.** `inventoryService.ts` et le hook
       `useInventoryManager.ts` : lire `expires_at`, le mapper en `expiresAt`, et ajouter deux
       fonctions : mettre à jour la date d'un code ; appliquer une date à tous les codes d'un lot
       (option « seulement ceux sans date »). Validation : date valide ; un avertissement (pas un
