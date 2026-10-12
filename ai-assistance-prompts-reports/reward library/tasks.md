@@ -59,7 +59,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 
 ### Tests de la phase (règle 27)
 
-- [ ] **T1.7 Script de sonde SQL** (`scripts/probe-rewards.sql` ou intégré à `backend:probe`) :
+- [x] **T1.7 Script de sonde SQL** (`scripts/probe-rewards.sql` ou intégré à `backend:probe`) :
   - [ ] code expiré + code valide → l'attribution renvoie le valide ;
   - [ ] seul un code expiré → l'attribution ne renvoie rien ;
   - [ ] deux attributions concurrentes (deux sessions) → deux codes différents ;
@@ -192,6 +192,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 **T1.3 — Défaut existant corrigé.** Le repli de `claim_campaign_prize_coupon` lisait `prize_templates.item_value`, **colonne inexistante** : la fonction levait une erreur dès qu'aucun code n'était disponible (y compris pour un lot sans aucun code). `select-prize` avalait l'erreur (`coupon claim failed`) et renvoyait donc `coupon: null`, ce qui masquait le problème. Le bloc mort est retiré : la fonction renvoie proprement `NULL`. Le « code unique partagé » n'a donc jamais existé ; la ligne correspondante du « Hors périmètre » du plan est sans objet.
 
 **T1.6 — Application locale.** `npx supabase db reset` : 1ʳᵉ exécution en échec sans détail (`error running container`, transitoire), 2ᵉ exécution (`--debug`) complète, migration appliquée ; `npm run db:seed` OK ; `npm run backend:probe` : 18/18.
+
+**T1.5 / T1.7 — Contrôle ajouté.** La sonde a montré qu'un membre (même `viewer`) pouvait modifier `entries.delivery_status` **directement** (politique existante `update_org_entries`). Ajout d'un trigger `guard_entry_delivery_status` : seul `set_entry_delivery_status` (SECURITY DEFINER) peut changer ces deux colonnes. Écart avec le plan : la sonde est un script Node (`scripts/backend/rewards-probe.mjs`, `npm run backend:rewards`) et non un fichier SQL, pour tester la concurrence réelle (`Promise.all`) et des utilisateurs réellement connectés. Le trou plus large de `update_org_entries` (un membre peut modifier `is_winner`, `prize_id`…) existe déjà et sort du périmètre : à traiter avec le correctif de sécurité de `analyse-organisations.md`.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 
