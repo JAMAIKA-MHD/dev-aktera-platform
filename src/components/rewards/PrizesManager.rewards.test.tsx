@@ -18,6 +18,20 @@ vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ profile: { role: state.role } }),
 }));
 vi.mock("../common/ImageUploader", () => ({ ImageUploader: () => null }));
+vi.mock("../../services/deliveryService", () => ({
+  fetchPhysicalWinners: vi.fn().mockResolvedValue([
+    {
+      entryId: "e1",
+      phoneNumber: "0551111111",
+      participantName: "Ali",
+      prizeName: "Phone case",
+      wonAt: "2026-10-12T10:00:00Z",
+      deliveryStatus: "not_delivered",
+      deliveredAt: null,
+    },
+  ]),
+  setDeliveryStatus: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("../../hooks/useInventoryManager", () => ({
   useInventoryManager: () => ({
     templateItems: state.items,
@@ -159,5 +173,37 @@ describe("Reward Library, digital code modal", () => {
         .disabled,
     ).toBe(true);
     expect(screen.queryByLabelText("Expiry for all codes")).toBeNull();
+  });
+});
+
+describe("Reward Library, physical reward modal", () => {
+  const physical: PrizeTemplate = {
+    ...voucher,
+    id: "t2",
+    name: "Branded cap",
+    category: "physical",
+  };
+
+  const openPhysical = async (role: "manager" | "viewer") => {
+    state.role = role;
+    render(
+      <PrizesManager {...props} prizes={[physical]} organizationId="org1" />,
+    );
+    fireEvent.click(screen.getByText("Branded cap"));
+    await screen.findByText("Winners & delivery");
+  };
+
+  it("lists the winners with a delivery status, and no expiry column", async () => {
+    await openPhysical("manager");
+    expect(await screen.findByText("Ali")).toBeTruthy();
+    expect(screen.getByLabelText("Delivery status of Ali")).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Expires" })).toBeNull();
+    expect(screen.queryByText(/available ·/)).toBeNull();
+  });
+
+  it("is read-only for a viewer", async () => {
+    await openPhysical("viewer");
+    await screen.findByText("Ali");
+    expect(screen.queryByLabelText("Delivery status of Ali")).toBeNull();
   });
 });

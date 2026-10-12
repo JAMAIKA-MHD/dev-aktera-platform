@@ -28,6 +28,7 @@ import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useAuth } from "../contexts/AuthContext";
 import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
 import { CodeStockSummary } from "./rewards/CodeStockSummary";
+import { PhysicalDeliveryPanel } from "./rewards/PhysicalDeliveryPanel";
 import {
   parseCSVFile,
   parseExcelFile,
@@ -75,7 +76,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { profile } = useAuth();
-  // A viewer reads; everyone else may set expiry dates.
+  // A viewer reads; everyone else may set expiry dates and delivery statuses.
   const canEditExpiry = profile?.role !== "viewer";
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -1207,6 +1208,14 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                       onlyWithoutDate,
                     )
                   }
+                />
+              )}
+
+              {activeCodesTemplate.category === "physical" && (
+                <PhysicalDeliveryPanel
+                  organizationId={organizationId}
+                  templateId={activeCodesTemplate.id}
+                  canEdit={canEditExpiry}
                 />
               )}
 

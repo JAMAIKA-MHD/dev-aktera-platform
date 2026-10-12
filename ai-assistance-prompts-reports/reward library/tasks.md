@@ -131,7 +131,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
 - [x] **T4.3 Résumé de stock du lot.** Dans la fiche d'un lot numérique : « X available · Y used ·
       Z expired », et un avertissement visible quand `available = 0` ou quand l'allocation d'une
       campagne dépasse les codes disponibles (« this reward will stop being drawn when codes run out »).
-- [ ] **T4.4 Panneau « Winners & delivery ».** Pour un lot `physical` : liste des gagnants (nom,
+- [x] **T4.4 Panneau « Winners & delivery ».** Pour un lot `physical` : liste des gagnants (nom,
       téléphone, date, statut) avec un sélecteur `Not delivered / Delivered` par ligne ; changement
       immédiat via `deliveryService` avec état de chargement par ligne, retour d'erreur lisible et
       annulation du changement affiché en cas d'échec. Masquer le contrôle (lecture seule) pour le
