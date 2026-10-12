@@ -43,7 +43,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       en recopiant la version actuelle (`20260929150000_claim_coupon_without_duplicates.sql`) et en
       ajoutant **uniquement** la condition d'expiration dans la sélection (`FOR UPDATE SKIP LOCKED`
       conservé). Re-`REVOKE`/`GRANT` à `service_role`.
-- [ ] **T1.4 Tirage : exclure un lot à codes épuisé.** Dans les **deux** boucles de candidats, ajouter
+- [x] **T1.4 Tirage : exclure un lot à codes épuisé.** Dans les **deux** boucles de candidats, ajouter
       la règle du plan §4.3 : un lot est éligible si (a) son modèle n'a **aucun** code chargé, ou
       (b) il existe au moins un code attribuable. Recopier la fonction à l'identique pour le reste
       (règle 2). Ne pas changer sa signature ni ses `GRANT`.
