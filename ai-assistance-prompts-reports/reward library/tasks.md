@@ -128,7 +128,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
       grisée. Saisie de la date = **fin de journée à Alger** (23:59:59, `Africa/Algiers`) convertie en
       UTC pour la base. Action « Set expiry for all codes » (option : seulement ceux sans date).
       Disponible pour les lots `voucher` uniquement.
-- [ ] **T4.3 Résumé de stock du lot.** Dans la fiche d'un lot numérique : « X available · Y used ·
+- [x] **T4.3 Résumé de stock du lot.** Dans la fiche d'un lot numérique : « X available · Y used ·
       Z expired », et un avertissement visible quand `available = 0` ou quand l'allocation d'une
       campagne dépasse les codes disponibles (« this reward will stop being drawn when codes run out »).
 - [ ] **T4.4 Panneau « Winners & delivery ».** Pour un lot `physical` : liste des gagnants (nom,

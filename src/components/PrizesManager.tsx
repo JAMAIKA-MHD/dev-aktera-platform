@@ -27,6 +27,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useAuth } from "../contexts/AuthContext";
 import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
+import { CodeStockSummary } from "./rewards/CodeStockSummary";
 import {
   parseCSVFile,
   parseExcelFile,
@@ -125,6 +126,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     loadTemplateItems,
     updateSingleItemValue,
     updateItemExpiry,
+    setExpiryForAll,
+    codeCounts,
     validateImport,
     resolveConflict,
     executeImport,
@@ -1185,6 +1188,26 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     Dismiss
                   </button>
                 </div>
+              )}
+
+              {activeCodesTemplate.category === "voucher" && !codesLoading && (
+                <CodeStockSummary
+                  counts={codeCounts}
+                  remainingToWin={Math.max(
+                    0,
+                    activeCodesTemplate.allocatedStock -
+                      (activeCodesTemplate.quantityWonCount ?? 0),
+                  )}
+                  canEdit={canEditExpiry}
+                  busy={codesSaving}
+                  onApplyExpiry={(expiresAt, onlyWithoutDate) =>
+                    setExpiryForAll(
+                      activeCodesTemplate,
+                      expiresAt,
+                      onlyWithoutDate,
+                    )
+                  }
+                />
               )}
 
               {/* Action Toolbar */}
