@@ -1,4 +1,4 @@
-import { PrizesManager } from "../../components/PrizesManager";
+import { RewardLibrary } from "../../components/rewards/RewardLibrary";
 import { useDashboard } from "../DashboardContext";
 
 export default function PrizesPage() {
@@ -12,7 +12,7 @@ export default function PrizesPage() {
     refetchPrizes,
   } = useDashboard();
   return (
-    <PrizesManager
+    <RewardLibrary
       prizes={prizes}
       campaigns={campaigns}
       organizationId={orgId}

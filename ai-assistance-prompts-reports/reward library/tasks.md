@@ -119,7 +119,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux dans `PrizesManager.tsx`
 (règle 21).
 
-- [ ] **T4.1 Sélecteur Local / Partner.** Deux onglets en haut de la Reward Library. « Local Library »
+- [x] **T4.1 Sélecteur Local / Partner.** Deux onglets en haut de la Reward Library. « Local Library »
       affiche exactement l'écran actuel. « Partner Library » affiche `PartnerLibraryComingSoon`
       (nouveau composant) : cartes Chargily et Gifty, badge « Coming soon », texte court, rien de
       cliquable, aucun appel réseau.
