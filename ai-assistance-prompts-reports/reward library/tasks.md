@@ -102,7 +102,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 - [x] **T3.3 Compteurs de disponibilité.** Dans le mapping, calculer pour chaque lot : codes
       disponibles / utilisés / expirés (pour l'affichage uniquement). Ne pas changer le sens des
       champs existants (`availableStock`, `allocatedStock`…).
-- [ ] **T3.4 `src/services/deliveryService.ts`.** (a) `fetchPhysicalWinners(organizationId, templateId?)` :
+- [x] **T3.4 `src/services/deliveryService.ts`.** (a) `fetchPhysicalWinners(organizationId, templateId?)` :
       lecture directe de `entries` (RLS par organisation) avec jointure sur `prizes` et
       `prize_templates` filtrée sur `category = 'physical'` et `is_winner = true`, triée par date ;
       (b) `setDeliveryStatus(entryId, status)` : appel de la RPC, erreur propagée avec un message
