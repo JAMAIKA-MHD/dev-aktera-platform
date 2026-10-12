@@ -28,6 +28,12 @@ import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useAuth } from "../contexts/AuthContext";
 import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
 import { CodeStockSummary } from "./rewards/CodeStockSummary";
+import { RewardTypeFilter } from "./rewards/RewardTypeFilter";
+import {
+  REWARD_CARD_THEME,
+  matchesRewardType,
+  type RewardTypeFilterValue,
+} from "./rewards/rewardCardTheme";
 import { PhysicalDeliveryPanel } from "./rewards/PhysicalDeliveryPanel";
 import {
   parseCSVFile,
@@ -80,6 +86,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const canEditExpiry = profile?.role !== "viewer";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<RewardTypeFilterValue>("all");
   const [showCreator, setShowCreator] = useState(false);
   const [expandedPrizeId, setExpandedPrizeId] = useState<string | null>(null);
   const [activeCodesTemplate, setActiveCodesTemplate] =
@@ -138,13 +145,24 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
   const filteredPrizes = useMemo(
     () =>
-      prizes.filter((prize) =>
-        [prize.name, prize.description, prize.category, prize.itemValue]
-          .join(" ")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()),
+      prizes.filter(
+        (prize) =>
+          matchesRewardType(prize, typeFilter) &&
+          [prize.name, prize.description, prize.category, prize.itemValue]
+            .join(" ")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()),
       ),
-    [prizes, searchTerm],
+    [prizes, searchTerm, typeFilter],
+  );
+
+  const typeCounts = useMemo(
+    () => ({
+      all: prizes.length,
+      voucher: prizes.filter((p) => p.category === "voucher").length,
+      physical: prizes.filter((p) => p.category === "physical").length,
+    }),
+    [prizes],
   );
 
   const resetForm = () => {
@@ -705,19 +723,26 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         </motion.form>
       )}
 
-      {/* Filter Search Input */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Filter rewards by title or category..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={`w-full rounded-2xl pl-11 pr-5 py-2.5 text-xs sm:text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm border ${
-            isDark
-              ? "bg-[#151E30] border-slate-800 text-white placeholder-slate-500"
-              : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
-          }`}
+      {/* Filter: search + reward type (all by default) */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-4 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Filter rewards by title or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`w-full rounded-2xl pl-11 pr-5 py-2.5 text-xs sm:text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm border ${
+              isDark
+                ? "bg-[#151E30] border-slate-800 text-white placeholder-slate-500"
+                : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+            }`}
+          />
+        </div>
+        <RewardTypeFilter
+          value={typeFilter}
+          onChange={setTypeFilter}
+          counts={typeCounts}
         />
       </div>
 
@@ -726,6 +751,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         {filteredPrizes.map((prize) => {
           const isDeleteBlocked = (prize.campaignUsageCount ?? 0) > 0;
           const isExpanded = expandedPrizeId === prize.id;
+          const theme = REWARD_CARD_THEME[prize.category];
+          const TypeIcon = theme.icon;
 
           const linkedCampaigns = campaigns.filter((camp) =>
             camp.prizes?.some((p) => p.templateId === prize.id),
@@ -750,21 +777,26 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
               onClick={() => handleOpenCodesModal(prize)}
-              className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer ${
+              className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer min-w-0 ${theme.hoverBorder} ${
                 isDark
-                  ? "bg-[#151E30] border-slate-800 text-white hover:border-emerald-500/50"
-                  : "bg-white border-slate-200 text-slate-900 hover:border-emerald-500/50"
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
               }`}
             >
               {/* TOP BANNER & MAIN TICKET ROW */}
               <div className="flex items-stretch w-full relative">
                 {/* 1. LEFT MAIN COLUMN */}
-                <div className="flex-1 flex flex-col justify-between">
-                  {/* Left Green Header */}
-                  <div className="bg-emerald-600 text-white px-3.5 py-2 select-none border-b border-emerald-700/40">
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  {/* Type header: color and icon tell a digital code from a physical reward */}
+                  <div
+                    className={`${theme.header} text-white px-3.5 py-2 select-none border-b flex items-center gap-2 min-w-0`}
+                  >
+                    <TypeIcon
+                      className="w-4 h-4 shrink-0 stroke-[2.2]"
+                      aria-hidden="true"
+                    />
                     <span className="font-black text-xs sm:text-sm tracking-wide block truncate">
-                      Reward Library{" "}
-                      {prize.category === "voucher" ? "Voucher" : "Item"}
+                      {theme.label}
                     </span>
                   </div>
 
@@ -775,19 +807,19 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     }`}
                   >
                     {/* Category & Value + Action Buttons (Eye, Pencil, Trash2) */}
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4
-                          className={`font-black text-xs sm:text-sm tracking-wider uppercase ${
-                            isDark ? "text-slate-200" : "text-slate-800"
-                          }`}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${theme.pill}`}
                         >
+                          <TypeIcon className="w-3 h-3" aria-hidden="true" />
                           {prize.category === "voucher"
-                            ? "VOUCHER"
-                            : "PHYSICAL"}
-                        </h4>
+                            ? "Voucher"
+                            : "Physical"}
+                        </span>
                         <p
-                          className={`text-[10px] sm:text-xs font-bold uppercase mt-0.5 ${
+                          title={prize.itemValue || undefined}
+                          className={`text-[10px] sm:text-xs font-bold uppercase mt-1.5 truncate ${
                             isDark ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
@@ -797,7 +829,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                       {/* Action Buttons Row */}
                       <div
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Eye Toggle Button */}
@@ -868,9 +900,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     </div>
 
                     {/* Reward Name */}
-                    <div>
+                    <div className="min-w-0">
                       <h3
-                        className={`font-black text-sm sm:text-base lg:text-lg uppercase leading-tight truncate ${
+                        title={prize.name}
+                        className={`font-black text-sm sm:text-base lg:text-lg uppercase leading-tight line-clamp-2 [overflow-wrap:anywhere] ${
                           isDark ? "text-white" : "text-slate-900"
                         }`}
                       >
@@ -916,7 +949,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         >
                           AVAILABLE
                         </span>
-                        <span className="text-xs sm:text-sm font-black text-emerald-500 mt-0.5 block">
+                        <span
+                          className={`text-xs sm:text-sm font-black ${theme.accentText} mt-0.5 block`}
+                        >
                           {prize.availableStock.toLocaleString()}
                         </span>
                       </div>
@@ -926,7 +961,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                 {/* 2. RIGHT STUB COLUMN (Scaled 25% smaller) */}
                 <div
-                  className={`w-21 sm:w-24 flex flex-col justify-between select-none border-l-2 border-dashed relative ${
+                  className={`w-21 sm:w-24 shrink-0 flex flex-col justify-between select-none border-l-2 border-dashed relative ${
                     isDark
                       ? "border-slate-700 bg-slate-900/50"
                       : "border-slate-300 bg-slate-50"
@@ -947,7 +982,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   ></div>
 
                   {/* Right Green Stub Header */}
-                  <div className="bg-emerald-700/40 text-white px-2 py-2 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider border-b border-emerald-700/40">
+                  <div
+                    className={`${theme.stubHeader} text-white px-2 py-2 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider border-b`}
+                  >
                     <div className="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
                       <Droplet className="w-2 h-2 fill-white text-white" />
                     </div>
@@ -958,7 +995,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   <div className="flex-1 p-3 sm:p-3.5 flex flex-col items-center justify-between text-center">
                     {/* Big Stock Number */}
                     <div className="my-auto text-center">
-                      <h3 className="text-3xl sm:text-4xl font-black text-emerald-500 leading-none">
+                      <h3
+                        className={`text-3xl sm:text-4xl font-black ${theme.accentText} leading-none`}
+                      >
                         {prize.availableStock > 0 ? prize.availableStock : "0"}
                       </h3>
                       <span
@@ -966,39 +1005,50 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                           isDark ? "text-slate-400" : "text-slate-500"
                         }`}
                       >
-                        STOCK
+                        {theme.unit}
                       </span>
                     </div>
 
-                    {/* Realistic SVG Barcode */}
-                    <div className="w-full mt-1.5 flex flex-col items-center">
-                      <svg
-                        viewBox="0 0 80 28"
-                        className={`w-full h-6 fill-current ${
-                          isDark ? "text-slate-400" : "text-slate-800"
-                        }`}
-                      >
-                        <rect x="0" y="0" width="3" height="28" />
-                        <rect x="5" y="0" width="1" height="28" />
-                        <rect x="8" y="0" width="4" height="28" />
-                        <rect x="14" y="0" width="2" height="28" />
-                        <rect x="18" y="0" width="1" height="28" />
-                        <rect x="21" y="0" width="3" height="28" />
-                        <rect x="26" y="0" width="1" height="28" />
-                        <rect x="29" y="0" width="4" height="28" />
-                        <rect x="35" y="0" width="2" height="28" />
-                        <rect x="39" y="0" width="1" height="28" />
-                        <rect x="42" y="0" width="3" height="28" />
-                        <rect x="47" y="0" width="2" height="28" />
-                        <rect x="51" y="0" width="1" height="28" />
-                        <rect x="54" y="0" width="4" height="28" />
-                        <rect x="60" y="0" width="1" height="28" />
-                        <rect x="63" y="0" width="3" height="28" />
-                        <rect x="68" y="0" width="2" height="28" />
-                        <rect x="72" y="0" width="4" height="28" />
-                        <rect x="78" y="0" width="2" height="28" />
-                      </svg>
-                    </div>
+                    {prize.category === "physical" ? (
+                      <div className="w-full mt-1.5 flex flex-col items-center">
+                        <TypeIcon
+                          className={`w-6 h-6 ${theme.accentText} stroke-[1.6]`}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Realistic SVG Barcode */}
+                        <div className="w-full mt-1.5 flex flex-col items-center">
+                          <svg
+                            viewBox="0 0 80 28"
+                            className={`w-full h-6 fill-current ${
+                              isDark ? "text-slate-400" : "text-slate-800"
+                            }`}
+                          >
+                            <rect x="0" y="0" width="3" height="28" />
+                            <rect x="5" y="0" width="1" height="28" />
+                            <rect x="8" y="0" width="4" height="28" />
+                            <rect x="14" y="0" width="2" height="28" />
+                            <rect x="18" y="0" width="1" height="28" />
+                            <rect x="21" y="0" width="3" height="28" />
+                            <rect x="26" y="0" width="1" height="28" />
+                            <rect x="29" y="0" width="4" height="28" />
+                            <rect x="35" y="0" width="2" height="28" />
+                            <rect x="39" y="0" width="1" height="28" />
+                            <rect x="42" y="0" width="3" height="28" />
+                            <rect x="47" y="0" width="2" height="28" />
+                            <rect x="51" y="0" width="1" height="28" />
+                            <rect x="54" y="0" width="4" height="28" />
+                            <rect x="60" y="0" width="1" height="28" />
+                            <rect x="63" y="0" width="3" height="28" />
+                            <rect x="68" y="0" width="2" height="28" />
+                            <rect x="72" y="0" width="4" height="28" />
+                            <rect x="78" y="0" width="2" height="28" />
+                          </svg>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

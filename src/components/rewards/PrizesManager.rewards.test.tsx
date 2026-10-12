@@ -207,3 +207,75 @@ describe("Reward Library, physical reward modal", () => {
     expect(screen.queryByLabelText("Delivery status of Ali")).toBeNull();
   });
 });
+
+describe("Reward Library, cards", () => {
+  const longName =
+    "SUPERCALIFRAGILISTIC-EXTRA-LONG-REWARD-NAME-WITHOUT-ANY-SPACE-TO-BREAK-ON-A-SMALL-CARD";
+  const prizes: PrizeTemplate[] = [
+    { ...voucher, id: "v1", name: "Ooredoo 500 DA" },
+    { ...voucher, id: "p1", name: "Branded cap", category: "physical" },
+    { ...voucher, id: "v2", name: longName },
+  ];
+
+  const renderCards = () =>
+    render(<PrizesManager {...props} prizes={prizes} />);
+  const visible = (name: string) => screen.queryByText(name) !== null;
+
+  it("tells a digital code from a physical reward on the card", () => {
+    renderCards();
+    expect(screen.getAllByText("Digital code")).toHaveLength(2);
+    expect(screen.getAllByText("Physical reward")).toHaveLength(1);
+  });
+
+  it("shows every reward by default and filters by type", () => {
+    renderCards();
+    expect(visible("Ooredoo 500 DA")).toBe(true);
+    expect(visible("Branded cap")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /Digital codes/ }));
+    expect(visible("Ooredoo 500 DA")).toBe(true);
+    expect(visible("Branded cap")).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: /Physical/ }));
+    expect(visible("Ooredoo 500 DA")).toBe(false);
+    expect(visible("Branded cap")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /^All/ }));
+    expect(visible("Ooredoo 500 DA")).toBe(true);
+    expect(visible("Branded cap")).toBe(true);
+  });
+
+  it("counts the rewards of each type on the filter", () => {
+    renderCards();
+    expect(
+      screen.getByRole("button", { name: /Digital codes/ }).textContent,
+    ).toBe("Digital codes2");
+    expect(screen.getByRole("button", { name: /Physical/ }).textContent).toBe(
+      "Physical1",
+    );
+    expect(screen.getByRole("button", { name: /^All/ }).textContent).toBe(
+      "All3",
+    );
+  });
+
+  it("combines the type filter with the search", () => {
+    renderCards();
+    fireEvent.change(screen.getByPlaceholderText(/Filter rewards/), {
+      target: { value: "cap" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Digital codes/ }));
+    expect(visible("Branded cap")).toBe(false);
+    expect(screen.queryAllByText("Digital code")).toHaveLength(0);
+  });
+
+  it("keeps a very long name inside its card: wraps anywhere, two lines at most, full name on hover", () => {
+    renderCards();
+    const name = screen.getByText(longName);
+    expect(name.className).toContain("line-clamp-2");
+    expect(name.className).toContain("[overflow-wrap:anywhere]");
+    expect(name.getAttribute("title")).toBe(longName);
+    // Every flex ancestor up to the card may shrink, so the grid column never widens.
+    const card = name.closest(".overflow-hidden");
+    expect(card?.className).toContain("min-w-0");
+  });
+});
