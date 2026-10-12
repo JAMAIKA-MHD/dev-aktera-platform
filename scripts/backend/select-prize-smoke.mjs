@@ -184,13 +184,18 @@ async function setup() {
   const soldOut = await campaign("soldout", {}, 1);
 
   // Rewards of the Reward Library rules: one without any code, one whose only code expired.
-  async function extraTemplate(key, expiredCode) {
+  async function extraTemplate(
+    key,
+    expiredCode,
+    category = "voucher",
+    validCodes = 0,
+  ) {
     const { data, error: extraError } = await admin
       .from("prize_templates")
       .insert({
         organization_id: org,
         name: `smoke ${RUN} ${key}`,
-        category: "voucher",
+        category,
         stock_quantity: 100,
       })
       .select("id")
@@ -209,6 +214,17 @@ async function setup() {
         });
       if (itemError) throw itemError;
     }
+    for (let i = 1; i <= validCodes; i += 1) {
+      const { error: validError } = await admin
+        .from("prize_template_items")
+        .insert({
+          prize_template_id: data.id,
+          organization_id: org,
+          item_index: i + 1,
+          item_value: `VALID-${RUN}-${i}`,
+        });
+      if (validError) throw validError;
+    }
     return data.id;
   }
   const noCode = await campaign(
@@ -222,6 +238,21 @@ async function setup() {
     {},
     5,
     await extraTemplate("expired", true),
+  );
+
+  // One expired code and one valid code, three wins expected: the expired one is never given.
+  const mixed = await campaign(
+    "mixed",
+    {},
+    3,
+    await extraTemplate("mixed", true, "voucher", 1),
+  );
+  // A physical reward: a winner gets no code, the delivery status starts at not_delivered.
+  const physical = await campaign(
+    "physical",
+    {},
+    3,
+    await extraTemplate("physical", false, "physical"),
   );
 
   const questionId = randomUUID();
@@ -256,6 +287,8 @@ async function setup() {
     soldOut,
     noCode,
     allExpired,
+    mixed,
+    physical,
     questionId,
   };
 }
@@ -536,6 +569,48 @@ function scenarios(f) {
             broken.length === 0 &&
             prize.quantity_won === 0,
           detail: `${winners.length}/10 winners, quantity_won ${prize.quantity_won}, statuses ${[...new Set(results.map((r) => r.status))].join(",")}`,
+        };
+      },
+    },
+    {
+      name: "T13 3 wins expected, one valid code and one expired → 1 winner with the valid code, then nobody",
+      run: async () => {
+        const results = [];
+        for (let i = 0; i < 3; i += 1) results.push(await play(f.mixed.id));
+        const winners = results.filter((r) => r.body?.prize);
+        const codes = winners.map((r) => r.body.coupon?.code ?? null);
+        return {
+          ok:
+            winners.length === 1 &&
+            codes[0] === `VALID-${RUN}-1` &&
+            results.every((r) => r.status === 200),
+          detail: `${winners.length} winner(s), codes ${JSON.stringify(codes)}`,
+        };
+      },
+    },
+    {
+      name: "T14 physical reward → winner without code, delivery_status starts at not_delivered",
+      run: async () => {
+        const result = await play(f.physical.id);
+        if (result.status !== 200 || !result.body?.ok)
+          return {
+            ok: false,
+            detail: `HTTP ${result.status} ${JSON.stringify(result.body)}`,
+          };
+        const { data: row } = await admin
+          .from("entries")
+          .select("is_winner, delivery_status, delivered_at, metadata")
+          .eq("id", result.body.entry.id)
+          .single();
+        return {
+          ok:
+            result.body.prize?.id === f.physical.prizeId &&
+            result.body.coupon === null &&
+            row.is_winner === true &&
+            row.delivery_status === "not_delivered" &&
+            row.delivered_at === null &&
+            row.metadata?.reward_unavailable === undefined,
+          detail: `status ${row.delivery_status}, flagged ${String(row.metadata?.reward_unavailable)}`,
         };
       },
     },
