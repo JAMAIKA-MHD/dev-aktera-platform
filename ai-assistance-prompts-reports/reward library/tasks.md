@@ -139,7 +139,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
       États vide / chargement / erreur gérés.
 - [x] **T4.5 Libellés.** Tous en anglais ; si le projet passe par `t()` pour cet écran, suivre le même
       usage, sinon rester cohérent avec le fichier.
-- [ ] **T4.6 Tests Vitest/Testing Library** : onglet Partner (badges, `supabase` jamais appelé) ;
+- [x] **T4.6 Tests Vitest/Testing Library** : onglet Partner (badges, `supabase` jamais appelé) ;
       tableau des codes (badge expiré, saisie de date, date en lot) ; panneau de livraison (changer le
       statut, rollback sur erreur, lecture seule pour `viewer`, état vide).
 
