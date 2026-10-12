@@ -54,7 +54,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       Met à jour `delivery_status` et `delivered_at` (`now()` si `delivered`, `NULL` sinon).
       `REVOKE ALL … FROM PUBLIC, anon, authenticated` puis `GRANT EXECUTE … TO authenticated`.
       Messages d'erreur clairs et distincts (non autorisé / introuvable / pas un lot physique).
-- [ ] **T1.6 Application locale.** `npx supabase db reset` passe sans erreur ; le seed existant
+- [x] **T1.6 Application locale.** `npx supabase db reset` passe sans erreur ; le seed existant
       (`npm run db:seed`) fonctionne toujours.
 
 ### Tests de la phase (règle 27)
@@ -190,6 +190,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 - **Écart avec le plan :** les lignes de codes sont en **snake_case** (`TemplateItemRow` dans `inventoryService.ts` : `item_value`, `is_used`, `redeemed_at`…). Le champ d'expiration sera donc `expires_at` dans `TemplateItemRow` (T3.1/T3.2), pas `expiresAt`. Le `select(...)` de `fetchTemplateItemsService` (l.~66) doit lister `expires_at`.
 
 **T1.3 — Défaut existant corrigé.** Le repli de `claim_campaign_prize_coupon` lisait `prize_templates.item_value`, **colonne inexistante** : la fonction levait une erreur dès qu'aucun code n'était disponible (y compris pour un lot sans aucun code). `select-prize` avalait l'erreur (`coupon claim failed`) et renvoyait donc `coupon: null`, ce qui masquait le problème. Le bloc mort est retiré : la fonction renvoie proprement `NULL`. Le « code unique partagé » n'a donc jamais existé ; la ligne correspondante du « Hors périmètre » du plan est sans objet.
+
+**T1.6 — Application locale.** `npx supabase db reset` : 1ʳᵉ exécution en échec sans détail (`error running container`, transitoire), 2ᵉ exécution (`--debug`) complète, migration appliquée ; `npm run db:seed` OK ; `npm run backend:probe` : 18/18.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 
