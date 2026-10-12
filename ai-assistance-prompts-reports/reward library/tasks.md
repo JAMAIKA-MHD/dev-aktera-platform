@@ -39,7 +39,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       sur ligne : vrai si `item_value` non vide, aucune ligne dans `coupon_redemptions` pour cet
       item, et `expires_at IS NULL OR expires_at > now()`. `SET search_path = public`, `REVOKE`
       puis `GRANT EXECUTE` à `service_role` (règle 11).
-- [ ] **T1.3 Attribution filtrée.** `CREATE OR REPLACE FUNCTION public.claim_campaign_prize_coupon`
+- [x] **T1.3 Attribution filtrée.** `CREATE OR REPLACE FUNCTION public.claim_campaign_prize_coupon`
       en recopiant la version actuelle (`20260929150000_claim_coupon_without_duplicates.sql`) et en
       ajoutant **uniquement** la condition d'expiration dans la sélection (`FOR UPDATE SKIP LOCKED`
       conservé). Re-`REVOKE`/`GRANT` à `service_role`.
@@ -188,6 +188,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 - Tableau des codes (~l.1366-1440, colonnes `#`, `Voucher / Unique Code`, `Status`, `Actions`) → colonne « Expires ».
 - Cartes de lots (~l.740-790, `prize.category === "voucher" ? "Voucher" : "Item"`) et fenêtre de détail d'un lot → résumé de stock et panneau de livraison.
 - **Écart avec le plan :** les lignes de codes sont en **snake_case** (`TemplateItemRow` dans `inventoryService.ts` : `item_value`, `is_used`, `redeemed_at`…). Le champ d'expiration sera donc `expires_at` dans `TemplateItemRow` (T3.1/T3.2), pas `expiresAt`. Le `select(...)` de `fetchTemplateItemsService` (l.~66) doit lister `expires_at`.
+
+**T1.3 — Défaut existant corrigé.** Le repli de `claim_campaign_prize_coupon` lisait `prize_templates.item_value`, **colonne inexistante** : la fonction levait une erreur dès qu'aucun code n'était disponible (y compris pour un lot sans aucun code). `select-prize` avalait l'erreur (`coupon claim failed`) et renvoyait donc `coupon: null`, ce qui masquait le problème. Le bloc mort est retiré : la fonction renvoie proprement `NULL`. Le « code unique partagé » n'a donc jamais existé ; la ligne correspondante du « Hors périmètre » du plan est sans objet.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 
