@@ -161,7 +161,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
       codes ; (2) un lot physique : panneau « Winners & delivery », passer à `Delivered`, recharger, le
       statut est conservé, un compte `viewer` est en lecture seule ; (3) onglet « Partner Library » :
       « Coming soon », rien de cliquable ; (4) l'écran « You Won! » côté joueur pour un lot sans code.
-- [ ] **T5.4 Régression** : import CSV, génération de codes, détection de doublons, allocation à une
+- [x] **T5.4 Régression** : import CSV, génération de codes, détection de doublons, allocation à une
       campagne, détail d'une campagne et analytics fonctionnent comme avant.
 - [x] **T5.5 Documentation.** Ajouter au runbook `ai-assistance-prompts-reports/backend/deploiement.md`
       l'ordre de déploiement de cette migration (migration → Edge Function → front). Mettre à jour
