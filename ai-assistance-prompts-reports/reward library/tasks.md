@@ -28,7 +28,7 @@
 
 Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 
-- [ ] **T1.1 Colonnes.**
+- [x] **T1.1 Colonnes.**
   - `prize_template_items.expires_at timestamptz NULL`.
   - `entries.delivery_status text NOT NULL DEFAULT 'not_delivered'` avec
     `CHECK (delivery_status IN ('not_delivered','delivered'))`.
