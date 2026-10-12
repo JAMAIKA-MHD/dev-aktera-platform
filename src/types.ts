@@ -89,6 +89,23 @@ export interface PrizeTemplateItem {
 }
 
 /**
+ * Delivery of a physical reward. The brand hands the reward over itself; AKTERA only records
+ * whether it did (entries.delivery_status).
+ */
+export type DeliveryStatus = "not_delivered" | "delivered";
+
+/** A winner of a physical reward, as listed in the Reward Library's delivery panel. */
+export interface PhysicalWinner {
+  entryId: string;
+  phoneNumber: string | null;
+  participantName: string | null;
+  prizeName: string;
+  wonAt: string;
+  deliveryStatus: DeliveryStatus;
+  deliveredAt: string | null;
+}
+
+/**
  * 5. Prize Inventory Quotas Entity (prize_inventory)
  * Atomic locked state of stock assigned to active campaigns.
  */

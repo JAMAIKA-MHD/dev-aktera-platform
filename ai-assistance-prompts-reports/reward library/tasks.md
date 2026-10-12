@@ -91,7 +91,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 
 ## P3 — Front : types, services, données
 
-- [ ] **T3.1 Types.** `src/types.ts` : `PrizeTemplateItem.expiresAt?: string | null` ; un type
+- [x] **T3.1 Types.** `src/types.ts` : `PrizeTemplateItem.expiresAt?: string | null` ; un type
       `DeliveryStatus = "not_delivered" | "delivered"` ; `PhysicalWinner` (id d'entrée, téléphone,
       nom du participant, nom du lot, date du gain, `deliveryStatus`, `deliveredAt`).
 - [ ] **T3.2 Lecture/écriture de l'expiration.** `inventoryService.ts` et le hook
