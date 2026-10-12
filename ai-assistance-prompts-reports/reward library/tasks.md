@@ -107,7 +107,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       `prize_templates` filtrée sur `category = 'physical'` et `is_winner = true`, triée par date ;
       (b) `setDeliveryStatus(entryId, status)` : appel de la RPC, erreur propagée avec un message
       lisible.
-- [ ] **T3.5 Tests Vitest** : mapping de `expires_at`, service de livraison (succès, erreur RPC),
+- [x] **T3.5 Tests Vitest** : mapping de `expires_at`, service de livraison (succès, erreur RPC),
       date en lot (n'écrase pas une date existante par défaut).
 
 **Commits :** un par tâche, messages dans les fichiers `Pn/` correspondants.
