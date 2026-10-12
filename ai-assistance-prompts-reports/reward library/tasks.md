@@ -60,12 +60,12 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
 ### Tests de la phase (règle 27)
 
 - [x] **T1.7 Script de sonde SQL** (`scripts/probe-rewards.sql` ou intégré à `backend:probe`) :
-  - [ ] code expiré + code valide → l'attribution renvoie le valide ;
-  - [ ] seul un code expiré → l'attribution ne renvoie rien ;
-  - [ ] deux attributions concurrentes (deux sessions) → deux codes différents ;
-  - [ ] tous les codes utilisés ou expirés → le tirage ne désigne jamais ce lot (boucler ≥ 200 tirages) ;
-  - [ ] lot sans aucun code → toujours éligible (gagnant sans code possible) ;
-  - [ ] `set_entry_delivery_status` : membre OK ; `viewer` refusé ; autre organisation refusée ;
+  - [x] code expiré + code valide → l'attribution renvoie le valide ;
+  - [x] seul un code expiré → l'attribution ne renvoie rien ;
+  - [x] deux attributions concurrentes (deux sessions) → deux codes différents ;
+  - [x] tous les codes utilisés ou expirés → le tirage ne désigne jamais ce lot (boucler ≥ 200 tirages) ;
+  - [x] lot sans aucun code → toujours éligible (gagnant sans code possible) ;
+  - [x] `set_entry_delivery_status` : membre OK ; `viewer` refusé ; autre organisation refusée ;
         entrée perdante refusée ; lot numérique refusé ; `anon` refusé.
 - [x] **T1.8 Étendre `npm run backend:probe`** : `anon` ne peut appeler ni `set_entry_delivery_status`
       ni `is_code_assignable`.
@@ -81,7 +81,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       `metadata.reward_unavailable = true` sur l'entrée et `console.warn`. Pour un lot sans code,
       aucun changement (le « You Won! » sans récompense continue de marcher). Ne toucher ni aux
       codes d'erreur, ni à la forme de la réponse.
-- [ ] **T2.2 Vérifier** avec `npx supabase functions serve --env-file .env.local` puis
+- [x] **T2.2 Vérifier** avec `npx supabase functions serve --env-file .env.local` puis
       `npm run backend:smoke` : gain avec code, gain sans code, lot épuisé (pas de gain), rejeu avec
       le même `client_request_id` (réponse identique, `replayed: true`).
 
@@ -194,6 +194,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 **T1.6 — Application locale.** `npx supabase db reset` : 1ʳᵉ exécution en échec sans détail (`error running container`, transitoire), 2ᵉ exécution (`--debug`) complète, migration appliquée ; `npm run db:seed` OK ; `npm run backend:probe` : 18/18.
 
 **T1.5 / T1.7 — Contrôle ajouté.** La sonde a montré qu'un membre (même `viewer`) pouvait modifier `entries.delivery_status` **directement** (politique existante `update_org_entries`). Ajout d'un trigger `guard_entry_delivery_status` : seul `set_entry_delivery_status` (SECURITY DEFINER) peut changer ces deux colonnes. Écart avec le plan : la sonde est un script Node (`scripts/backend/rewards-probe.mjs`, `npm run backend:rewards`) et non un fichier SQL, pour tester la concurrence réelle (`Promise.all`) et des utilisateurs réellement connectés. Le trou plus large de `update_org_entries` (un membre peut modifier `is_winner`, `prize_id`…) existe déjà et sort du périmètre : à traiter avec le correctif de sécurité de `analyse-organisations.md`.
+
+**T2.1 / T2.2 — Résultats.** `npx supabase functions serve --env-file .env.local` + `npm run backend:smoke` : **13/13**. Au 1ᵉʳ lancement à froid, T8 (10 joueurs simultanés) a échoué une fois (`An invalid response was received from the upstream server`, démarrage du runtime) ; 3 relances : 11/11 puis 13/13, sans échec. Deux scénarios ajoutés au smoke : T11 (lot sans code → gagnant, `coupon: null`, entrée non marquée) et T12 (lot dont l'unique code a expiré → jamais tiré). Le marquage `reward_unavailable` a été prouvé à la main avec un trigger temporaire qui fait expirer le dernier code entre le tirage et l'attribution : gagnant sans code, `metadata.reward_unavailable = true` ; trigger et données supprimés.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 

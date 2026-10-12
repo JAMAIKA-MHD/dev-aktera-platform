@@ -76,7 +76,7 @@ async function play(campaignId, overrides = {}) {
 
 // ── Fixtures ────────────────────────────────────────────────────────────────────────────
 
-const created = { templateId: null, campaignIds: [] };
+const created = { templateId: null, extraTemplateIds: [], campaignIds: [] };
 
 async function setup() {
   const { data: anyCampaign, error } = await admin
@@ -114,7 +114,7 @@ async function setup() {
     .insert(codes);
   if (codesError) throw codesError;
 
-  async function campaign(key, fields, quantity) {
+  async function campaign(key, fields, quantity, templateId = template.id) {
     const id = randomUUID();
     const { error: campaignError } = await admin.from("campaigns").insert({
       id,
@@ -139,7 +139,7 @@ async function setup() {
       id: prizeId,
       campaign_id: id,
       organization_id: org,
-      prize_template_id: template.id,
+      prize_template_id: templateId,
       name: `smoke prize ${key}`,
       quantity,
       quantity_won: 0,
@@ -183,6 +183,47 @@ async function setup() {
   );
   const soldOut = await campaign("soldout", {}, 1);
 
+  // Rewards of the Reward Library rules: one without any code, one whose only code expired.
+  async function extraTemplate(key, expiredCode) {
+    const { data, error: extraError } = await admin
+      .from("prize_templates")
+      .insert({
+        organization_id: org,
+        name: `smoke ${RUN} ${key}`,
+        category: "voucher",
+        stock_quantity: 100,
+      })
+      .select("id")
+      .single();
+    if (extraError) throw extraError;
+    created.extraTemplateIds.push(data.id);
+    if (expiredCode) {
+      const { error: itemError } = await admin
+        .from("prize_template_items")
+        .insert({
+          prize_template_id: data.id,
+          organization_id: org,
+          item_index: 1,
+          item_value: `EXPIRED-${RUN}`,
+          expires_at: iso(-DAY),
+        });
+      if (itemError) throw itemError;
+    }
+    return data.id;
+  }
+  const noCode = await campaign(
+    "nocode",
+    {},
+    5,
+    await extraTemplate("nocode", false),
+  );
+  const allExpired = await campaign(
+    "expired",
+    {},
+    5,
+    await extraTemplate("expired", true),
+  );
+
   const questionId = randomUUID();
   const { error: questionError } = await admin.from("quiz_questions").insert({
     id: questionId,
@@ -206,7 +247,17 @@ async function setup() {
   });
   if (winnerError) throw winnerError;
 
-  return { wheel, paused, ended, hitIt, quiz, soldOut, questionId };
+  return {
+    wheel,
+    paused,
+    ended,
+    hitIt,
+    quiz,
+    soldOut,
+    noCode,
+    allExpired,
+    questionId,
+  };
 }
 
 async function cleanup() {
@@ -219,6 +270,13 @@ async function cleanup() {
     await admin.from("quiz_questions").delete().in("campaign_id", ids);
     await admin.from("prizes").delete().in("campaign_id", ids);
     await admin.from("campaigns").delete().in("id", ids);
+  }
+  for (const id of created.extraTemplateIds) {
+    await admin
+      .from("prize_template_items")
+      .delete()
+      .eq("prize_template_id", id);
+    await admin.from("prize_templates").delete().eq("id", id);
   }
   if (created.templateId) {
     await admin
@@ -431,6 +489,55 @@ function scenarios(f) {
       name: "T9 sold out → CAMPAIGN_CLOSED",
       run: async () =>
         expectError(await play(f.soldOut.id), 400, "CAMPAIGN_CLOSED"),
+    },
+    {
+      name: 'T11 reward without any code → winner ("You Won!"), no code, entry not flagged',
+      run: async () => {
+        const result = await play(f.noCode.id);
+        if (result.status !== 200 || !result.body?.ok)
+          return {
+            ok: false,
+            detail: `HTTP ${result.status} ${JSON.stringify(result.body)}`,
+          };
+        const { data: row } = await admin
+          .from("entries")
+          .select("is_winner, metadata, redeemed_coupon_value")
+          .eq("id", result.body.entry.id)
+          .single();
+        return {
+          ok:
+            result.body.prize?.id === f.noCode.prizeId &&
+            result.body.coupon === null &&
+            row.is_winner === true &&
+            row.redeemed_coupon_value === null &&
+            row.metadata?.reward_unavailable === undefined,
+          detail: `prize ${result.body.prize?.id ?? "none"}, coupon ${JSON.stringify(result.body.coupon)}, flagged ${String(row.metadata?.reward_unavailable)}`,
+        };
+      },
+    },
+    {
+      name: "T12 reward whose only code expired → never drawn (×10 players, no winner)",
+      run: async () => {
+        const results = [];
+        for (let i = 0; i < 10; i += 1)
+          results.push(await play(f.allExpired.id));
+        const winners = results.filter((r) => r.body?.prize);
+        const broken = results.filter(
+          (r) => r.status !== 200 && r.body?.code !== "CAMPAIGN_CLOSED",
+        );
+        const { data: prize } = await admin
+          .from("prizes")
+          .select("quantity_won")
+          .eq("id", f.allExpired.prizeId)
+          .single();
+        return {
+          ok:
+            winners.length === 0 &&
+            broken.length === 0 &&
+            prize.quantity_won === 0,
+          detail: `${winners.length}/10 winners, quantity_won ${prize.quantity_won}, statuses ${[...new Set(results.map((r) => r.status))].join(",")}`,
+        };
+      },
     },
   ];
 }
