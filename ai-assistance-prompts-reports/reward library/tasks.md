@@ -149,8 +149,8 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
 
 ## P5 — Vérification finale
 
-- [ ] **T5.1** `npm run verify` (lint + typecheck + tests + build) vert.
-- [ ] **T5.2** `npm run backend:probe` vert (anon et membre).
+- [x] **T5.1** `npm run verify` (lint + typecheck + tests + build) vert.
+- [x] **T5.2** `npm run backend:probe` vert (anon et membre).
 - [x] **T5.3 Parcours de bout en bout** contre la vraie Edge Function et la vraie base (`npm run backend:smoke`
       15/15 et `npm run backend:rewards` 21/21) : codes dont un expiré (T13), lot sans code → « You Won! »
       sans code (T11), lot physique → statut `not_delivered` (T14), changement de statut par un manager
@@ -166,7 +166,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
 - [x] **T5.5 Documentation.** Ajouter au runbook `ai-assistance-prompts-reports/backend/deploiement.md`
       l'ordre de déploiement de cette migration (migration → Edge Function → front). Mettre à jour
       `supabase/SEED.md` seulement si le seed est modifié.
-- [ ] **T5.6** Préparer la description de la merge request (changements, migration, compatibilité,
+- [x] **T5.6** Préparer la description de la merge request (changements, migration, compatibilité,
       comment tester). Ne pas pousser ni déployer sans demande.
 
 ---
