@@ -137,7 +137,7 @@ Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux d
       annulation du changement affiché en cas d'échec. Masquer le contrôle (lecture seule) pour le
       rôle `viewer`. Mention fixe : « You handle delivery. AKTERA only records the status. »
       États vide / chargement / erreur gérés.
-- [ ] **T4.5 Libellés.** Tous en anglais ; si le projet passe par `t()` pour cet écran, suivre le même
+- [x] **T4.5 Libellés.** Tous en anglais ; si le projet passe par `t()` pour cet écran, suivre le même
       usage, sinon rester cohérent avec le fichier.
 - [ ] **T4.6 Tests Vitest/Testing Library** : onglet Partner (badges, `supabase` jamais appelé) ;
       tableau des codes (badge expiré, saisie de date, date en lot) ; panneau de livraison (changer le
@@ -198,6 +198,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 **T2.1 / T2.2 — Résultats.** `npx supabase functions serve --env-file .env.local` + `npm run backend:smoke` : **13/13**. Au 1ᵉʳ lancement à froid, T8 (10 joueurs simultanés) a échoué une fois (`An invalid response was received from the upstream server`, démarrage du runtime) ; 3 relances : 11/11 puis 13/13, sans échec. Deux scénarios ajoutés au smoke : T11 (lot sans code → gagnant, `coupon: null`, entrée non marquée) et T12 (lot dont l'unique code a expiré → jamais tiré). Le marquage `reward_unavailable` a été prouvé à la main avec un trigger temporaire qui fait expirer le dernier code entre le tirage et l'attribution : gagnant sans code, `metadata.reward_unavailable = true` ; trigger et données supprimés.
 
 **P3 — Écarts.** (a) Les lignes de codes restent en snake_case (`TemplateItemRow.expires_at`), conformément au code existant ; `PrizeTemplateItem` de `types.ts` n'est pas utilisé et n'a pas été touché. (b) T3.3 : les compteurs disponibles / utilisés / expirés sont calculés par `computeCodeCounts` (`src/lib/codeExpiry.ts`) à partir des codes **déjà chargés** par `useInventoryManager` (lecture paginée complète, avec l'état « utilisé »), pas dans `usePrizeTemplates`, dont les requêtes sont plafonnées à 1000 lignes par PostgREST : un compteur faux au-delà serait pire que pas de compteur. (c) Les helpers de date (fin de journée à Alger ↔ UTC) sont dans `src/lib/codeExpiry.ts`. (d) Cas limite connu : remplacer un code par un import (mode « replace ») conserve l'`expires_at` de la ligne ; non traité (rare), à surveiller.
+
+**P4 — Écarts.** (a) T4.1 : le sélecteur Local / Partner est un composant enveloppe `rewards/RewardLibrary.tsx` (utilisé par `PrizesPage`), pas une modification de `PrizesManager` : l'écran local est strictement inchangé. (b) L'action « Expiry for all codes » (demandée en T4.2) vit dans `CodeStockSummary` (T4.3), avec le résumé de stock. (c) Les tests de l'interface ont été écrits avec chaque composant (et pas seulement en T4.6) ; T4.6 consiste à tout relancer ensemble : `npx vitest run src/components/rewards` → 5 fichiers, 35 tests verts, plus `dashboardRoutes.test.tsx` vert. (d) Pas de `jest-dom` dans le projet : assertions avec `toBeTruthy()` / `toBeNull()`. (e) T4.5 : libellés en anglais ; `PrizesManager` n'utilise pas `t()`, les nouveaux composants non plus (cohérence avec le fichier) ; ESLint propre sur tous les fichiers touchés ; champs avec `aria-label`/`label`, onglets avec rôles `tablist`/`tab`/`tabpanel`.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 
