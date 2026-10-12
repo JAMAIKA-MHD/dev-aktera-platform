@@ -35,7 +35,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
   - `entries.delivered_at timestamptz NULL`.
   - Index partiel utile au tirage : sur `prize_template_items(prize_template_id)` filtré sur les
     codes non attribués si absent (réutiliser `idx_prize_template_items_available` s'il suffit).
-- [ ] **T1.2 Fonction `is_code_assignable`.** Fonction SQL `STABLE` `(p_item_id uuid)` ou version
+- [x] **T1.2 Fonction `is_code_assignable`.** Fonction SQL `STABLE` `(p_item_id uuid)` ou version
       sur ligne : vrai si `item_value` non vide, aucune ligne dans `coupon_redemptions` pour cet
       item, et `expires_at IS NULL OR expires_at > now()`. `SET search_path = public`, `REVOKE`
       puis `GRANT EXECUTE` à `service_role` (règle 11).

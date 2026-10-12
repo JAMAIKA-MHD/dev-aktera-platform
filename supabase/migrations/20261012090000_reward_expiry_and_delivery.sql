@@ -33,3 +33,31 @@ DO $$ BEGIN
     CHECK (delivery_status IN ('not_delivered', 'delivered'));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- 2. The single definition of "this code can be given to a winner" --------------------------
+-- Not empty, never handed out, not expired. SECURITY INVOKER on purpose: the draw is itself
+-- invoker (a member only sees the codes of their own organization), and select-prize runs it
+-- as service_role. Nothing for anon.
+
+CREATE OR REPLACE FUNCTION public.is_code_assignable(p_item_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.prize_template_items pti
+    WHERE pti.id = p_item_id
+      AND pti.item_value IS NOT NULL
+      AND trim(pti.item_value) <> ''
+      AND (pti.expires_at IS NULL OR pti.expires_at > now())
+      AND NOT EXISTS (
+        SELECT 1 FROM public.coupon_redemptions cr
+        WHERE cr.prize_template_item_id = pti.id
+      )
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_code_assignable(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.is_code_assignable(uuid) TO authenticated, service_role;
