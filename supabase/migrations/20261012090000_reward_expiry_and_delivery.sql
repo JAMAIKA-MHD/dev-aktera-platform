@@ -417,3 +417,65 @@ $$;
 
 REVOKE ALL ON FUNCTION public.draw_and_claim_campaign_prize(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.draw_and_claim_campaign_prize(uuid, boolean) TO authenticated, service_role;
+
+-- 5. Delivery status of a physical reward: the only way to change it ---------------------------
+-- AKTERA does not manage delivery; the brand records whether it handed the reward over.
+-- Checks: signed in, valid status, winning entry of a physical reward, member of the entry's
+-- organization, not a viewer.
+
+CREATE OR REPLACE FUNCTION public.set_entry_delivery_status(
+  p_entry_id uuid,
+  p_status text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_org_id uuid;
+  v_is_winner boolean;
+  v_category text;
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication is required.' USING ERRCODE = '28000';
+  END IF;
+
+  IF p_status IS NULL OR p_status NOT IN ('not_delivered', 'delivered') THEN
+    RAISE EXCEPTION 'Invalid delivery status.' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT e.organization_id, e.is_winner, pt.category
+  INTO v_org_id, v_is_winner, v_category
+  FROM public.entries e
+  LEFT JOIN public.prizes p ON p.id = e.prize_id
+  LEFT JOIN public.prize_templates pt ON pt.id = p.prize_template_id
+  WHERE e.id = p_entry_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Entry not found.' USING ERRCODE = 'P0002';
+  END IF;
+
+  SELECT pr.role INTO v_role
+  FROM public.profiles pr
+  WHERE pr.id = v_uid AND pr.organization_id = v_org_id;
+
+  IF v_role IS NULL OR v_role = 'viewer' THEN
+    RAISE EXCEPTION 'You are not allowed to update this delivery status.' USING ERRCODE = '42501';
+  END IF;
+
+  IF NOT COALESCE(v_is_winner, false) OR v_category IS DISTINCT FROM 'physical' THEN
+    RAISE EXCEPTION 'Delivery status only applies to a winner of a physical reward.' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.entries
+  SET delivery_status = p_status,
+      delivered_at = CASE WHEN p_status = 'delivered' THEN now() ELSE NULL END
+  WHERE id = p_entry_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.set_entry_delivery_status(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.set_entry_delivery_status(uuid, text) TO authenticated;

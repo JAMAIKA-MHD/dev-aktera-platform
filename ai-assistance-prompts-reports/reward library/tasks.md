@@ -47,7 +47,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       la règle du plan §4.3 : un lot est éligible si (a) son modèle n'a **aucun** code chargé, ou
       (b) il existe au moins un code attribuable. Recopier la fonction à l'identique pour le reste
       (règle 2). Ne pas changer sa signature ni ses `GRANT`.
-- [ ] **T1.5 RPC `set_entry_delivery_status(p_entry_id uuid, p_status text)`.** `SECURITY DEFINER`,
+- [x] **T1.5 RPC `set_entry_delivery_status(p_entry_id uuid, p_status text)`.** `SECURITY DEFINER`,
       `SET search_path = public`. Contrôles dans cet ordre : `auth.uid()` non nul ; statut dans la
       liste ; entrée trouvée et `is_winner = true` ; lot de catégorie `physical` (via
       `prizes → prize_templates`) ; appelant membre de `entries.organization_id` ; rôle ≠ `viewer`.
