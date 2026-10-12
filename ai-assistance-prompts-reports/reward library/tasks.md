@@ -99,7 +99,7 @@ Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
       fonctions : mettre à jour la date d'un code ; appliquer une date à tous les codes d'un lot
       (option « seulement ceux sans date »). Validation : date valide ; un avertissement (pas un
       blocage) si la date est passée.
-- [ ] **T3.3 Compteurs de disponibilité.** Dans le mapping, calculer pour chaque lot : codes
+- [x] **T3.3 Compteurs de disponibilité.** Dans le mapping, calculer pour chaque lot : codes
       disponibles / utilisés / expirés (pour l'affichage uniquement). Ne pas changer le sens des
       champs existants (`availableStock`, `allocatedStock`…).
 - [ ] **T3.4 `src/services/deliveryService.ts`.** (a) `fetchPhysicalWinners(organizationId, templateId?)` :
@@ -196,6 +196,8 @@ _(à remplir pendant le travail : tout fait qui contredit le plan, avec la déci
 **T1.5 / T1.7 — Contrôle ajouté.** La sonde a montré qu'un membre (même `viewer`) pouvait modifier `entries.delivery_status` **directement** (politique existante `update_org_entries`). Ajout d'un trigger `guard_entry_delivery_status` : seul `set_entry_delivery_status` (SECURITY DEFINER) peut changer ces deux colonnes. Écart avec le plan : la sonde est un script Node (`scripts/backend/rewards-probe.mjs`, `npm run backend:rewards`) et non un fichier SQL, pour tester la concurrence réelle (`Promise.all`) et des utilisateurs réellement connectés. Le trou plus large de `update_org_entries` (un membre peut modifier `is_winner`, `prize_id`…) existe déjà et sort du périmètre : à traiter avec le correctif de sécurité de `analyse-organisations.md`.
 
 **T2.1 / T2.2 — Résultats.** `npx supabase functions serve --env-file .env.local` + `npm run backend:smoke` : **13/13**. Au 1ᵉʳ lancement à froid, T8 (10 joueurs simultanés) a échoué une fois (`An invalid response was received from the upstream server`, démarrage du runtime) ; 3 relances : 11/11 puis 13/13, sans échec. Deux scénarios ajoutés au smoke : T11 (lot sans code → gagnant, `coupon: null`, entrée non marquée) et T12 (lot dont l'unique code a expiré → jamais tiré). Le marquage `reward_unavailable` a été prouvé à la main avec un trigger temporaire qui fait expirer le dernier code entre le tirage et l'attribution : gagnant sans code, `metadata.reward_unavailable = true` ; trigger et données supprimés.
+
+**P3 — Écarts.** (a) Les lignes de codes restent en snake_case (`TemplateItemRow.expires_at`), conformément au code existant ; `PrizeTemplateItem` de `types.ts` n'est pas utilisé et n'a pas été touché. (b) T3.3 : les compteurs disponibles / utilisés / expirés sont calculés par `computeCodeCounts` (`src/lib/codeExpiry.ts`) à partir des codes **déjà chargés** par `useInventoryManager` (lecture paginée complète, avec l'état « utilisé »), pas dans `usePrizeTemplates`, dont les requêtes sont plafonnées à 1000 lignes par PostgREST : un compteur faux au-delà serait pire que pas de compteur. (c) Les helpers de date (fin de journée à Alger ↔ UTC) sont dans `src/lib/codeExpiry.ts`. (d) Cas limite connu : remplacer un code par un import (mode « replace ») conserve l'`expires_at` de la ligne ; non traité (rare), à surveiller.
 
 **T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
 

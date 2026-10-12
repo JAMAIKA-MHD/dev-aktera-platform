@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { PrizeTemplate } from "../types";
 import { toFriendlyErrorMessage } from "../lib/errorMessages";
+import { computeCodeCounts } from "../lib/codeExpiry";
 import {
   TemplateItemRow,
   ImportMode,
@@ -33,6 +34,12 @@ export function useInventoryManager(organizationId: string | null) {
   const [unresolvedConflicts, setUnresolvedConflicts] = useState<
     DuplicateConflict[]
   >([]);
+
+  // For display only: the database decides what can really be given to a winner.
+  const codeCounts = useMemo(
+    () => computeCodeCounts(templateItems),
+    [templateItems],
+  );
 
   const loadTemplateItems = useCallback(
     async (template: PrizeTemplate) => {
@@ -325,6 +332,7 @@ export function useInventoryManager(organizationId: string | null) {
 
   return {
     templateItems,
+    codeCounts,
     setTemplateItems,
     loading,
     saving,
