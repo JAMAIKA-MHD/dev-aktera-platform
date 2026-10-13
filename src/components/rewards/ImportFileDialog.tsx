@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { Download } from "lucide-react";
 
+import { exportToCSV } from "../../lib/exportUtils";
 import type { ImportMode } from "../../services/inventoryService";
 import { Button } from "../ui/button";
 import {
@@ -20,6 +22,13 @@ interface ImportFileDialogProps {
   /** Reads the file and puts its codes in the reward. */
   onImport: (file: File) => Promise<void> | void;
 }
+
+// The shape of the file: a Code column (required) and an Index column (optional: the slot).
+export const IMPORT_TEMPLATE_ROWS = [
+  { Index: 1, Code: "CODE-0001" },
+  { Index: 2, Code: "CODE-0002" },
+  { Index: 3, Code: "CODE-0003" },
+];
 
 const MODES: { id: ImportMode; label: string }[] = [
   { id: "append", label: "Append" },
@@ -51,6 +60,44 @@ function ImportBody({
           A CSV or Excel file with one code per row, in a Code column.
         </DialogDescription>
       </DialogHeader>
+
+      <section aria-label="File template" className="space-y-1.5">
+        <div className="overflow-hidden rounded-lg border border-border">
+          <table className="w-full text-left font-mono text-xs">
+            <thead className="bg-muted text-muted-foreground">
+              <tr>
+                <th scope="col" className="px-3 py-1.5">
+                  Index
+                </th>
+                <th scope="col" className="px-3 py-1.5">
+                  Code
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {IMPORT_TEMPLATE_ROWS.map((row) => (
+                <tr key={row.Index}>
+                  <td className="px-3 py-1.5">{row.Index}</td>
+                  <td className="px-3 py-1.5">{row.Code}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>Index is optional.</span>
+          <button
+            type="button"
+            onClick={() =>
+              exportToCSV(IMPORT_TEMPLATE_ROWS, "octoreach_codes_template")
+            }
+            className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            <Download className="size-3.5" aria-hidden />
+            Download template
+          </button>
+        </div>
+      </section>
 
       <Input
         type="file"

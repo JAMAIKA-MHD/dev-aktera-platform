@@ -77,8 +77,9 @@ code was only extended: the one removed line is the `select(...)` string of
   valid until the end of that day in Algeria, stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
   codes" (keeps dates already set unless asked to replace them).
-- **Import dialog:** "Import File" opens a small dialog (new `ui/dialog.tsx`, written without Radix): pick a
-  CSV or Excel file with a Code column, choose Append or Replace All, and Import. Export stays a plain
+- **Import dialog:** "Import File" opens a small dialog (new `ui/dialog.tsx`, written without Radix): it shows the
+  structure of the file (an optional Index column and a Code column, with three example rows and a
+  "Download template" link), then pick a CSV or Excel file, choose Append or Replace All, and Import. Export stays a plain
   download (the codes file, and the winners file of a Physical Item).
 - **Exports:** the codes file now has `Status` (Available / Used / Expired / Empty), `Expires` (digital
   rewards; for a period after delivery: "30 days after delivery" until the code is given, then its
