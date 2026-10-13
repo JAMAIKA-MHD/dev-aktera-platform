@@ -79,6 +79,40 @@ describe("code expiry services", () => {
     expect(rows[0].expires_at).toBe("2026-12-31T22:59:59.000Z");
   });
 
+  it("reads the deadline fixed when a code was given", async () => {
+    mock.results.prize_template_items = {
+      data: [
+        {
+          id: "i1",
+          prize_template_id: "t1",
+          item_index: 1,
+          item_value: "A",
+          source_type: "manual",
+          expires_at: null,
+        },
+      ],
+      error: null,
+    };
+    mock.results.coupon_redemptions = {
+      data: [
+        {
+          prize_template_item_id: "i1",
+          redeemed_at: "2026-10-13T10:00:00Z",
+          redeemed_by_player: false,
+          expires_at: "2026-11-12T22:59:59Z",
+        },
+      ],
+      error: null,
+    };
+    const [row] = await fetchTemplateItemsService("t1");
+    const select = callsOf("coupon_redemptions").find(
+      (c) => c.method === "select",
+    );
+    expect(String(select?.args[0])).toContain("expires_at");
+    expect(row.redemption_expires_at).toBe("2026-11-12T22:59:59Z");
+    expect(row.is_used).toBe(true);
+  });
+
   it("sets and clears the expiry of one code", async () => {
     await updateItemExpiryService("i1", "2026-12-31T22:59:59.000Z");
     expect(

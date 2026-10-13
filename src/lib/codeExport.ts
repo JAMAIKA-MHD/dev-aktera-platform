@@ -1,5 +1,6 @@
 import type { PhysicalWinner, PrizeTemplate } from "../types";
 import { effectiveExpiry, isCodeExpired, isoToAlgiersDay } from "./codeExpiry";
+import { formatDuration } from "./expiryPolicy";
 
 // The rows of the files a brand downloads from the Reward Library. Pure, so they are tested
 // without a browser. Columns that the importer reads (Index, Code) keep their names, and no extra
@@ -12,6 +13,8 @@ interface ExportableCode {
   is_used?: boolean;
   is_redeemed?: boolean;
   redeemed_at?: string | null;
+  /** The deadline fixed when the code was given (validity period after delivery). */
+  redemption_expires_at?: string | null;
 }
 
 export type CodeExportStatus = "Empty" | "Used" | "Expired" | "Available";
@@ -32,6 +35,27 @@ export function codeExportStatus(
 }
 
 /**
+ * When a code expires, as the file shows it: its own date, else the deadline fixed when it was
+ * given, else its reward's date, else the period it will be valid for once given.
+ */
+function expiresText(
+  item: ExportableCode,
+  inheritedExpiresAt: string | null,
+  expiryDays: number | null,
+): string {
+  // An empty slot is not a code yet: nothing to expire.
+  if (!item.item_value || item.item_value.trim() === "") return "";
+  const day = isoToAlgiersDay(
+    item.expires_at || item.redemption_expires_at || inheritedExpiresAt,
+  );
+  if (day) return day;
+  const given = item.is_used || item.is_redeemed;
+  return expiryDays && !given
+    ? `${formatDuration(expiryDays)} after delivery`
+    : "";
+}
+
+/**
  * One row per code slot: its number, the code, whether it is still available, used (given to a
  * winner) or expired, when it expires (digital rewards) and when it was given.
  */
@@ -41,10 +65,17 @@ export function buildCodeExportRows(
     category: PrizeTemplate["category"];
     /** The reward's own expiry, for the codes without a date of their own. */
     inheritedExpiresAt?: string | null;
+    /** The reward's validity period after delivery, in days. */
+    expiryDays?: number | null;
     now?: Date;
   },
 ): Record<string, string | number>[] {
-  const { category, inheritedExpiresAt = null, now = new Date() } = options;
+  const {
+    category,
+    inheritedExpiresAt = null,
+    expiryDays = null,
+    now = new Date(),
+  } = options;
   return items.map((item) => {
     const row: Record<string, string | number> = {
       Index: item.item_index,
@@ -52,9 +83,7 @@ export function buildCodeExportRows(
       Status: codeExportStatus(item, inheritedExpiresAt, now),
     };
     if (category === "voucher") {
-      row.Expires = isoToAlgiersDay(
-        effectiveExpiry(item.expires_at, inheritedExpiresAt),
-      );
+      row.Expires = expiresText(item, inheritedExpiresAt, expiryDays);
     }
     row["Used on"] = isoToAlgiersDay(item.redeemed_at);
     return row;

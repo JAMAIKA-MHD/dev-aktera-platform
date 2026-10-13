@@ -70,6 +70,10 @@ export async function addPrizeTemplateService(
       (prizeData.category || "voucher") === "voucher"
         ? (prizeData.expiresAt ?? null)
         : null,
+    expiry_days:
+      (prizeData.category || "voucher") === "voucher"
+        ? (prizeData.expiryDays ?? null)
+        : null,
   };
 
   const { data, error } = await supabase
@@ -99,6 +103,8 @@ export async function updatePrizeTemplateService(
     description: prizeData.description || null,
     expires_at:
       prizeData.category === "voucher" ? (prizeData.expiresAt ?? null) : null,
+    expiry_days:
+      prizeData.category === "voucher" ? (prizeData.expiryDays ?? null) : null,
   };
 
   const { error } = await supabase

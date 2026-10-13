@@ -11,6 +11,8 @@ export interface TemplateItemRow {
   is_redeemed?: boolean;
   redeemed_at?: string | null;
   redeemed_by_player?: boolean;
+  /** The deadline fixed when the code was given (reward valid for a period after delivery). */
+  redemption_expires_at?: string | null;
 }
 
 export type ImportMode = "append" | "replace";
@@ -98,7 +100,11 @@ export async function fetchTemplateItemsService(
     const itemIds = allRows.map((r) => r.id);
     const redemptionMap = new Map<
       string,
-      { redeemed_at: string | null; redeemed_by_player: boolean }
+      {
+        redeemed_at: string | null;
+        redeemed_by_player: boolean;
+        expires_at: string | null;
+      }
     >();
 
     const CHUNK_SIZE = 100;
@@ -106,7 +112,9 @@ export async function fetchTemplateItemsService(
       const chunk = itemIds.slice(i, i + CHUNK_SIZE);
       const { data: redemptionsData, error: redemptionsError } = await supabase
         .from("coupon_redemptions")
-        .select("prize_template_item_id, redeemed_at, redeemed_by_player")
+        .select(
+          "prize_template_item_id, redeemed_at, redeemed_by_player, expires_at",
+        )
         .in("prize_template_item_id", chunk);
 
       if (!redemptionsError && redemptionsData) {
@@ -114,6 +122,7 @@ export async function fetchTemplateItemsService(
           redemptionMap.set(r.prize_template_item_id, {
             redeemed_at: r.redeemed_at ?? null,
             redeemed_by_player: Boolean(r.redeemed_by_player),
+            expires_at: r.expires_at ?? null,
           });
         }
       }
@@ -160,6 +169,7 @@ export async function fetchTemplateItemsService(
         row.is_used = true;
         row.redeemed_at = redemption?.redeemed_at || entryRedeemedAt || null;
         row.redeemed_by_player = redemption?.redeemed_by_player ?? true;
+        row.redemption_expires_at = redemption?.expires_at ?? null;
       } else {
         row.is_redeemed = false;
         row.is_used = false;

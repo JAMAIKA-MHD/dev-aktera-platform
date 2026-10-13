@@ -118,4 +118,56 @@ describe("CodeExpiryCell", () => {
     expect(screen.queryByText("Expired")).toBeNull();
     expect(screen.queryByText("from reward")).toBeNull();
   });
+
+  it("shows the deadline fixed when the code was given, and does not call it the reward date", () => {
+    render(
+      <CodeExpiryCell
+        {...base}
+        locked
+        deliveredValue="2099-08-01T22:59:59.000Z"
+        periodDays={30}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 3").value,
+    ).toBe("2099-08-01");
+    expect(screen.getByText("after delivery")).toBeTruthy();
+    expect(screen.queryByText("from reward")).toBeNull();
+  });
+
+  it("marks a given code whose deadline has passed", () => {
+    render(
+      <CodeExpiryCell
+        {...base}
+        locked
+        deliveredValue="2020-01-01T22:59:59.000Z"
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Expired")).toBeTruthy();
+  });
+
+  it("tells the period still to come for a code not given yet", () => {
+    render(<CodeExpiryCell {...base} periodDays={30} onChange={vi.fn()} />);
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 3").value,
+    ).toBe("");
+    expect(screen.getByText("1 month after delivery")).toBeTruthy();
+  });
+
+  it("lets a code not given yet take a fixed date of its own instead of the period", () => {
+    render(
+      <CodeExpiryCell
+        {...base}
+        value="2099-06-30T22:59:59.000Z"
+        periodDays={30}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 3").value,
+    ).toBe("2099-06-30");
+    expect(screen.queryByText("1 month after delivery")).toBeNull();
+  });
 });

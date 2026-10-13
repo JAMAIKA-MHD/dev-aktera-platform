@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PrizeTemplate } from "../../types";
 
@@ -292,12 +298,11 @@ describe("Reward Library, cards", () => {
   });
 });
 
-describe("Reward Library, expiry date in the reward form", () => {
-  const openForm = () => {
-    const onAddPrize = vi.fn().mockResolvedValue(undefined);
-    const onUpdatePrize = vi.fn().mockResolvedValue(undefined);
-    return { onAddPrize, onUpdatePrize };
-  };
+describe("Reward Library, expiry in the reward form", () => {
+  const callbacks = () => ({
+    onAddPrize: vi.fn().mockResolvedValue(undefined),
+    onUpdatePrize: vi.fn().mockResolvedValue(undefined),
+  });
   const fill = (
     onAdd: (payload: PrizeTemplatePayload) => Promise<void>,
     onUpdate: (id: string, payload: PrizeTemplatePayload) => Promise<void>,
@@ -312,6 +317,8 @@ describe("Reward Library, expiry date in the reward form", () => {
       />,
     );
   };
+  const openCreator = () =>
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
   const typeBasics = () => {
     fireEvent.change(screen.getByPlaceholderText(/Djezzy/), {
       target: { value: "Djezzy 1500 DA" },
@@ -320,106 +327,171 @@ describe("Reward Library, expiry date in the reward form", () => {
       target: { value: "1500 DA" },
     });
   };
+  const choose = (name: RegExp) => fireEvent.click(screen.getByLabelText(name));
+  const save = () =>
+    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
 
-  it("asks for an optional expiry date when the reward is a digital code", () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+  it("offers three ways to expire for a digital reward, with no expiry chosen", () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
-    // Digital voucher is the default category.
-    const field = screen.getByLabelText<HTMLInputElement>(
-      "Expiry date (optional)",
-    );
-    expect(field.type).toBe("date");
-    expect(field.value).toBe("");
+    openCreator();
+    expect(
+      (screen.getByLabelText(/No expiry/) as HTMLInputElement).checked,
+    ).toBe(true);
+    expect(screen.getByLabelText(/On a fixed date/)).toBeTruthy();
+    expect(screen.getByLabelText(/After delivery/)).toBeTruthy();
+    expect(screen.queryByLabelText("Expiry date")).toBeNull();
+    expect(screen.queryByLabelText("Validity period")).toBeNull();
+  });
+
+  it("shows the date field for a fixed date, the period fields for after delivery", () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
+    fill(onAddPrize, onUpdatePrize);
+    openCreator();
+    choose(/On a fixed date/);
+    expect(
+      (screen.getByLabelText("Expiry date") as HTMLInputElement).type,
+    ).toBe("date");
+    expect(screen.queryByLabelText("Validity period")).toBeNull();
+
+    choose(/After delivery/);
+    expect(screen.queryByLabelText("Expiry date")).toBeNull();
+    expect(screen.getByLabelText("Validity period")).toBeTruthy();
+    expect(screen.getByLabelText("Validity unit")).toBeTruthy();
+    expect(
+      screen.getByText(/countdown starts when the code is given/),
+    ).toBeTruthy();
   });
 
   it("does not ask for it on a physical reward, and brings it back for a digital one", () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    openCreator();
     fireEvent.click(screen.getByRole("button", { name: /Physical Item/ }));
-    expect(screen.queryByLabelText("Expiry date (optional)")).toBeNull();
+    expect(screen.queryByText("Expiry of the codes")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Digital Voucher/ }));
-    expect(screen.getByLabelText("Expiry date (optional)")).toBeTruthy();
+    expect(screen.getByText("Expiry of the codes")).toBeTruthy();
   });
 
-  it("creates the reward with the date, as the end of that day in Algiers", async () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+  it("creates the reward with no expiry by default", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    openCreator();
     typeBasics();
-    fireEvent.change(screen.getByLabelText("Expiry date (optional)"), {
+    save();
+    await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
+    expect(onAddPrize.mock.calls[0][0]).toMatchObject({
+      expiresAt: null,
+      expiryDays: null,
+    });
+  });
+
+  it("creates the reward with a fixed date, as the end of that day in Algiers", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
+    fill(onAddPrize, onUpdatePrize);
+    openCreator();
+    typeBasics();
+    choose(/On a fixed date/);
+    fireEvent.change(screen.getByLabelText("Expiry date"), {
       target: { value: "2099-12-31" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
+    save();
     await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
     expect(onAddPrize.mock.calls[0][0]).toMatchObject({
       name: "Djezzy 1500 DA",
       category: "voucher",
       expiresAt: "2099-12-31T22:59:59.000Z",
+      expiryDays: null,
     });
   });
 
-  it("creates the reward without a date when none is picked", async () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+  it("creates the reward valid for a period after delivery", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    openCreator();
     typeBasics();
-    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
+    choose(/After delivery/);
+    fireEvent.change(screen.getByLabelText("Validity period"), {
+      target: { value: "2" },
+    });
+    fireEvent.change(screen.getByLabelText("Validity unit"), {
+      target: { value: "weeks" },
+    });
+    save();
     await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
-    expect(onAddPrize.mock.calls[0][0].expiresAt).toBeNull();
+    expect(onAddPrize.mock.calls[0][0]).toMatchObject({
+      expiresAt: null,
+      expiryDays: 14,
+    });
   });
 
-  it("sends no date for a physical reward, even after one was picked", async () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+  it("does not save a period that is not a whole number, and says so", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    openCreator();
     typeBasics();
-    fireEvent.change(screen.getByLabelText("Expiry date (optional)"), {
-      target: { value: "2099-12-31" },
+    choose(/After delivery/);
+    fireEvent.change(screen.getByLabelText("Validity period"), {
+      target: { value: "0" },
     });
+    expect(
+      screen.getByLabelText("Validity period").getAttribute("aria-invalid"),
+    ).toBe("true");
+    save();
+    expect(
+      await screen.findByText(/Enter a whole number of days/),
+    ).toBeTruthy();
+    expect(onAddPrize).not.toHaveBeenCalled();
+  });
+
+  it("does not save a fixed date that was not picked", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
+    fill(onAddPrize, onUpdatePrize);
+    openCreator();
+    typeBasics();
+    choose(/On a fixed date/);
+    save();
+    expect(await screen.findByText("Pick the expiry date.")).toBeTruthy();
+    expect(onAddPrize).not.toHaveBeenCalled();
+  });
+
+  it("sends no expiry for a physical reward, even after one was chosen", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
+    fill(onAddPrize, onUpdatePrize);
+    openCreator();
+    typeBasics();
+    choose(/After delivery/);
     fireEvent.click(screen.getByRole("button", { name: /Physical Item/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
+    save();
     await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
     expect(onAddPrize.mock.calls[0][0]).toMatchObject({
       category: "physical",
       expiresAt: null,
+      expiryDays: null,
     });
   });
 
   it("warns, without blocking, about a date in the past", () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
-    fireEvent.change(screen.getByLabelText("Expiry date (optional)"), {
+    openCreator();
+    choose(/On a fixed date/);
+    fireEvent.change(screen.getByLabelText("Expiry date"), {
       target: { value: "2020-01-01" },
     });
     expect(screen.getByText(/in the past/)).toBeTruthy();
   });
 
-  it("can clear the date it picked", () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
-    fill(onAddPrize, onUpdatePrize);
-    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
-    const field = screen.getByLabelText<HTMLInputElement>(
-      "Expiry date (optional)",
-    );
-    fireEvent.change(field, { target: { value: "2099-12-31" } });
-    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
-    expect(field.value).toBe("");
-  });
-
-  it("shows the saved date when the reward is edited, and saves a new one", async () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
-    const withDate: PrizeTemplate = {
-      ...voucher,
-      expiresAt: "2099-06-30T22:59:59.000Z",
-    };
-    fill(onAddPrize, onUpdatePrize, [withDate]);
+  it("brings back what was saved when the reward is edited, whichever way it expires", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
+    fill(onAddPrize, onUpdatePrize, [
+      { ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" },
+    ]);
     fireEvent.click(screen.getByTitle("Edit reward template"));
-    const field = screen.getByLabelText<HTMLInputElement>(
-      "Expiry date (optional)",
-    );
+    expect(
+      (screen.getByLabelText(/On a fixed date/) as HTMLInputElement).checked,
+    ).toBe(true);
+    const field = screen.getByLabelText<HTMLInputElement>("Expiry date");
     expect(field.value).toBe("2099-06-30");
 
     fireEvent.change(field, { target: { value: "2099-07-15" } });
@@ -427,30 +499,67 @@ describe("Reward Library, expiry date in the reward form", () => {
       screen.getByRole("button", { name: "Update Library Template" }),
     );
     await waitFor(() => expect(onUpdatePrize).toHaveBeenCalled());
-    expect(onUpdatePrize.mock.calls[0][0]).toBe("t1");
-    expect(onUpdatePrize.mock.calls[0][1].expiresAt).toBe(
-      "2099-07-15T22:59:59.000Z",
-    );
+    expect(onUpdatePrize.mock.calls[0][1]).toMatchObject({
+      expiresAt: "2099-07-15T22:59:59.000Z",
+      expiryDays: null,
+    });
   });
 
-  it("shows the date on the reward card", () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+  it("edits a reward valid for a period, and can switch it to a date", async () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
+    fill(onAddPrize, onUpdatePrize, [{ ...voucher, expiryDays: 60 }]);
+    fireEvent.click(screen.getByTitle("Edit reward template"));
+    expect(
+      (screen.getByLabelText(/After delivery/) as HTMLInputElement).checked,
+    ).toBe(true);
+    expect(
+      (screen.getByLabelText("Validity period") as HTMLInputElement).value,
+    ).toBe("2");
+    expect(
+      (screen.getByLabelText("Validity unit") as HTMLSelectElement).value,
+    ).toBe("months");
+
+    choose(/On a fixed date/);
+    fireEvent.change(screen.getByLabelText("Expiry date"), {
+      target: { value: "2099-12-31" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Update Library Template" }),
+    );
+    await waitFor(() => expect(onUpdatePrize).toHaveBeenCalled());
+    expect(onUpdatePrize.mock.calls[0][1]).toMatchObject({
+      expiresAt: "2099-12-31T22:59:59.000Z",
+      expiryDays: null,
+    });
+  });
+
+  it("shows the expiry on the reward card, whichever way it is set", () => {
+    const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize, [
-      { ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" },
+      {
+        ...voucher,
+        id: "a",
+        name: "Dated",
+        expiresAt: "2099-06-30T22:59:59.000Z",
+      },
+      { ...voucher, id: "b", name: "Period", expiryDays: 30 },
+      {
+        ...voucher,
+        id: "c",
+        name: "Lapsed",
+        expiresAt: "2020-01-01T22:59:59.000Z",
+      },
     ]);
     expect(screen.getByText(/Codes expire 2099-06-30/)).toBeTruthy();
-  });
-
-  it("marks a reward whose date has passed", () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
-    fill(onAddPrize, onUpdatePrize, [
-      { ...voucher, expiresAt: "2020-01-01T22:59:59.000Z" },
-    ]);
+    expect(
+      screen.getByText(/Codes valid 1 month after\s+delivery/),
+    ).toBeTruthy();
     expect(screen.getByText(/Expired 2020-01-01/)).toBeTruthy();
   });
+});
 
-  it("still lets a single code take its own date after creation", async () => {
-    const { onAddPrize, onUpdatePrize } = openForm();
+describe("Reward Library, expiry of the open reward", () => {
+  const withCodes = () => {
     state.items = [
       {
         id: "i1",
@@ -461,24 +570,182 @@ describe("Reward Library, expiry date in the reward form", () => {
         expires_at: null,
         is_used: false,
       },
+      {
+        id: "i2",
+        prize_template_id: "t1",
+        item_index: 2,
+        item_value: "BBB",
+        source_type: "manual",
+        expires_at: null,
+        redemption_expires_at: "2099-08-01T22:59:59.000Z",
+        is_used: true,
+        is_redeemed: true,
+      },
     ];
-    fill(onAddPrize, onUpdatePrize, [
-      { ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" },
-    ]);
-    fireEvent.click(screen.getByText("Ooredoo 500 DA"));
-    const cell = await screen.findByLabelText<HTMLInputElement>(
-      "Expiry date of code 1",
+  };
+  const open = async (
+    reward: PrizeTemplate,
+    onUpdatePrize = vi.fn().mockResolvedValue(undefined),
+  ) => {
+    const view = render(
+      <PrizesManager
+        {...props}
+        prizes={[reward]}
+        onUpdatePrize={onUpdatePrize}
+      />,
     );
-    // The code has no date of its own: it shows the reward's.
-    expect(cell.value).toBe("2099-06-30");
-    expect(screen.getByText("from reward")).toBeTruthy();
-    fireEvent.change(cell, { target: { value: "2099-08-01" } });
-    await waitFor(() =>
-      expect(state.updateItemExpiry).toHaveBeenCalledWith(
-        "i1",
-        "2099-08-01T22:59:59.000Z",
-      ),
+    fireEvent.click(screen.getByText(reward.name));
+    await screen.findByRole("columnheader", { name: "Expires" });
+    return { ...view, onUpdatePrize };
+  };
+
+  it("says at the top how the codes of the reward expire", async () => {
+    withCodes();
+    await open({ ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" });
+    const panel = screen.getByRole("region", { name: "Reward expiry" });
+    expect(panel.textContent).toContain("until 2099-06-30");
+  });
+
+  it("says it for a period, and for no expiry", async () => {
+    withCodes();
+    const { unmount } = await open({ ...voucher, expiryDays: 30 });
+    expect(
+      screen.getByRole("region", { name: "Reward expiry" }).textContent,
+    ).toContain("1 month after delivery");
+    unmount();
+    await open(voucher);
+    expect(
+      screen.getByRole("region", { name: "Reward expiry" }).textContent,
+    ).toContain("no expiry");
+  });
+
+  it("changes the expiry from the codes window, keeping the rest of the reward", async () => {
+    withCodes();
+    const { onUpdatePrize } = await open({
+      ...voucher,
+      expiresAt: "2099-06-30T22:59:59.000Z",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Change expiry" }));
+    // The editor starts from what is saved.
+    expect(
+      (screen.getByLabelText(/On a fixed date/) as HTMLInputElement).checked,
+    ).toBe(true);
+    fireEvent.click(screen.getByLabelText(/After delivery/));
+    fireEvent.change(screen.getByLabelText("Validity period"), {
+      target: { value: "10" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save expiry" }));
+
+    await waitFor(() => expect(onUpdatePrize).toHaveBeenCalled());
+    expect(onUpdatePrize.mock.calls[0][0]).toBe("t1");
+    expect(onUpdatePrize.mock.calls[0][1]).toMatchObject({
+      name: "Ooredoo 500 DA",
+      category: "voucher",
+      totalStock: 3,
+      expiresAt: null,
+      expiryDays: 10,
+    });
+    expect(
+      await within(
+        screen.getByRole("region", { name: "Reward expiry" }),
+      ).findByRole("status"),
+    ).toBeTruthy();
+  });
+
+  it("keeps the editor open and says why when the expiry cannot be saved", async () => {
+    withCodes();
+    const failing = vi
+      .fn()
+      .mockRejectedValue(new Error("Reward template could not be found."));
+    await open(voucher, failing);
+    fireEvent.click(screen.getByRole("button", { name: "Change expiry" }));
+    fireEvent.click(screen.getByLabelText(/On a fixed date/));
+    fireEvent.change(screen.getByLabelText("Expiry date"), {
+      target: { value: "2099-12-31" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save expiry" }));
+    expect(
+      await screen.findByText("Reward template could not be found."),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save expiry" })).toBeTruthy();
+  });
+
+  it("is read-only for a viewer", async () => {
+    withCodes();
+    state.role = "viewer";
+    await open({ ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" });
+    expect(screen.getByRole("region", { name: "Reward expiry" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Change expiry" })).toBeNull();
+  });
+
+  it("has no expiry panel for a physical reward", async () => {
+    state.role = "manager";
+    render(
+      <PrizesManager
+        {...props}
+        prizes={[{ ...voucher, id: "t9", name: "Cap", category: "physical" }]}
+      />,
     );
+    fireEvent.click(screen.getByText("Cap"));
+    await screen.findByText("Winners & delivery");
+    expect(screen.queryByRole("region", { name: "Reward expiry" })).toBeNull();
+  });
+
+  it("follows the reward as soon as it changes, without closing the window", async () => {
+    withCodes();
+    const { rerender } = await open({
+      ...voucher,
+      expiresAt: "2099-06-30T22:59:59.000Z",
+    });
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 1").value,
+    ).toBe("2099-06-30");
+
+    rerender(
+      <PrizesManager
+        {...props}
+        prizes={[{ ...voucher, expiresAt: "2099-09-15T22:59:59.000Z" }]}
+      />,
+    );
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 1").value,
+    ).toBe("2099-09-15");
+    expect(
+      screen.getByRole("region", { name: "Reward expiry" }).textContent,
+    ).toContain("until 2099-09-15");
+
+    // The reward switches to a period: the code shows it, and the date is gone.
+    rerender(
+      <PrizesManager
+        {...props}
+        prizes={[{ ...voucher, expiresAt: null, expiryDays: 14 }]}
+      />,
+    );
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 1").value,
+    ).toBe("");
+    expect(
+      screen.getAllByText("2 weeks after delivery").length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("shows the deadline fixed when a code was given, and the period of a code not given yet", async () => {
+    withCodes();
+    await open({ ...voucher, expiryDays: 30 });
+    // Code 1 is not given yet: no date, the period still to come.
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 1").value,
+    ).toBe("");
+    expect(
+      screen.getAllByText("1 month after delivery").length,
+    ).toBeGreaterThan(1);
+    // Code 2 was given: the deadline set at that moment, which cannot be edited.
+    const given = screen.getByLabelText<HTMLInputElement>(
+      "Expiry date of code 2",
+    );
+    expect(given.value).toBe("2099-08-01");
+    expect(given.disabled).toBe(true);
+    expect(screen.getByText("after delivery")).toBeTruthy();
   });
 });
 
@@ -507,6 +774,51 @@ describe("Reward Library, export of the codes", () => {
         Expires: "2020-01-01",
       }),
       expect.objectContaining({ Index: 3, Code: "CCC", Status: "Used" }),
+    ]);
+  });
+
+  it("writes the validity period for a code not given yet, and the deadline of one that was", async () => {
+    exporter.exportToCSV.mockClear();
+    state.items = [
+      {
+        id: "i1",
+        prize_template_id: "t1",
+        item_index: 1,
+        item_value: "AAA",
+        source_type: "manual",
+        expires_at: null,
+        is_used: false,
+      },
+      {
+        id: "i2",
+        prize_template_id: "t1",
+        item_index: 2,
+        item_value: "BBB",
+        source_type: "manual",
+        expires_at: null,
+        redemption_expires_at: "2099-08-01T22:59:59.000Z",
+        is_used: true,
+        is_redeemed: true,
+      },
+    ];
+    render(
+      <PrizesManager {...props} prizes={[{ ...voucher, expiryDays: 30 }]} />,
+    );
+    fireEvent.click(screen.getByText("Ooredoo 500 DA"));
+    await screen.findByRole("columnheader", { name: "Expires" });
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    const [rows] = exporter.exportToCSV.mock.calls[0];
+    expect(rows).toEqual([
+      expect.objectContaining({
+        Code: "AAA",
+        Status: "Available",
+        Expires: "1 month after delivery",
+      }),
+      expect.objectContaining({
+        Code: "BBB",
+        Status: "Used",
+        Expires: "2099-08-01",
+      }),
     ]);
   });
 });

@@ -39,6 +39,9 @@ code was only extended: the one removed line is the `select(...)` string of
 
 ### Edge Function — `select-prize`
 
+- The coupon now carries `expires_at` (ISO instant, or `null`), on the first answer and on a replay.
+  The player screens do not display it yet: that is a separate change in the Player Experience.
+
 - If a win has codes but none could be given (the last code went to another winner between the
   draw and the claim), the entry is flagged `metadata.reward_unavailable = true` and a warning is
   logged, so the brand can settle it by hand. Error codes and response shape are unchanged.
@@ -55,12 +58,18 @@ code was only extended: the one removed line is the `select(...)` string of
 - **Local Library** (`/prizes/local`): the previous screen, unchanged.
 - **Digital codes:** an optional **expiry date in the form that creates the reward** (digital rewards
   only; editable afterwards), shown on the card; it applies to all the reward's codes, loaded later too.
+  Three choices: no expiry, a fixed date, or a **validity period after delivery** (days, weeks or
+  months; the countdown starts when the code is given to the winner and ends with that day in
+  Algiers; the deadline is fixed at that moment and does not move if the reward is edited later).
+  The reward's expiry is also shown at the top of the codes window and can be changed there; the
+  window reads the reward from the live list, so it follows every change without being reopened.
   An "Expires" column then lets a single code take a date of its own, which wins (date per code,
   valid until the end of that day in Algeria, stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
   codes" (keeps dates already set unless asked to replace them).
 - **Exports:** the codes file now has `Status` (Available / Used / Expired / Empty), `Expires` (digital
-  rewards) and `Used on`, and still imports back (the importer finds `Index` and `Code`). The delivery
+  rewards; for a period after delivery: "30 days after delivery" until the code is given, then its
+  deadline) and `Used on`, and still imports back (the importer finds `Index` and `Code`). The delivery
   panel has "Export winners" (winner, phone, reward, won on, Delivered / Not delivered, delivered on),
   with names and phones defused against spreadsheet formulas.
 - **Physical rewards:** a "Winners & delivery" panel listing the winners with a

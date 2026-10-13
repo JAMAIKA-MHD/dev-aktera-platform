@@ -74,6 +74,8 @@ export interface PrizeTemplate {
   image?: string;
   /** Digital rewards: when its codes expire (a code may carry a date of its own). */
   expiresAt?: string | null;
+  /** Digital rewards: a validity period in days that starts when a code is given to the winner. */
+  expiryDays?: number | null;
   createdAt?: string;
 }
 

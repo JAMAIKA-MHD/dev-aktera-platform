@@ -11,6 +11,7 @@ interface DbTemplate {
   stock_quantity: number;
   image_url: string | null;
   expires_at: string | null;
+  expiry_days: number | null;
   created_at: string;
 }
 
@@ -57,7 +58,7 @@ export function usePrizeTemplates(organizationId: string | null) {
         supabase
           .from("prize_templates")
           .select(
-            "id, name, description, category, value, stock_quantity, image_url, expires_at, created_at",
+            "id, name, description, category, value, stock_quantity, image_url, expires_at, expiry_days, created_at",
           )
           .eq("organization_id", organizationId)
           .order("created_at", { ascending: false }),
@@ -143,6 +144,7 @@ export function usePrizeTemplates(organizationId: string | null) {
                 : "",
             image: t.image_url ?? undefined,
             expiresAt: t.expires_at ?? null,
+            expiryDays: t.expiry_days ?? null,
             createdAt: t.created_at,
           };
         },

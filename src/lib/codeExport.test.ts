@@ -168,4 +168,33 @@ describe("buildDeliveryExportRows", () => {
     expect(row.Winner).toBe("");
     expect(row.Phone).toBe("");
   });
+
+  it("writes the validity period for a code not given yet, and its deadline once given", () => {
+    const rows = buildCodeExportRows(
+      [
+        { item_index: 1, item_value: "AAA" },
+        {
+          item_index: 2,
+          item_value: "BBB",
+          is_used: true,
+          redemption_expires_at: "2026-11-12T22:59:59.000Z",
+        },
+        {
+          item_index: 3,
+          item_value: "CCC",
+          expires_at: "2099-01-01T22:59:59.000Z",
+        },
+        { item_index: 4, item_value: "DDD", is_used: true },
+        { item_index: 5, item_value: null },
+      ],
+      { category: "voucher", expiryDays: 30, now: NOW },
+    );
+    expect(rows.map((r) => r.Expires)).toEqual([
+      "1 month after delivery",
+      "2026-11-12",
+      "2099-01-01",
+      "",
+      "",
+    ]);
+  });
 });

@@ -95,4 +95,49 @@ describe("the expiry date of a reward template", () => {
       expires_at: null,
     });
   });
+
+  it("saves a validity period after delivery instead of a date", async () => {
+    await addPrizeTemplateService(
+      { ...voucher, expiresAt: null, expiryDays: 30 },
+      "org1",
+    );
+    expect(sent("insert")).toMatchObject({ expires_at: null, expiry_days: 30 });
+
+    mock.calls.length = 0;
+    await updatePrizeTemplateService("t1", {
+      ...voucher,
+      expiresAt: null,
+      expiryDays: 14,
+    });
+    expect(sent("update")).toMatchObject({ expires_at: null, expiry_days: 14 });
+  });
+
+  it("never saves a period on a physical reward", async () => {
+    await addPrizeTemplateService(
+      { ...voucher, category: "physical", expiresAt: null, expiryDays: 30 },
+      "org1",
+    );
+    expect(sent("insert").expiry_days).toBeNull();
+
+    mock.calls.length = 0;
+    await updatePrizeTemplateService("t1", {
+      ...voucher,
+      category: "physical",
+      expiresAt: null,
+      expiryDays: 30,
+    });
+    expect(sent("update").expiry_days).toBeNull();
+  });
+
+  it("clears the period when the reward goes back to no expiry", async () => {
+    await updatePrizeTemplateService("t1", {
+      ...voucher,
+      expiresAt: null,
+      expiryDays: null,
+    });
+    expect(sent("update")).toMatchObject({
+      expires_at: null,
+      expiry_days: null,
+    });
+  });
 });
