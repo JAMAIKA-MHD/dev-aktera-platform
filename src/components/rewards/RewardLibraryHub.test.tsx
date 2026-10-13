@@ -99,7 +99,7 @@ describe("RewardLibraryHub", () => {
     ]);
     const stats = Object.fromEntries(
       screen
-        .getAllByText(/^(Rewards|Digital codes|Physical|In stock)$/)
+        .getAllByText(/^(Rewards|Digital Items|Physical Items|In stock)$/)
         .map((label) => [
           label.textContent,
           label.parentElement?.textContent?.replace(label.textContent!, ""),
@@ -107,8 +107,8 @@ describe("RewardLibraryHub", () => {
     );
     expect(stats).toEqual({
       Rewards: "3",
-      "Digital codes": "2",
-      Physical: "1",
+      "Digital Items": "2",
+      "Physical Items": "1",
       "In stock": "55",
     });
   });

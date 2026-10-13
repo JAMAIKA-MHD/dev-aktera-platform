@@ -19,6 +19,7 @@ import { Campaign, PrizeTemplate } from "../types";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
 import { isCodeExpired, isoToAlgiersDay } from "../lib/codeExpiry";
+import { REWARD_TYPE_NAME, rewardTypeName } from "../lib/rewardTypes";
 import {
   DEFAULT_EXPIRY_POLICY,
   formatDuration,
@@ -98,7 +99,12 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
       prizes.filter(
         (prize) =>
           matchesRewardType(prize, typeFilter) &&
-          [prize.name, prize.description, prize.category, prize.itemValue]
+          [
+            prize.name,
+            prize.description,
+            rewardTypeName(prize.category),
+            prize.itemValue,
+          ]
             .join(" ")
             .toLowerCase()
             .includes(searchTerm.toLowerCase()),
@@ -250,8 +256,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
             Reward Library
           </h2>
           <p className="text-brand-textMuted text-sm font-medium mt-1">
-            Define reusable vouchers, data passes, and branded physical rewards.
-            Click any ticket to manage its codes list.
+            Define reusable Digital Items and Physical Items. Click any ticket
+            to manage it.
           </p>
         </div>
 
@@ -336,7 +342,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="e.g. Djezzy 1500 DA Voucher"
+                placeholder="e.g. Djezzy 1500 DA"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none"
@@ -372,7 +378,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                       : "bg-card-bg-subtle border-card-border text-brand-textMuted hover:bg-card-bg"
                   }`}
                 >
-                  Digital Voucher / Code
+                  {REWARD_TYPE_NAME.voucher}
                 </button>
                 <button
                   type="button"
@@ -383,7 +389,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                       : "bg-card-bg-subtle border-card-border text-brand-textMuted hover:bg-card-bg"
                   }`}
                 >
-                  Physical Item / Merch
+                  {REWARD_TYPE_NAME.physical}
                 </button>
               </div>
             </div>
@@ -547,17 +553,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     {/* Category & Value + Action Buttons (Eye, Pencil, Trash2) */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${theme.pill}`}
-                        >
-                          <TypeIcon className="w-3 h-3" aria-hidden="true" />
-                          {prize.category === "voucher"
-                            ? "Voucher"
-                            : "Physical"}
-                        </span>
                         <p
                           title={prize.itemValue || undefined}
-                          className={`text-[10px] sm:text-xs font-bold uppercase mt-1.5 truncate ${
+                          className={`text-[10px] sm:text-xs font-bold uppercase mt-0.5 truncate ${
                             isDark ? "text-slate-400" : "text-slate-500"
                           }`}
                         >

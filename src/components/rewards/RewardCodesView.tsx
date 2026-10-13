@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { PATHS } from "../../dashboard/paths";
 import { useInventoryManager } from "../../hooks/useInventoryManager";
+import { rewardTypeName } from "../../lib/rewardTypes";
 import {
   buildCodeExportRows,
   codeExportColumns,
@@ -418,7 +419,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
                 {reward.name}
               </h2>
               <span className="shrink-0 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
-                {reward.category}
+                {rewardTypeName(reward.category)}
               </span>
             </div>
             <p className="text-xs text-brand-textMuted mt-1">
@@ -436,7 +437,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
               <span>
                 <strong>Warning:</strong> {unresolvedConflicts.length} duplicate
-                voucher code(s) exist in this template.
+                code(s) exist in this reward.
               </span>
             </div>
             <button

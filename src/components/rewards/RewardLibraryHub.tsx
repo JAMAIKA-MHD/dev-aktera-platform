@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PATHS } from "../../dashboard/paths";
 import { useRewardPartners } from "../../hooks/useRewardPartners";
+import { REWARD_TYPE_NAME_PLURAL } from "../../lib/rewardTypes";
 import type { PrizeTemplate, RewardPartner } from "../../types";
 import { AddPartnerDialog } from "./AddPartnerDialog";
 
@@ -23,7 +24,7 @@ import { AddPartnerDialog } from "./AddPartnerDialog";
 const PARTNERS = [
   {
     name: "Gifty",
-    description: "Gift cards and vouchers from partner brands.",
+    description: "Gift cards and coupons from partner brands.",
     tone: "bg-pink-500/15 text-pink-500 border-pink-500/30",
   },
   {
@@ -33,7 +34,7 @@ const PARTNERS = [
   },
   {
     name: "Chargily",
-    description: "Digital payments and mobile top-ups.",
+    description: "Online payments and mobile top-ups.",
     tone: "bg-sky-500/15 text-sky-500 border-sky-500/30",
   },
 ] as const;
@@ -269,7 +270,7 @@ export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
                   </span>
                 </div>
                 <p className="mt-1 max-w-xl text-sm text-brand-textMuted">
-                  Your own digital codes and physical rewards: upload codes, set
+                  Your own Digital Items and Physical Items: upload codes, set
                   expiry dates, follow the stock and the delivery of what you
                   give away.
                 </p>
@@ -288,12 +289,12 @@ export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
           <dl className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Rewards" value={prizes.length} />
             <Stat
-              label="Digital codes"
+              label={REWARD_TYPE_NAME_PLURAL.voucher}
               value={digital}
               icon={<Ticket className="h-3 w-3" aria-hidden="true" />}
             />
             <Stat
-              label="Physical"
+              label={REWARD_TYPE_NAME_PLURAL.physical}
               value={physical}
               icon={<Package className="h-3 w-3" aria-hidden="true" />}
             />

@@ -824,8 +824,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                     Telegram Operations Bot Integration
                   </h4>
                   <p className="text-xs text-brand-textMuted mt-0.5">
-                    Receive instant winning entries and voucher redemption
-                    alerts on your team's Telegram channel.
+                    Receive instant winning entries and code redemption alerts
+                    on your team's Telegram channel.
                   </p>
                 </div>
                 <input

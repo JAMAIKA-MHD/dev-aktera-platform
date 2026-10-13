@@ -8,13 +8,29 @@ Related: `ai-assistance-prompts-reports/reward library/` (plan, rules, tasks, me
 
 ---
 
+## Naming of the two kinds of reward
+
+Naming convention of the product, used on every screen and in every file:
+
+| Kind                     | Name shown                                 | Stored value (`prize_templates.category`) |
+| ------------------------ | ------------------------------------------ | ----------------------------------------- |
+| Virtual (made of codes)  | **Digital Item** (plural: Digital Items)   | `voucher`                                 |
+| Handed over by the brand | **Physical Item** (plural: Physical Items) | `physical`                                |
+
+The stored values do not change (database, API). The names come from one module,
+`src/lib/rewardTypes.ts`; a test (`src/lib/rewardTypes.test.ts`) fails if a screen of the Reward
+Library, or any screen that shows the type of a reward, uses another name (digital code, physical
+reward, voucher, merch...) or prints the stored value.
+
+---
+
 ## 1. The three vocabularies
 
 | Where                                                   | Values                                             | What it describes                           |
 | ------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------- |
 | Codes table of a reward (`/prizes/local/:rewardId`)     | **Prepared** / **Empty** / **Redeemed**            | the state of a code slot                    |
 | Export file, "X available · Y used · Z expired" summary | **Available** / **Used** / **Expired** / **Empty** | the state of a code as stock                |
-| Physical rewards                                        | **Not delivered** / **Delivered**                  | the delivery, per **winner** (not per code) |
+| Physical Items                                          | **Not delivered** / **Delivered**                  | the delivery, per **winner** (not per code) |
 
 > **"Redeemed" / "Used" means "given to a winner".** It does **not** mean "used in a shop". AKTERA does
 > not track in-store use.
@@ -35,7 +51,7 @@ A code is given as soon as a row exists in `coupon_redemptions` for its id. That
 | `prize_template_items.is_used`, `redeemed_at` | Set by `select-prize` after the claim. A **duplicate of the proof**: the dashboard recomputes the state from `coupon_redemptions`, so this flag can be out of step (the seed does not set it). |
 | `prize_template_items.item_value`             | Empty or `NULL` = a slot without a code.                                                                                                                                                       |
 | `prize_template_items.expires_at`             | The code's own date.                                                                                                                                                                           |
-| `prize_templates.expires_at` / `expiry_days`  | The reward's fixed date, or its validity period after delivery. Never both (CHECK), digital rewards only (CHECK).                                                                              |
+| `prize_templates.expires_at` / `expiry_days`  | The reward's fixed date, or its validity period after delivery. Never both (CHECK), Digital Items only (CHECK).                                                                                |
 
 The dashboard (`fetchTemplateItemsService`) treats a code as given when it is in `coupon_redemptions`
 **or** when an entry of the organization received exactly that code text.
@@ -48,7 +64,7 @@ under a validity period has no deadline until it is given.
 
 ---
 
-## 3. Every case of a code of a digital reward
+## 3. Every case of a code of a Digital Item
 
 | #   | Situation in the database                           | Codes table                    | Export / summary | Can still be given?                 | "Expires" column                                                              |
 | --- | --------------------------------------------------- | ------------------------------ | ---------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
@@ -77,16 +93,16 @@ Rules:
 
 ## 4. The status of a win (`entries`)
 
-| Case                                                                       | `is_winner` | `redeemed_coupon_value` | Notes                                                                           |
-| -------------------------------------------------------------------------- | ----------- | ----------------------- | ------------------------------------------------------------------------------- |
-| Loser                                                                      | false       | `NULL`                  | no prize                                                                        |
-| Winner of a digital reward                                                 | true        | the code                | one row in `coupon_redemptions`                                                 |
-| Winner of a digital reward, last code taken between the draw and the claim | true        | `NULL`                  | `metadata.reward_unavailable = true`: to settle by hand                         |
-| Winner of a reward without code ("You Won!")                               | true        | `NULL`                  | normal, not flagged                                                             |
-| Winner of a **physical** reward                                            | true        | `NULL`                  | `delivery_status`: `not_delivered` (default) → `delivered`, with `delivered_at` |
+| Case                                                                     | `is_winner` | `redeemed_coupon_value` | Notes                                                                           |
+| ------------------------------------------------------------------------ | ----------- | ----------------------- | ------------------------------------------------------------------------------- |
+| Loser                                                                    | false       | `NULL`                  | no prize                                                                        |
+| Winner of a Digital Item                                                 | true        | the code                | one row in `coupon_redemptions`                                                 |
+| Winner of a Digital Item, last code taken between the draw and the claim | true        | `NULL`                  | `metadata.reward_unavailable = true`: to settle by hand                         |
+| Winner of a reward without code ("You Won!")                             | true        | `NULL`                  | normal, not flagged                                                             |
+| Winner of a **physical** reward                                          | true        | `NULL`                  | `delivery_status`: `not_delivered` (default) → `delivered`, with `delivered_at` |
 
 Only `set_entry_delivery_status` changes the delivery (signed in, member of the entry's organization,
-not a `viewer`, a winning entry of a physical reward). A trigger refuses direct updates of
+not a `viewer`, a winning entry of a Physical Item). A trigger refuses direct updates of
 `delivery_status` and `delivered_at`.
 
 ---

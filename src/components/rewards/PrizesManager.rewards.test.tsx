@@ -55,8 +55,8 @@ describe("Reward Library, cards", () => {
 
   it("tells a digital code from a physical reward on the card", () => {
     renderCards();
-    expect(screen.getAllByText("Digital code")).toHaveLength(2);
-    expect(screen.getAllByText("Physical reward")).toHaveLength(1);
+    expect(screen.getAllByText("Digital Item")).toHaveLength(2);
+    expect(screen.getAllByText("Physical Item")).toHaveLength(1);
   });
 
   it("shows every reward by default and filters by type", () => {
@@ -64,11 +64,11 @@ describe("Reward Library, cards", () => {
     expect(visible("Ooredoo 500 DA")).toBe(true);
     expect(visible("Branded cap")).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: /Digital codes/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Digital Items/ }));
     expect(visible("Ooredoo 500 DA")).toBe(true);
     expect(visible("Branded cap")).toBe(false);
 
-    fireEvent.click(screen.getByRole("button", { name: /Physical/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Physical Items/ }));
     expect(visible("Ooredoo 500 DA")).toBe(false);
     expect(visible("Branded cap")).toBe(true);
 
@@ -80,11 +80,11 @@ describe("Reward Library, cards", () => {
   it("counts the rewards of each type on the filter", () => {
     renderCards();
     expect(
-      screen.getByRole("button", { name: /Digital codes/ }).textContent,
-    ).toBe("Digital codes2");
-    expect(screen.getByRole("button", { name: /Physical/ }).textContent).toBe(
-      "Physical1",
-    );
+      screen.getByRole("button", { name: /Digital Items/ }).textContent,
+    ).toBe("Digital Items2");
+    expect(
+      screen.getByRole("button", { name: /Physical Items/ }).textContent,
+    ).toBe("Physical Items1");
     expect(screen.getByRole("button", { name: /^All/ }).textContent).toBe(
       "All3",
     );
@@ -95,9 +95,9 @@ describe("Reward Library, cards", () => {
     fireEvent.change(screen.getByPlaceholderText(/Filter rewards/), {
       target: { value: "cap" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Digital codes/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Digital Items/ }));
     expect(visible("Branded cap")).toBe(false);
-    expect(screen.queryAllByText("Digital code")).toHaveLength(0);
+    expect(screen.queryAllByText("Digital Item")).toHaveLength(0);
   });
 
   it("keeps a very long name inside its card: wraps anywhere, two lines at most, full name on hover", () => {
@@ -181,9 +181,9 @@ describe("Reward Library, expiry in the reward form", () => {
     const { onAddPrize, onUpdatePrize } = callbacks();
     fill(onAddPrize, onUpdatePrize);
     openCreator();
-    fireEvent.click(screen.getByRole("button", { name: /Physical Item/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Physical Item" }));
     expect(screen.queryByText("Expiry of the codes")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Digital Voucher/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Digital Item" }));
     expect(screen.getByText("Expiry of the codes")).toBeTruthy();
   });
 
@@ -275,7 +275,7 @@ describe("Reward Library, expiry in the reward form", () => {
     openCreator();
     typeBasics();
     choose(/After delivery/);
-    fireEvent.click(screen.getByRole("button", { name: /Physical Item/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Physical Item" }));
     save();
     await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
     expect(onAddPrize.mock.calls[0][0]).toMatchObject({

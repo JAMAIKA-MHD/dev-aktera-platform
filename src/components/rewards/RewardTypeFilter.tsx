@@ -1,4 +1,5 @@
 import React from "react";
+import { REWARD_TYPE_NAME_PLURAL } from "../../lib/rewardTypes";
 import type { RewardTypeFilterValue } from "./rewardCardTheme";
 
 interface RewardTypeFilterProps {
@@ -9,8 +10,8 @@ interface RewardTypeFilterProps {
 
 const OPTIONS: { id: RewardTypeFilterValue; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "voucher", label: "Digital codes" },
-  { id: "physical", label: "Physical" },
+  { id: "voucher", label: REWARD_TYPE_NAME_PLURAL.voucher },
+  { id: "physical", label: REWARD_TYPE_NAME_PLURAL.physical },
 ];
 
 // Shows every reward by default; the brand can narrow the list to one type.

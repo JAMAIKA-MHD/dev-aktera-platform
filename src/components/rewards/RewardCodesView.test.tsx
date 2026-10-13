@@ -139,7 +139,7 @@ const view = (reward: PrizeTemplate, canEdit = true) => (
 
 const open = async (reward: PrizeTemplate = voucher, canEdit = true) => {
   const result = render(view(reward, canEdit));
-  await screen.findByRole("columnheader", { name: /Voucher/ });
+  await screen.findByRole("columnheader", { name: /Unique Code/ });
   return result;
 };
 
@@ -178,7 +178,7 @@ describe("reward codes page", () => {
     expect(
       screen.getByRole("heading", { name: "Ooredoo 500 DA" }),
     ).toBeTruthy();
-    expect(screen.getByText("voucher")).toBeTruthy();
+    expect(screen.getByText("Digital Item")).toBeTruthy();
     expect(
       screen.getByText(/total units reserved in inventory/).textContent,
     ).toBe("Prepared Codes: 3 / 3 total units reserved in inventory.");
@@ -220,7 +220,7 @@ describe("reward codes page, the data table", () => {
       within(table)
         .getAllByRole("columnheader")
         .map((h) => h.textContent?.trim()),
-    ).toEqual(["#", "Voucher / Unique Code", "Expires", "Status", "Actions"]);
+    ).toEqual(["#", "Unique Code", "Expires", "Status", "Actions"]);
     expect(within(table).getAllByRole("row")).toHaveLength(4);
     expect(screen.getByLabelText<HTMLInputElement>("Code 1").value).toBe("AAA");
     expect(screen.getAllByText("Prepared")).toHaveLength(2);
@@ -310,9 +310,7 @@ describe("reward codes page, the data table", () => {
 
   it("sorts by number, status or expiry, but never by the code being typed", async () => {
     await open();
-    expect(
-      screen.queryByRole("button", { name: /Voucher \/ Unique Code/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /Unique Code/ })).toBeNull();
     const numbers = () =>
       screen
         .getAllByLabelText(/^Code \d+$/)

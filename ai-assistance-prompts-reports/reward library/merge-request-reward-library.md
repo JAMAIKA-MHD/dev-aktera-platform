@@ -48,6 +48,10 @@ code was only extended: the one removed line is the `select(...)` string of
 
 ### Dashboard — Reward Library (`/prizes`)
 
+- **Naming:** a virtual reward is a **Digital Item** and a physical one a **Physical Item**, on every
+  screen (cards, filter, form, hub, codes page, campaign rewards, export). The names come from
+  `src/lib/rewardTypes.ts` and a test keeps them that way. The unused `InventoryManager.tsx` (an
+  older copy of the library screen that called them otherwise) is removed.
 - **A hub of libraries** at `/prizes`: a Local Library card (summary of the brand's rewards, opens
   `/prizes/local`, the previous screen with a way back) and Gifty, Yassir and Chargily as Coming soon.
 - **"Add a partner"**: a button and a form (name, what they offer, website, contact person, phone,

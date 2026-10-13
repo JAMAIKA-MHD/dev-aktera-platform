@@ -1,4 +1,5 @@
 import { Package, Ticket, type LucideIcon } from "lucide-react";
+import { REWARD_TYPE_NAME } from "../../lib/rewardTypes";
 import type { PrizeTemplate } from "../../types";
 
 // How a reward card tells a digital code from a physical reward at a glance: one accent color,
@@ -22,7 +23,7 @@ export const REWARD_CARD_THEME: Record<
 > = {
   voucher: {
     icon: Ticket,
-    label: "Digital code",
+    label: REWARD_TYPE_NAME.voucher,
     unit: "Codes",
     hoverBorder: "hover:border-emerald-500/50",
     header: "bg-emerald-600 border-emerald-700/40",
@@ -32,7 +33,7 @@ export const REWARD_CARD_THEME: Record<
   },
   physical: {
     icon: Package,
-    label: "Physical reward",
+    label: REWARD_TYPE_NAME.physical,
     unit: "Units",
     hoverBorder: "hover:border-indigo-500/50",
     header: "bg-indigo-600 border-indigo-700/40",

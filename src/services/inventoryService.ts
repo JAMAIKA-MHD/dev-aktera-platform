@@ -372,7 +372,7 @@ export function validateAndPrepareImportService(options: {
       importedCount: 0,
       emptySlotsAvailable: 0,
       overflow: false,
-      errorMessage: "No valid voucher codes found in the provided input.",
+      errorMessage: "No valid codes found in the provided input.",
       conflicts: [],
       rawParsedCodes: [],
     };

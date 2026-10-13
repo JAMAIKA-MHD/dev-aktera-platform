@@ -190,7 +190,7 @@ const numberColumn: ColumnDef<TemplateItemRow, unknown> = {
 
 const codeColumn: ColumnDef<TemplateItemRow, unknown> = {
   id: "code",
-  header: "Voucher / Unique Code",
+  header: "Unique Code",
   accessorFn: (item) => item.item_value ?? "",
   cell: ValueCell,
   // The order must not change while a code is typed.
