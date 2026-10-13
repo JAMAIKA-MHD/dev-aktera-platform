@@ -168,17 +168,14 @@ describe("DeviceToolbar", () => {
     expect(document.querySelector("iframe")!.getAttribute("width")).toBe("390");
   });
 
-  it("draws the rotate button as a phone in the middle of a turn", () => {
+  it("draws the rotate button with the icon of the browsers' device mode", () => {
     renderPane();
     const rotate = screen.getByRole("button", { name: "Rotate" });
     const icon = rotate.querySelector("svg")!;
-    // A phone (its body is a rounded rectangle, tilted) and an arrow around it; not the
-    // plain circular arrow that looks like a reload.
-    expect(icon.querySelector("rect")).not.toBeNull();
-    expect(icon.querySelector("g")?.getAttribute("transform")).toMatch(
-      /rotate\(/,
-    );
-    expect(icon.querySelectorAll("path").length).toBeGreaterThanOrEqual(2);
+    // The filled "screen rotation" shape (a screen on its corner, an arrow at each end), in the
+    // text color; not the plain circular arrow that looks like a reload.
+    expect(icon.getAttribute("fill")).toBe("currentColor");
+    expect(icon.querySelectorAll("path")).toHaveLength(1);
     expect(icon.getAttribute("aria-hidden")).toBe("true");
   });
 
