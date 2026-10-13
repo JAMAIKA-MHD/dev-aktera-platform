@@ -1,25 +1,8 @@
-import { RewardLibrary } from "../../components/rewards/RewardLibrary";
+import { RewardLibraryHub } from "../../components/rewards/RewardLibraryHub";
 import { useDashboard } from "../DashboardContext";
 
+// /prizes: the Reward Library's entry, one card per library (Local, and the partners to come).
 export default function PrizesPage() {
-  const {
-    prizes,
-    campaigns,
-    orgId,
-    addPrize,
-    updatePrize,
-    deletePrize,
-    refetchPrizes,
-  } = useDashboard();
-  return (
-    <RewardLibrary
-      prizes={prizes}
-      campaigns={campaigns}
-      organizationId={orgId}
-      onAddPrize={addPrize}
-      onUpdatePrize={updatePrize}
-      onDeletePrize={deletePrize}
-      onRefreshPrizes={refetchPrizes}
-    />
-  );
+  const { prizes } = useDashboard();
+  return <RewardLibraryHub prizes={prizes} />;
 }

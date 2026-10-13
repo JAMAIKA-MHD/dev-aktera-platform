@@ -12,6 +12,7 @@ export const PATHS = {
   edit: (id: string) => `/create/${id}/edit`,
   relaunch: (id: string) => `/create/${id}/relaunch`,
   prizes: "/prizes",
+  prizesLocal: "/prizes/local",
   analytics: "/analytics",
   analyticsFor: (id: string) => `/analytics/${id}`,
   billing: "/billing",

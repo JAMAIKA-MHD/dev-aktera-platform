@@ -194,6 +194,47 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
     expect(url()).toBe("/campaigns/c2");
   });
 
+  it("opens the Reward Library on its libraries, then the Local Library on its own URL", async () => {
+    renderAt("/prizes");
+    const user = userEvent.setup();
+    expect(
+      await screen.findByRole("heading", { name: "Reward Library" }),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Coming soon")).toHaveLength(3);
+
+    await user.click(screen.getByRole("link", { name: /Local Library/ }));
+    await waitFor(() => expect(url()).toBe("/prizes/local"), {
+      timeout: 5000,
+    });
+    const nav = screen.getByRole("navigation", { name: "Dashboard" });
+    // The menu entry stays the current page inside the library.
+    expect(
+      within(nav)
+        .getByRole("link", { name: /Reward Library/ })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+
+    const breadcrumb = await screen.findByRole(
+      "navigation",
+      { name: "Breadcrumb" },
+      { timeout: 5000 },
+    );
+    await user.click(within(breadcrumb).getByRole("link"));
+    await waitFor(() => expect(url()).toBe("/prizes"));
+  });
+
+  it("opens the Local Library directly from its URL, as after a refresh", async () => {
+    renderAt("/prizes/local");
+    expect(
+      await screen.findByRole(
+        "navigation",
+        { name: "Breadcrumb" },
+        { timeout: 5000 },
+      ),
+    ).toBeTruthy();
+    expect(url()).toBe("/prizes/local");
+  });
+
   it("opens the wizard to edit or relaunch the campaign named in the URL", async () => {
     const { unmount } = renderAt("/create/c1/edit");
     expect(await screen.findByText("wizard:c1|-")).toBeTruthy();
