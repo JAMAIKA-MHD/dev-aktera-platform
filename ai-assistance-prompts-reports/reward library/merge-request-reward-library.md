@@ -73,6 +73,12 @@ code was only extended: the one removed line is the `select(...)` string of
   valid until the end of that day in Algeria, stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
   codes" (keeps dates already set unless asked to replace them).
+- **Export dialog:** "Export" (codes) and "Export winners" open a shadcn-style dialog (new `ui/dialog.tsx`,
+  written without Radix) that describes the file before it is downloaded: which rows (every slot, slots
+  with a code, available, used, expired / every winner, delivered, not delivered, each with its count),
+  the format (CSV or Excel), a table of the columns (name, what it holds, example), notes, a preview
+  of the first three rows, the file name, and an "Export N rows as CSV" button. The column
+  descriptions are checked by tests against the columns the files really have.
 - **Exports:** the codes file now has `Status` (Available / Used / Expired / Empty), `Expires` (digital
   rewards; for a period after delivery: "30 days after delivery" until the code is given, then its
   deadline) and `Used on`, and still imports back (the importer finds `Index` and `Code`). The delivery

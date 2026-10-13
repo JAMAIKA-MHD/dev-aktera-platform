@@ -471,9 +471,80 @@ describe("reward codes page, the toolbar", () => {
     expect(await screen.findByText(/Filled empty slots/)).toBeTruthy();
   });
 
+  it("describes the file in a dialog before anything is downloaded", async () => {
+    await open();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    const dialog = screen.getByRole("dialog", {
+      name: "Export the codes of Ooredoo 500 DA",
+    });
+    // Nothing is downloaded by opening it.
+    expect(exporter.exportToCSV).not.toHaveBeenCalled();
+    const columns = within(
+      within(dialog).getByRole("region", { name: "Columns of the file" }),
+    )
+      .getAllByRole("rowheader")
+      .map((header) => header.textContent);
+    expect(columns).toEqual(["Index", "Code", "Status", "Expires", "Used on"]);
+    expect(within(dialog).getByText(/can be imported back/)).toBeTruthy();
+  });
+
+  it("explains the columns of a physical reward without an expiry", async () => {
+    await open({ ...voucher, category: "physical", name: "Cap" });
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog)
+        .getAllByRole("rowheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Index", "Code", "Status", "Used on"]);
+    expect(within(dialog).queryByRole("radio", { name: /Expired/ })).toBeNull();
+  });
+
+  it("cancels without downloading", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(exporter.exportToCSV).not.toHaveBeenCalled();
+  });
+
+  it("exports only the rows chosen, and says what was exported", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Available/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export 1 row as CSV" }),
+    );
+    expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
+    const [rows] = exporter.exportToCSV.mock.calls[0];
+    expect(rows).toEqual([expect.objectContaining({ Code: "AAA" })]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      await screen.findByText(
+        /Exported 1 row to octoreach_codes_Ooredoo_500_DA_.*\.csv\./,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("can export an Excel workbook instead", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Excel/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export 3 rows as Excel" }),
+    );
+    expect(exporter.exportToCSV).not.toHaveBeenCalled();
+    expect(exporter.exportToExcel).toHaveBeenCalledTimes(1);
+    expect(exporter.exportToExcel.mock.calls[0][2]).toBe("Codes");
+  });
+
   it("exports the expiry date and whether each code is available, used or expired", async () => {
     await open();
     fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export 3 rows as CSV" }),
+    );
     expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
     const [rows, filename] = exporter.exportToCSV.mock.calls[0];
     expect(filename).toMatch(/^octoreach_codes_Ooredoo_500_DA_/);
@@ -519,6 +590,9 @@ describe("reward codes page, the toolbar", () => {
     ];
     await open({ ...voucher, expiryDays: 30 });
     fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export 2 rows as CSV" }),
+    );
     const [rows] = exporter.exportToCSV.mock.calls[0];
     expect(rows).toEqual([
       expect.objectContaining({

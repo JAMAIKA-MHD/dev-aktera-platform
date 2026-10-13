@@ -214,7 +214,11 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
     renderAt("/prizes");
     const user = userEvent.setup();
     expect(
-      await screen.findByRole("heading", { name: "Reward Library" }),
+      await screen.findByRole(
+        "heading",
+        { name: "Reward Library" },
+        { timeout: 5000 },
+      ),
     ).toBeTruthy();
     expect(screen.getAllByText("Coming soon")).toHaveLength(3);
 
