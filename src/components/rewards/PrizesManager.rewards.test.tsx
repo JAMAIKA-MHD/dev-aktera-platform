@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PrizeTemplate } from "../../types";
 
+type PrizeTemplatePayload = Omit<
+  PrizeTemplate,
+  "id" | "allocatedStock" | "availableStock"
+>;
+
 // The Reward Library's code modal, with the data hooks replaced: this checks the wiring of the
 // expiry column and the stock summary, not the hooks (tested on their own).
 const state = vi.hoisted(() => ({
@@ -277,5 +282,195 @@ describe("Reward Library, cards", () => {
     // Every flex ancestor up to the card may shrink, so the grid column never widens.
     const card = name.closest(".overflow-hidden");
     expect(card?.className).toContain("min-w-0");
+  });
+});
+
+describe("Reward Library, expiry date in the reward form", () => {
+  const openForm = () => {
+    const onAddPrize = vi.fn().mockResolvedValue(undefined);
+    const onUpdatePrize = vi.fn().mockResolvedValue(undefined);
+    return { onAddPrize, onUpdatePrize };
+  };
+  const fill = (
+    onAdd: (payload: PrizeTemplatePayload) => Promise<void>,
+    onUpdate: (id: string, payload: PrizeTemplatePayload) => Promise<void>,
+    prizes: PrizeTemplate[] = [],
+  ) => {
+    render(
+      <PrizesManager
+        {...props}
+        prizes={prizes}
+        onAddPrize={onAdd}
+        onUpdatePrize={onUpdate}
+      />,
+    );
+  };
+  const typeBasics = () => {
+    fireEvent.change(screen.getByPlaceholderText(/Djezzy/), {
+      target: { value: "Djezzy 1500 DA" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/36,666/), {
+      target: { value: "1500 DA" },
+    });
+  };
+
+  it("asks for an optional expiry date when the reward is a digital code", () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    // Digital voucher is the default category.
+    const field = screen.getByLabelText<HTMLInputElement>(
+      "Expiry date (optional)",
+    );
+    expect(field.type).toBe("date");
+    expect(field.value).toBe("");
+  });
+
+  it("does not ask for it on a physical reward, and brings it back for a digital one", () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Physical Item/ }));
+    expect(screen.queryByLabelText("Expiry date (optional)")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Digital Voucher/ }));
+    expect(screen.getByLabelText("Expiry date (optional)")).toBeTruthy();
+  });
+
+  it("creates the reward with the date, as the end of that day in Algiers", async () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    typeBasics();
+    fireEvent.change(screen.getByLabelText("Expiry date (optional)"), {
+      target: { value: "2099-12-31" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
+    await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
+    expect(onAddPrize.mock.calls[0][0]).toMatchObject({
+      name: "Djezzy 1500 DA",
+      category: "voucher",
+      expiresAt: "2099-12-31T22:59:59.000Z",
+    });
+  });
+
+  it("creates the reward without a date when none is picked", async () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    typeBasics();
+    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
+    await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
+    expect(onAddPrize.mock.calls[0][0].expiresAt).toBeNull();
+  });
+
+  it("sends no date for a physical reward, even after one was picked", async () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    typeBasics();
+    fireEvent.change(screen.getByLabelText("Expiry date (optional)"), {
+      target: { value: "2099-12-31" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Physical Item/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save to Library" }));
+    await waitFor(() => expect(onAddPrize).toHaveBeenCalled());
+    expect(onAddPrize.mock.calls[0][0]).toMatchObject({
+      category: "physical",
+      expiresAt: null,
+    });
+  });
+
+  it("warns, without blocking, about a date in the past", () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    fireEvent.change(screen.getByLabelText("Expiry date (optional)"), {
+      target: { value: "2020-01-01" },
+    });
+    expect(screen.getByText(/in the past/)).toBeTruthy();
+  });
+
+  it("can clear the date it picked", () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize);
+    fireEvent.click(screen.getByRole("button", { name: /Add Custom Reward/ }));
+    const field = screen.getByLabelText<HTMLInputElement>(
+      "Expiry date (optional)",
+    );
+    fireEvent.change(field, { target: { value: "2099-12-31" } });
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(field.value).toBe("");
+  });
+
+  it("shows the saved date when the reward is edited, and saves a new one", async () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    const withDate: PrizeTemplate = {
+      ...voucher,
+      expiresAt: "2099-06-30T22:59:59.000Z",
+    };
+    fill(onAddPrize, onUpdatePrize, [withDate]);
+    fireEvent.click(screen.getByTitle("Edit reward template"));
+    const field = screen.getByLabelText<HTMLInputElement>(
+      "Expiry date (optional)",
+    );
+    expect(field.value).toBe("2099-06-30");
+
+    fireEvent.change(field, { target: { value: "2099-07-15" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Update Library Template" }),
+    );
+    await waitFor(() => expect(onUpdatePrize).toHaveBeenCalled());
+    expect(onUpdatePrize.mock.calls[0][0]).toBe("t1");
+    expect(onUpdatePrize.mock.calls[0][1].expiresAt).toBe(
+      "2099-07-15T22:59:59.000Z",
+    );
+  });
+
+  it("shows the date on the reward card", () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize, [
+      { ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" },
+    ]);
+    expect(screen.getByText(/Codes expire 2099-06-30/)).toBeTruthy();
+  });
+
+  it("marks a reward whose date has passed", () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    fill(onAddPrize, onUpdatePrize, [
+      { ...voucher, expiresAt: "2020-01-01T22:59:59.000Z" },
+    ]);
+    expect(screen.getByText(/Expired 2020-01-01/)).toBeTruthy();
+  });
+
+  it("still lets a single code take its own date after creation", async () => {
+    const { onAddPrize, onUpdatePrize } = openForm();
+    state.items = [
+      {
+        id: "i1",
+        prize_template_id: "t1",
+        item_index: 1,
+        item_value: "AAA",
+        source_type: "manual",
+        expires_at: null,
+        is_used: false,
+      },
+    ];
+    fill(onAddPrize, onUpdatePrize, [
+      { ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" },
+    ]);
+    fireEvent.click(screen.getByText("Ooredoo 500 DA"));
+    const cell = await screen.findByLabelText<HTMLInputElement>(
+      "Expiry date of code 1",
+    );
+    // The code has no date of its own: it shows the reward's.
+    expect(cell.value).toBe("2099-06-30");
+    expect(screen.getByText("from reward")).toBeTruthy();
+    fireEvent.change(cell, { target: { value: "2099-08-01" } });
+    await waitFor(() =>
+      expect(state.updateItemExpiry).toHaveBeenCalledWith(
+        "i1",
+        "2099-08-01T22:59:59.000Z",
+      ),
+    );
   });
 });

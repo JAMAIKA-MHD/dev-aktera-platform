@@ -72,6 +72,8 @@ export interface PrizeTemplate {
   campaignUsageCount?: number; // Number of campaign prize rows using this template
   quantityWonCount?: number; // Number of winning units historically consumed from this template
   image?: string;
+  /** Digital rewards: when its codes expire (a code may carry a date of its own). */
+  expiresAt?: string | null;
   createdAt?: string;
 }
 

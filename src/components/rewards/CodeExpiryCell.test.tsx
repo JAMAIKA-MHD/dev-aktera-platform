@@ -75,4 +75,47 @@ describe("CodeExpiryCell", () => {
       screen.getByLabelText<HTMLInputElement>("Expiry date of code 3").disabled,
     ).toBe(true);
   });
+
+  it("shows the reward's date on a code that has none of its own", () => {
+    render(
+      <CodeExpiryCell
+        {...base}
+        inheritedValue="2099-12-31T22:59:59.000Z"
+        onChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 3").value,
+    ).toBe("2099-12-31");
+    expect(screen.getByText("from reward")).toBeTruthy();
+    expect(screen.queryByText("Expired")).toBeNull();
+  });
+
+  it("marks a code expired by its reward's date", () => {
+    render(
+      <CodeExpiryCell
+        {...base}
+        inheritedValue="2020-01-01T22:59:59.000Z"
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Expired")).toBeTruthy();
+    expect(screen.queryByText("from reward")).toBeNull();
+  });
+
+  it("lets a code's own date win over the reward's", () => {
+    render(
+      <CodeExpiryCell
+        {...base}
+        value="2099-06-30T22:59:59.000Z"
+        inheritedValue="2020-01-01T22:59:59.000Z"
+        onChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByLabelText<HTMLInputElement>("Expiry date of code 3").value,
+    ).toBe("2099-06-30");
+    expect(screen.queryByText("Expired")).toBeNull();
+    expect(screen.queryByText("from reward")).toBeNull();
+  });
 });

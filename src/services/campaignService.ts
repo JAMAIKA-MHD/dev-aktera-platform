@@ -65,6 +65,11 @@ export async function addPrizeTemplateService(
     value: numericValue,
     image_url: prizeData.image || null,
     description: prizeData.description || null,
+    // Only a digital reward has codes to expire.
+    expires_at:
+      (prizeData.category || "voucher") === "voucher"
+        ? (prizeData.expiresAt ?? null)
+        : null,
   };
 
   const { data, error } = await supabase
@@ -92,6 +97,8 @@ export async function updatePrizeTemplateService(
     value: numericValue,
     image_url: prizeData.image || null,
     description: prizeData.description || null,
+    expires_at:
+      prizeData.category === "voucher" ? (prizeData.expiresAt ?? null) : null,
   };
 
   const { error } = await supabase

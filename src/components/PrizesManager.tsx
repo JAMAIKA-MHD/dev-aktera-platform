@@ -28,6 +28,12 @@ import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useAuth } from "../contexts/AuthContext";
 import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
 import { CodeStockSummary } from "./rewards/CodeStockSummary";
+import {
+  algiersEndOfDayToIso,
+  expiryWarning,
+  isCodeExpired,
+  isoToAlgiersDay,
+} from "../lib/codeExpiry";
 import { RewardTypeFilter } from "./rewards/RewardTypeFilter";
 import {
   REWARD_CARD_THEME,
@@ -116,6 +122,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const [itemValue, setItemValue] = useState(defaultForm.itemValue);
   const [totalStock, setTotalStock] = useState(defaultForm.totalStock);
   const [imageUrl, setImageUrl] = useState(defaultForm.image);
+  // "YYYY-MM-DD", empty = the codes of this reward do not expire (digital rewards only)
+  const [expiryDay, setExpiryDay] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
@@ -141,7 +149,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     executeImport,
     generateRandomCodes,
     fillEmptySlotsWithRandom,
-  } = useInventoryManager(organizationId);
+  } = useInventoryManager(
+    organizationId,
+    activeCodesTemplate?.expiresAt ?? null,
+  );
 
   const filteredPrizes = useMemo(
     () =>
@@ -173,6 +184,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     setItemValue(defaultForm.itemValue);
     setTotalStock(defaultForm.totalStock);
     setImageUrl(defaultForm.image);
+    setExpiryDay("");
     setFormError(null);
   };
 
@@ -194,6 +206,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
       setItemValue(template.itemValue);
       setTotalStock(template.totalStock);
       setImageUrl(template.image ?? "");
+      setExpiryDay(isoToAlgiersDay(template.expiresAt));
     } else {
       resetForm();
     }
@@ -210,6 +223,15 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     e.preventDefault();
     if (!name.trim() || !itemValue.trim()) return;
 
+    const expiresAt =
+      category === "voucher" && expiryDay
+        ? algiersEndOfDayToIso(expiryDay)
+        : null;
+    if (category === "voucher" && expiryDay && !expiresAt) {
+      setFormError("Enter a valid expiry date.");
+      return;
+    }
+
     setSubmitting(true);
     setFormError(null);
     setPageError(null);
@@ -223,6 +245,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         itemValue: itemValue.trim(),
         totalStock,
         image: imageUrl || undefined,
+        expiresAt,
         filledValuesCount: editingTemplate?.filledValuesCount,
         campaignUsageCount: editingTemplate?.campaignUsageCount,
         quantityWonCount: editingTemplate?.quantityWonCount,
@@ -660,6 +683,43 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
               </div>
             </div>
 
+            {category === "voucher" && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="reward-expiry-day"
+                  className="text-[11px] font-black text-brand-text uppercase tracking-wider"
+                >
+                  Expiry date (optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="reward-expiry-day"
+                    type="date"
+                    value={expiryDay}
+                    onChange={(e) => setExpiryDay(e.target.value)}
+                    aria-describedby="reward-expiry-help"
+                    className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text min-h-11 focus:outline-none"
+                  />
+                  {expiryDay && (
+                    <button
+                      type="button"
+                      onClick={() => setExpiryDay("")}
+                      className="shrink-0 text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <p
+                  id="reward-expiry-help"
+                  className="text-[11px] text-brand-textMuted"
+                >
+                  {expiryWarning(algiersEndOfDayToIso(expiryDay)) ??
+                    "The codes of this reward stop being given after this day. You can still set a different date on a single code."}
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
                 Total Warehouse Stock
@@ -825,6 +885,20 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         >
                           {prize.itemValue || "REWARD VALUE"}
                         </p>
+                        {prize.expiresAt && (
+                          <p
+                            className={`text-[10px] font-bold mt-1 truncate ${
+                              isCodeExpired(prize.expiresAt)
+                                ? "text-amber-500"
+                                : "text-brand-textMuted"
+                            }`}
+                          >
+                            {isCodeExpired(prize.expiresAt)
+                              ? "Expired "
+                              : "Codes expire "}
+                            {isoToAlgiersDay(prize.expiresAt)}
+                          </p>
+                        )}
                       </div>
 
                       {/* Action Buttons Row */}
@@ -1524,6 +1598,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                                   <CodeExpiryCell
                                     index={item.item_index}
                                     value={item.expires_at}
+                                    inheritedValue={
+                                      activeCodesTemplate.expiresAt
+                                    }
                                     hasCode={hasValue}
                                     locked={isRedeemed || !canEditExpiry}
                                     onChange={(expiresAt) =>

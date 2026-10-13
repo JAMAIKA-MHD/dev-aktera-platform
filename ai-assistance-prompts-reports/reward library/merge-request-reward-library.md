@@ -15,7 +15,10 @@ code was only extended: the one removed line is the `select(...)` string of
 
 ### Database — one migration, `20261012090000_reward_expiry_and_delivery.sql`
 
-- `prize_template_items.expires_at` (nullable: `NULL` = never expires).
+- `prize_template_items.expires_at` (nullable: `NULL` = never expires) and, in a second migration
+  (`20261014090000_reward_template_expiry.sql`), `prize_templates.expires_at`: the date picked when the
+  reward is created (digital rewards only, enforced by a CHECK). A code expires at its own date if it
+  has one, otherwise at its reward's date; `is_code_assignable` is the only place that knows it.
 - `entries.delivery_status` (`not_delivered` | `delivered`, default `not_delivered`) and `delivered_at`.
 - `is_code_assignable(item)`: the **single** rule for "this code can be given to a winner" (has a
   value, never given, not expired). Used by the assignment and by the draw.
@@ -50,8 +53,10 @@ code was only extended: the one removed line is the `select(...)` string of
   viewer writes, unique name per organization, email and website checked in the database, nothing
   for `anon`. The partners appear as "Not connected yet" cards; nothing is connected to them.
 - **Local Library** (`/prizes/local`): the previous screen, unchanged.
-- **Digital codes:** an "Expires" column (date per code, valid until the end of that day in Algeria,
-  stored in UTC), an "Expired" badge (the code stays visible), a summary
+- **Digital codes:** an optional **expiry date in the form that creates the reward** (digital rewards
+  only; editable afterwards), shown on the card; it applies to all the reward's codes, loaded later too.
+  An "Expires" column then lets a single code take a date of its own, which wins (date per code,
+  valid until the end of that day in Algeria, stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
   codes" (keeps dates already set unless asked to replace them).
 - **Physical rewards:** a "Winners & delivery" panel listing the winners with a

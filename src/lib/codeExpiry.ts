@@ -63,16 +63,29 @@ export interface CodeCounts {
   expired: number;
 }
 
-/** Codes with a value only: empty slots are not codes. Used wins over expired. */
+/** A code expires at its own date if it has one, otherwise at its reward's date. */
+export function effectiveExpiry(
+  own: string | null | undefined,
+  inherited: string | null | undefined,
+): string | null {
+  return own || inherited || null;
+}
+
+/**
+ * Codes with a value only: empty slots are not codes. Used wins over expired. `inherited` is
+ * the date of the reward, for the codes that have none of their own.
+ */
 export function computeCodeCounts(
   items: CountableCode[],
   now: Date = new Date(),
+  inherited: string | null = null,
 ): CodeCounts {
   const counts: CodeCounts = { available: 0, used: 0, expired: 0 };
   for (const item of items) {
     if (!item.item_value || item.item_value.trim() === "") continue;
     if (item.is_used || item.is_redeemed) counts.used += 1;
-    else if (isCodeExpired(item.expires_at, now)) counts.expired += 1;
+    else if (isCodeExpired(effectiveExpiry(item.expires_at, inherited), now))
+      counts.expired += 1;
     else counts.available += 1;
   }
   return counts;

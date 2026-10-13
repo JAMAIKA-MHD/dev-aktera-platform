@@ -26,7 +26,11 @@ export type {
   ImportValidationResult,
 };
 
-export function useInventoryManager(organizationId: string | null) {
+export function useInventoryManager(
+  organizationId: string | null,
+  /** When the open reward's codes expire, for the codes without a date of their own. */
+  defaultExpiresAt: string | null = null,
+) {
   const [templateItems, setTemplateItems] = useState<TemplateItemRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,8 +41,8 @@ export function useInventoryManager(organizationId: string | null) {
 
   // For display only: the database decides what can really be given to a winner.
   const codeCounts = useMemo(
-    () => computeCodeCounts(templateItems),
-    [templateItems],
+    () => computeCodeCounts(templateItems, new Date(), defaultExpiresAt),
+    [templateItems, defaultExpiresAt],
   );
 
   const loadTemplateItems = useCallback(

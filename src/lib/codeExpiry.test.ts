@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   algiersEndOfDayToIso,
   computeCodeCounts,
+  effectiveExpiry,
   expiryWarning,
   isCodeExpired,
   isoToAlgiersDay,
@@ -78,5 +79,44 @@ describe("computeCodeCounts", () => {
       NOW,
     );
     expect(counts).toEqual({ available: 2, used: 2, expired: 1 });
+  });
+});
+
+describe("effectiveExpiry", () => {
+  it("is the code's own date, else the reward's, else none", () => {
+    expect(
+      effectiveExpiry("2027-01-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+    ).toBe("2027-01-01T00:00:00Z");
+    expect(effectiveExpiry(null, "2026-01-01T00:00:00Z")).toBe(
+      "2026-01-01T00:00:00Z",
+    );
+    expect(effectiveExpiry(undefined, null)).toBeNull();
+  });
+});
+
+describe("computeCodeCounts with the reward's date", () => {
+  it("applies the reward's date to the codes that have none, not to the others", () => {
+    const counts = computeCodeCounts(
+      [
+        { item_value: "A" },
+        { item_value: "B", expires_at: "2099-01-01T00:00:00Z" },
+        { item_value: "C", expires_at: "2020-01-01T00:00:00Z" },
+        { item_value: "D", is_used: true },
+      ],
+      NOW,
+      "2026-01-01T00:00:00Z",
+    );
+    // A inherits the past date (expired); B keeps its later own date; C its own past date.
+    expect(counts).toEqual({ available: 1, used: 1, expired: 2 });
+  });
+
+  it("keeps every code available while the reward's date is in the future", () => {
+    expect(
+      computeCodeCounts(
+        [{ item_value: "A" }, { item_value: "B" }],
+        NOW,
+        "2099-01-01T00:00:00Z",
+      ),
+    ).toEqual({ available: 2, used: 0, expired: 0 });
   });
 });
