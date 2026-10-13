@@ -112,3 +112,27 @@ export function buildDeliveryExportRows(
     "Delivered on": isoToAlgiersDay(winner.deliveredAt),
   }));
 }
+
+/** The columns of the codes file, in order: the export writes them, the import template shows them. */
+export function codeFileColumns(category: PrizeTemplate["category"]): string[] {
+  return category === "voucher"
+    ? ["Index", "Code", "Status", "Expires", "Used on"]
+    : ["Index", "Code", "Status", "Used on"];
+}
+
+/**
+ * The template of the file to import: every column of the codes file, three example rows. Only
+ * Code is needed; Index, and Expires (a day), may be left empty; Status and Used on are filled
+ * by AKTERA when it writes a file, so they are empty here.
+ */
+export function importTemplateRows(
+  category: PrizeTemplate["category"],
+): Record<string, string | number>[] {
+  return [1, 2, 3].map((index) => {
+    const row: Record<string, string | number> = {};
+    for (const column of codeFileColumns(category)) row[column] = "";
+    row.Index = index;
+    row.Code = `CODE-${String(index).padStart(4, "0")}`;
+    return row;
+  });
+}

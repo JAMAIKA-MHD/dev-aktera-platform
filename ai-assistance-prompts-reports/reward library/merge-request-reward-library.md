@@ -77,10 +77,15 @@ code was only extended: the one removed line is the `select(...)` string of
   valid until the end of that day in Algeria, stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
   codes" (keeps dates already set unless asked to replace them).
-- **Import dialog:** "Import File" opens a small dialog (new `ui/dialog.tsx`, written without Radix): it shows the
-  structure of the file (an optional Index column and a Code column, with three example rows and a
-  "Download template" link), then pick a CSV or Excel file, choose Append or Replace All, and Import. Export stays a plain
-  download (the codes file, and the winners file of a Physical Item).
+- **Import dialog:** "Import File" opens a small dialog (new `ui/dialog.tsx`, written without Radix). It shows
+  the template of the file: every column of the codes file (`Index`, `Code`, `Status`, `Expires`,
+  `Used on`; no `Expires` for a Physical Item) with three example rows, the optional ones empty, a
+  line saying only `Code` is needed, and a "Download template" link; then pick a CSV or Excel file,
+  Append or Replace All, Import. The import now **reads the `Expires` column** (a day, `2026-12-31` or
+  `31/12/2026`, or an Excel date): it sets the date of each code the file writes, an empty cell clears
+  it, a file without the column leaves the dates alone, and a cell that is not a date refuses the whole
+  file and names the line. Export stays a plain download (the codes file, and the winners file of a
+  Physical Item).
 - **Exports:** the codes file now has `Status` (Available / Used / Expired / Empty), `Expires` (digital
   rewards; for a period after delivery: "30 days after delivery" until the code is given, then its
   deadline) and `Used on`, and still imports back (the importer finds `Index` and `Code`). The delivery

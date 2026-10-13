@@ -36,6 +36,7 @@ vi.mock("../lib/supabase", () => ({
 }));
 
 import {
+  bulkUpdateTemplateItemsService,
   fetchTemplateItemsService,
   setExpiryForTemplateItemsService,
   updateItemExpiryService,
@@ -160,6 +161,32 @@ describe("code expiry services", () => {
       onlyWithoutDate: false,
     });
     expect(has("prize_template_items", "is", "expires_at", null)).toBe(false);
+  });
+});
+
+describe("bulk update of codes (import)", () => {
+  const updates = () =>
+    mock.calls
+      .filter((c) => c.table === "prize_template_items")
+      .flatMap((c) => c.calls)
+      .filter((c) => c.method === "update")
+      .map((c) => c.args[0]);
+
+  it("writes the code and, when the file had an Expires column, its date", async () => {
+    await bulkUpdateTemplateItemsService([
+      { id: "i1", item_value: "AAA", expires_at: "2099-12-31T22:59:59.000Z" },
+      { id: "i2", item_value: "BBB", expires_at: null },
+      { id: "i3", item_value: "CCC" },
+    ]);
+    expect(updates()).toEqual([
+      {
+        item_value: "AAA",
+        source_type: "bulk",
+        expires_at: "2099-12-31T22:59:59.000Z",
+      },
+      { item_value: "BBB", source_type: "bulk", expires_at: null },
+      { item_value: "CCC", source_type: "bulk" },
+    ]);
   });
 });
 

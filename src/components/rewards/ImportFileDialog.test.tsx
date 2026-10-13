@@ -4,12 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const exporter = vi.hoisted(() => ({ exportToCSV: vi.fn() }));
 vi.mock("../../lib/exportUtils", () => exporter);
 
+import { codeFileColumns, importTemplateRows } from "../../lib/codeExport";
 import { parseRawCodes } from "../../services/inventoryService";
-import { IMPORT_TEMPLATE_ROWS, ImportFileDialog } from "./ImportFileDialog";
+import { ImportFileDialog } from "./ImportFileDialog";
 
 beforeEach(() => exporter.exportToCSV.mockClear());
 
-function setup(open = true) {
+function setup(open = true, category: "voucher" | "physical" = "voucher") {
   const onOpenChange = vi.fn();
   const onModeChange = vi.fn();
   const onImport = vi.fn();
@@ -17,6 +18,7 @@ function setup(open = true) {
     <ImportFileDialog
       open={open}
       onOpenChange={onOpenChange}
+      category={category}
       mode="append"
       onModeChange={onModeChange}
       onImport={onImport}
@@ -40,7 +42,7 @@ describe("ImportFileDialog", () => {
     setup();
     const dialog = screen.getByRole("dialog", { name: "Import codes" });
     expect(dialog.textContent).toContain(
-      "A CSV or Excel file with one code per row, in a Code column.",
+      "A CSV or Excel file with one code per row. Keep these columns:",
     );
     expect(screen.getAllByRole("radio")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
@@ -89,45 +91,88 @@ describe("ImportFileDialog", () => {
     expect(onImport).not.toHaveBeenCalled();
   });
 
-  it("shows the structure of the file: an Index column (optional) and a Code column", () => {
+  it("shows every column of the file, with three example rows", () => {
     setup();
     const template = screen.getByRole("region", { name: "File template" });
     expect(
       within(template)
         .getAllByRole("columnheader")
         .map((header) => header.textContent),
-    ).toEqual(["Index", "Code"]);
-    expect(within(template).getAllByRole("row")).toHaveLength(4);
-    expect(within(template).getByText("CODE-0001")).toBeTruthy();
-    expect(within(template).getByText("Index is optional.")).toBeTruthy();
+    ).toEqual(["Index", "Code", "Status", "Expires", "Used on"]);
+    const rows = within(template).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(3);
+    expect(
+      within(rows[0])
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent),
+    ).toEqual(["1", "CODE-0001", "", "", ""]);
+  });
+
+  it("leaves the optional columns empty in the examples", () => {
+    setup();
+    const template = screen.getByRole("region", { name: "File template" });
+    for (const row of within(template).getAllByRole("row").slice(1)) {
+      const cells = within(row).getAllByRole("cell");
+      expect(cells.slice(2).map((cell) => cell.textContent)).toEqual([
+        "",
+        "",
+        "",
+      ]);
+    }
+  });
+
+  it("has no Expires column for a Physical Item", () => {
+    setup(true, "physical");
+    const template = screen.getByRole("region", { name: "File template" });
+    expect(
+      within(template)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Index", "Code", "Status", "Used on"]);
+    expect(template.textContent).not.toContain("Expires");
+  });
+
+  it("says in one line what is needed", () => {
+    setup();
+    expect(screen.getByText(/Only Code is needed\./).textContent).toContain(
+      "Expires: a day, 2026-12-31.",
+    );
+    expect(screen.getByText(/Only Code is needed\./).textContent).toContain(
+      "Status and Used on are filled by AKTERA: leave them empty.",
+    );
   });
 
   it("downloads the template as a file that can be filled in", () => {
     setup();
     fireEvent.click(screen.getByRole("button", { name: "Download template" }));
     expect(exporter.exportToCSV).toHaveBeenCalledWith(
-      IMPORT_TEMPLATE_ROWS,
+      importTemplateRows("voucher"),
       "octoreach_codes_template",
     );
   });
 
+  it("shows the same columns as the codes file", () => {
+    for (const category of ["voucher", "physical"] as const) {
+      expect(Object.keys(importTemplateRows(category)[0])).toEqual(
+        codeFileColumns(category),
+      );
+    }
+  });
+
   it("is a template the importer reads: its codes and slot numbers come back", () => {
-    const parsed = parseRawCodes({ rawRows: IMPORT_TEMPLATE_ROWS });
+    const parsed = parseRawCodes({ rawRows: importTemplateRows("voucher") });
     expect(parsed.map((row) => row.code)).toEqual([
       "CODE-0001",
       "CODE-0002",
       "CODE-0003",
     ]);
     expect(parsed.map((row) => row.explicitIndex)).toEqual([1, 2, 3]);
-    // Without the Index column the codes are read just the same.
-    expect(
-      parseRawCodes({
-        rawRows: IMPORT_TEMPLATE_ROWS.map(({ Code }) => ({ Code })),
-      }).map((row) => row.code),
-    ).toEqual(["CODE-0001", "CODE-0002", "CODE-0003"]);
+    // Empty Expires cells mean no date: nothing is refused.
+    expect(parsed.every((row) => row.expiresAt === null)).toBe(true);
+    expect(parsed.some((row) => row.expiresInvalid)).toBe(false);
   });
 
-  it("does not download the template by clicking Import or Cancel", () => {
+  it("does not download the template by clicking Cancel", () => {
     setup();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(exporter.exportToCSV).not.toHaveBeenCalled();

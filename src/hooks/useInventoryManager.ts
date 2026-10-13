@@ -133,7 +133,11 @@ export function useInventoryManager(
   const saveAllItemsBulk = useCallback(
     async (
       template: PrizeTemplate,
-      itemsToSave: { id: string; item_value: string | null }[],
+      itemsToSave: {
+        id: string;
+        item_value: string | null;
+        expires_at?: string | null;
+      }[],
     ) => {
       setSaving(true);
       setError(null);

@@ -1,3 +1,4 @@
+import { parseImportedDay } from "../lib/codeExpiry";
 import { supabase } from "../lib/supabase";
 
 export interface TemplateItemRow {
@@ -28,12 +29,23 @@ export interface RawParsedCode {
   lineNumber: number;
   code: string;
   explicitIndex?: number;
+  /**
+   * The Expires column of the file: the end of that day (ISO), or null for an empty cell.
+   * Undefined when the file has no Expires column.
+   */
+  expiresAt?: string | null;
+  /** What was written in the Expires cell when it is not a date. */
+  expiresInvalid?: string;
 }
 
 export interface ImportValidationResult {
   success: boolean;
   mode: ImportMode;
-  itemsToSave: { id: string; item_value: string | null }[];
+  itemsToSave: {
+    id: string;
+    item_value: string | null;
+    expires_at?: string | null;
+  }[];
   totalParsedCodes: number;
   importedCount: number;
   emptySlotsAvailable: number;
@@ -260,7 +272,11 @@ export async function setExpiryForTemplateItemsService(
 }
 
 export async function bulkUpdateTemplateItemsService(
-  items: { id: string; item_value: string | null }[],
+  items: {
+    id: string;
+    item_value: string | null;
+    expires_at?: string | null;
+  }[],
 ): Promise<void> {
   if (items.length === 0) return;
 
@@ -273,6 +289,10 @@ export async function bulkUpdateTemplateItemsService(
         .update({
           item_value: item.item_value,
           source_type: "bulk",
+          // Only when the file had an Expires column: otherwise the dates stay as they are.
+          ...(item.expires_at !== undefined
+            ? { expires_at: item.expires_at }
+            : {}),
         })
         .eq("id", item.id),
     );
@@ -316,6 +336,8 @@ export function parseRawCodes(input: {
           .includes("itemindex") || k.toLowerCase().includes("index"),
     );
 
+    const expKey = keys.find((k) => k.toLowerCase().includes("expir"));
+
     input.rawRows.forEach((row, index) => {
       const code = String(row[valKey ?? ""] ?? "").trim();
       if (code.length === 0) return;
@@ -328,11 +350,17 @@ export function parseRawCodes(input: {
         }
       }
 
-      parsed.push({
+      const entry: RawParsedCode = {
         lineNumber: index + 1,
         code,
         explicitIndex,
-      });
+      };
+      if (expKey) {
+        const day = parseImportedDay(row[expKey]);
+        if (day.ok) entry.expiresAt = day.iso;
+        else entry.expiresInvalid = String(row[expKey]).trim();
+      }
+      parsed.push(entry);
     });
   } else if (input.rawLines && input.rawLines.length > 0) {
     input.rawLines.forEach((line, index) => {
@@ -375,6 +403,23 @@ export function validateAndPrepareImportService(options: {
       errorMessage: "No valid codes found in the provided input.",
       conflicts: [],
       rawParsedCodes: [],
+    };
+  }
+
+  // An Expires cell that is not a date: nothing is imported, and the line is named.
+  const badDate = rawParsedCodes.find((parsed) => parsed.expiresInvalid);
+  if (badDate) {
+    return {
+      success: false,
+      mode,
+      itemsToSave: [],
+      totalParsedCodes: rawParsedCodes.length,
+      importedCount: 0,
+      emptySlotsAvailable: 0,
+      overflow: false,
+      errorMessage: `Import rejected: line ${badDate.lineNumber} has an Expires value that is not a date ("${badDate.expiresInvalid}"). Write it 2026-12-31 or 31/12/2026, or leave it empty.`,
+      conflicts: [],
+      rawParsedCodes,
     };
   }
 
@@ -472,17 +517,20 @@ export function validateAndPrepareImportService(options: {
   }
 
   // 3. CONSTRUCT TARGET SLOTS MAPPING (itemsToSave)
-  const itemsToSave: { id: string; item_value: string | null }[] = [];
+  const itemsToSave: ImportValidationResult["itemsToSave"] = [];
+  // A file with an Expires column sets the date of each code it writes (empty clears it).
+  const entryFor = (id: string, parsed: RawParsedCode) => ({
+    id,
+    item_value: parsed.code,
+    ...(parsed.expiresAt !== undefined ? { expires_at: parsed.expiresAt } : {}),
+  });
 
   if (mode === "append") {
     // Sequentially assign parsed codes into the empty slots
     for (let i = 0; i < rawParsedCodes.length; i++) {
       const targetSlot = emptySlots[i];
       if (targetSlot) {
-        itemsToSave.push({
-          id: targetSlot.id,
-          item_value: rawParsedCodes[i].code,
-        });
+        itemsToSave.push(entryFor(targetSlot.id, rawParsedCodes[i]));
       }
     }
   } else {
@@ -490,10 +538,7 @@ export function validateAndPrepareImportService(options: {
     for (let i = 0; i < rawParsedCodes.length; i++) {
       const targetSlot = currentItems[i];
       if (targetSlot) {
-        itemsToSave.push({
-          id: targetSlot.id,
-          item_value: rawParsedCodes[i].code,
-        });
+        itemsToSave.push(entryFor(targetSlot.id, rawParsedCodes[i]));
       }
     }
   }

@@ -131,8 +131,10 @@ describe("the convention in the screens", () => {
     for (const path of ["src/components", "src/dashboard"]) {
       for (const file of sources(path)) {
         const code = withoutComments(readFileSync(file, "utf8"));
-        // {prize.category}, {reward.category}, {template.category} ...
-        for (const match of code.match(/\{\s*[\w.?]*\.category\s*\}/g) ?? []) {
+        // {prize.category}, {reward.category}, {template.category} ... as text on a screen
+        // (a prop such as category={reward.category} passes the value on, it shows nothing).
+        for (const match of code.match(/(?<!=)\{\s*[\w.?]*\.category\s*\}/g) ??
+          []) {
           offenders.push(`${place(file)}: ${match}`);
         }
       }

@@ -5,6 +5,7 @@ import {
   effectiveExpiry,
   expiryWarning,
   isCodeExpired,
+  parseImportedDay,
   isoToAlgiersDay,
 } from "./codeExpiry";
 
@@ -118,5 +119,59 @@ describe("computeCodeCounts with the reward's date", () => {
         "2099-01-01T00:00:00Z",
       ),
     ).toEqual({ available: 2, used: 0, expired: 0 });
+  });
+});
+
+describe("parseImportedDay", () => {
+  it("reads a day written 2026-12-31 as the end of that day in Algiers", () => {
+    expect(parseImportedDay("2026-12-31")).toEqual({
+      ok: true,
+      iso: "2026-12-31T22:59:59.000Z",
+    });
+    expect(parseImportedDay("  2026-12-31  ")).toEqual({
+      ok: true,
+      iso: "2026-12-31T22:59:59.000Z",
+    });
+  });
+
+  it("reads a day written 31/12/2026, with or without the leading zeros", () => {
+    expect(parseImportedDay("31/12/2026")).toEqual(
+      parseImportedDay("2026-12-31"),
+    );
+    expect(parseImportedDay("1/3/2027")).toEqual(
+      parseImportedDay("2027-03-01"),
+    );
+  });
+
+  it("keeps the day of a date with a time", () => {
+    expect(parseImportedDay("2026-12-31T10:00:00Z")).toEqual(
+      parseImportedDay("2026-12-31"),
+    );
+  });
+
+  it("reads the number Excel stores for a date cell", () => {
+    // 46387 is 2026-12-31 in Excel.
+    expect(parseImportedDay(46387)).toEqual(parseImportedDay("2026-12-31"));
+  });
+
+  it("takes an empty cell as no date", () => {
+    for (const empty of ["", "   ", null, undefined]) {
+      expect(parseImportedDay(empty)).toEqual({ ok: true, iso: null });
+    }
+  });
+
+  it("refuses what is not a date", () => {
+    for (const bad of [
+      "soon",
+      "2026-13-01",
+      "2026-02-31",
+      "31-12-2026",
+      "12/31/26",
+      0,
+      -5,
+      NaN,
+    ]) {
+      expect(parseImportedDay(bad), String(bad)).toEqual({ ok: false });
+    }
   });
 });

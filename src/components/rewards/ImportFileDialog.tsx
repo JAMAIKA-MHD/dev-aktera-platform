@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 
+import { importTemplateRows } from "../../lib/codeExport";
 import { exportToCSV } from "../../lib/exportUtils";
 import type { ImportMode } from "../../services/inventoryService";
+import type { PrizeTemplate } from "../../types";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -17,27 +19,24 @@ import { Input } from "../ui/input";
 interface ImportFileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The kind of reward: a Digital Item has an Expires column, a Physical Item has not. */
+  category: PrizeTemplate["category"];
   mode: ImportMode;
   onModeChange: (mode: ImportMode) => void;
   /** Reads the file and puts its codes in the reward. */
   onImport: (file: File) => Promise<void> | void;
 }
 
-// The shape of the file: a Code column (required) and an Index column (optional: the slot).
-export const IMPORT_TEMPLATE_ROWS = [
-  { Index: 1, Code: "CODE-0001" },
-  { Index: 2, Code: "CODE-0002" },
-  { Index: 3, Code: "CODE-0003" },
-];
-
 const MODES: { id: ImportMode; label: string }[] = [
   { id: "append", label: "Append" },
   { id: "replace", label: "Replace All" },
 ];
 
-// Import codes from a file: pick the file, say whether to add to the codes or replace them, go.
+// Import codes from a file: see the structure, pick the file, say whether to add to the codes or
+// replace them, go.
 function ImportBody({
   onClose,
+  category,
   mode,
   onModeChange,
   onImport,
@@ -45,6 +44,8 @@ function ImportBody({
   onClose: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const rows = useMemo(() => importTemplateRows(category), [category]);
+  const columns = Object.keys(rows[0]);
 
   const start = () => {
     if (!file) return;
@@ -57,41 +58,49 @@ function ImportBody({
       <DialogHeader>
         <DialogTitle>Import codes</DialogTitle>
         <DialogDescription>
-          A CSV or Excel file with one code per row, in a Code column.
+          A CSV or Excel file with one code per row. Keep these columns:
         </DialogDescription>
       </DialogHeader>
 
       <section aria-label="File template" className="space-y-1.5">
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-left font-mono text-xs">
             <thead className="bg-muted text-muted-foreground">
               <tr>
-                <th scope="col" className="px-3 py-1.5">
-                  Index
-                </th>
-                <th scope="col" className="px-3 py-1.5">
-                  Code
-                </th>
+                {columns.map((column) => (
+                  <th
+                    key={column}
+                    scope="col"
+                    className="whitespace-nowrap px-3 py-1.5"
+                  >
+                    {column}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {IMPORT_TEMPLATE_ROWS.map((row) => (
+              {rows.map((row) => (
                 <tr key={row.Index}>
-                  <td className="px-3 py-1.5">{row.Index}</td>
-                  <td className="px-3 py-1.5">{row.Code}</td>
+                  {columns.map((column) => (
+                    <td key={column} className="whitespace-nowrap px-3 py-1.5">
+                      {row[column]}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>Index is optional.</span>
+        <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground">
+          <span>
+            Only Code is needed.{" "}
+            {category === "voucher" && "Expires: a day, 2026-12-31. "}
+            Status and Used on are filled by AKTERA: leave them empty.
+          </span>
           <button
             type="button"
-            onClick={() =>
-              exportToCSV(IMPORT_TEMPLATE_ROWS, "octoreach_codes_template")
-            }
-            className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
+            onClick={() => exportToCSV(rows, "octoreach_codes_template")}
+            className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
           >
             <Download className="size-3.5" aria-hidden />
             Download template
@@ -141,7 +150,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   ...body
 }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent className="max-w-xl">
       <ImportBody {...body} onClose={() => onOpenChange(false)} />
     </DialogContent>
   </Dialog>

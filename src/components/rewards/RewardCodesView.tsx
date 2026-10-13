@@ -163,7 +163,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
         reward.totalStock,
       );
 
-      if (validation.overflow) {
+      if (validation.overflow || validation.errorMessage) {
         alert(
           validation.errorMessage ||
             "Import rejected: code count exceeds available slots.",
@@ -673,6 +673,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
       <ImportFileDialog
         open={importing}
         onOpenChange={setImporting}
+        category={reward.category}
         mode={importMode}
         onModeChange={setImportMode}
         onImport={handleFileImport}

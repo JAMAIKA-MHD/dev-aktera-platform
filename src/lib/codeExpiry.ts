@@ -90,3 +90,37 @@ export function computeCodeCounts(
   }
   return counts;
 }
+
+export type ImportedDay = { ok: true; iso: string | null } | { ok: false };
+
+/**
+ * An expiry date read from a file the brand imports: a day written 2026-12-31 or 31/12/2026, or
+ * the number Excel stores for a date cell. Empty means no date. The day counts until its end in
+ * Algeria, like a date picked on the screen.
+ */
+export function parseImportedDay(value: unknown): ImportedDay {
+  if (value === null || value === undefined) return { ok: true, iso: null };
+
+  let day: string | null = null;
+  if (typeof value === "number") {
+    // Excel counts the days since 1899-12-30.
+    if (!Number.isFinite(value) || value < 1 || value > 100000) {
+      return { ok: false };
+    }
+    day = new Date(Math.round((value - 25569) * 86400000))
+      .toISOString()
+      .slice(0, 10);
+  } else {
+    const text = String(value).trim();
+    if (text === "") return { ok: true, iso: null };
+    const iso = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/.exec(text);
+    const european = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text);
+    if (iso) day = `${iso[1]}-${iso[2]}-${iso[3]}`;
+    else if (european) {
+      day = `${european[3]}-${european[2].padStart(2, "0")}-${european[1].padStart(2, "0")}`;
+    }
+  }
+  if (!day) return { ok: false };
+  const end = algiersEndOfDayToIso(day);
+  return end ? { ok: true, iso: end } : { ok: false };
+}
