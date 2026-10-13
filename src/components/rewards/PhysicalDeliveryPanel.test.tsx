@@ -8,6 +8,9 @@ const service = vi.hoisted(() => ({
 }));
 vi.mock("../../services/deliveryService", () => service);
 
+const exporter = vi.hoisted(() => ({ exportToCSV: vi.fn() }));
+vi.mock("../../lib/exportUtils", () => exporter);
+
 import { PhysicalDeliveryPanel } from "./PhysicalDeliveryPanel";
 
 const winner = (over: Partial<PhysicalWinner> = {}): PhysicalWinner => ({
@@ -33,6 +36,7 @@ const renderPanel = (canEdit = true) =>
 beforeEach(() => {
   service.fetchPhysicalWinners.mockReset();
   service.setDeliveryStatus.mockReset();
+  exporter.exportToCSV.mockReset();
   service.fetchPhysicalWinners.mockResolvedValue([winner()]);
   service.setDeliveryStatus.mockResolvedValue(undefined);
 });
@@ -125,5 +129,40 @@ describe("PhysicalDeliveryPanel", () => {
     renderPanel();
     await screen.findByText("Ali");
     expect(screen.queryByText(/address|carrier|tracking|shipping/i)).toBeNull();
+  });
+
+  it("exports the winners with their delivery status", async () => {
+    service.fetchPhysicalWinners.mockResolvedValue([
+      winner({
+        deliveryStatus: "delivered",
+        deliveredAt: "2026-10-14T08:00:00Z",
+      }),
+    ]);
+    renderPanel();
+    await screen.findByText("Ali");
+    fireEvent.click(screen.getByRole("button", { name: "Export winners" }));
+    expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
+    const [rows, filename] = exporter.exportToCSV.mock.calls[0];
+    expect(rows).toEqual([
+      expect.objectContaining({
+        Winner: "Ali",
+        Delivery: "Delivered",
+        "Delivered on": "2026-10-14",
+      }),
+    ]);
+    expect(filename).toMatch(/^octoreach_delivery_\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("has nothing to export without a winner", async () => {
+    service.fetchPhysicalWinners.mockResolvedValue([]);
+    renderPanel();
+    await screen.findByText("No winners yet for this reward.");
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Export winners",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
   });
 });

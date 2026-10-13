@@ -28,6 +28,7 @@ import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useAuth } from "../contexts/AuthContext";
 import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
 import { CodeStockSummary } from "./rewards/CodeStockSummary";
+import { buildCodeExportRows } from "../lib/codeExport";
 import {
   algiersEndOfDayToIso,
   expiryWarning,
@@ -338,11 +339,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const handleExportCodes = (format: "csv" | "xlsx" = "csv") => {
     if (!activeCodesTemplate) return;
 
-    const dataToExport = templateItems.map((item) => ({
-      Index: item.item_index,
-      Code: item.item_value ?? "",
-      Status: item.item_value?.trim() ? "Prepared" : "Empty",
-    }));
+    const dataToExport = buildCodeExportRows(templateItems, {
+      category: activeCodesTemplate.category,
+      inheritedExpiresAt: activeCodesTemplate.expiresAt ?? null,
+    });
 
     const filename = `octoreach_codes_${activeCodesTemplate.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}`;
 

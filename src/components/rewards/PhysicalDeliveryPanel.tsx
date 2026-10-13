@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
+import { buildDeliveryExportRows } from "../../lib/codeExport";
+import { exportToCSV } from "../../lib/exportUtils";
 import {
   fetchPhysicalWinners,
   setDeliveryStatus,
@@ -61,6 +63,11 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
       current.map((w) => (w.entryId === entryId ? { ...w, ...changes } : w)),
     );
 
+  const handleExport = () => {
+    const day = new Date().toISOString().split("T")[0];
+    exportToCSV(buildDeliveryExportRows(winners), `octoreach_delivery_${day}`);
+  };
+
   const handleChange = async (winner: PhysicalWinner, next: DeliveryStatus) => {
     const previous = { ...winner };
     setRowErrors((current) => {
@@ -100,13 +107,24 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
       aria-label="Winners and delivery"
       className="mx-6 mt-4 space-y-3 rounded-2xl border border-card-border bg-card-bg-subtle p-4"
     >
-      <div>
-        <h4 className="text-sm font-black text-brand-text">
-          Winners &amp; delivery
-        </h4>
-        <p className="text-xs text-brand-textMuted">
-          You handle delivery. AKTERA only records the status.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-black text-brand-text">
+            Winners &amp; delivery
+          </h4>
+          <p className="text-xs text-brand-textMuted">
+            You handle delivery. AKTERA only records the status.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={loading || winners.length === 0}
+          className="flex items-center gap-1.5 rounded-xl border border-card-border bg-card-bg px-3 py-1.5 text-xs font-bold text-brand-text transition-colors hover:bg-card-bg-subtle disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download className="h-4 w-4 text-slate-500" aria-hidden="true" />
+          Export winners
+        </button>
       </div>
 
       {loading ? (

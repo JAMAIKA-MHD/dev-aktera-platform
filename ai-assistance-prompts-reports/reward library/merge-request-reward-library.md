@@ -59,6 +59,10 @@ code was only extended: the one removed line is the `select(...)` string of
   valid until the end of that day in Algeria, stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
   codes" (keeps dates already set unless asked to replace them).
+- **Exports:** the codes file now has `Status` (Available / Used / Expired / Empty), `Expires` (digital
+  rewards) and `Used on`, and still imports back (the importer finds `Index` and `Code`). The delivery
+  panel has "Export winners" (winner, phone, reward, won on, Delivered / Not delivered, delivered on),
+  with names and phones defused against spreadsheet formulas.
 - **Physical rewards:** a "Winners & delivery" panel listing the winners with a
   `Not delivered / Delivered` selector (rollback and message on refusal, read-only for a `viewer`).
   The panel says plainly: "You handle delivery. AKTERA only records the status." No address,

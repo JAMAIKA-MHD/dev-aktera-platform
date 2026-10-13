@@ -23,6 +23,13 @@ vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ profile: { role: state.role } }),
 }));
 vi.mock("../common/ImageUploader", () => ({ ImageUploader: () => null }));
+const exporter = vi.hoisted(() => ({
+  exportToCSV: vi.fn(),
+  exportToExcel: vi.fn(),
+  parseCSVFile: vi.fn(),
+  parseExcelFile: vi.fn(),
+}));
+vi.mock("../../lib/exportUtils", () => exporter);
 vi.mock("../../services/deliveryService", () => ({
   fetchPhysicalWinners: vi.fn().mockResolvedValue([
     {
@@ -472,5 +479,34 @@ describe("Reward Library, expiry date in the reward form", () => {
         "2099-08-01T22:59:59.000Z",
       ),
     );
+  });
+});
+
+describe("Reward Library, export of the codes", () => {
+  it("exports the expiry date and whether each code is available, used or expired", async () => {
+    exporter.exportToCSV.mockClear();
+    render(<PrizesManager {...props} />);
+    fireEvent.click(screen.getByText("Ooredoo 500 DA"));
+    await screen.findByRole("columnheader", { name: "Expires" });
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+
+    expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
+    const [rows, filename] = exporter.exportToCSV.mock.calls[0];
+    expect(filename).toMatch(/^octoreach_codes_Ooredoo_500_DA_/);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        Index: 1,
+        Code: "AAA",
+        Status: "Available",
+        Expires: "2099-12-31",
+      }),
+      expect.objectContaining({
+        Index: 2,
+        Code: "BBB",
+        Status: "Expired",
+        Expires: "2020-01-01",
+      }),
+      expect.objectContaining({ Index: 3, Code: "CCC", Status: "Used" }),
+    ]);
   });
 });
