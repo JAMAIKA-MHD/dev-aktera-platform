@@ -347,7 +347,7 @@ Invoke-RestMethod "$u/rest/v1/campaigns?select=id,win_probability" -Headers $h  
 
 ## 11. Reward Library : expiration des codes et statut de livraison
 
-À faire **après** les étapes 1 à 10 (ou sur une base qui les a déjà), pour la migration `supabase/migrations/20261012090000_reward_expiry_and_delivery.sql`. Elle est **additive** (nouvelles colonnes avec valeurs par défaut sûres, nouvelles fonctions, deux fonctions existantes remplacées à l'identique avec une condition en plus) : l'ancien front et l'ancienne `select-prize` continuent de fonctionner avec la nouvelle base, donc l'ordre n'est pas critique ; l'ordre conseillé reste le suivant.
+À faire **après** les étapes 1 à 10 (ou sur une base qui les a déjà), pour les migrations `supabase/migrations/20261012090000_reward_expiry_and_delivery.sql` et `20261013090000_reward_partners.sql` (nouvelle table `reward_partners`, les partenaires que la marque enregistre : RLS par organisation, rien pour `anon`). Elle est **additive** (nouvelles colonnes avec valeurs par défaut sûres, nouvelles fonctions, deux fonctions existantes remplacées à l'identique avec une condition en plus) : l'ancien front et l'ancienne `select-prize` continuent de fonctionner avec la nouvelle base, donc l'ordre n'est pas critique ; l'ordre conseillé reste le suivant.
 
 1. **Migration** : `npx supabase db push` (ou le SQL Editor). Elle ajoute `prize_template_items.expires_at`, `entries.delivery_status` / `delivered_at`, `is_code_assignable`, `prize_has_assignable_reward`, `set_entry_delivery_status`, un trigger de garde sur `entries`, et remplace `claim_campaign_prize_coupon` et `draw_and_claim_campaign_prize` (qui reste `SECURITY INVOKER`).
 2. **Edge Function** : redéployer `select-prize` (elle marque `metadata.reward_unavailable` si un gain à codes n'a pas reçu de code).
@@ -366,6 +366,8 @@ where p.pronamespace = 'public'::regnamespace
                     'set_entry_delivery_status', 'draw_and_claim_campaign_prize',
                     'claim_campaign_prize_coupon');
 ```
+
+Pour la table `reward_partners` : `select grantee, string_agg(privilege_type, ',') from information_schema.role_table_grants where table_name = 'reward_partners' and grantee in ('anon', 'authenticated') group by 1;` doit donner **uniquement** `authenticated` avec `DELETE,INSERT,SELECT,UPDATE` (pas de `TRUNCATE`, rien pour `anon`).
 
 Les scripts `npm run backend:rewards` et `npm run backend:smoke` **refusent** de tourner hors de la pile locale : ne pas les lancer contre le cloud. Recette en ligne, à la main, sur `demo` : un lot numérique avec un code expiré et un valide (seul le valide est donné), un lot physique (le statut passe à `Delivered` et reste après rechargement, un compte `viewer` est en lecture seule), l'onglet « Partner Library » (« Coming soon »).
 

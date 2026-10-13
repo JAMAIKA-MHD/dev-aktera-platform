@@ -105,6 +105,28 @@ export interface PhysicalWinner {
   deliveredAt: string | null;
 }
 
+/** A partner the brand registered in the Reward Library (nothing is connected to it yet). */
+export interface RewardPartner {
+  id: string;
+  name: string;
+  description: string | null;
+  websiteUrl: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  createdAt: string;
+}
+
+/** What the "Add a partner" form collects. */
+export interface RewardPartnerInput {
+  name: string;
+  description: string;
+  websiteUrl: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+}
+
 /**
  * 5. Prize Inventory Quotas Entity (prize_inventory)
  * Atomic locked state of stock assigned to active campaigns.

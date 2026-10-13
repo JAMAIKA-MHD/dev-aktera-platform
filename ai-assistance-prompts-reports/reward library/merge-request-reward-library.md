@@ -4,7 +4,7 @@
 
 Implements **Reward Types & Inventory Logic** for the Reward Library: digital codes can expire,
 a reward whose codes ran out is no longer drawn, physical rewards get a delivery status the brand
-updates, and the Partner Library is announced as "Coming soon".
+updates, and the partner libraries are announced as "Coming soon" (a brand can also register its own partners).
 
 The existing Reward Library logic (upload, generate and import codes, duplicate detection,
 allocation to campaigns, atomic assignment of one unique code per winner) is **kept**. Existing
@@ -42,9 +42,14 @@ code was only extended: the one removed line is the `select(...)` string of
 
 ### Dashboard — Reward Library (`/prizes`)
 
-- **Local Library / Partner Library tabs** (`rewards/RewardLibrary.tsx`). The Partner Library shows
-  Chargily and Gifty as **Coming soon**: no API, no table, no network call. The Local Library is the
-  previous screen, unchanged.
+- **A hub of libraries** at `/prizes`: a Local Library card (summary of the brand's rewards, opens
+  `/prizes/local`, the previous screen with a way back) and Gifty, Yassir and Chargily as Coming soon.
+- **"Add a partner"**: a button and a form (name, what they offer, website, contact person, phone,
+  email) to register a partner the brand works with. New table `reward_partners`
+  (migration `20261013090000_reward_partners.sql`): members of the organization read, anyone but a
+  viewer writes, unique name per organization, email and website checked in the database, nothing
+  for `anon`. The partners appear as "Not connected yet" cards; nothing is connected to them.
+- **Local Library** (`/prizes/local`): the previous screen, unchanged.
 - **Digital codes:** an "Expires" column (date per code, valid until the end of that day in Algeria,
   stored in UTC), an "Expired" badge (the code stays visible), a summary
   "X available · Y used · Z expired", a warning when the codes will run out, and "Expiry for all
@@ -92,7 +97,8 @@ Manual, in the dashboard (`/prizes`):
 3. Reward with no code at all: the player wins and sees "You Won!" without a code.
 4. Physical reward: after a win, open it → "Winners & delivery" → `Delivered`, reload, still
    delivered; a `viewer` account sees it read-only.
-5. "Partner Library" tab: Chargily and Gifty, "Coming soon", nothing clickable.
+5. `/prizes`: the hub with Gifty, Yassir and Chargily as "Coming soon"; "Add a partner" opens the form and
+   the new partner shows as "Not connected yet"; a `viewer` sees the list but no button.
 
 ## Tests
 

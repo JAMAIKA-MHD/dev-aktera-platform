@@ -1,8 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Clock, Library, Package, Ticket } from "lucide-react";
+import {
+  ArrowRight,
+  Clock,
+  Globe,
+  Library,
+  Mail,
+  Package,
+  Phone,
+  Plus,
+  Ticket,
+  Trash2,
+} from "lucide-react";
 import { PATHS } from "../../dashboard/paths";
-import type { PrizeTemplate } from "../../types";
+import { useRewardPartners } from "../../hooks/useRewardPartners";
+import type { PrizeTemplate, RewardPartner } from "../../types";
+import { AddPartnerDialog } from "./AddPartnerDialog";
 
 // The entry of the Reward Library: where the rewards come from. "Local" is the brand's own
 // library (digital codes and physical rewards, managed in the next screen); the partner
@@ -27,7 +40,158 @@ const PARTNERS = [
 
 interface RewardLibraryHubProps {
   prizes: PrizeTemplate[];
+  organizationId?: string | null;
+  /** False for a read-only viewer: the list stays visible, nothing can be added or removed. */
+  canManage?: boolean;
 }
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+};
+
+// A partner the brand registered itself. It is not connected to anything yet.
+const OwnPartnerCard: React.FC<{
+  partner: RewardPartner;
+  canManage: boolean;
+  onRemove: (partner: RewardPartner) => Promise<void>;
+}> = ({ partner, canManage, onRemove }) => {
+  const [confirming, setConfirming] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = async () => {
+    setRemoving(true);
+    setError(null);
+    try {
+      await onRemove(partner);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not remove this partner.",
+      );
+      setRemoving(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <li
+      aria-label={`${partner.name}: your partner`}
+      className="min-w-0 rounded-3xl border border-card-border bg-card-bg p-5 shadow-sm transition-shadow hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            aria-hidden="true"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-500/30 bg-slate-500/15 text-lg font-black uppercase text-slate-500"
+          >
+            {partner.name[0]}
+          </div>
+          <h4
+            title={partner.name}
+            className="line-clamp-2 min-w-0 text-base font-black [overflow-wrap:anywhere]"
+          >
+            {partner.name}
+          </h4>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-500/30 bg-slate-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
+          Not connected yet
+        </span>
+      </div>
+
+      {partner.description && (
+        <p className="mt-3 line-clamp-3 text-xs text-brand-textMuted [overflow-wrap:anywhere]">
+          {partner.description}
+        </p>
+      )}
+
+      <ul className="mt-3 space-y-1.5 text-xs text-brand-textMuted">
+        {partner.websiteUrl && (
+          <li className="flex min-w-0 items-center gap-2">
+            <Globe className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <a
+              href={partner.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate font-bold text-emerald-500 hover:underline"
+            >
+              {hostOf(partner.websiteUrl)}
+            </a>
+          </li>
+        )}
+        {(partner.contactName || partner.contactPhone) && (
+          <li className="flex min-w-0 items-center gap-2">
+            <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">
+              {[partner.contactName, partner.contactPhone]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </li>
+        )}
+        {partner.contactEmail && (
+          <li className="flex min-w-0 items-center gap-2">
+            <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <a
+              href={`mailto:${partner.contactEmail}`}
+              className="truncate hover:underline"
+            >
+              {partner.contactEmail}
+            </a>
+          </li>
+        )}
+      </ul>
+
+      {error && (
+        <p role="alert" className="mt-3 text-xs text-red-500">
+          {error}
+        </p>
+      )}
+
+      {canManage && (
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-card-border pt-3">
+          {confirming ? (
+            <>
+              <span className="mr-auto text-xs font-bold">
+                Remove this partner?
+              </span>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={removing}
+                className="rounded-lg px-3 py-1 text-xs font-bold text-brand-textMuted hover:text-brand-text"
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                onClick={() => void remove()}
+                disabled={removing}
+                className="rounded-lg bg-red-600 px-3 py-1 text-xs font-black text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {removing ? "Removing..." : "Remove"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              aria-label={`Remove ${partner.name}`}
+              className="rounded-lg p-1.5 text-brand-textMuted transition-colors hover:bg-red-500/10 hover:text-red-500"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
+    </li>
+  );
+};
 
 const Stat: React.FC<{
   label: string;
@@ -47,7 +211,19 @@ const Stat: React.FC<{
 
 export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
   prizes,
+  organizationId = null,
+  canManage = false,
 }) => {
+  const {
+    partners,
+    loading: partnersLoading,
+    error: partnersError,
+    reload,
+    add,
+    remove,
+  } = useRewardPartners(organizationId);
+  const [adding, setAdding] = useState(false);
+
   const digital = prizes.filter((p) => p.category === "voucher").length;
   const physical = prizes.filter((p) => p.category === "physical").length;
   const available = prizes.reduce((sum, p) => sum + p.availableStock, 0);
@@ -127,17 +303,30 @@ export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
       </section>
 
       <section aria-labelledby="partner-libraries-title" className="space-y-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3
-            id="partner-libraries-title"
-            className="text-xs font-black uppercase tracking-widest text-brand-textMuted"
-          >
-            Partner libraries
-          </h3>
-          <p className="text-xs text-brand-textMuted">
-            Offer partner rewards without managing any stock. Arriving in a
-            later version.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3
+              id="partner-libraries-title"
+              className="text-xs font-black uppercase tracking-widest text-brand-textMuted"
+            >
+              Partner libraries
+            </h3>
+            <p className="mt-1 text-xs text-brand-textMuted">
+              Offer partner rewards without managing any stock. The connections
+              arrive in a later version; you can already register the partners
+              you work with.
+            </p>
+          </div>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
+              Add a partner
+            </button>
+          )}
         </div>
 
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -170,7 +359,48 @@ export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
             </li>
           ))}
         </ul>
+
+        {partnersError && (
+          <p role="alert" className="text-xs text-red-500">
+            {partnersError}{" "}
+            <button
+              type="button"
+              onClick={() => void reload()}
+              className="font-bold underline"
+            >
+              Retry
+            </button>
+          </p>
+        )}
+
+        {(partners.length > 0 || partnersLoading) && (
+          <div className="space-y-3 pt-2">
+            <h4 className="text-xs font-black uppercase tracking-widest text-brand-textMuted">
+              Your partners
+            </h4>
+            {partnersLoading ? (
+              <p className="text-xs text-brand-textMuted">
+                Loading your partners...
+              </p>
+            ) : (
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {partners.map((partner) => (
+                  <OwnPartnerCard
+                    key={partner.id}
+                    partner={partner}
+                    canManage={canManage}
+                    onRemove={(p) => remove(p.id)}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </section>
+
+      {adding && (
+        <AddPartnerDialog onClose={() => setAdding(false)} onSubmit={add} />
+      )}
     </div>
   );
 };
