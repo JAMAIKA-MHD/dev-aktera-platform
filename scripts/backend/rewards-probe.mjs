@@ -5,6 +5,8 @@
 //
 // Checks, on throwaway data it creates and deletes:
 //   - a code that expired is never handed to a winner, a valid one is;
+//   - a reward valid for a period after delivery: the deadline is set when the code is given and
+//     does not move afterwards;
 //   - the expiry set on the reward applies to its codes, a date on a code wins, and a physical
 //     reward cannot carry one;
 //   - two winners at the same time never get the same code;
@@ -347,15 +349,13 @@ async function rewardLevelExpiry(orgId) {
     `won ${wonLapsed}`,
   );
 
-  const physical = await admin
-    .from("prize_templates")
-    .insert({
-      organization_id: orgId,
-      name: "phys-with-date",
-      category: "physical",
-      stock_quantity: 1,
-      expires_at: future,
-    });
+  const physical = await admin.from("prize_templates").insert({
+    organization_id: orgId,
+    name: "phys-with-date",
+    category: "physical",
+    stock_quantity: 1,
+    expires_at: future,
+  });
   check(
     "reward expiry: a physical reward cannot carry an expiry date",
     Boolean(physical.error),
@@ -370,6 +370,189 @@ async function rewardLevelExpiry(orgId) {
     "reward expiry: a reward with a date cannot become physical while it keeps it",
     Boolean(switched.error),
     switched.error?.message ?? "no error",
+  );
+}
+
+// The end of the day `days` after today, in Algiers (UTC+1, no daylight saving), as a UTC instant.
+const algiersEndOfDayIn = (days) => {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Algiers",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const day = new Date(`${today}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + days);
+  return `${day.toISOString().slice(0, 10)}T22:59:59.000Z`;
+};
+
+const redemptionOf = async (entryId) =>
+  must(
+    await admin
+      .from("coupon_redemptions")
+      .select("expires_at")
+      .eq("entry_id", entryId)
+      .single(),
+    "redemption",
+  );
+
+const expiryOf = async (entryId) => {
+  const { data, error } = await admin.rpc("coupon_expiry_for_entry", {
+    p_entry_id: entryId,
+  });
+  if (error) throw new Error(`coupon_expiry_for_entry: ${error.message}`);
+  return data ? new Date(data).toISOString() : null;
+};
+
+async function expiryAfterDelivery(orgId) {
+  const campaign = await makeCampaign(orgId, false);
+
+  // A validity period: the deadline starts when the code is given.
+  const period = await makeTemplate(orgId, "period-30", "voucher", {
+    expiry_days: 30,
+  });
+  await addItem(orgId, period, 1, "P-1");
+  await addItem(orgId, period, 2, "P-2", "2099-01-01T22:59:59.000Z");
+  const prizePeriod = await makePrize(orgId, campaign, period, "period-30");
+
+  const entry = await makeEntry(orgId, campaign);
+  const code = await claim(prizePeriod, entry);
+  const expected = algiersEndOfDayIn(30);
+  const stored = (await redemptionOf(entry)).expires_at;
+  check(
+    "after delivery: the deadline is the end of the day 30 days later, in Algiers",
+    code === "P-1" && new Date(stored).toISOString() === expected,
+    `${code} ${stored} expected ${expected}`,
+  );
+  check(
+    "after delivery: the winner's deadline is readable (coupon_expiry_for_entry)",
+    (await expiryOf(entry)) === expected,
+  );
+
+  // The deadline of a winner who already has the code does not move when the reward changes.
+  must(
+    await admin
+      .from("prize_templates")
+      .update({ expiry_days: 5 })
+      .eq("id", period),
+    "update",
+  );
+  check(
+    "after delivery: changing the period later does not move a deadline already given",
+    (await expiryOf(entry)) === expected,
+  );
+
+  // A code with a date of its own keeps it, whatever the period.
+  const entry2 = await makeEntry(orgId, campaign);
+  const code2 = await claim(prizePeriod, entry2);
+  check(
+    "after delivery: a code with its own date keeps it",
+    code2 === "P-2" && (await expiryOf(entry2)) === "2099-01-01T22:59:59.000Z",
+    `${code2} ${await expiryOf(entry2)}`,
+  );
+
+  // A code is not "expired" before it is given, whatever the period.
+  const young = await makeTemplate(orgId, "period-1", "voucher", {
+    expiry_days: 1,
+  });
+  await addItem(orgId, young, 1, "Y-1");
+  const prizeYoung = await makePrize(orgId, campaign, young, "period-1");
+  const youngItem = must(
+    await admin
+      .from("prize_template_items")
+      .select("id")
+      .eq("prize_template_id", young)
+      .single(),
+    "item",
+  );
+  const assignable = await admin.rpc("is_code_assignable", {
+    p_item_id: youngItem.id,
+  });
+  check(
+    "after delivery: a code not given yet is assignable",
+    assignable.data === true,
+    String(assignable.error?.message ?? assignable.data),
+  );
+  void prizeYoung;
+
+  // Fixed date and no date keep working.
+  const fixed = await makeTemplate(orgId, "fixed", "voucher", {
+    expires_at: "2099-03-01T22:59:59.000Z",
+  });
+  await addItem(orgId, fixed, 1, "F-1");
+  const prizeFixed = await makePrize(orgId, campaign, fixed, "fixed");
+  const entry3 = await makeEntry(orgId, campaign);
+  await claim(prizeFixed, entry3);
+  check(
+    "after delivery: a fixed-date reward gives its date, nothing is stored on the redemption",
+    (await expiryOf(entry3)) === "2099-03-01T22:59:59.000Z" &&
+      (await redemptionOf(entry3)).expires_at === null,
+  );
+
+  const none = await makeTemplate(orgId, "none");
+  await addItem(orgId, none, 1, "N-1");
+  const prizeNone = await makePrize(orgId, campaign, none, "none");
+  const entry4 = await makeEntry(orgId, campaign);
+  await claim(prizeNone, entry4);
+  check(
+    "after delivery: a reward without expiry has no deadline",
+    (await expiryOf(entry4)) === null,
+  );
+
+  // What the database refuses.
+  const both = await admin
+    .from("prize_templates")
+    .insert({
+      organization_id: orgId,
+      name: "both",
+      category: "voucher",
+      stock_quantity: 1,
+      expires_at: "2099-01-01T00:00:00Z",
+      expiry_days: 10,
+    });
+  check(
+    "after delivery: a date and a period together are refused",
+    Boolean(both.error),
+    both.error?.message ?? "no error",
+  );
+  const physical = await admin
+    .from("prize_templates")
+    .insert({
+      organization_id: orgId,
+      name: "phys-days",
+      category: "physical",
+      stock_quantity: 1,
+      expiry_days: 10,
+    });
+  check(
+    "after delivery: a physical reward cannot have a period",
+    Boolean(physical.error),
+    physical.error?.message ?? "no error",
+  );
+  for (const days of [0, -3, 3651]) {
+    const bad = await admin
+      .from("prize_templates")
+      .insert({
+        organization_id: orgId,
+        name: `bad-${days}`,
+        category: "voucher",
+        stock_quantity: 1,
+        expiry_days: days,
+      });
+    check(
+      `after delivery: a period of ${days} days is refused`,
+      Boolean(bad.error),
+      bad.error?.message ?? "no error",
+    );
+  }
+
+  const anonCall = await anon.rpc("coupon_expiry_for_entry", {
+    p_entry_id: randomUUID(),
+  });
+  check(
+    "after delivery: anon cannot read a deadline",
+    anonCall.error?.code === "42501",
+    anonCall.error?.message ?? "",
   );
 }
 
@@ -706,6 +889,7 @@ try {
   const otherOrgId = await makeOrg("other");
   await expiryAndConcurrency(orgId);
   await rewardLevelExpiry(orgId);
+  await expiryAfterDelivery(orgId);
   await drawFilter(orgId);
   await delivery(orgId, otherOrgId);
   await partners(orgId, otherOrgId);
