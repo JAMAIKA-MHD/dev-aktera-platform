@@ -159,6 +159,8 @@ beforeEach(() => {
   onUpdatePrize.mockClear();
   onRefreshPrizes.mockClear();
   exporter.exportToCSV.mockClear();
+  exporter.parseCSVFile.mockReset();
+  exporter.parseExcelFile.mockReset();
 });
 
 const rowOf = (code: string) =>
@@ -460,6 +462,133 @@ describe("reward codes page, the toolbar", () => {
     );
   });
 
+  it("opens a small dialog to import a file, and imports nothing until a file is chosen", async () => {
+    await open();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Import File" }));
+    const dialog = screen.getByRole("dialog", { name: "Import codes" });
+    expect(
+      (
+        within(dialog).getByRole("button", {
+          name: "Import",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(exporter.parseCSVFile).not.toHaveBeenCalled();
+  });
+
+  it("imports the codes of the chosen file and says how many", async () => {
+    exporter.parseCSVFile.mockResolvedValue([{ Code: "X1" }, { Code: "X2" }]);
+    state.fn.validateImport.mockReturnValue({
+      success: true,
+      overflow: false,
+      conflicts: [],
+      importedCount: 2,
+      itemsToSave: [{ id: "i1", item_value: "X1" }],
+    });
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Import File" }));
+    const file = new File(["Code\nX1\nX2"], "codes.csv", { type: "text/csv" });
+    fireEvent.change(screen.getByLabelText("File to import"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+
+    await waitFor(() => expect(state.fn.executeImport).toHaveBeenCalled());
+    expect(exporter.parseCSVFile).toHaveBeenCalledWith(file);
+    expect(state.fn.validateImport).toHaveBeenCalledWith(
+      "append",
+      { rawRows: [{ Code: "X1" }, { Code: "X2" }] },
+      3,
+    );
+    expect(screen.queryByRole("dialog", { name: "Import codes" })).toBeNull();
+    expect(
+      await screen.findByText(
+        /Successfully imported 2 code\(s\) in Append mode/,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("reads an Excel file with the Excel reader", async () => {
+    exporter.parseExcelFile.mockResolvedValue([{ Code: "X1" }]);
+    state.fn.validateImport.mockReturnValue({
+      success: true,
+      overflow: false,
+      conflicts: [],
+      importedCount: 1,
+      itemsToSave: [{ id: "i1", item_value: "X1" }],
+    });
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Import File" }));
+    const file = new File(["x"], "codes.xlsx");
+    fireEvent.change(screen.getByLabelText("File to import"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    await waitFor(() =>
+      expect(exporter.parseExcelFile).toHaveBeenCalledWith(file),
+    );
+    expect(exporter.parseCSVFile).not.toHaveBeenCalled();
+  });
+
+  it("imports in Replace All mode when that is chosen in the dialog", async () => {
+    exporter.parseCSVFile.mockResolvedValue([{ Code: "X1" }]);
+    state.fn.validateImport.mockReturnValue({
+      success: true,
+      overflow: false,
+      conflicts: [],
+      importedCount: 1,
+      itemsToSave: [{ id: "i1", item_value: "X1" }],
+    });
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Import File" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("radio", {
+        name: "Replace All",
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("File to import"), {
+      target: { files: [new File(["Code\nX1"], "codes.csv")] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    await waitFor(() =>
+      expect(state.fn.validateImport).toHaveBeenCalledWith(
+        "replace",
+        { rawRows: [{ Code: "X1" }] },
+        3,
+      ),
+    );
+  });
+
+  it("asks what to do about duplicate codes found in the file", async () => {
+    exporter.parseCSVFile.mockResolvedValue([{ Code: "AAA" }]);
+    state.fn.validateImport.mockReturnValue({
+      success: false,
+      overflow: false,
+      conflicts: [{ lineNumber: 1, code: "AAA", reason: "existing" }],
+      importedCount: 1,
+      itemsToSave: [],
+    });
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Import File" }));
+    fireEvent.change(screen.getByLabelText("File to import"), {
+      target: { files: [new File(["Code\nAAA"], "codes.csv")] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    expect(
+      await screen.findByText(/Duplicate Codes Detected \(1\)/),
+    ).toBeTruthy();
+    expect(state.fn.executeImport).not.toHaveBeenCalled();
+  });
+
+  it("closes the import dialog without importing on Cancel", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Import File" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(exporter.parseCSVFile).not.toHaveBeenCalled();
+  });
+
   it("fills the empty slots with generated codes", async () => {
     await open();
     fireEvent.click(screen.getByRole("button", { name: /Auto-Fill Empty/ }));
@@ -469,80 +598,16 @@ describe("reward codes page, the toolbar", () => {
     expect(await screen.findByText(/Filled empty slots/)).toBeTruthy();
   });
 
-  it("describes the file in a dialog before anything is downloaded", async () => {
+  it("downloads the file at once when Export is clicked, with no dialog", async () => {
     await open();
-    expect(screen.queryByRole("dialog")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    const dialog = screen.getByRole("dialog", {
-      name: "Export the codes of Ooredoo 500 DA",
-    });
-    // Nothing is downloaded by opening it.
-    expect(exporter.exportToCSV).not.toHaveBeenCalled();
-    const columns = within(
-      within(dialog).getByRole("region", { name: "Columns of the file" }),
-    )
-      .getAllByRole("rowheader")
-      .map((header) => header.textContent);
-    expect(columns).toEqual(["Index", "Code", "Status", "Expires", "Used on"]);
-    expect(within(dialog).getByText(/can be imported back/)).toBeTruthy();
-  });
-
-  it("explains the columns of a physical reward without an expiry", async () => {
-    await open({ ...voucher, category: "physical", name: "Cap" });
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
-    const dialog = screen.getByRole("dialog");
-    expect(
-      within(dialog)
-        .getAllByRole("rowheader")
-        .map((header) => header.textContent),
-    ).toEqual(["Index", "Code", "Status", "Used on"]);
-    expect(within(dialog).queryByRole("radio", { name: /Expired/ })).toBeNull();
-  });
-
-  it("cancels without downloading", async () => {
-    await open();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(exporter.exportToCSV).not.toHaveBeenCalled();
-  });
-
-  it("exports only the rows chosen, and says what was exported", async () => {
-    await open();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("radio", { name: /Available/ }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Export 1 row as CSV" }),
-    );
     expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
-    const [rows] = exporter.exportToCSV.mock.calls[0];
-    expect(rows).toEqual([expect.objectContaining({ Code: "AAA" })]);
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(
-      await screen.findByText(
-        /Exported 1 row to octoreach_codes_Ooredoo_500_DA_.*\.csv\./,
-      ),
-    ).toBeTruthy();
-  });
-
-  it("can export an Excel workbook instead", async () => {
-    await open();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("radio", { name: /^Excel/ }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Export 3 rows as Excel" }),
-    );
-    expect(exporter.exportToCSV).not.toHaveBeenCalled();
-    expect(exporter.exportToExcel).toHaveBeenCalledTimes(1);
-    expect(exporter.exportToExcel.mock.calls[0][2]).toBe("Codes");
   });
 
   it("exports the expiry date and whether each code is available, used or expired", async () => {
     await open();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Export 3 rows as CSV" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
     expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
     const [rows, filename] = exporter.exportToCSV.mock.calls[0];
     expect(filename).toMatch(/^octoreach_codes_Ooredoo_500_DA_/);
@@ -587,10 +652,7 @@ describe("reward codes page, the toolbar", () => {
       },
     ];
     await open({ ...voucher, expiryDays: 30 });
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Export 2 rows as CSV" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
     const [rows] = exporter.exportToCSV.mock.calls[0];
     expect(rows).toEqual([
       expect.objectContaining({

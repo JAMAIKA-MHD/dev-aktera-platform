@@ -1,10 +1,4 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PhysicalWinner } from "../../types";
 
@@ -137,7 +131,7 @@ describe("PhysicalDeliveryPanel", () => {
     expect(screen.queryByText(/address|carrier|tracking|shipping/i)).toBeNull();
   });
 
-  it("exports the winners with their delivery status", async () => {
+  it("downloads the winners with their delivery status at once", async () => {
     service.fetchPhysicalWinners.mockResolvedValue([
       winner({
         deliveryStatus: "delivered",
@@ -147,18 +141,8 @@ describe("PhysicalDeliveryPanel", () => {
     renderPanel();
     await screen.findByText("Ali");
     fireEvent.click(screen.getByRole("button", { name: "Export winners" }));
-    // The file is described first; the download happens on the Export button.
-    expect(
-      screen.getByRole("dialog", { name: "Export the winners" }),
-    ).toBeTruthy();
-    expect(exporter.exportToCSV).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Export 1 row as CSV" }),
-    );
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(exporter.exportToCSV).toHaveBeenCalledTimes(1);
-    expect(
-      await screen.findByText(/Exported 1 winner to octoreach_delivery_/),
-    ).toBeTruthy();
     const [rows, filename] = exporter.exportToCSV.mock.calls[0];
     expect(rows).toEqual([
       expect.objectContaining({
@@ -168,49 +152,6 @@ describe("PhysicalDeliveryPanel", () => {
       }),
     ]);
     expect(filename).toMatch(/^octoreach_delivery_\d{4}-\d{2}-\d{2}$/);
-  });
-
-  it("describes the winners file column by column", async () => {
-    renderPanel();
-    await screen.findByText("Ali");
-    fireEvent.click(screen.getByRole("button", { name: "Export winners" }));
-    const dialog = screen.getByRole("dialog");
-    expect(
-      within(dialog)
-        .getAllByRole("rowheader")
-        .map((header) => header.textContent),
-    ).toEqual([
-      "Winner",
-      "Phone",
-      "Reward",
-      "Won on",
-      "Delivery",
-      "Delivered on",
-    ]);
-    expect(
-      within(dialog).getByText(/does not run it as a formula/),
-    ).toBeTruthy();
-  });
-
-  it("exports only the winners not delivered yet when asked", async () => {
-    service.fetchPhysicalWinners.mockResolvedValue([
-      winner(),
-      winner({
-        entryId: "e2",
-        participantName: "Sara",
-        deliveryStatus: "delivered",
-        deliveredAt: "2026-10-14T08:00:00Z",
-      }),
-    ]);
-    renderPanel();
-    await screen.findByText("Sara");
-    fireEvent.click(screen.getByRole("button", { name: "Export winners" }));
-    fireEvent.click(screen.getByRole("radio", { name: /Not delivered/ }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Export 1 row as CSV" }),
-    );
-    const [rows] = exporter.exportToCSV.mock.calls[0];
-    expect(rows).toEqual([expect.objectContaining({ Winner: "Ali" })]);
   });
 
   it("has nothing to export without a winner", async () => {

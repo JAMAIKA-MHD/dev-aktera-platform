@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  DELIVERY_EXPORT_COLUMNS,
   buildCodeExportRows,
   buildDeliveryExportRows,
-  codeExportColumns,
   codeExportStatus,
-  filterCodeRows,
-  filterDeliveryRows,
 } from "./codeExport";
 import type { PhysicalWinner } from "../types";
 
@@ -200,89 +196,5 @@ describe("buildDeliveryExportRows", () => {
       "",
       "",
     ]);
-  });
-});
-
-describe("the description of the files", () => {
-  const sample = [
-    { item_index: 1, item_value: "AAA" },
-    { item_index: 2, item_value: null },
-  ];
-
-  it("names exactly the columns the codes file has, in the same order", () => {
-    for (const category of ["voucher", "physical"] as const) {
-      const [row] = buildCodeExportRows(sample, { category });
-      expect(codeExportColumns(category).map((c) => c.name)).toEqual(
-        Object.keys(row),
-      );
-    }
-  });
-
-  it("names exactly the columns the winners file has, in the same order", () => {
-    const [row] = buildDeliveryExportRows([
-      {
-        entryId: "e1",
-        phoneNumber: "0551234567",
-        participantName: "Ali",
-        prizeName: "Cap",
-        wonAt: "2026-10-12T10:00:00Z",
-        deliveryStatus: "not_delivered",
-        deliveredAt: null,
-      },
-    ]);
-    expect(DELIVERY_EXPORT_COLUMNS.map((c) => c.name)).toEqual(
-      Object.keys(row),
-    );
-  });
-
-  it("explains every column, with an example", () => {
-    for (const column of [
-      ...codeExportColumns("voucher"),
-      ...DELIVERY_EXPORT_COLUMNS,
-    ]) {
-      expect(column.meaning.length).toBeGreaterThan(10);
-      expect(column.example.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("only talks about an expiry for a digital reward", () => {
-    expect(codeExportColumns("voucher").map((c) => c.name)).toContain(
-      "Expires",
-    );
-    expect(codeExportColumns("physical").map((c) => c.name)).not.toContain(
-      "Expires",
-    );
-  });
-});
-
-describe("filterCodeRows", () => {
-  const rows = [
-    { Status: "Available" },
-    { Status: "Used" },
-    { Status: "Expired" },
-    { Status: "Empty" },
-    { Status: "Available" },
-  ];
-
-  it("keeps every slot, the slots with a code, or one status", () => {
-    expect(filterCodeRows(rows, "all")).toHaveLength(5);
-    expect(filterCodeRows(rows, "filled")).toHaveLength(4);
-    expect(filterCodeRows(rows, "available")).toHaveLength(2);
-    expect(filterCodeRows(rows, "used")).toHaveLength(1);
-    expect(filterCodeRows(rows, "expired")).toHaveLength(1);
-  });
-});
-
-describe("filterDeliveryRows", () => {
-  const rows = [
-    { Delivery: "Delivered" },
-    { Delivery: "Not delivered" },
-    { Delivery: "Not delivered" },
-  ];
-
-  it("keeps every winner, those delivered, or those not delivered yet", () => {
-    expect(filterDeliveryRows(rows, "all")).toHaveLength(3);
-    expect(filterDeliveryRows(rows, "delivered")).toHaveLength(1);
-    expect(filterDeliveryRows(rows, "not_delivered")).toHaveLength(2);
   });
 });

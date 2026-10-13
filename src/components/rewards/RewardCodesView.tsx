@@ -18,21 +18,20 @@ import { AnimatePresence, motion } from "motion/react";
 import { PATHS } from "../../dashboard/paths";
 import { useInventoryManager } from "../../hooks/useInventoryManager";
 import { rewardTypeName } from "../../lib/rewardTypes";
-import {
-  buildCodeExportRows,
-  codeExportColumns,
-  filterCodeRows,
-  type CodeExportScope,
-} from "../../lib/codeExport";
+import { buildCodeExportRows } from "../../lib/codeExport";
 import type { StoredExpiry } from "../../lib/expiryPolicy";
-import { parseCSVFile, parseExcelFile } from "../../lib/exportUtils";
+import {
+  exportToCSV,
+  parseCSVFile,
+  parseExcelFile,
+} from "../../lib/exportUtils";
 import type {
   ImportMode,
   ImportValidationResult,
 } from "../../services/inventoryService";
 import type { PrizeTemplate } from "../../types";
 import { DataTable } from "../ui/data-table";
-import { ExportFileDialog, type ExportedSummary } from "./ExportFileDialog";
+import { ImportFileDialog } from "./ImportFileDialog";
 import { CodeStockSummary } from "./CodeStockSummary";
 import { PhysicalDeliveryPanel } from "./PhysicalDeliveryPanel";
 import { RewardExpiryPanel } from "./RewardExpiryPanel";
@@ -76,7 +75,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
   const [bulkPasteText, setBulkPasteText] = useState("");
   const [copiedAll, setCopiedAll] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // Import mode and validation state
   const [importMode, setImportMode] = useState<ImportMode>("append");
@@ -86,8 +85,6 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
     Record<number, string>
   >({});
   const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     templateItems,
@@ -289,32 +286,19 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
     }
   };
 
-  // The rows of the file, as the export window shows them before the download.
-  const exportRows = useMemo(
-    () =>
-      buildCodeExportRows(templateItems, {
-        category: reward.category,
-        inheritedExpiresAt: reward.expiresAt ?? null,
-        expiryDays: reward.expiryDays ?? null,
-      }),
-    [templateItems, reward.category, reward.expiresAt, reward.expiryDays],
-  );
-  const exportScopes = useMemo(
-    () => [
-      { id: "all" as const, label: "Every slot" },
-      { id: "filled" as const, label: "Slots with a code" },
-      { id: "available" as const, label: "Available" },
-      { id: "used" as const, label: "Used" },
-      ...(reward.category === "voucher"
-        ? [{ id: "expired" as const, label: "Expired" }]
-        : []),
-    ],
-    [reward.category],
-  );
-  const handleExported = ({ count, fileName }: ExportedSummary) =>
-    showSuccess(
-      `Exported ${count} ${count === 1 ? "row" : "rows"} to ${fileName}.`,
+  // Export: the file is downloaded at once.
+  const handleExportCodes = () => {
+    const rows = buildCodeExportRows(templateItems, {
+      category: reward.category,
+      inheritedExpiresAt: reward.expiresAt ?? null,
+      expiryDays: reward.expiryDays ?? null,
+    });
+    const day = new Date().toISOString().split("T")[0];
+    exportToCSV(
+      rows,
+      `octoreach_codes_${reward.name.replace(/\s+/g, "_")}_${day}`,
     );
+  };
 
   const preparedCount = templateItems.filter((item) =>
     Boolean(item.item_value && item.item_value.trim().length > 0),
@@ -566,29 +550,20 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
               <span>Paste Bulk</span>
             </button>
 
-            {/* Export: opens the window that describes the file */}
+            {/* Export */}
             <button
               type="button"
-              onClick={() => setExporting(true)}
+              onClick={handleExportCodes}
               className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
             >
               <Download className="w-4 h-4 text-slate-500" />
               <span>Export</span>
             </button>
 
-            {/* Import File (Hidden file input) */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".csv,.xlsx,.xls"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileImport(file);
-              }}
-            />
+            {/* Import: opens the window to pick the file */}
             <button
-              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              onClick={() => setImporting(true)}
               className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all shadow-sm"
             >
               <Upload className="w-4 h-4" />
@@ -695,23 +670,12 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
         </footer>
       </section>
 
-      <ExportFileDialog<CodeExportScope>
-        open={exporting}
-        onOpenChange={setExporting}
-        title={`Export the codes of ${reward.name}`}
-        description="A spreadsheet with one row per code slot: the code, whether it is still available, used or expired, and when it expires."
-        fileBaseName={`octoreach_codes_${reward.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}`}
-        sheetName="Codes"
-        columns={codeExportColumns(reward.category)}
-        rows={exportRows}
-        scopes={exportScopes}
-        defaultScope="all"
-        filterRows={filterCodeRows}
-        notes={[
-          "The file can be imported back with Import File: only the Index and Code columns are read, the others are ignored.",
-          "Dates are written YYYY-MM-DD, in Algeria time.",
-        ]}
-        onExported={handleExported}
+      <ImportFileDialog
+        open={importing}
+        onOpenChange={setImporting}
+        mode={importMode}
+        onModeChange={setImportMode}
+        onImport={handleFileImport}
       />
 
       {/* CONFLICT RESOLUTION MODAL */}

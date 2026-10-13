@@ -1,12 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
-import {
-  DELIVERY_EXPORT_COLUMNS,
-  buildDeliveryExportRows,
-  filterDeliveryRows,
-  type DeliveryExportScope,
-} from "../../lib/codeExport";
-import { ExportFileDialog, type ExportedSummary } from "./ExportFileDialog";
+import { buildDeliveryExportRows } from "../../lib/codeExport";
+import { exportToCSV } from "../../lib/exportUtils";
 import {
   fetchPhysicalWinners,
   setDeliveryStatus,
@@ -41,8 +36,6 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
-  const [exporting, setExporting] = useState(false);
-  const [exported, setExported] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!organizationId) {
@@ -70,11 +63,10 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
       current.map((w) => (w.entryId === entryId ? { ...w, ...changes } : w)),
     );
 
-  const exportRows = useMemo(() => buildDeliveryExportRows(winners), [winners]);
-  const handleExported = ({ count, fileName }: ExportedSummary) =>
-    setExported(
-      `Exported ${count} ${count === 1 ? "winner" : "winners"} to ${fileName}.`,
-    );
+  const handleExport = () => {
+    const day = new Date().toISOString().split("T")[0];
+    exportToCSV(buildDeliveryExportRows(winners), `octoreach_delivery_${day}`);
+  };
 
   const handleChange = async (winner: PhysicalWinner, next: DeliveryStatus) => {
     const previous = { ...winner };
@@ -126,7 +118,7 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => setExporting(true)}
+          onClick={handleExport}
           disabled={loading || winners.length === 0}
           className="flex items-center gap-1.5 rounded-xl border border-card-border bg-card-bg px-3 py-1.5 text-xs font-bold text-brand-text transition-colors hover:bg-card-bg-subtle disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -134,12 +126,6 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
           Export winners
         </button>
       </div>
-
-      {exported && (
-        <p role="status" className="text-[11px] text-emerald-500">
-          {exported}
-        </p>
-      )}
 
       {loading ? (
         <div className="flex items-center gap-2 py-4 text-xs text-brand-textMuted">
@@ -223,29 +209,6 @@ export const PhysicalDeliveryPanel: React.FC<PhysicalDeliveryPanelProps> = ({
           </table>
         </div>
       )}
-
-      <ExportFileDialog<DeliveryExportScope>
-        open={exporting}
-        onOpenChange={setExporting}
-        title="Export the winners"
-        description="A spreadsheet with one row per winner of this reward, and whether you delivered it."
-        fileBaseName={`octoreach_delivery_${new Date().toISOString().split("T")[0]}`}
-        sheetName="Winners"
-        columns={DELIVERY_EXPORT_COLUMNS}
-        rows={exportRows}
-        scopes={[
-          { id: "all", label: "Every winner" },
-          { id: "not_delivered", label: "Not delivered" },
-          { id: "delivered", label: "Delivered" },
-        ]}
-        defaultScope="all"
-        filterRows={filterDeliveryRows}
-        notes={[
-          "A name or a phone number that starts with = + - or @ gets an apostrophe in front, so a spreadsheet does not run it as a formula.",
-          "Dates are written YYYY-MM-DD, in Algeria time.",
-        ]}
-        onExported={handleExported}
-      />
     </section>
   );
 };
