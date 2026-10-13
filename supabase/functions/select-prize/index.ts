@@ -160,6 +160,22 @@ async function claimCoupon(
   return code.trim();
 }
 
+// The deadline of the code a winner received (a date on the code or its reward, or the period
+// that started when it was given), as an ISO instant; null when it does not expire.
+async function couponExpiry(
+  admin: SupabaseClient,
+  entryId: string,
+): Promise<string | null> {
+  const { data, error } = await admin.rpc("coupon_expiry_for_entry", {
+    p_entry_id: entryId,
+  });
+  if (error) {
+    console.warn("[select-prize] coupon expiry unavailable:", error.message);
+    return null;
+  }
+  return typeof data === "string" ? data : null;
+}
+
 // A win whose reward has codes but none could be given (the last one went to another winner
 // between the draw and the claim, or the claim failed): flag the entry so the brand sees it and
 // can settle it by hand. A reward with no code at all is a plain "You Won!" and is left alone.
@@ -279,7 +295,10 @@ serve(async (req) => {
           },
           prize,
           coupon: previous.redeemed_coupon_value
-            ? { code: previous.redeemed_coupon_value }
+            ? {
+                code: previous.redeemed_coupon_value,
+                expires_at: await couponExpiry(supabaseAdmin, previous.id),
+              }
             : null,
           game_outcome: {
             ok: true,
@@ -490,7 +509,12 @@ serve(async (req) => {
       ok: true,
       entry: { id: newEntry.id, redeemed_coupon_value: couponCode },
       prize: selectedPrize,
-      coupon: couponCode ? { code: couponCode } : null,
+      coupon: couponCode
+        ? {
+            code: couponCode,
+            expires_at: await couponExpiry(supabaseAdmin, newEntry.id),
+          }
+        : null,
       game_outcome: drawResult,
     });
   } catch (error) {

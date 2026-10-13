@@ -189,6 +189,7 @@ async function setup() {
     expiredCode,
     category = "voucher",
     validCodes = 0,
+    extra = {},
   ) {
     const { data, error: extraError } = await admin
       .from("prize_templates")
@@ -197,6 +198,7 @@ async function setup() {
         name: `smoke ${RUN} ${key}`,
         category,
         stock_quantity: 100,
+        ...extra,
       })
       .select("id")
       .single();
@@ -247,6 +249,21 @@ async function setup() {
     3,
     await extraTemplate("mixed", true, "voucher", 1),
   );
+  // A reward valid 30 days after delivery, and one valid until a fixed date.
+  const period = await campaign(
+    "period",
+    {},
+    3,
+    await extraTemplate("period", false, "voucher", 2, { expiry_days: 30 }),
+  );
+  const dated = await campaign(
+    "dated",
+    {},
+    3,
+    await extraTemplate("dated", false, "voucher", 2, {
+      expires_at: "2099-03-01T22:59:59.000Z",
+    }),
+  );
   // A physical reward: a winner gets no code, the delivery status starts at not_delivered.
   const physical = await campaign(
     "physical",
@@ -288,6 +305,8 @@ async function setup() {
     noCode,
     allExpired,
     mixed,
+    period,
+    dated,
     physical,
     questionId,
   };
@@ -585,6 +604,58 @@ function scenarios(f) {
             codes[0] === `VALID-${RUN}-1` &&
             results.every((r) => r.status === 200),
           detail: `${winners.length} winner(s), codes ${JSON.stringify(codes)}`,
+        };
+      },
+    },
+    {
+      name: "T15 reward valid 30 days after delivery → the coupon carries its deadline (end of that day in Algiers), the replay the same",
+      run: async () => {
+        const requestId = randomUUID();
+        const metadata = {
+          source: "smoke_test",
+          client_request_id: requestId,
+          consent: consent(),
+        };
+        const phone = newPhone();
+        const first = await play(f.period.id, {
+          phone_number: phone,
+          metadata,
+        });
+        const replay = await play(f.period.id, {
+          phone_number: phone,
+          metadata,
+        });
+        const today = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Africa/Algiers",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+        const day = new Date(`${today}T00:00:00Z`);
+        day.setUTCDate(day.getUTCDate() + 30);
+        const expected = `${day.toISOString().slice(0, 10)}T22:59:59`;
+        const got = first.body?.coupon?.expires_at ?? "";
+        return {
+          ok:
+            Boolean(first.body?.coupon?.code) &&
+            got.startsWith(expected) &&
+            replay.body?.replayed === true &&
+            replay.body?.coupon?.expires_at === first.body.coupon.expires_at,
+          detail: `expires_at ${got}, expected ${expected}, replay ${replay.body?.coupon?.expires_at}`,
+        };
+      },
+    },
+    {
+      name: "T16 fixed-date reward → the coupon carries that date; a reward without expiry → null",
+      run: async () => {
+        const fixed = await play(f.dated.id);
+        const open = await play(f.wheel.id);
+        const fixedExpiry = fixed.body?.coupon?.expires_at ?? "";
+        return {
+          ok:
+            fixedExpiry.startsWith("2099-03-01T22:59:59") &&
+            open.body?.coupon?.expires_at === null,
+          detail: `fixed ${fixedExpiry}, open ${JSON.stringify(open.body?.coupon)}`,
         };
       },
     },
