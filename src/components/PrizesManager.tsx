@@ -1,13 +1,9 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Check,
-  Clipboard,
-  ClipboardCheck,
-  Download,
   Eye,
   EyeOff,
-  FileText,
   Loader2,
   PackageSearch,
   Pencil,
@@ -15,20 +11,13 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Upload,
   X,
   Droplet,
-  Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Campaign, PrizeTemplate } from "../types";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
-import { useInventoryManager } from "../hooks/useInventoryManager";
-import { useAuth } from "../contexts/AuthContext";
-import { CodeExpiryCell } from "./rewards/CodeExpiryCell";
-import { CodeStockSummary } from "./rewards/CodeStockSummary";
-import { buildCodeExportRows } from "../lib/codeExport";
 import { isCodeExpired, isoToAlgiersDay } from "../lib/codeExpiry";
 import {
   DEFAULT_EXPIRY_POLICY,
@@ -36,27 +25,14 @@ import {
   policyFromReward,
   policyToStored,
   type ExpiryPolicyForm,
-  type StoredExpiry,
 } from "../lib/expiryPolicy";
 import { ExpiryPolicyFields } from "./rewards/ExpiryPolicyFields";
-import { RewardExpiryPanel } from "./rewards/RewardExpiryPanel";
 import { RewardTypeFilter } from "./rewards/RewardTypeFilter";
 import {
   REWARD_CARD_THEME,
   matchesRewardType,
   type RewardTypeFilterValue,
 } from "./rewards/rewardCardTheme";
-import { PhysicalDeliveryPanel } from "./rewards/PhysicalDeliveryPanel";
-import {
-  parseCSVFile,
-  parseExcelFile,
-  exportToCSV,
-  exportToExcel,
-} from "../lib/exportUtils";
-import {
-  ImportMode,
-  ImportValidationResult,
-} from "../services/inventoryService";
 
 type PrizeTemplatePayload = Omit<
   PrizeTemplate,
@@ -66,11 +42,11 @@ type PrizeTemplatePayload = Omit<
 interface PrizesManagerProps {
   prizes: PrizeTemplate[];
   campaigns?: Campaign[];
-  organizationId?: string | null;
   onAddPrize: (newPrize: PrizeTemplatePayload) => Promise<void>;
   onUpdatePrize: (id: string, updates: PrizeTemplatePayload) => Promise<void>;
   onDeletePrize: (id: string) => Promise<void>;
-  onRefreshPrizes?: () => void;
+  /** A reward was clicked: open its codes (the page of the reward). */
+  onOpenReward: (reward: PrizeTemplate) => void;
 }
 
 const defaultForm = {
@@ -85,45 +61,18 @@ const defaultForm = {
 export const PrizesManager: React.FC<PrizesManagerProps> = ({
   prizes,
   campaigns = [],
-  organizationId = null,
   onAddPrize,
   onUpdatePrize,
   onDeletePrize,
-  onRefreshPrizes,
+  onOpenReward,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const { profile } = useAuth();
-  // A viewer reads; everyone else may set expiry dates and delivery statuses.
-  const canEditExpiry = profile?.role !== "viewer";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<RewardTypeFilterValue>("all");
   const [showCreator, setShowCreator] = useState(false);
   const [expandedPrizeId, setExpandedPrizeId] = useState<string | null>(null);
-  // The open reward is looked up in the live list, not copied: when its expiry or its stock
-  // changes, the codes window shows the new values without being closed and reopened.
-  const [activeCodesTemplateId, setActiveCodesTemplateId] = useState<
-    string | null
-  >(null);
-  const activeCodesTemplate = useMemo(
-    () => prizes.find((p) => p.id === activeCodesTemplateId) ?? null,
-    [prizes, activeCodesTemplateId],
-  );
-  const [codesSearch, setCodesSearch] = useState("");
-  const [showBulkPaste, setShowBulkPaste] = useState(false);
-  const [bulkPasteText, setBulkPasteText] = useState("");
-  const [copiedAll, setCopiedAll] = useState(false);
-
-  // Import mode and validation state
-  const [importMode, setImportMode] = useState<ImportMode>("append");
-  const [activeValidationResult, setActiveValidationResult] =
-    useState<ImportValidationResult | null>(null);
-  const [conflictFixInputs, setConflictFixInputs] = useState<
-    Record<number, string>
-  >({});
-  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
-
   const [editingTemplate, setEditingTemplate] = useState<PrizeTemplate | null>(
     null,
   );
@@ -143,31 +92,6 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const {
-    templateItems,
-    setTemplateItems,
-    loading: codesLoading,
-    saving: codesSaving,
-    error: _codesHookError,
-    unresolvedConflicts,
-    clearUnresolvedConflicts,
-    loadTemplateItems,
-    updateSingleItemValue,
-    updateItemExpiry,
-    setExpiryForAll,
-    codeCounts,
-    validateImport,
-    resolveConflict,
-    executeImport,
-    generateRandomCodes,
-    fillEmptySlotsWithRandom,
-  } = useInventoryManager(
-    organizationId,
-    activeCodesTemplate?.expiresAt ?? null,
-  );
 
   const filteredPrizes = useMemo(
     () =>
@@ -313,261 +237,6 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
       setPageError(msg);
     }
   };
-
-  // Changes how the open reward's codes expire, from the codes window.
-  const handleSaveRewardExpiry = async (expiry: StoredExpiry) => {
-    if (!activeCodesTemplate) return;
-    const t = activeCodesTemplate;
-    await onUpdatePrize(t.id, {
-      name: t.name,
-      category: t.category,
-      description: t.description,
-      itemValue: t.itemValue,
-      totalStock: t.totalStock,
-      image: t.image,
-      expiresAt: expiry.expiresAt,
-      expiryDays: expiry.expiryDays,
-      filledValuesCount: t.filledValuesCount,
-      campaignUsageCount: t.campaignUsageCount,
-      quantityWonCount: t.quantityWonCount,
-    });
-  };
-
-  // Open Codes Modal for a Prize Ticket
-  const handleOpenCodesModal = async (prize: PrizeTemplate) => {
-    setActiveCodesTemplateId(prize.id);
-    setShowBulkPaste(false);
-    setBulkPasteText("");
-    await loadTemplateItems(prize);
-  };
-
-  const handleCloseCodesModal = () => {
-    setActiveCodesTemplateId(null);
-    setTemplateItems([]);
-    setShowBulkPaste(false);
-    setBulkPasteText("");
-    onRefreshPrizes?.();
-  };
-
-  // Copy all non-empty codes
-  const handleCopyAllCodes = async () => {
-    const codesToCopy = templateItems
-      .map((item) => item.item_value)
-      .filter((val): val is string => Boolean(val && val.trim().length > 0));
-
-    if (codesToCopy.length === 0) {
-      alert("No prepared codes found to copy.");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(codesToCopy.join("\n"));
-      setCopiedAll(true);
-      window.setTimeout(() => setCopiedAll(false), 2500);
-    } catch {
-      alert("Failed to copy to clipboard.");
-    }
-  };
-
-  // Export codes to CSV or Excel
-  const handleExportCodes = (format: "csv" | "xlsx" = "csv") => {
-    if (!activeCodesTemplate) return;
-
-    const dataToExport = buildCodeExportRows(templateItems, {
-      category: activeCodesTemplate.category,
-      inheritedExpiresAt: activeCodesTemplate.expiresAt ?? null,
-      expiryDays: activeCodesTemplate.expiryDays ?? null,
-    });
-
-    const filename = `octoreach_codes_${activeCodesTemplate.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}`;
-
-    if (format === "xlsx") {
-      exportToExcel(
-        dataToExport as unknown as Record<string, unknown>[],
-        filename,
-        "Codes",
-      );
-    } else {
-      exportToCSV(
-        dataToExport as unknown as Record<string, unknown>[],
-        filename,
-      );
-    }
-  };
-
-  // Import codes from File
-  const handleFileImport = async (file: File) => {
-    if (!activeCodesTemplate) return;
-
-    try {
-      const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
-      const rows = isExcel
-        ? await parseExcelFile<Record<string, unknown>>(file)
-        : await parseCSVFile<Record<string, unknown>>(file);
-
-      if (!rows || rows.length === 0) {
-        alert("Import file is empty or could not be parsed.");
-        return;
-      }
-
-      const validation = validateImport(
-        importMode,
-        { rawRows: rows },
-        activeCodesTemplate.totalStock,
-      );
-
-      if (validation.overflow) {
-        alert(
-          validation.errorMessage ||
-            "Import rejected: code count exceeds available slots.",
-        );
-        return;
-      }
-
-      if (!validation.success && validation.conflicts.length > 0) {
-        const initialFixes: Record<number, string> = {};
-        validation.conflicts.forEach((c) => {
-          initialFixes[c.lineNumber] = "";
-        });
-        setConflictFixInputs(initialFixes);
-        setActiveValidationResult(validation);
-        return;
-      }
-
-      const success = await executeImport(activeCodesTemplate, validation);
-      if (success) {
-        onRefreshPrizes?.();
-        showSuccess(
-          `Successfully imported ${validation.importedCount} code(s) in ${importMode === "append" ? "Append" : "Replace All"} mode.`,
-        );
-      }
-    } catch (err) {
-      alert(
-        `Import failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-      );
-    }
-  };
-
-  // Handle Bulk Paste Lines
-  const handleApplyBulkPaste = async () => {
-    if (!activeCodesTemplate) return;
-
-    const lines = bulkPasteText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-
-    if (lines.length === 0) return;
-
-    const validation = validateImport(
-      importMode,
-      { rawLines: lines },
-      activeCodesTemplate.totalStock,
-    );
-
-    if (validation.overflow) {
-      alert(
-        validation.errorMessage ||
-          "Import rejected: code count exceeds available slots.",
-      );
-      return;
-    }
-
-    if (!validation.success && validation.conflicts.length > 0) {
-      const initialFixes: Record<number, string> = {};
-      validation.conflicts.forEach((c) => {
-        initialFixes[c.lineNumber] = "";
-      });
-      setConflictFixInputs(initialFixes);
-      setActiveValidationResult(validation);
-      return;
-    }
-
-    const success = await executeImport(activeCodesTemplate, validation);
-    if (success) {
-      setShowBulkPaste(false);
-      setBulkPasteText("");
-      onRefreshPrizes?.();
-      showSuccess(
-        `Applied ${validation.importedCount} code(s) in ${importMode === "append" ? "Append" : "Replace All"} mode.`,
-      );
-    }
-  };
-
-  const handleApplyConflictFix = (lineNumber: number) => {
-    if (!activeValidationResult || !activeCodesTemplate) return;
-    const replacement = (conflictFixInputs[lineNumber] || "").trim();
-    if (!replacement) return;
-
-    const updatedValidation = resolveConflict(
-      activeValidationResult,
-      lineNumber,
-      replacement,
-      activeCodesTemplate.totalStock,
-    );
-
-    setActiveValidationResult(updatedValidation);
-  };
-
-  const handleProceedWithConflicts = async () => {
-    if (!activeValidationResult || !activeCodesTemplate) return;
-    const success = await executeImport(
-      activeCodesTemplate,
-      activeValidationResult,
-      true,
-    );
-    if (success) {
-      setActiveValidationResult(null);
-      setShowBulkPaste(false);
-      setBulkPasteText("");
-      onRefreshPrizes?.();
-      showSuccess(
-        `Imported ${activeValidationResult.importedCount} codes with duplicate warnings retained.`,
-      );
-    }
-  };
-
-  const handleFillRandomSlots = async () => {
-    if (!activeCodesTemplate) return;
-    setIsGeneratingRandom(true);
-    try {
-      const success = await fillEmptySlotsWithRandom(activeCodesTemplate);
-      if (success) {
-        onRefreshPrizes?.();
-        showSuccess(
-          "Filled empty slots with collision-free random 8-character uppercase codes.",
-        );
-      }
-    } finally {
-      setIsGeneratingRandom(false);
-    }
-  };
-
-  const handleGenerateSingleRandom = async (itemId: string) => {
-    if (!activeCodesTemplate) return;
-    const gen = generateRandomCodes(1);
-    if (gen.success && gen.codes[0]) {
-      await updateSingleItemValue(itemId, gen.codes[0]);
-      onRefreshPrizes?.();
-      showSuccess(`Generated code: ${gen.codes[0]}`);
-    }
-  };
-
-  // Filtered items in the modal table
-  const displayedModalItems = useMemo(() => {
-    if (!codesSearch.trim()) return templateItems;
-    return templateItems.filter(
-      (item) =>
-        (item.item_value || "")
-          .toLowerCase()
-          .includes(codesSearch.toLowerCase()) ||
-        String(item.item_index).includes(codesSearch),
-    );
-  }, [templateItems, codesSearch]);
-
-  const preparedCount = templateItems.filter((item) =>
-    Boolean(item.item_value && item.item_value.trim().length > 0),
-  ).length;
 
   return (
     <div
@@ -845,7 +514,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              onClick={() => handleOpenCodesModal(prize)}
+              onClick={() => onOpenReward(prize)}
               className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer min-w-0 ${theme.hoverBorder} ${
                 isDark
                   ? "bg-[#151E30] border-slate-800 text-white"
@@ -1266,558 +935,6 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
           </div>
         )}
       </div>
-
-      {/* CODES LIST MODAL / DRAWER */}
-      <AnimatePresence>
-        {activeCodesTemplate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className={`w-full max-w-4xl rounded-[32px] border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden ${
-                isDark
-                  ? "bg-[#121929] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              {/* Modal Header */}
-              <div className="p-6 sm:p-7 border-b border-card-border flex items-center justify-between shrink-0">
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-brand-text">
-                      {activeCodesTemplate.name}
-                    </h3>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
-                      {activeCodesTemplate.category}
-                    </span>
-                  </div>
-                  <p className="text-xs text-brand-textMuted mt-1">
-                    Prepared Codes:{" "}
-                    <strong className="text-emerald-500">
-                      {preparedCount}
-                    </strong>{" "}
-                    / {templateItems.length} total units reserved in inventory.
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleCloseCodesModal}
-                  className="w-10 h-10 rounded-full bg-card-bg-subtle border border-card-border flex items-center justify-center text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Persistent Duplicate Conflicts Alert */}
-              {unresolvedConflicts.length > 0 && (
-                <div className="mx-6 mt-4 p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/15 flex items-center justify-between text-xs text-amber-300">
-                  <div className="flex items-center gap-2.5">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-                    <span>
-                      <strong>Warning:</strong> {unresolvedConflicts.length}{" "}
-                      duplicate voucher code(s) exist in this template.
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={clearUnresolvedConflicts}
-                    className="px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-
-              {activeCodesTemplate.category === "voucher" && (
-                <RewardExpiryPanel
-                  expiresAt={activeCodesTemplate.expiresAt}
-                  expiryDays={activeCodesTemplate.expiryDays}
-                  canEdit={canEditExpiry}
-                  onSave={handleSaveRewardExpiry}
-                />
-              )}
-
-              {activeCodesTemplate.category === "voucher" && !codesLoading && (
-                <CodeStockSummary
-                  counts={codeCounts}
-                  remainingToWin={Math.max(
-                    0,
-                    activeCodesTemplate.allocatedStock -
-                      (activeCodesTemplate.quantityWonCount ?? 0),
-                  )}
-                  canEdit={canEditExpiry}
-                  busy={codesSaving}
-                  onApplyExpiry={(expiresAt, onlyWithoutDate) =>
-                    setExpiryForAll(
-                      activeCodesTemplate,
-                      expiresAt,
-                      onlyWithoutDate,
-                    )
-                  }
-                />
-              )}
-
-              {activeCodesTemplate.category === "physical" && (
-                <PhysicalDeliveryPanel
-                  organizationId={organizationId}
-                  templateId={activeCodesTemplate.id}
-                  canEdit={canEditExpiry}
-                />
-              )}
-
-              {/* Action Toolbar */}
-              <div className="p-4 sm:px-7 bg-card-bg-subtle border-b border-card-border flex flex-wrap items-center justify-between gap-3 shrink-0">
-                {/* Search in codes */}
-                <div className="relative flex-1 min-w-[180px] max-w-xs">
-                  <Search className="absolute left-3.5 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search codes..."
-                    value={codesSearch}
-                    onChange={(e) => setCodesSearch(e.target.value)}
-                    className="w-full bg-card-bg border border-card-border rounded-xl pl-9 pr-3 py-2 text-xs text-brand-text placeholder-brand-textMuted focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Import Mode Selector + Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Import Mode Selector */}
-                  <div className="flex items-center bg-card-bg p-1 rounded-xl border border-card-border">
-                    <button
-                      type="button"
-                      onClick={() => setImportMode("append")}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        importMode === "append"
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "text-brand-textMuted hover:text-brand-text"
-                      }`}
-                      title="Preserves existing codes and fills next empty slots"
-                    >
-                      Append
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImportMode("replace")}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        importMode === "replace"
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "text-brand-textMuted hover:text-brand-text"
-                      }`}
-                      title="Overwrites existing codes from slot 1"
-                    >
-                      Replace All
-                    </button>
-                  </div>
-
-                  {/* Auto-Fill Random Codes */}
-                  <button
-                    type="button"
-                    onClick={handleFillRandomSlots}
-                    disabled={isGeneratingRandom || codesSaving}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition-all shadow-sm disabled:opacity-50"
-                    title="Auto-fills all empty slots with unique 8-character uppercase alphanumeric codes"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>
-                      {isGeneratingRandom ? "Generating..." : "Auto-Fill Empty"}
-                    </span>
-                  </button>
-
-                  {/* Copy All */}
-                  <button
-                    onClick={handleCopyAllCodes}
-                    className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
-                  >
-                    {copiedAll ? (
-                      <ClipboardCheck className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <Clipboard className="w-4 h-4 text-slate-500" />
-                    )}
-                    <span>{copiedAll ? "Copied" : "Copy"}</span>
-                  </button>
-
-                  {/* Bulk Paste Toggle */}
-                  <button
-                    onClick={() => setShowBulkPaste(!showBulkPaste)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border cursor-pointer transition-all shadow-sm ${
-                      showBulkPaste
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "border-card-border bg-card-bg hover:bg-card-bg-subtle"
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Paste Bulk</span>
-                  </button>
-
-                  {/* Export CSV */}
-                  <button
-                    onClick={() => handleExportCodes("csv")}
-                    className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
-                  >
-                    <Download className="w-4 h-4 text-slate-500" />
-                    <span>Export</span>
-                  </button>
-
-                  {/* Import File (Hidden file input) */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept=".csv,.xlsx,.xls"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileImport(file);
-                    }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all shadow-sm"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>Import File</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Bulk Paste Dropdown Section */}
-              <AnimatePresence>
-                {showBulkPaste && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="p-5 border-b border-card-border bg-card-bg space-y-3 shrink-0"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-brand-text">
-                        Paste codes line-by-line (one per row):
-                      </span>
-                      <span className="text-[11px] text-brand-textMuted">
-                        Mode:{" "}
-                        <strong className="text-emerald-500 uppercase">
-                          {importMode}
-                        </strong>{" "}
-                        (
-                        {importMode === "append"
-                          ? "Fills empty slots sequentially"
-                          : "Overwrites from slot 1"}
-                        )
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      placeholder="COUPON-DZ-101&#10;COUPON-DZ-102&#10;COUPON-DZ-103"
-                      value={bulkPasteText}
-                      onChange={(e) => setBulkPasteText(e.target.value)}
-                      className="w-full bg-card-bg-subtle border border-card-border rounded-xl p-3 text-xs font-mono text-brand-text placeholder-brand-textMuted focus:outline-none focus:border-emerald-500"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setShowBulkPaste(false)}
-                        className="px-4 py-1.5 text-xs text-brand-textMuted hover:text-brand-text cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleApplyBulkPaste}
-                        disabled={!bulkPasteText.trim() || codesSaving}
-                        className="px-5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer transition-all"
-                      >
-                        {codesSaving
-                          ? "Saving..."
-                          : `Apply (${importMode === "append" ? "Append" : "Replace All"})`}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Codes Table List */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-7">
-                {codesLoading ? (
-                  <div className="py-16 flex flex-col items-center justify-center text-center space-y-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                    <p className="text-xs font-semibold text-brand-textMuted">
-                      Loading inventory codes from database...
-                    </p>
-                  </div>
-                ) : displayedModalItems.length === 0 ? (
-                  <div className="py-16 flex flex-col items-center justify-center text-center text-brand-textMuted text-xs">
-                    No codes matching your search query.
-                  </div>
-                ) : (
-                  <div className="border border-card-border rounded-2xl overflow-hidden shadow-sm">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-card-bg-subtle border-b border-card-border text-brand-textMuted uppercase font-black text-[10px]">
-                        <tr>
-                          <th className="py-3 px-4 w-16">#</th>
-                          <th className="py-3 px-4">Voucher / Unique Code</th>
-                          {activeCodesTemplate.category === "voucher" && (
-                            <th className="py-3 px-4 w-48">Expires</th>
-                          )}
-                          <th className="py-3 px-4 w-32 text-center">Status</th>
-                          <th className="py-3 px-4 w-24 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-card-border">
-                        {displayedModalItems.map((item) => {
-                          const isRedeemed = Boolean(
-                            item.is_redeemed || item.is_used,
-                          );
-                          const hasValue = Boolean(
-                            item.item_value &&
-                            item.item_value.trim().length > 0,
-                          );
-
-                          return (
-                            <tr
-                              key={item.id}
-                              className={`transition-colors ${
-                                isRedeemed
-                                  ? "bg-red-500/10 hover:bg-red-500/15 border-l-4 border-l-red-500"
-                                  : "hover:bg-card-bg-subtle/50"
-                              }`}
-                            >
-                              <td className="py-3 px-4 font-mono font-bold text-brand-textMuted">
-                                {item.item_index}
-                              </td>
-                              <td className="py-2 px-4">
-                                <input
-                                  type="text"
-                                  disabled={isRedeemed}
-                                  value={item.item_value ?? ""}
-                                  placeholder={
-                                    isRedeemed
-                                      ? "Redeemed by player"
-                                      : "Click to enter code..."
-                                  }
-                                  onChange={(e) => {
-                                    const newVal = e.target.value;
-                                    setTemplateItems((current) =>
-                                      current.map((t) =>
-                                        t.id === item.id
-                                          ? { ...t, item_value: newVal }
-                                          : t,
-                                      ),
-                                    );
-                                  }}
-                                  onBlur={(e) => {
-                                    void updateSingleItemValue(
-                                      item.id,
-                                      e.target.value,
-                                    );
-                                    onRefreshPrizes?.();
-                                  }}
-                                  className={`w-full font-mono text-xs font-bold rounded-lg px-2 py-1 outline-none transition-all ${
-                                    isRedeemed
-                                      ? "bg-red-500/15 text-red-500 dark:text-red-400 font-black line-through cursor-not-allowed border border-red-500/40"
-                                      : "bg-transparent border-none text-brand-text focus:bg-card-bg focus:ring-1 focus:ring-emerald-500"
-                                  }`}
-                                />
-                              </td>
-                              {activeCodesTemplate.category === "voucher" && (
-                                <td className="py-2 px-4">
-                                  <CodeExpiryCell
-                                    index={item.item_index}
-                                    value={item.expires_at}
-                                    inheritedValue={
-                                      activeCodesTemplate.expiresAt
-                                    }
-                                    deliveredValue={item.redemption_expires_at}
-                                    periodDays={activeCodesTemplate.expiryDays}
-                                    hasCode={hasValue}
-                                    locked={isRedeemed || !canEditExpiry}
-                                    onChange={(expiresAt) =>
-                                      updateItemExpiry(item.id, expiresAt)
-                                    }
-                                  />
-                                </td>
-                              )}
-                              <td className="py-3 px-4 text-center">
-                                {isRedeemed ? (
-                                  <span
-                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40"
-                                    title={`Redeemed at: ${item.redeemed_at || "N/A"}`}
-                                  >
-                                    <Lock className="w-3 h-3 text-red-500" />
-                                    Redeemed
-                                  </span>
-                                ) : hasValue ? (
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400">
-                                    Prepared
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                    Empty
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                {!isRedeemed && !hasValue && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleGenerateSingleRandom(item.id)
-                                    }
-                                    className="text-purple-400 hover:text-purple-300 p-1 cursor-pointer"
-                                    title="Generate 8-char random alphanumeric code"
-                                  >
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                {!isRedeemed && hasValue && (
-                                  <button
-                                    onClick={async () => {
-                                      await updateSingleItemValue(item.id, "");
-                                      onRefreshPrizes?.();
-                                    }}
-                                    className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                    title="Clear code"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 sm:p-5 bg-card-bg-subtle border-t border-card-border flex items-center justify-between shrink-0">
-                <span className="text-xs text-brand-textMuted">
-                  Changes save automatically to the database when you click
-                  outside an input.
-                </span>
-                <button
-                  onClick={handleCloseCodesModal}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all"
-                >
-                  Done
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-      {/* CONFLICT RESOLUTION MODAL */}
-      <AnimatePresence>
-        {activeValidationResult &&
-          activeValidationResult.conflicts.length > 0 && (
-            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-card-bg border border-card-border rounded-3xl w-full max-w-2xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden"
-              >
-                <div className="p-5 border-b border-card-border bg-amber-500/10 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black text-brand-text">
-                        Duplicate Codes Detected (
-                        {activeValidationResult.conflicts.length})
-                      </h3>
-                      <p className="text-xs text-amber-300/80">
-                        Some codes in this batch collide with existing template
-                        codes or appear multiple times.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveValidationResult(null)}
-                    className="text-brand-textMuted hover:text-brand-text cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                  <p className="text-xs text-brand-textMuted">
-                    You can provide replacement codes inline below, or proceed
-                    with warnings retained:
-                  </p>
-
-                  <div className="space-y-2.5">
-                    {activeValidationResult.conflicts.map((conflict, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3.5 rounded-2xl bg-card-bg-subtle border border-card-border space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-mono font-bold text-brand-text">
-                            Line #{conflict.lineNumber}:{" "}
-                            <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                              {conflict.code}
-                            </code>
-                          </span>
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                            {conflict.reason === "batch_duplicate"
-                              ? "Duplicate in Batch"
-                              : "Already Exists in Template"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="Enter new unique code..."
-                            value={conflictFixInputs[conflict.lineNumber] ?? ""}
-                            onChange={(e) =>
-                              setConflictFixInputs({
-                                ...conflictFixInputs,
-                                [conflict.lineNumber]: e.target.value,
-                              })
-                            }
-                            className="flex-1 bg-card-bg border border-card-border rounded-xl px-3 py-1.5 text-xs font-mono text-brand-text focus:outline-none focus:border-emerald-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleApplyConflictFix(conflict.lineNumber)
-                            }
-                            disabled={
-                              !conflictFixInputs[conflict.lineNumber]?.trim()
-                            }
-                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition disabled:opacity-40 cursor-pointer"
-                          >
-                            Fix
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 border-t border-card-border bg-card-bg-subtle flex items-center justify-between shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setActiveValidationResult(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer"
-                  >
-                    Cancel Import
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleProceedWithConflicts}
-                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
-                  >
-                    Proceed Anyway (Keep Warnings)
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-      </AnimatePresence>
     </div>
   );
 };

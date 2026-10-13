@@ -55,7 +55,13 @@ code was only extended: the one removed line is the `select(...)` string of
   (migration `20261013090000_reward_partners.sql`): members of the organization read, anyone but a
   viewer writes, unique name per organization, email and website checked in the database, nothing
   for `anon`. The partners appear as "Not connected yet" cards; nothing is connected to them.
-- **Local Library** (`/prizes/local`): the previous screen, unchanged.
+- **Local Library** (`/prizes/local`): the previous screen, unchanged. Clicking a reward no longer opens
+  a dialog: its codes have **a page of their own, with the reward's id in the address**
+  (`/prizes/local/:rewardId`; a refresh or a shared link opens it, an unknown id goes back to the
+  Local Library). Same content as the old dialog, now a page, and the codes are listed in the
+  **shadcn data table** (sortable by number, expiry and status, searchable, 50 per page, a used code
+  marked on its whole row). The code field is a stable cell: typing keeps the focus. The reward is
+  read from the live list, so an expiry change shows at once on the page.
 - **Digital codes:** an optional **expiry date in the form that creates the reward** (digital rewards
   only; editable afterwards), shown on the card; it applies to all the reward's codes, loaded later too.
   Three choices: no expiry, a fixed date, or a **validity period after delivery** (days, weeks or
