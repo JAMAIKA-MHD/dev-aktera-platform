@@ -5,6 +5,8 @@
 //
 // Checks, on throwaway data it creates and deletes:
 //   - a code that expired is never handed to a winner, a valid one is;
+//   - the expiry set on the reward applies to its codes, a date on a code wins, and a physical
+//     reward cannot carry one;
 //   - two winners at the same time never get the same code;
 //   - a reward whose codes are all used or expired is never drawn (both draw modes);
 //   - a reward with no code at all can still be drawn (the "You Won!" without reward case);
@@ -81,15 +83,13 @@ async function makeMember(orgId, label, role) {
   ).user;
   created.userIds.push(user.id);
   must(
-    await admin
-      .from("profiles")
-      .insert({
-        id: user.id,
-        organization_id: orgId,
-        full_name: label,
-        email,
-        role,
-      }),
+    await admin.from("profiles").insert({
+      id: user.id,
+      organization_id: orgId,
+      full_name: label,
+      email,
+      role,
+    }),
     "profile",
   );
   const client = createClient(url, anonKey, options);
@@ -100,11 +100,17 @@ async function makeMember(orgId, label, role) {
   return client;
 }
 
-const makeTemplate = async (orgId, name, category = "voucher") =>
+const makeTemplate = async (orgId, name, category = "voucher", extra = {}) =>
   must(
     await admin
       .from("prize_templates")
-      .insert({ organization_id: orgId, name, category, stock_quantity: 5000 })
+      .insert({
+        organization_id: orgId,
+        name,
+        category,
+        stock_quantity: 5000,
+        ...extra,
+      })
       .select("id")
       .single(),
     "template",
@@ -249,6 +255,121 @@ async function expiryAndConcurrency(orgId) {
     "6 simultaneous winners, 5 codes: 5 different codes, 1 without",
     given.length === 5 && new Set(given).size === 5,
     `codes ${JSON.stringify(codes)}`,
+  );
+}
+
+async function rewardLevelExpiry(orgId) {
+  const campaign = await makeCampaign(orgId, false);
+  const past = new Date(Date.now() - 86400000).toISOString();
+  const future = new Date(Date.now() + 86400000).toISOString();
+
+  // The reward's own date applies to codes that have none.
+  const expiredReward = await makeTemplate(orgId, "reward-expired", "voucher", {
+    expires_at: past,
+  });
+  await addItem(orgId, expiredReward, 1, "NO-OWN-DATE");
+  const prizeExpired = await makePrize(
+    orgId,
+    campaign,
+    expiredReward,
+    "reward-expired",
+  );
+  const none = await claim(prizeExpired, await makeEntry(orgId, campaign));
+  check(
+    "reward expiry: a code without its own date expires with its reward",
+    none === null,
+    `got ${none}`,
+  );
+
+  // A date on the code wins over the reward's date, in both directions.
+  const mixed = await makeTemplate(orgId, "reward-mixed", "voucher", {
+    expires_at: past,
+  });
+  await addItem(orgId, mixed, 1, "OWN-FUTURE", future);
+  const prizeMixed = await makePrize(orgId, campaign, mixed, "reward-mixed");
+  const own = await claim(prizeMixed, await makeEntry(orgId, campaign));
+  check(
+    "reward expiry: a code with a later date of its own is still given",
+    own === "OWN-FUTURE",
+    `got ${own}`,
+  );
+
+  const laterReward = await makeTemplate(orgId, "reward-later", "voucher", {
+    expires_at: future,
+  });
+  await addItem(orgId, laterReward, 1, "OWN-PAST", past);
+  await addItem(orgId, laterReward, 2, "INHERITS");
+  const prizeLater = await makePrize(
+    orgId,
+    campaign,
+    laterReward,
+    "reward-later",
+  );
+  const first = await claim(prizeLater, await makeEntry(orgId, campaign));
+  check(
+    "reward expiry: a code that expired on its own is skipped, the one inheriting a future date is given",
+    first === "INHERITS",
+    `got ${first}`,
+  );
+
+  // No date on the reward: nothing changes for the codes.
+  const open = await makeTemplate(orgId, "reward-open");
+  await addItem(orgId, open, 1, "FOREVER");
+  const prizeOpen = await makePrize(orgId, campaign, open, "reward-open");
+  const forever = await claim(prizeOpen, await makeEntry(orgId, campaign));
+  check(
+    "reward expiry: a reward without a date keeps giving its codes",
+    forever === "FOREVER",
+    `got ${forever}`,
+  );
+
+  // The draw leaves out a reward whose date has passed.
+  const drawCampaign = await makeCampaign(orgId, false);
+  const lapsed = await makeTemplate(orgId, "reward-lapsed", "voucher", {
+    expires_at: past,
+  });
+  await addItem(orgId, lapsed, 1, "LAPSED");
+  const prizeLapsed = await makePrize(orgId, drawCampaign, lapsed, "lapsed");
+  let wonLapsed = 0;
+  const draws = await Promise.all(
+    Array.from({ length: 40 }, () =>
+      admin.rpc("draw_and_claim_campaign_prize", {
+        p_campaign_id: drawCampaign,
+        p_quiz_passed: null,
+      }),
+    ),
+  );
+  for (const { data } of draws)
+    if (data?.is_winner && data.prize_id === prizeLapsed) wonLapsed += 1;
+  check(
+    "reward expiry: a reward whose date has passed is never drawn (40 draws)",
+    wonLapsed === 0,
+    `won ${wonLapsed}`,
+  );
+
+  const physical = await admin
+    .from("prize_templates")
+    .insert({
+      organization_id: orgId,
+      name: "phys-with-date",
+      category: "physical",
+      stock_quantity: 1,
+      expires_at: future,
+    });
+  check(
+    "reward expiry: a physical reward cannot carry an expiry date",
+    Boolean(physical.error),
+    physical.error?.message ?? "no error",
+  );
+
+  const switched = await admin
+    .from("prize_templates")
+    .update({ category: "physical" })
+    .eq("id", mixed);
+  check(
+    "reward expiry: a reward with a date cannot become physical while it keeps it",
+    Boolean(switched.error),
+    switched.error?.message ?? "no error",
   );
 }
 
@@ -516,26 +637,22 @@ async function partners(orgId, otherOrgId) {
     duplicate.error?.message ?? "no error",
   );
 
-  const badEmail = await manager
-    .from("reward_partners")
-    .insert({
-      organization_id: orgId,
-      name: "Bad email",
-      contact_email: "not-an-email",
-    });
+  const badEmail = await manager.from("reward_partners").insert({
+    organization_id: orgId,
+    name: "Bad email",
+    contact_email: "not-an-email",
+  });
   check(
     "partners: an invalid email is refused",
     Boolean(badEmail.error),
     badEmail.error?.message ?? "no error",
   );
 
-  const badUrl = await manager
-    .from("reward_partners")
-    .insert({
-      organization_id: orgId,
-      name: "Bad url",
-      website_url: "javascript:alert(1)",
-    });
+  const badUrl = await manager.from("reward_partners").insert({
+    organization_id: orgId,
+    name: "Bad url",
+    website_url: "javascript:alert(1)",
+  });
   check(
     "partners: a website that is not http(s) is refused",
     Boolean(badUrl.error),
@@ -588,6 +705,7 @@ try {
   const orgId = await makeOrg("main");
   const otherOrgId = await makeOrg("other");
   await expiryAndConcurrency(orgId);
+  await rewardLevelExpiry(orgId);
   await drawFilter(orgId);
   await delivery(orgId, otherOrgId);
   await partners(orgId, otherOrgId);
