@@ -1,8 +1,8 @@
 import type { PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
 
-// The screen tabs (plan §9.3), in the middle of the preview bar: the one place that picks the screen shown in the
-// preview and edited in Sections.
+// The screen tabs (plan §9.3), in the preview bar: they pick the screen shown in the preview and
+// edited in Sections (the menu of the Sections panel picks the same one).
 
 const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
   { id: "welcome", label: "Welcome" },
@@ -12,6 +12,9 @@ const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
   { id: "lose", label: "Lose" },
   { id: "status", label: "Status" },
 ];
+
+export const screenLabel = (screen: PreviewScreen): string =>
+  SCREENS.find((item) => item.id === screen)?.label ?? screen;
 
 export function ScreenTabs() {
   const screen = useStudio((state) => state.ui.screen);

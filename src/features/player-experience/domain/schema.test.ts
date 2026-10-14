@@ -26,6 +26,28 @@ const broken = (mutate: (raw: Record<string, any>) => void): unknown => {
 const isValid = (value: unknown) =>
   experienceConfigSchema.safeParse(value).success;
 
+describe("the scrolling notice switch", () => {
+  it("is on in a new design, and a saved design without it keeps its notice", () => {
+    expect(validConfig().legal.showLegalLine).toBe(true);
+    // A design saved before the switch existed has no such key: it is read as shown.
+    const old = broken((r) => delete r.legal.showLegalLine);
+    const parsed = parseExperienceConfig(old);
+    expect(parsed.recovered).toBe(false);
+    expect(parsed.config.legal.showLegalLine).toBe(true);
+    expect(parsed.config.legal.legalLine).toEqual(
+      validConfig().legal.legalLine,
+    );
+  });
+
+  it("keeps the choice to hide it, and refuses anything but a yes or a no", () => {
+    const hidden = broken((r) => (r.legal.showLegalLine = false));
+    expect(parseExperienceConfig(hidden).config.legal.showLegalLine).toBe(
+      false,
+    );
+    expect(isValid(broken((r) => (r.legal.showLegalLine = "no")))).toBe(false);
+  });
+});
+
 describe("experienceConfigSchema", () => {
   it("accepts the default configuration of every game", () => {
     for (const gameType of GAME_TYPES) {

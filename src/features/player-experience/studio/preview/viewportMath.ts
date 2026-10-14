@@ -47,6 +47,20 @@ export function computeFitZoom(
   return Math.max(MIN_ZOOM, Math.floor(ratio * 100) / 100);
 }
 
+// "Fit width": the device and its shell as wide as the room allows, never above 100 %, whatever
+// its height: a tall screen then scrolls in the pane, as it does on the phone, and its text stays
+// readable. Rounded down to the percent, like "fit".
+export function computeFitWidthZoom(
+  device: Size,
+  chrome: Insets,
+  available: Size,
+): number {
+  if (available.width <= 0) return 1;
+  const outerWidth = device.width + chrome.left + chrome.right;
+  const ratio = Math.min(available.width / outerWidth, 1);
+  return Math.max(MIN_ZOOM, Math.floor(ratio * 100) / 100);
+}
+
 // A handle dragged by (dx, dy) screen pixels: at 50 % zoom, 10 px on screen are 20 CSS pixels
 // of the device. The result stays inside the envelope.
 export function applyPointerDelta(
