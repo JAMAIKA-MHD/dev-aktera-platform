@@ -15,6 +15,7 @@ function read(value: unknown): ViewportState | null {
   if (typeof width !== "number" || typeof height !== "number") return null;
   const zoom =
     prefs.zoom === "fit" ||
+    prefs.zoom === "fit-width" ||
     (typeof prefs.zoom === "number" &&
       (ZOOM_LEVELS as readonly number[]).includes(prefs.zoom))
       ? (prefs.zoom as ViewportState["zoom"])

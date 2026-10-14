@@ -4,6 +4,7 @@ import {
   render,
   renderHook,
   screen,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -315,6 +316,27 @@ describe("slot 8 — footer", () => {
     expect(container.innerHTML).not.toContain("javascript:");
     // Touch targets of at least 44 px (RWD5).
     expect(site.className).toContain("min-h-[44px]");
+  });
+
+  it("shows the scrolling notice, unless the client switched it off", () => {
+    const shown = renderFrame({ locale: "en" });
+    expect(
+      shown.container.querySelector("[data-xp-band]")?.textContent,
+    ).toContain("Free game, no purchase necessary");
+    shown.unmount();
+
+    const off = zetaConfig();
+    off.legal.showLegalLine = false;
+    const { container } = renderFrame({ config: off, locale: "en" });
+    // No band, and its words are nowhere on the screen; the links and the organizer stay.
+    expect(container.querySelector("[data-xp-band]")).toBeNull();
+    expect(container.textContent).not.toContain("no purchase necessary");
+    expect(slot(container, "footer")?.textContent).toContain(
+      "Organized by Zeta Market",
+    );
+    expect(
+      within(slot(container, "footer")!).getAllByRole("button").length,
+    ).toBeGreaterThan(0);
   });
 
   it("names the organizer, and stays in place when the brand gave nothing", () => {

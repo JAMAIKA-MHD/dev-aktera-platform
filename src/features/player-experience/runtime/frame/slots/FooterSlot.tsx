@@ -91,7 +91,7 @@ export function FooterSlot({
       style={{ "--xp-rise-order": 6 } as CSSProperties}
       className="flex flex-col items-center gap-1 border-t border-[color:color-mix(in_srgb,var(--xp-text)_8%,transparent)] pt-2"
     >
-      {legalLine && (
+      {legal.showLegalLine && legalLine && (
         <LegalBand
           text={legalLine}
           direction={direction}

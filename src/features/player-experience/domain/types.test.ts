@@ -112,6 +112,7 @@ const sampleConfig: ExperienceConfig = {
   },
   legal: {
     organizerName: "Zeta Market SARL",
+    showLegalLine: true,
     links: [
       { id: "l-1", kind: "terms", label: { fr: "Règlement" } },
       {

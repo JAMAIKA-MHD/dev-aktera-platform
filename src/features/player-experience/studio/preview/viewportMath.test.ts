@@ -3,6 +3,7 @@ import { ENVELOPE } from "../../runtime/layout/breakpoints";
 import {
   applyPointerDelta,
   clampToEnvelope,
+  computeFitWidthZoom,
   computeFitZoom,
   rotate,
 } from "./viewportMath";
@@ -23,6 +24,50 @@ describe("clampToEnvelope", () => {
       width: 390,
       height: 844,
     });
+  });
+});
+
+describe("computeFitWidthZoom", () => {
+  it("fills the width of the room whatever the height, never above 100 %", () => {
+    // A phone 844 px tall in a pane 350 px tall: "fit" shrinks it, "fit width" does not.
+    const pane = { width: 724, height: 350 };
+    expect(computeFitZoom({ width: 390, height: 844 }, NONE, pane)).toBe(0.41);
+    expect(computeFitWidthZoom({ width: 390, height: 844 }, NONE, pane)).toBe(
+      1,
+    );
+    // A tablet wider than the pane: the width decides, the height never does.
+    expect(computeFitWidthZoom({ width: 800, height: 1280 }, NONE, pane)).toBe(
+      0.9,
+    );
+    expect(computeFitWidthZoom({ width: 800, height: 400 }, NONE, pane)).toBe(
+      0.9,
+    );
+  });
+
+  it("counts the shell around the device, and rounds down to the percent", () => {
+    const shell = { top: 11, right: 11, bottom: 11, left: 11 };
+    // 800 + 22 = 822 px of tablet in 700 px: 85.16 % -> 85 %.
+    expect(
+      computeFitWidthZoom({ width: 800, height: 1280 }, shell, {
+        width: 700,
+        height: 100,
+      }),
+    ).toBe(0.85);
+  });
+
+  it("stays usable before the room is measured, or when it is tiny", () => {
+    expect(
+      computeFitWidthZoom({ width: 390, height: 844 }, NONE, {
+        width: 0,
+        height: 0,
+      }),
+    ).toBe(1);
+    expect(
+      computeFitWidthZoom({ width: 2000, height: 800 }, NONE, {
+        width: 10,
+        height: 10,
+      }),
+    ).toBe(0.1);
   });
 });
 

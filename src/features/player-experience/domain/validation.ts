@@ -120,7 +120,9 @@ function playerTexts(config: ExperienceConfig): TextEntry[] {
     add(`form.fields.${index}.placeholder`, field.placeholder);
   });
   add("form.consent.text", config.form.consent.text);
-  add("legal.legalLine", config.legal.legalLine);
+  // A notice that is switched off is never shown: its text is not checked.
+  if (config.legal.showLegalLine)
+    add("legal.legalLine", config.legal.legalLine);
   add("legal.termsBody", config.legal.termsBody);
   config.legal.links.forEach((link, index) =>
     add(`legal.links.${index}.label`, link.label),
