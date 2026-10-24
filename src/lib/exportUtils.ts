@@ -8,7 +8,6 @@ export interface CampaignExportRow {
   "Total Winners": number;
   "Win Rate (%)": string;
   "Allocated Prizes": number;
-  "Quiz Pass Rate (%)"?: string;
   "Coupon Confirmation Rate (%)"?: string;
 }
 
@@ -18,7 +17,6 @@ export interface EntryExportRow {
   "Participant Phone": string;
   "Participant Name": string;
   Status: string;
-  "Quiz Status": string;
   "Coupon Code": string;
   "Coupon Confirmed": string;
   "Participation Date": string;

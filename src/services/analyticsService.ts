@@ -1,12 +1,17 @@
 import { supabase } from "../lib/supabase";
 import {
   AnalyticsSummary,
+  PlayerDevice,
   PlayerParticipantEntry,
 } from "../hooks/useAnalytics";
 import {
+  BillingUsageAnalytics,
   CampaignAnalyticsReport,
   CampaignDashboardAnalytics,
   ProgramAnalytics,
+  RewardAnalytics,
+  RewardCategory,
+  RewardStockUsage,
 } from "../types";
 
 export async function importParticipantEntries(
@@ -84,6 +89,66 @@ export async function fetchProgramAnalytics(
   return data as ProgramAnalytics;
 }
 
+/**
+ * Loads the reward stock analytics of an organization from the `get_reward_analytics` RPC.
+ * No client-side fallback: a failure is thrown to the caller.
+ */
+export async function fetchRewardAnalytics(
+  organizationId: string,
+): Promise<RewardAnalytics> {
+  const { data, error } = await supabase.rpc("get_reward_analytics", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Reward analytics unavailable right now.");
+  return data as RewardAnalytics;
+}
+
+/**
+ * Loads how fast the reward stock was used, day by day, from the `get_reward_stock_usage`
+ * RPC. `category` null means every reward; `from` is a calendar day (YYYY-MM-DD) in the
+ * analytics timezone, null for all time. No client-side fallback.
+ */
+export async function fetchRewardStockUsage(
+  organizationId: string,
+  category: RewardCategory | null,
+  from: string | null,
+): Promise<RewardStockUsage> {
+  const { data, error } = await supabase.rpc("get_reward_stock_usage", {
+    p_organization_id: organizationId,
+    p_category: category,
+    p_from: from,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Stock usage unavailable right now.");
+  return data as RewardStockUsage;
+}
+
+/**
+ * Loads the plan usage of an organization from the `get_billing_usage_analytics` RPC.
+ * No client-side fallback: a failure is thrown to the caller.
+ */
+export async function fetchBillingUsageAnalytics(
+  organizationId: string,
+): Promise<BillingUsageAnalytics> {
+  const { data, error } = await supabase.rpc("get_billing_usage_analytics", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Billing usage unavailable right now.");
+  return data as BillingUsageAnalytics;
+}
+
+const PLAYER_DEVICES: readonly PlayerDevice[] = [
+  "android",
+  "ios",
+  "desktop",
+  "other",
+];
+
+const toPlayerDevice = (os: string | null): PlayerDevice =>
+  PLAYER_DEVICES.find((device) => device === os) ?? "other";
+
 /** A row of the `get_campaign_participants` RPC. */
 interface ParticipantRow {
   id: string;
@@ -98,6 +163,8 @@ interface ParticipantRow {
   redeemed_coupon_value: string | null;
   dwell_time_seconds: number | string | null;
   created_at: string;
+  wilaya: string | null;
+  os: string | null;
 }
 
 /**
@@ -145,6 +212,8 @@ export async function fetchAnalyticsSummaryService(
     redeemed_coupon_value: row.redeemed_coupon_value,
     dwell_time_seconds: Number(row.dwell_time_seconds ?? 0),
     created_at: row.created_at,
+    wilaya: row.wilaya,
+    os: toPlayerDevice(row.os),
   }));
 
   return { summary: summaryRes.data as AnalyticsSummary, participants };

@@ -11,18 +11,23 @@ import { DataTable } from "../ui/data-table";
 import { Input } from "../ui/input";
 import {
   activePlayerFilterCount,
+  DEVICE_FILTERS,
+  DEVICE_LABELS,
   formatDwellTime,
+  matchesDeviceFilter,
+  matchesDwellRange,
   matchesPlayerSearch,
-  matchesQuizFilter,
   matchesResultFilter,
+  matchesWilayaFilter,
   NO_PLAYER_FILTERS,
   playerName,
-  QUIZ_FILTERS,
-  quizStatus,
   RESULT_FILTERS,
+  wilayaLabel,
+  wilayaOptions,
+  type DeviceFilter,
   type PlayerFilters,
-  type QuizFilter,
   type ResultFilter,
+  type WilayaFilter,
 } from "./playerParticipantRows";
 
 const PAGE_SIZE = 10;
@@ -83,6 +88,10 @@ function playerColumns(
       id: "dwell",
       accessorKey: "dwell_time_seconds",
       header: "Time Spent in Game",
+      filterFn: (row, _columnId, value) => {
+        const [min, max] = value as [number | null, number | null];
+        return matchesDwellRange(row.original, min, max);
+      },
       cell: ({ row }) => (
         <span className="font-medium text-orange-400">
           {formatDwellTime(row.original.dwell_time_seconds)}
@@ -90,22 +99,26 @@ function playerColumns(
       ),
     },
     {
-      id: "quiz",
-      accessorFn: quizStatus,
-      header: "Quiz Status",
-      enableSorting: false,
+      id: "wilaya",
+      accessorFn: wilayaLabel,
+      header: "Wilaya",
       filterFn: (row, _columnId, value) =>
-        matchesQuizFilter(row.original, value as QuizFilter),
-      cell: ({ row }) => {
-        const status = quizStatus(row.original);
-        return status === "passed" ? (
-          <span className="font-bold text-emerald-400">Passed</span>
-        ) : status === "failed" ? (
-          <span className="font-bold text-red-400">Failed</span>
-        ) : (
-          <span className="text-muted-foreground">N/A</span>
-        );
-      },
+        matchesWilayaFilter(row.original, value as WilayaFilter),
+      cell: ({ getValue }) => (
+        <span className="text-muted-foreground" dir="auto">
+          {String(getValue())}
+        </span>
+      ),
+    },
+    {
+      id: "device",
+      accessorFn: (player) => DEVICE_LABELS[player.os],
+      header: "Device",
+      filterFn: (row, _columnId, value) =>
+        matchesDeviceFilter(row.original, value as DeviceFilter),
+      cell: ({ getValue }) => (
+        <span className="text-muted-foreground">{String(getValue())}</span>
+      ),
     },
     {
       id: "coupon",
@@ -153,9 +166,7 @@ function FilterGroup<T extends string>({
 }) {
   return (
     <div role="group" aria-label={label} className="space-y-1.5">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className={filterLabelClass}>{label}</p>
       <div className="flex flex-wrap gap-1">
         {options.map((option) => (
           <Button
@@ -177,12 +188,71 @@ function FilterGroup<T extends string>({
   );
 }
 
+/** "" -> null; anything else -> a whole number of seconds, never below 0. */
+const toSeconds = (raw: string): number | null => {
+  if (raw.trim() === "") return null;
+  const value = Math.floor(Number(raw));
+  return Number.isFinite(value) ? Math.max(0, value) : null;
+};
+
+const filterLabelClass =
+  "text-[10px] font-bold uppercase tracking-wide text-muted-foreground";
+
+function SecondsRange({
+  min,
+  max,
+  onChange,
+}: {
+  min: number | null;
+  max: number | null;
+  onChange: (min: number | null, max: number | null) => void;
+}) {
+  const reversed = min !== null && max !== null && min > max;
+  return (
+    <div role="group" aria-label="Time spent in game" className="space-y-1.5">
+      <p className={filterLabelClass}>Time spent (seconds)</p>
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          value={min ?? ""}
+          onChange={(event) => onChange(toSeconds(event.target.value), max)}
+          placeholder="Min"
+          aria-label="Minimum seconds"
+          className="h-8 border-border/50 bg-transparent shadow-none"
+        />
+        <span className="text-xs text-muted-foreground">to</span>
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          value={max ?? ""}
+          onChange={(event) => onChange(min, toSeconds(event.target.value))}
+          placeholder="Max"
+          aria-label="Maximum seconds"
+          className="h-8 border-border/50 bg-transparent shadow-none"
+        />
+      </div>
+      {reversed && (
+        <p className="text-[11px] text-red-400">
+          The minimum is above the maximum: no player can match.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PlayerFilterMenu({
   filters,
   onChange,
+  wilayas,
 }: {
   filters: PlayerFilters;
   onChange: (filters: PlayerFilters) => void;
+  wilayas: { value: WilayaFilter; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -225,7 +295,7 @@ function PlayerFilterMenu({
         <div
           role="dialog"
           aria-label="Filter players"
-          className="absolute left-0 top-full z-20 mt-2 w-64 space-y-3 rounded-lg border border-border bg-card-bg p-3 shadow-lg"
+          className="absolute left-0 top-full z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border border-border bg-card-bg p-3 shadow-lg"
         >
           <FilterGroup
             label="Result"
@@ -233,11 +303,37 @@ function PlayerFilterMenu({
             value={filters.result}
             onChange={(result) => onChange({ ...filters, result })}
           />
+          <SecondsRange
+            min={filters.minSeconds}
+            max={filters.maxSeconds}
+            onChange={(minSeconds, maxSeconds) =>
+              onChange({ ...filters, minSeconds, maxSeconds })
+            }
+          />
+          <div className="space-y-1.5">
+            <label htmlFor="player-wilaya-filter" className={filterLabelClass}>
+              Wilaya
+            </label>
+            <select
+              id="player-wilaya-filter"
+              value={filters.wilaya}
+              onChange={(event) =>
+                onChange({ ...filters, wilaya: event.target.value })
+              }
+              className="h-8 w-full cursor-pointer rounded-md border border-border/50 bg-card-bg px-2 text-xs text-foreground outline-none focus-visible:ring-1"
+            >
+              {wilayas.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <FilterGroup
-            label="Quiz status"
-            options={QUIZ_FILTERS}
-            value={filters.quiz}
-            onChange={(quiz) => onChange({ ...filters, quiz })}
+            label="Device"
+            options={DEVICE_FILTERS}
+            value={filters.device}
+            onChange={(device) => onChange({ ...filters, device })}
           />
           <Button
             variant="ghost"
@@ -284,12 +380,21 @@ export function PlayerParticipantsTable({
   onFiltersChange,
 }: PlayerParticipantsTableProps) {
   const columns = useMemo(() => playerColumns(showCampaign), [showCampaign]);
+  const wilayas = useMemo(() => wilayaOptions(players), [players]);
   const columnFilters = useMemo<ColumnFiltersState>(
     () => [
       ...(filters.result === "all"
         ? []
         : [{ id: "result", value: filters.result }]),
-      ...(filters.quiz === "all" ? [] : [{ id: "quiz", value: filters.quiz }]),
+      ...(filters.minSeconds === null && filters.maxSeconds === null
+        ? []
+        : [{ id: "dwell", value: [filters.minSeconds, filters.maxSeconds] }]),
+      ...(filters.wilaya === "all"
+        ? []
+        : [{ id: "wilaya", value: filters.wilaya }]),
+      ...(filters.device === "all"
+        ? []
+        : [{ id: "device", value: filters.device }]),
     ],
     [filters],
   );
@@ -313,7 +418,11 @@ export function PlayerParticipantsTable({
             className="border-border/50 bg-transparent pl-9 shadow-none focus-visible:ring-1"
           />
         </div>
-        <PlayerFilterMenu filters={filters} onChange={onFiltersChange} />
+        <PlayerFilterMenu
+          filters={filters}
+          onChange={onFiltersChange}
+          wilayas={wilayas}
+        />
         <p className="ml-auto text-xs text-muted-foreground" aria-live="polite">
           {filtering
             ? `${shownCount} of ${players.length} players`
@@ -332,7 +441,11 @@ export function PlayerParticipantsTable({
         columnFilters={columnFilters}
         pageSize={PAGE_SIZE}
         pageNumbers
-        hiddenColumnsBelow={{ coupon: "md", quiz: "sm" }}
+        hiddenColumnsBelow={{
+          coupon: "md",
+          wilaya: "sm",
+          device: "sm",
+        }}
         emptyState={
           <StateMessage>
             <Users className="size-8 text-muted-foreground/50" aria-hidden />

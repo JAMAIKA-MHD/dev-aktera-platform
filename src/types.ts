@@ -465,6 +465,146 @@ export interface ProgramAnalytics {
   weekday_distribution: CampaignWeekdayPoint[];
 }
 
+/**
+ * 14. Reward Analytics
+ * Payload of the `get_reward_analytics` RPC: where the reward stock stands, by type and by
+ * reward. A unit of stock is won, reserved (committed to a draft, active or paused campaign,
+ * not won yet) or unallocated; `remaining` is reserved + unallocated.
+ */
+export type RewardCategory = "physical" | "voucher";
+
+export interface RewardStockCounts {
+  total_stock: number;
+  won: number;
+  reserved: number;
+  unallocated: number;
+  remaining: number;
+  won_in_period: number;
+}
+
+export interface RewardTypeStock extends RewardStockCounts {
+  category: RewardCategory;
+  rewards: number;
+  at_risk: number;
+  out_of_stock: number;
+  codes_loaded: number; // Voucher codes entered for the units in stock
+  codes_missing: number; // Voucher units with no code yet
+}
+
+export interface RewardStockRow extends RewardStockCounts {
+  template_id: string;
+  name: string;
+  category: RewardCategory;
+  risk: "out" | "critical" | "warning" | null;
+  remaining_percentage: number | null; // null when the reward has no stock
+  wins_per_day: number; // Over the last 7 days
+  days_left: number | null; // At that pace; null when nothing was won recently
+  active_campaigns: number;
+  codes_missing: number;
+}
+
+export interface RewardAnalytics {
+  timezone: string;
+  period: { from: string | null; to: string | null };
+  totals: RewardStockCounts & {
+    rewards: number;
+    at_risk: number;
+    out_of_stock: number;
+    codes_missing: number;
+  };
+  by_type: RewardTypeStock[]; // Physical first, then vouchers
+  rewards: RewardStockRow[]; // Most urgent first
+}
+
+/**
+ * Payload of the `get_reward_stock_usage` RPC: how fast the stock of every reward, or of one
+ * type, was used, day by day. The stock left on a past day is rebuilt from today's stock
+ * plus everything won since. Per-type fields are null for the type not selected.
+ */
+export interface RewardStockUsagePoint {
+  date: string; // YYYY-MM-DD in the analytics timezone
+  used: number; // Units won that day
+  remaining: number; // Stock left at the end of the day
+  physical_used: number | null;
+  voucher_used: number | null;
+  physical_remaining: number | null;
+  voucher_remaining: number | null;
+}
+
+export interface RewardStockUsage {
+  timezone: string;
+  category: RewardCategory | null; // null: every reward
+  period: { from: string; to: string };
+  summary: {
+    total_stock: number;
+    remaining: number; // Left now
+    remaining_at_start: number; // Left when the period started
+    used_in_period: number;
+    used_percentage: number | null; // Of remaining_at_start; null when there was none
+    used_per_day: number; // Average over the period
+    recent_used_per_day: number; // Over the last 7 days
+    days_left: number | null; // At the last 7 days' pace; null when nothing was used
+  };
+  daily: RewardStockUsagePoint[];
+}
+
+/**
+ * 15. Billing Usage Analytics
+ * Payload of the `get_billing_usage_analytics` RPC: what the organization used of its plan.
+ * The allowance of each plan is in `lib/planAllowances.ts`.
+ */
+export interface BillingDailyUsage {
+  date: string; // YYYY-MM-DD in the analytics timezone
+  entries: number | null; // null on days still to come
+  cumulative: number | null;
+}
+
+export interface BillingMonthlyUsage {
+  month: string; // YYYY-MM
+  entries: number;
+  winners: number;
+  campaigns: number; // Campaigns that received entries that month
+  is_current: boolean;
+}
+
+export interface BillingCampaignUsage {
+  campaign_id: string;
+  campaign_name: string;
+  status: string;
+  entries: number;
+}
+
+export interface BillingPayment {
+  id: string;
+  plan: "free" | "starter" | "pro" | "enterprise";
+  billing_cycle: "monthly" | "yearly" | "one_time";
+  amount: number;
+  status: "pending" | "paid" | "failed" | "refunded";
+  period_start: string; // YYYY-MM-DD
+  period_end: string;
+}
+
+export interface BillingUsageAnalytics {
+  timezone: string;
+  plan: "free" | "starter" | "pro" | "enterprise";
+  current_month: {
+    month: string; // YYYY-MM
+    today: string; // YYYY-MM-DD
+    days_in_month: number;
+    days_elapsed: number;
+    entries: number;
+    entries_last_month: number;
+    projected_entries: number; // Month total at the average daily pace so far
+    active_campaigns: number; // Published and not ended: what the limit of 5 counts
+  };
+  daily_usage: BillingDailyUsage[]; // Every day of the current month
+  monthly_usage: BillingMonthlyUsage[]; // Oldest first
+  usage_by_campaign: BillingCampaignUsage[]; // This month, most entries first
+  subscription: (Omit<BillingPayment, "id"> & { days_left: number }) | null;
+  payments: BillingPayment[]; // Most recent first
+  total_paid: number;
+}
+
 // --- CLIENT SIDE PLAYERS PRESETS & SIMULATORS STATE ---
 
 export interface BrandPreset {

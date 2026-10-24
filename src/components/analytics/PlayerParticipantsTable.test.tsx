@@ -27,6 +27,9 @@ const PLAYERS: PlayerParticipantEntry[] = Array.from(
     redeemed_coupon_value: null,
     dwell_time_seconds: 30 + index,
     created_at: "2026-10-01T10:00:00Z",
+    // 0, 3, 6...: Oran; 1, 4, 7...: Alger; 2, 5, 8...: no location.
+    wilaya: ["Oran", "16 - Alger", null][index % 3],
+    os: index < 5 ? "ios" : "android",
   }),
 );
 
@@ -81,9 +84,44 @@ describe("PlayerParticipantsTable", () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: /Filter/ }));
-    await user.click(screen.getByRole("button", { name: "Winners" }));
+    await user.click(screen.getByRole("button", { name: "Win" }));
     expect(bodyRows()).toHaveLength(3);
     expect(screen.getByText("3 of 25 players")).toBeTruthy();
+  });
+
+  it("filters by time spent, wilaya and device", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: /Filter/ }));
+
+    // Dwell times are 30..54 s: 40..44 keeps five players.
+    await user.type(screen.getByLabelText("Minimum seconds"), "40");
+    await user.type(screen.getByLabelText("Maximum seconds"), "44");
+    expect(screen.getByText("5 of 25 players")).toBeTruthy();
+
+    await user.clear(screen.getByLabelText("Minimum seconds"));
+    await user.clear(screen.getByLabelText("Maximum seconds"));
+    await user.selectOptions(screen.getByLabelText("Wilaya"), "31");
+    expect(screen.getByText("9 of 25 players")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "iOS" }));
+    // Oran (0, 3, 6...) and iOS (0..4): players 1 and 4.
+    expect(screen.getByText("2 of 25 players")).toBeTruthy();
+  });
+
+  it("offers only the wilayas present, then Unknown", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: /Filter/ }));
+    const options = within(screen.getByLabelText("Wilaya"))
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    expect(options).toEqual([
+      "All wilayas",
+      "16 - Alger",
+      "31 - Oran",
+      "Unknown",
+    ]);
   });
 
   it("only names the campaign when all campaigns are shown together", () => {
@@ -100,12 +138,14 @@ describe("PlayerParticipantsTable", () => {
 describe("toPlayerExportRows", () => {
   it("exports every filtered row, with the campaign only in the combined view", () => {
     const winners = filterPlayers(PLAYERS, "", {
+      ...NO_PLAYER_FILTERS,
       result: "winner",
-      quiz: "all",
     });
     const rows = toPlayerExportRows(winners, true);
     expect(rows).toHaveLength(3);
     expect(rows[0].Campaign).toBe("Summer");
+    expect(rows[0].Wilaya).toBe("31 - Oran");
+    expect(rows[0].Device).toBe("iOS");
     expect(toPlayerExportRows(PLAYERS, false)[0]).not.toHaveProperty(
       "Campaign",
     );

@@ -1,44 +1,16 @@
-import React, { useMemo, useState } from "react";
-import {
-  AlertCircle,
-  AlertTriangle,
-  Gift,
-  ReceiptText,
-  Repeat,
-  Users,
-  XCircle,
-  type LucideIcon,
-} from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import React, { useMemo } from "react";
+import { Gift, ReceiptText, Repeat, Users } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useProgramAnalytics } from "../../hooks/useProgramAnalytics";
 import { formatRate } from "../../lib/campaignAnalyticsTransforms";
-import { PLAN_ALLOWANCES } from "../../lib/planAllowances";
 import {
-  buildDecayRows,
-  PROGRAM_PERIODS,
   programPeriodStart,
-  usagePercent,
   type ProgramPeriodKey,
 } from "../../lib/programAnalyticsTransforms";
-import {
-  ProgramAnalytics,
-  ProgramCampaignStatusCounts,
-  ProgramStockRisk,
-} from "../../types";
+import { ProgramAnalytics, ProgramCampaignStatusCounts } from "../../types";
 import { gameMeta } from "../campaigns/campaignMeta";
 import { AlgeriaWilayaMap } from "./AlgeriaWilayaMap";
+import { SectionTitle } from "./AnalyticsControls";
 import {
   ChartPanel,
   OsDonutChart,
@@ -46,8 +18,6 @@ import {
   TimeSegmentationChart,
   useChartTheme,
 } from "./CampaignAnalyticsCharts";
-
-const MAX_AUDIENCE_BARS = 8;
 
 const shorten = (name: string, max: number) =>
   name.length > max ? `${name.slice(0, max - 1)}…` : name;
@@ -63,38 +33,6 @@ const STATUS_TILES: {
   { key: "ended", label: "Ended", dot: "bg-violet-500" },
   { key: "archived", label: "Archived", dot: "bg-slate-400" },
 ];
-
-const RISK_META: Record<
-  ProgramStockRisk["risk"],
-  { label: string; icon: LucideIcon; badge: string }
-> = {
-  out: {
-    label: "Out of stock",
-    icon: XCircle,
-    badge:
-      "border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-950/70 dark:text-red-300",
-  },
-  critical: {
-    label: "Critical",
-    icon: AlertTriangle,
-    badge:
-      "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/40 dark:bg-orange-950/70 dark:text-orange-300",
-  },
-  warning: {
-    label: "Low",
-    icon: AlertCircle,
-    badge:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-950/70 dark:text-amber-300",
-  },
-};
-
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
-  <h2 className="pt-2 text-[10px] font-semibold uppercase tracking-wider text-brand-text-muted">
-    {children}
-  </h2>
-);
 
 const headCell =
   "pb-2 px-2 font-medium uppercase text-[10px] tracking-wider text-brand-text-muted";
@@ -285,289 +223,9 @@ const MechanicsPanel: React.FC<SectionProps> = ({ analytics }) => (
   </ChartPanel>
 );
 
-const DecayCurveChart: React.FC<SectionProps> = ({ analytics }) => {
-  const chart = useChartTheme();
-  const series = analytics.decay_curve;
-  const rows = useMemo(() => buildDecayRows(series), [series]);
-  const axisTick = { fill: chart.axis, fontSize: 11 };
-
-  return (
-    <ChartPanel
-      title="Campaign decay curve"
-      subtitle="Entries per day since launch, campaigns overlaid. Day 1 is the day of each campaign's first entry."
-      isEmpty={series.length === 0}
-      emptyMessage="No participations in this period."
-    >
-      <div className="h-72 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={rows}
-            margin={{ top: 8, right: 12, left: -20, bottom: 0 }}
-          >
-            <CartesianGrid vertical={false} stroke={chart.grid} />
-            <XAxis
-              dataKey="day"
-              axisLine={false}
-              tickLine={false}
-              tick={axisTick}
-              minTickGap={24}
-              dy={8}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={axisTick}
-              allowDecimals={false}
-            />
-            <Tooltip
-              {...chart.tooltip}
-              cursor={{ stroke: chart.grid }}
-              labelFormatter={(day) => `Day ${day} since launch`}
-            />
-            <Legend
-              verticalAlign="top"
-              height={36}
-              iconType="circle"
-              iconSize={8}
-              formatter={(value) => (
-                <span className="text-[11px] text-brand-text-muted">
-                  {shorten(String(value), 32)}
-                </span>
-              )}
-            />
-            {series.map((s, index) => (
-              <Line
-                key={s.campaign_id}
-                type="monotone"
-                dataKey={s.campaign_id}
-                name={s.campaign_name}
-                stroke={chart.series[index]}
-                strokeWidth={2}
-                dot={s.points.length === 1 ? { r: 4 } : false}
-                activeDot={{ r: 5, stroke: chart.surface, strokeWidth: 2 }}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </ChartPanel>
-  );
-};
-
-const AudienceChart: React.FC<SectionProps> = ({ analytics }) => {
-  const chart = useChartTheme();
-  const rows = analytics.leaderboard
-    .filter((row) => row.new_participants + row.returning_participants > 0)
-    .slice(0, MAX_AUDIENCE_BARS)
-    .map((row) => ({
-      name: row.campaign_name,
-      new: row.new_participants,
-      returning: row.returning_participants,
-    }));
-  const axisTick = { fill: chart.axis, fontSize: 11 };
-
-  return (
-    <ChartPanel
-      title="New vs. returning participants"
-      subtitle="Per campaign: participants first seen in it, and participants already seen in an earlier campaign."
-      isEmpty={rows.length === 0}
-      emptyMessage="No identified participants in this period."
-      className="h-full"
-    >
-      <div className="w-full" style={{ height: 64 + rows.length * 36 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={rows}
-            layout="vertical"
-            margin={{ top: 0, right: 12, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid horizontal={false} stroke={chart.grid} />
-            <XAxis
-              type="number"
-              axisLine={false}
-              tickLine={false}
-              tick={axisTick}
-              allowDecimals={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={220}
-              axisLine={false}
-              tickLine={false}
-              tick={axisTick}
-              tickFormatter={(name: string) => shorten(name, 44)}
-            />
-            <Tooltip
-              {...chart.tooltip}
-              cursor={{
-                fill: chart.isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9",
-              }}
-            />
-            <Legend
-              verticalAlign="top"
-              height={32}
-              iconType="circle"
-              iconSize={8}
-              formatter={(value) => (
-                <span className="text-[11px] text-brand-text-muted">
-                  {value}
-                </span>
-              )}
-            />
-            <Bar
-              dataKey="new"
-              name="New"
-              stackId="audience"
-              fill={chart.series[0]}
-              stroke={chart.surface}
-              strokeWidth={2}
-              maxBarSize={18}
-            />
-            <Bar
-              dataKey="returning"
-              name="Returning"
-              stackId="audience"
-              fill={chart.series[1]}
-              stroke={chart.surface}
-              strokeWidth={2}
-              radius={[0, 4, 4, 0]}
-              maxBarSize={18}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </ChartPanel>
-  );
-};
-
-const StockRiskList: React.FC<SectionProps> = ({ analytics }) => {
-  const tracked = analytics.stock_templates_tracked;
-  return (
-    <ChartPanel
-      title="Stock-risk list"
-      subtitle="Prize templates running low, or burning fast enough to run out within two weeks."
-      isEmpty={analytics.stock_risk.length === 0}
-      emptyMessage={
-        tracked === 0
-          ? "No prize template has stock yet."
-          : `No stock at risk across ${tracked} prize ${tracked === 1 ? "template" : "templates"}.`
-      }
-      className="h-full"
-    >
-      <ul className="divide-y divide-brand-border/30">
-        {analytics.stock_risk.map((item) => {
-          const risk = RISK_META[item.risk];
-          const Icon = risk.icon;
-          return (
-            <li
-              key={item.template_id}
-              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5"
-            >
-              <div className="min-w-0">
-                <div
-                  className="truncate text-xs font-semibold text-brand-text"
-                  dir="auto"
-                >
-                  {item.name}
-                </div>
-                <div className="text-[11px] text-brand-text-muted">
-                  {item.remaining.toLocaleString()} of{" "}
-                  {item.total_stock.toLocaleString()} left ·{" "}
-                  {item.burn_rate_percentage}% burned ·{" "}
-                  {item.wins_per_day > 0
-                    ? `${item.wins_per_day} won per day`
-                    : "none won in the last 7 days"}
-                  {item.days_left !== null &&
-                    item.remaining > 0 &&
-                    ` · about ${Math.max(1, Math.round(item.days_left))} ${Math.round(item.days_left) <= 1 ? "day" : "days"} left`}
-                </div>
-              </div>
-              <span
-                className={`flex flex-shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${risk.badge}`}
-              >
-                <Icon className="h-3 w-3" />
-                {risk.label}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </ChartPanel>
-  );
-};
-
-const UsageMeter: React.FC<{
-  label: string;
-  used: number;
-  limit: number | null;
-}> = ({ label, used, limit }) => {
-  const chart = useChartTheme();
-  const percent = usagePercent(used, limit);
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-brand-text">{label}</span>
-        <span className="text-brand-text-muted">
-          <span className="font-semibold text-brand-text">
-            {used.toLocaleString()}
-          </span>{" "}
-          / {limit === null ? "Unlimited" : limit.toLocaleString()}
-        </span>
-      </div>
-      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-card-bg-subtle">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${percent ?? 0}%`,
-            backgroundColor: chart.series[0],
-          }}
-        />
-      </div>
-      <div className="mt-1 text-[11px] text-brand-text-muted">
-        {percent === null ? "No limit on this plan" : `${percent}% used`}
-      </div>
-    </div>
-  );
-};
-
-const PlanUsagePanel: React.FC<SectionProps> = ({ analytics }) => {
-  const usage = analytics.plan_usage;
-  const allowance = PLAN_ALLOWANCES[usage.plan] ?? PLAN_ALLOWANCES.free;
-  return (
-    <ChartPanel
-      title="Plan usage vs. limits"
-      subtitle={`${allowance.label} plan allowance.`}
-      actions={
-        <span
-          className="rounded-full border border-brand-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-text-muted"
-          title="Shown for information: plan limits are not enforced yet."
-        >
-          Preview
-        </span>
-      }
-      className="h-full"
-    >
-      <div className="space-y-5">
-        <UsageMeter
-          label="Entries this month"
-          used={usage.entries_this_month}
-          limit={allowance.entriesPerMonth}
-        />
-        <UsageMeter
-          label="Active campaigns"
-          used={usage.active_campaigns}
-          limit={allowance.activeCampaigns}
-        />
-        <p className="text-[11px] text-brand-text-muted">
-          Shown for information: plan limits are not enforced yet.
-        </p>
-      </div>
-    </ChartPanel>
-  );
-};
-
 interface ProgramAnalyticsDashboardProps {
+  /** The period applied; chosen in the analytics toolbar. */
+  periodKey: ProgramPeriodKey;
   onSelectCampaign: (campaignId: string) => void;
 }
 
@@ -577,9 +235,8 @@ interface ProgramAnalyticsDashboardProps {
  */
 export const ProgramAnalyticsDashboard: React.FC<
   ProgramAnalyticsDashboardProps
-> = ({ onSelectCampaign }) => {
+> = ({ periodKey, onSelectCampaign }) => {
   const { organization } = useAuth();
-  const [periodKey, setPeriodKey] = useState<ProgramPeriodKey>("all");
   const from = useMemo(() => programPeriodStart(periodKey), [periodKey]);
   const { analytics, loading, refreshing, error } = useProgramAnalytics(
     organization?.id ?? null,
@@ -603,40 +260,15 @@ export const ProgramAnalyticsDashboard: React.FC<
   }
 
   const { totals, audience } = analytics;
-  const participations =
-    audience.new_participants + audience.returning_participants;
 
   return (
     <div
       id="program-analytics-dashboard"
       className={`mb-4 space-y-4 transition-opacity ${refreshing ? "opacity-60" : ""}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SectionTitle>Program totals</SectionTitle>
-        <div
-          role="group"
-          aria-label="Period"
-          className="flex items-center glass-panel p-0.5 rounded-xl text-[11px]"
-        >
-          {PROGRAM_PERIODS.map((period) => (
-            <button
-              key={period.key}
-              type="button"
-              aria-pressed={periodKey === period.key}
-              onClick={() => setPeriodKey(period.key)}
-              className={`px-2.5 py-0.5 font-semibold rounded-full cursor-pointer transition-colors ${
-                periodKey === period.key
-                  ? "bg-brand-accent/20 text-brand-accent shadow-sm"
-                  : "text-brand-text-muted hover:text-brand-text"
-              }`}
-            >
-              {period.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionTitle>Program totals</SectionTitle>
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-4 gap-2 sm:gap-4">
         <StatCard
           title="Total entries"
           value={totals.entries.toLocaleString()}
@@ -670,69 +302,21 @@ export const ProgramAnalyticsDashboard: React.FC<
       <CampaignStatusPanel analytics={analytics} />
 
       <SectionTitle>Comparison</SectionTitle>
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-7">
-          <Leaderboard
-            analytics={analytics}
-            onSelectCampaign={onSelectCampaign}
-          />
-        </div>
-        <div className="col-span-12 xl:col-span-5">
-          <MechanicsPanel analytics={analytics} />
-        </div>
-      </div>
-      <DecayCurveChart analytics={analytics} />
-
-      <SectionTitle>Audience asset</SectionTitle>
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-8">
-          <AudienceChart analytics={analytics} />
-        </div>
-        <div className="col-span-12 grid grid-cols-2 gap-4 xl:col-span-4 xl:grid-cols-1">
-          <StatCard
-            title="New participants"
-            value={audience.new_participants.toLocaleString()}
-            caption={
-              participations > 0
-                ? `${((audience.new_participants / participations) * 100).toFixed(1)}% of campaign participations`
-                : "First seen in a campaign of this period"
-            }
-            icon={<Users className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Returning participants"
-            value={audience.returning_participants.toLocaleString()}
-            caption={
-              participations > 0
-                ? `${((audience.returning_participants / participations) * 100).toFixed(1)}% of campaign participations`
-                : "Already seen in an earlier campaign"
-            }
-            icon={<Repeat className="h-4 w-4" />}
-          />
-        </div>
-      </div>
-
-      <SectionTitle>Control</SectionTitle>
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-7">
-          <StockRiskList analytics={analytics} />
-        </div>
-        <div className="col-span-12 xl:col-span-5">
-          <PlanUsagePanel analytics={analytics} />
-        </div>
-      </div>
+      <Leaderboard analytics={analytics} onSelectCampaign={onSelectCampaign} />
 
       <SectionTitle>Segmentation</SectionTitle>
+      <MechanicsPanel analytics={analytics} />
+      {/* Time segmentation and devices: always side by side. */}
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-4">
-          <OsDonutChart data={analytics.os_distribution} />
-        </div>
-        <div className="col-span-12 xl:col-span-8">
+        <div className="col-span-12 lg:col-span-7">
           <TimeSegmentationChart
             hourly={analytics.hourly_distribution}
             weekday={analytics.weekday_distribution}
             timezone={analytics.timezone}
           />
+        </div>
+        <div className="col-span-12 lg:col-span-5">
+          <OsDonutChart data={analytics.os_distribution} />
         </div>
       </div>
       <AlgeriaWilayaMap

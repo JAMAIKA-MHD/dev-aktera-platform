@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, Flame, Timer, Trophy, Users } from "lucide-react";
+import { CheckCircle2, Flame, Trophy, Users } from "lucide-react";
 import { useCampaignAnalytics } from "../../hooks/useCampaignAnalytics";
 import { AlgeriaWilayaMap } from "./AlgeriaWilayaMap";
 import {
@@ -62,22 +62,17 @@ export const CampaignAnalyticsDashboard: React.FC<
 
   return (
     <div id="campaign-analytics-dashboard" className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+      {/* Four cards in one row at every width, like the other analytics sections. */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-4">
         <StatCard
           title="Total entries"
           value={analytics.total_entries.toLocaleString()}
-          caption="Participations recorded"
-          icon={<Users className="w-4 h-4" />}
-        />
-        <StatCard
-          title="Average dwell time"
-          value={formatDuration(analytics.avg_dwell_time_seconds)}
           caption={
             analytics.avg_dwell_time_seconds === null
-              ? "No dwell time recorded yet"
-              : "Time spent per participant"
+              ? "Participations recorded · no dwell time yet"
+              : `Participations recorded · ${formatDuration(analytics.avg_dwell_time_seconds)} average time spent`
           }
-          icon={<Timer className="w-4 h-4" />}
+          icon={<Users className="w-4 h-4" />}
         />
         <StatCard
           title="Win rate"
@@ -108,7 +103,7 @@ export const CampaignAnalyticsDashboard: React.FC<
       </div>
 
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-8">
+        <div className="col-span-12 xl:col-span-7">
           <ParticipantsLineChart
             key={campaignId}
             data={analytics.participants_over_time}
@@ -116,24 +111,25 @@ export const CampaignAnalyticsDashboard: React.FC<
             timezone={analytics.timezone}
           />
         </div>
-        <div className="col-span-12 xl:col-span-4">
-          <OsDonutChart data={analytics.os_distribution} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-7">
+        <div className="col-span-12 xl:col-span-5">
           <PrizeDistributionAreaChart
             data={analytics.prize_distribution}
             days={analytics.participants_over_time}
           />
         </div>
-        <div className="col-span-12 xl:col-span-5">
+      </div>
+
+      {/* Time segmentation and devices: always side by side. */}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-7">
           <TimeSegmentationChart
             hourly={analytics.hourly_distribution}
             weekday={analytics.weekday_distribution}
             timezone={analytics.timezone}
           />
+        </div>
+        <div className="col-span-12 lg:col-span-5">
+          <OsDonutChart data={analytics.os_distribution} />
         </div>
       </div>
 

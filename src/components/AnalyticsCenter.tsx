@@ -1,12 +1,22 @@
 import React, { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  ANALYTICS_SECTIONS,
+  PATHS,
+  type AnalyticsSection,
+} from "../dashboard/paths";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { exportToExcel } from "../lib/exportUtils";
 import { useCampaignReport } from "../hooks/useCampaignReport";
+import { BillingAnalyticsDashboard } from "./analytics/BillingAnalyticsDashboard";
 import { CampaignAnalyticsDashboard } from "./analytics/CampaignAnalyticsDashboard";
+import { RewardAnalyticsDashboard } from "./analytics/RewardAnalyticsDashboard";
 import { ProgramAnalyticsDashboard } from "./analytics/ProgramAnalyticsDashboard";
 import { PlayerParticipantsTable } from "./analytics/PlayerParticipantsTable";
+import { PeriodFilterButton } from "./analytics/AnalyticsControls";
+import type { ProgramPeriodKey } from "../lib/programAnalyticsTransforms";
 import {
   filterPlayers,
   NO_PLAYER_FILTERS,
@@ -18,7 +28,63 @@ interface AnalyticsCenterProps {
   initialCampaignId?: string | null;
 }
 
+const SECTION_TABS: { key: AnalyticsSection; label: string }[] = [
+  { key: "campaigns", label: "Campaigns" },
+  { key: "rewards", label: "Reward Analytics" },
+  { key: "billing", label: "Billing" },
+];
+
+/**
+ * The analytics page: one section at a time, named in the URL (`?section=`). A campaign's
+ * own URL (`/analytics/:id`) always opens the Campaigns section.
+ */
 export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
+  initialCampaignId,
+}) => {
+  const [searchParams] = useSearchParams();
+  const requested = searchParams.get("section") as AnalyticsSection | null;
+  const section: AnalyticsSection =
+    !initialCampaignId && requested && ANALYTICS_SECTIONS.includes(requested)
+      ? requested
+      : "campaigns";
+
+  return (
+    <div id="analytics-center-root" className="space-y-5 text-brand-text">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <h1 className="text-xl font-bold text-brand-text tracking-tight">
+          Advanced Statistics
+        </h1>
+        <nav
+          aria-label="Analytics sections"
+          className="flex items-center glass-panel p-1 rounded-xl text-xs"
+        >
+          {SECTION_TABS.map((tab) => (
+            <Link
+              key={tab.key}
+              to={PATHS.analyticsSection(tab.key)}
+              aria-current={section === tab.key ? "page" : undefined}
+              className={`px-3 py-1 font-semibold rounded-lg transition-colors ${
+                section === tab.key
+                  ? "bg-brand-accent/20 text-brand-accent shadow-sm"
+                  : "text-brand-text-muted hover:text-brand-text"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      {section === "campaigns" && (
+        <CampaignsSection initialCampaignId={initialCampaignId} />
+      )}
+      {section === "rewards" && <RewardAnalyticsDashboard />}
+      {section === "billing" && <BillingAnalyticsDashboard />}
+    </div>
+  );
+};
+
+const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
 }) => {
   const { organization: _organization } = useAuth();
@@ -30,6 +96,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   const [tableViewMode, setTableViewMode] = useState<
     "participants" | "summary"
   >("participants");
+  const [periodKey, setPeriodKey] = useState<ProgramPeriodKey>("all");
 
   React.useEffect(() => {
     if (initialCampaignId) {
@@ -45,7 +112,14 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   const [playerQuery, setPlayerQuery] = useState("");
   const [playerFilters, setPlayerFilters] =
     useState<PlayerFilters>(NO_PLAYER_FILTERS);
-  const players = useMemo(() => analytics?.participants ?? [], [analytics]);
+  // A campaign's table lists that campaign's players only; every campaign only on the
+  // "All Campaigns Combined" view.
+  const players = useMemo(() => {
+    const rows = analytics?.participants ?? [];
+    return isAllCampaigns
+      ? rows
+      : rows.filter((player) => player.campaign_id === selectedCampId);
+  }, [analytics, isAllCampaigns, selectedCampId]);
   const shownPlayers = useMemo(
     () => filterPlayers(players, playerQuery, playerFilters),
     [players, playerQuery, playerFilters],
@@ -78,7 +152,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
           Entries: row.total_entries,
           Winners: row.total_winners,
           "Win Rate (%)": row.win_rate,
-          "Quiz Pass (%)": row.quiz_pass_rate,
           "Coupon Claim (%)": row.coupon_confirmation_rate,
         })) as Record<string, unknown>[],
         filename: `octoreach_campaign_breakdown_${today}`,
@@ -136,14 +209,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   }
 
   return (
-    <div id="analytics-center-root" className="space-y-5 text-brand-text">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-5">
-        <h1 className="text-xl font-bold text-brand-text tracking-tight">
-          Advanced Statistics
-        </h1>
-      </div>
-
+    <div className="space-y-5">
       <div className="flex justify-between items-center mb-5">
         <div className="relative">
           <select
@@ -166,6 +232,10 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* The period applies to the combined view; a campaign's charts have their own ranges. */}
+          {isAllCampaigns && (
+            <PeriodFilterButton value={periodKey} onChange={setPeriodKey} />
+          )}
           <button
             className="glass-panel px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-text hover:bg-card-bg-subtle cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleExportData}
@@ -211,6 +281,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
         </div>
       ) : (
         <ProgramAnalyticsDashboard
+          periodKey={periodKey}
           onSelectCampaign={(campaignId) => {
             selectCampaign(campaignId);
             setTableViewMode("participants");
@@ -281,9 +352,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                   <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
                     Win Rate
                   </th>
-                  <th className="pb-3 px-4 text-center font-medium uppercase text-[10px] tracking-wider">
-                    Quiz Pass %
-                  </th>
                   <th className="pb-3 px-4 text-right font-medium uppercase text-[10px] tracking-wider">
                     Coupon Claim %
                   </th>
@@ -321,9 +389,6 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
                     </td>
                     <td className="py-4 px-4 text-center text-brand-textMuted">
                       {row.win_rate}%
-                    </td>
-                    <td className="py-4 px-4 text-center text-brand-textMuted">
-                      {row.quiz_pass_rate}%
                     </td>
                     <td className="py-4 px-4 text-right text-blue-400 font-bold">
                       {row.coupon_confirmation_rate}%

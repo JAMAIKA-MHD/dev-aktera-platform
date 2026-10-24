@@ -3,7 +3,6 @@
  * from the `get_program_analytics` RPC; nothing here adds up entries.
  */
 import { toAnalyticsDay } from "./campaignAnalyticsTransforms";
-import { ProgramDecaySeries } from "../types";
 
 export const PROGRAM_TIMEZONE = "Africa/Algiers";
 
@@ -30,31 +29,4 @@ export function programPeriodStart(
   if (today === null) return null;
   const start = Date.parse(`${today}T00:00:00Z`) - (period.days - 1) * DAY_MS;
   return new Date(start).toISOString().slice(0, 10);
-}
-
-export interface DecayRow {
-  /** Days since launch, starting at 1 on the day of the first entry. */
-  day: number;
-  [campaignId: string]: number;
-}
-
-/**
- * One row per day since launch with a value for each campaign still running on that day,
- * so every campaign's line stops where its own life stops.
- */
-export function buildDecayRows(series: ProgramDecaySeries[]): DecayRow[] {
-  const length = Math.max(0, ...series.map((s) => s.points.length));
-  return Array.from({ length }, (_, index) => {
-    const row: DecayRow = { day: index + 1 };
-    for (const s of series) {
-      if (index < s.points.length) row[s.campaign_id] = s.points[index];
-    }
-    return row;
-  });
-}
-
-/** Share of a limit used, 0 to 100; null when there is no limit. */
-export function usagePercent(used: number, limit: number | null) {
-  if (limit === null || limit <= 0) return null;
-  return Math.min(100, Math.round((used / limit) * 100));
 }

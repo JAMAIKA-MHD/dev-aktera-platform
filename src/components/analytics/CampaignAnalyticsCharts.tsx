@@ -82,15 +82,23 @@ export const StatCard: React.FC<StatCardProps> = ({
   caption,
   icon,
 }) => (
-  <div className="glass-panel rounded-xl p-4 flex flex-col gap-1.5 min-h-28">
+  // min-w-0 and break-words: in a row of four on a narrow screen, long values wrap instead
+  // of pushing the card wider than its column.
+  <div className="glass-panel rounded-xl p-2.5 sm:p-4 flex min-w-0 flex-col gap-1.5 min-h-28">
     <div className="flex items-center justify-between gap-2">
-      <h3 className="text-[10px] uppercase font-semibold tracking-wider text-brand-text-muted">
+      <h3 className="min-w-0 break-words text-[10px] uppercase font-semibold tracking-wider text-brand-text-muted">
         {title}
       </h3>
-      <span className="text-brand-text-muted">{icon}</span>
+      <span className="hidden flex-shrink-0 text-brand-text-muted sm:inline">
+        {icon}
+      </span>
     </div>
-    <div className="text-2xl font-bold text-brand-text">{value}</div>
-    <div className="text-[11px] text-brand-text-muted">{caption}</div>
+    <div className="break-words text-lg font-bold text-brand-text sm:text-2xl">
+      {value}
+    </div>
+    <div className="break-words text-[11px] text-brand-text-muted">
+      {caption}
+    </div>
   </div>
 );
 
