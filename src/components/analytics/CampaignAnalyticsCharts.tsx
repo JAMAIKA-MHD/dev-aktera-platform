@@ -69,39 +69,6 @@ export function useChartTheme() {
   );
 }
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  caption: string;
-  icon: React.ReactNode;
-}
-
-export const StatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  caption,
-  icon,
-}) => (
-  // min-w-0 and break-words: in a row of four on a narrow screen, long values wrap instead
-  // of pushing the card wider than its column.
-  <div className="glass-panel rounded-xl p-2.5 sm:p-4 flex min-w-0 flex-col gap-1.5 min-h-28">
-    <div className="flex items-center justify-between gap-2">
-      <h3 className="min-w-0 break-words text-[10px] uppercase font-semibold tracking-wider text-brand-text-muted">
-        {title}
-      </h3>
-      <span className="hidden flex-shrink-0 text-brand-text-muted sm:inline">
-        {icon}
-      </span>
-    </div>
-    <div className="break-words text-lg font-bold text-brand-text sm:text-2xl">
-      {value}
-    </div>
-    <div className="break-words text-[11px] text-brand-text-muted">
-      {caption}
-    </div>
-  </div>
-);
-
 interface ChartPanelProps {
   title: string;
   subtitle: string;
@@ -274,9 +241,16 @@ export const ParticipantsLineChart: React.FC<ParticipantsLineChartProps> = ({
 
 interface OsDonutChartProps {
   data: CampaignOsDistribution;
+  /** `fill`: a larger donut over its legend, centred in the whole panel (the single
+   *  campaign view, where it has the column to itself). Default: compact, side by side. */
+  layout?: "compact" | "fill";
 }
 
-export const OsDonutChart: React.FC<OsDonutChartProps> = ({ data }) => {
+export const OsDonutChart: React.FC<OsDonutChartProps> = ({
+  data,
+  layout = "compact",
+}) => {
+  const fill = layout === "fill";
   const chart = useChartTheme();
   const items = [
     { key: "android", label: "Android", count: data.android },
@@ -296,16 +270,26 @@ export const OsDonutChart: React.FC<OsDonutChartProps> = ({ data }) => {
       emptyMessage="No participants recorded yet."
       className="h-full"
     >
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-44 w-44">
+      {/* Compact: donut beside its legend, short enough to share a column. Fill: donut over
+          its legend, centred in the panel. */}
+      <div
+        className={
+          fill
+            ? "flex flex-1 flex-col items-center justify-center gap-6"
+            : "flex items-center gap-5"
+        }
+      >
+        <div
+          className={`relative shrink-0 ${fill ? "h-48 w-48" : "h-28 w-28"}`}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={items.filter((item) => item.count > 0)}
                 dataKey="count"
                 nameKey="label"
-                innerRadius={52}
-                outerRadius={80}
+                innerRadius={fill ? 62 : 36}
+                outerRadius={fill ? 94 : 54}
                 paddingAngle={2}
                 stroke={chart.surface}
                 strokeWidth={2}
@@ -325,7 +309,9 @@ export const OsDonutChart: React.FC<OsDonutChartProps> = ({ data }) => {
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xl font-bold text-brand-text">
+            <span
+              className={`font-bold text-brand-text ${fill ? "text-2xl" : "text-base"}`}
+            >
               {total.toLocaleString()}
             </span>
             <span className="text-[10px] uppercase tracking-wider text-brand-text-muted">
@@ -334,7 +320,11 @@ export const OsDonutChart: React.FC<OsDonutChartProps> = ({ data }) => {
           </div>
         </div>
 
-        <ul className="w-full space-y-1.5">
+        <ul
+          className={
+            fill ? "w-full max-w-xs space-y-2" : "min-w-0 flex-1 space-y-1.5"
+          }
+        >
           {items.map((item) => (
             <li
               key={item.key}

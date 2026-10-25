@@ -5,7 +5,7 @@ import {
   Boxes,
   CheckCircle2,
   Gift,
-  PackageCheck,
+  Inbox,
   Ticket,
   XCircle,
   type LucideIcon,
@@ -25,11 +25,9 @@ import {
   useRewardAnalytics,
   useRewardStockUsage,
 } from "../../hooks/useOrganizationAnalytics";
+import { formatDayLabel } from "../../lib/campaignAnalyticsTransforms";
 import {
-  formatDayLabel,
-  OTHER_SERIES_COLOR,
-} from "../../lib/campaignAnalyticsTransforms";
-import {
+  PROGRAM_PERIODS,
   programPeriodStart,
   type ProgramPeriodKey,
 } from "../../lib/programAnalyticsTransforms";
@@ -46,7 +44,11 @@ import {
   PeriodToggle,
   SectionTitle,
 } from "./AnalyticsControls";
-import { ChartPanel, StatCard, useChartTheme } from "./CampaignAnalyticsCharts";
+import { ChartPanel, useChartTheme } from "./CampaignAnalyticsCharts";
+import { KpiCard, KpiGrid, percentOf, roundedShare } from "./KpiCards";
+
+// Up to this many rewards, "running low" draws one block per reward.
+const MAX_RISK_BLOCKS = 20;
 
 const TYPE_META: Record<
   RewardCategory,
@@ -91,22 +93,6 @@ const includesType = (filter: TypeFilter, category: RewardCategory) =>
 const typeNoun = (filter: TypeFilter) =>
   filter === "all" ? "rewards" : TYPE_META[filter].plural.toLowerCase();
 
-type StockState = "won" | "reserved" | "unallocated";
-
-const STOCK_STATES: { key: StockState; label: string; hint: string }[] = [
-  { key: "won", label: "Won", hint: "Already won by players" },
-  {
-    key: "reserved",
-    label: "Reserved",
-    hint: "Committed to a draft, active or paused campaign, not won yet",
-  },
-  {
-    key: "unallocated",
-    label: "Unallocated",
-    hint: "Free to put in a campaign",
-  },
-];
-
 const STATUS_META: Record<
   NonNullable<RewardStockRow["risk"]> | "ok" | "empty",
   { label: string; icon: LucideIcon; badge: string }
@@ -148,147 +134,278 @@ const headCell =
 const share = (part: number, total: number) =>
   total > 0 ? `${((part / total) * 100).toFixed(1)}%` : "—";
 
-function useStockColors(): Record<StockState, string> {
-  const chart = useChartTheme();
-  return useMemo(
-    () => ({
-      won: chart.series[0],
-      reserved: chart.series[3],
-      unallocated: OTHER_SERIES_COLOR,
-    }),
-    [chart],
-  );
+// Won is solid, reserved hatched, unallocated dotted: the three read without colour.
+// Units won before the chosen period are a lighter solid.
+interface StockPart {
+  key: string;
+  label: string;
+  hint: string;
+  pattern: string;
+  value: number;
 }
 
-/** One bar split into won / reserved / unallocated, with a gap between segments. */
-const StockBar: React.FC<{ counts: RewardStockCounts; className?: string }> = ({
-  counts,
-  className = "h-2.5",
-}) => {
-  const colors = useStockColors();
+/**
+ * The parts of a stock bar: today's won / reserved / unallocated. With `wonInPeriod`, won
+ * splits into the units won in the period and those won before it.
+ */
+function stockParts(
+  counts: RewardStockCounts,
+  wonInPeriod?: number,
+): StockPart[] {
+  const rest: StockPart[] = [
+    {
+      key: "reserved",
+      label: "Reserved",
+      hint: "Committed to a draft, active or paused campaign, not won yet",
+      pattern: "kx-pat-reserved",
+      value: counts.reserved,
+    },
+    {
+      key: "unallocated",
+      label: "Unallocated",
+      hint: "Free to put in a campaign",
+      pattern: "kx-pat-unallocated",
+      value: counts.unallocated,
+    },
+  ];
+  if (wonInPeriod === undefined) {
+    return [
+      {
+        key: "won",
+        label: "Won",
+        hint: "Already won by players",
+        pattern: "kx-pat-won",
+        value: counts.won,
+      },
+      ...rest,
+    ];
+  }
+  const inPeriod = Math.min(counts.won, Math.max(0, wonInPeriod));
+  return [
+    {
+      key: "won-period",
+      label: "Won in period",
+      hint: "Won by players during the chosen period",
+      pattern: "kx-pat-won",
+      value: inPeriod,
+    },
+    {
+      key: "won-before",
+      label: "Won before",
+      hint: "Won by players before the chosen period",
+      pattern: "kx-pat-won-before",
+      value: counts.won - inPeriod,
+    },
+    ...rest,
+  ];
+}
+
+/**
+ * One bar split into its parts, each sized by its count. `slim` drops the numbers inside,
+ * for table rows.
+ */
+const StockBar: React.FC<{
+  counts: RewardStockCounts;
+  wonInPeriod?: number;
+  slim?: boolean;
+}> = ({ counts, wonInPeriod, slim = false }) => {
+  const parts = stockParts(counts, wonInPeriod);
   return (
     <div
-      className={`flex w-full gap-0.5 overflow-hidden rounded-full bg-card-bg-subtle ${className}`}
+      className={`kx-tokens kx-stack ${slim ? "is-slim" : ""} ${counts.total_stock > 0 ? "" : "is-empty"}`}
+      role="img"
+      aria-label={parts
+        .map(
+          (part) =>
+            `${part.value.toLocaleString()} ${part.label.toLowerCase()}`,
+        )
+        .join(", ")}
     >
       {counts.total_stock > 0 &&
-        STOCK_STATES.filter((state) => counts[state.key] > 0).map((state) => (
-          <div
-            key={state.key}
-            className="h-full rounded-sm"
-            title={`${state.label}: ${counts[state.key].toLocaleString()} (${share(counts[state.key], counts.total_stock)})`}
-            style={{
-              width: `${(counts[state.key] / counts.total_stock) * 100}%`,
-              backgroundColor: colors[state.key],
-            }}
-          />
-        ))}
+        parts
+          .filter((part) => part.value > 0)
+          .map((part) => (
+            <i
+              key={part.key}
+              className={part.pattern}
+              title={`${part.label}: ${part.value.toLocaleString()} (${share(part.value, counts.total_stock)})`}
+              style={{ flex: `${part.value} 1 0%` }}
+            >
+              {!slim && <span>{part.value.toLocaleString()}</span>}
+            </i>
+          ))}
     </div>
   );
 };
 
-const StockLegend: React.FC = () => {
-  const colors = useStockColors();
-  return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-brand-text-muted">
-      {STOCK_STATES.map((state) => (
-        <li
-          key={state.key}
-          className="flex items-center gap-1.5"
-          title={state.hint}
-        >
-          <span
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: colors[state.key] }}
-          />
-          {state.label}
-        </li>
-      ))}
-    </ul>
-  );
+const EMPTY_COUNTS: RewardStockCounts = {
+  total_stock: 0,
+  won: 0,
+  reserved: 0,
+  unallocated: 0,
+  remaining: 0,
+  won_in_period: 0,
 };
+
+const StockLegend: React.FC = () => (
+  <ul className="kx-tokens flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-brand-text-muted">
+    {stockParts(EMPTY_COUNTS).map((part) => (
+      <li
+        key={part.key}
+        className="flex items-center gap-1.5"
+        title={part.hint}
+      >
+        <i className={`kx-sw ${part.pattern}`} />
+        {part.label}
+      </li>
+    ))}
+  </ul>
+);
 
 interface SectionProps {
   analytics: RewardAnalytics;
   typeFilter: TypeFilter;
 }
 
-const StockByTypePanel: React.FC<SectionProps> = ({
-  analytics,
-  typeFilter,
-}) => (
-  <ChartPanel
-    title={
-      typeFilter === "all"
-        ? "Stock by reward type"
-        : `Stock of ${typeNoun(typeFilter)}`
-    }
-    subtitle={
-      typeFilter === "all"
-        ? "Where every unit stands today, for physical gifts and for vouchers."
-        : "Where every unit stands today."
-    }
-    isEmpty={totalsOf(analytics, typeFilter).total_stock === 0}
-    emptyMessage={`No ${typeNoun(typeFilter)} in stock yet.`}
-    className="h-full"
-  >
-    <div className="space-y-5">
-      <StockLegend />
-      {analytics.by_type
-        .filter((type) => includesType(typeFilter, type.category))
-        .map((type) => {
-          const meta = TYPE_META[type.category];
-          const Icon = meta.icon;
-          return (
-            <div key={type.category}>
-              <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-text">
-                  <Icon className="h-3.5 w-3.5 text-brand-text-muted" />
-                  {meta.plural}
-                  <span className="font-normal text-brand-text-muted">
-                    · {type.rewards} {type.rewards === 1 ? "reward" : "rewards"}
+/**
+ * Where every unit of each type stands today, with the units won in the chosen period set
+ * apart. The period's wins come from `get_reward_stock_usage` (every type at once).
+ */
+const StockByTypePanel: React.FC<
+  SectionProps & { organizationId: string | null }
+> = ({ analytics, typeFilter, organizationId }) => {
+  const [periodKey, setPeriodKey] = useState<ProgramPeriodKey>("30d");
+  const from = useMemo(() => programPeriodStart(periodKey), [periodKey]);
+  const {
+    analytics: usage,
+    refreshing,
+    error,
+  } = useRewardStockUsage(organizationId, null, from);
+
+  // Units won in the period, per type; none for "All time", where every win is in it.
+  const wonInPeriod = useMemo(() => {
+    if (periodKey === "all" || !usage) return null;
+    const sum = (key: "physical_used" | "voucher_used") =>
+      usage.daily.reduce((total, day) => total + (day[key] ?? 0), 0);
+    return { physical: sum("physical_used"), voucher: sum("voucher_used") };
+  }, [periodKey, usage]);
+  const periodLabel = PROGRAM_PERIODS.find(
+    (period) => period.key === periodKey,
+  )?.label.toLowerCase();
+  const pending = periodKey !== "all" && !usage && !error;
+
+  return (
+    <ChartPanel
+      title={
+        typeFilter === "all"
+          ? "Stock by reward type"
+          : `Stock of ${typeNoun(typeFilter)}`
+      }
+      subtitle={
+        periodKey === "all"
+          ? "Where every unit stands today."
+          : `Where every unit stands today; units won in the last ${periodLabel} stand apart.`
+      }
+      actions={<PeriodToggle value={periodKey} onChange={setPeriodKey} />}
+      isEmpty={totalsOf(analytics, typeFilter).total_stock === 0}
+      emptyMessage={`No ${typeNoun(typeFilter)} in stock yet.`}
+      className="h-full"
+    >
+      <div
+        className={`kx-tokens flex flex-col gap-5 transition-opacity ${
+          refreshing || pending ? "opacity-60" : ""
+        }`}
+      >
+        {error && (
+          <p className="text-[11px] font-medium text-red-400">
+            Wins of this period are unavailable right now: showing every win.
+          </p>
+        )}
+        {analytics.by_type
+          .filter((type) => includesType(typeFilter, type.category))
+          .map((type) => {
+            const meta = TYPE_META[type.category];
+            const Icon = meta.icon;
+            const typeWonInPeriod = wonInPeriod
+              ? wonInPeriod[type.category]
+              : undefined;
+            const parts = stockParts(type, typeWonInPeriod);
+            return (
+              <section key={type.category} className="flex flex-col gap-3">
+                <header className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="kx-stock-chip">
+                      <Icon className="h-4 w-4" strokeWidth={1.75} />
+                    </span>
+                    <b className="text-sm font-semibold text-brand-text">
+                      {meta.plural}
+                    </b>
+                    <span className="text-xs text-brand-text-muted">
+                      · {type.rewards}{" "}
+                      {type.rewards === 1 ? "reward" : "rewards"}
+                    </span>
                   </span>
-                </span>
-                <span className="text-xs text-brand-text-muted">
-                  <span className="font-semibold text-brand-text">
-                    {type.remaining.toLocaleString()}
-                  </span>{" "}
-                  of {type.total_stock.toLocaleString()} left
-                </span>
-              </div>
-              <StockBar counts={type} className="h-3" />
-              <dl className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-brand-text-muted">
-                {STOCK_STATES.map((state) => (
-                  <div key={state.key}>
-                    <dt>{state.label}</dt>
-                    <dd className="text-sm font-semibold text-brand-text">
-                      {type[state.key].toLocaleString()}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              {type.category === "voucher" && type.total_stock > 0 && (
-                <p className="mt-2 flex items-center gap-1.5 text-[11px] text-brand-text-muted">
-                  {type.codes_missing > 0 ? (
-                    <>
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                      {type.codes_missing.toLocaleString()} voucher{" "}
-                      {type.codes_missing === 1 ? "unit has" : "units have"} no
-                      code yet: a winner would receive an empty voucher.
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                      Every voucher unit has its code.
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-          );
-        })}
-    </div>
-  </ChartPanel>
-);
+                  <span className="text-sm text-brand-text-muted">
+                    <b className="font-semibold text-brand-text">
+                      {type.remaining.toLocaleString()}
+                    </b>{" "}
+                    of {type.total_stock.toLocaleString()} left
+                  </span>
+                </header>
+                <StockBar counts={type} wonInPeriod={typeWonInPeriod} />
+                <ul
+                  className="kx-stock-cols"
+                  style={{
+                    gridTemplateColumns: `repeat(${parts.length}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {parts.map((part) => (
+                    <li key={part.key} title={part.hint}>
+                      <span className="flex items-center gap-1.5 text-[11px] text-brand-text-muted">
+                        <i className={`kx-sw ${part.pattern}`} />
+                        <span className="truncate">{part.label}</span>
+                      </span>
+                      <b className="text-lg font-semibold tabular-nums text-brand-text">
+                        {part.value.toLocaleString()}
+                      </b>
+                      <span className="text-xs text-brand-text-muted">
+                        {type.total_stock > 0
+                          ? `${Math.round((part.value / type.total_stock) * 100)}%`
+                          : "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {type.category === "voucher" && type.total_stock > 0 && (
+                  <p
+                    className={`flex items-center gap-2 text-[13px] ${
+                      type.codes_missing > 0
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                    }`}
+                  >
+                    {type.codes_missing > 0 ? (
+                      <>
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        {type.codes_missing.toLocaleString()} voucher{" "}
+                        {type.codes_missing === 1 ? "unit has" : "units have"}{" "}
+                        no code yet: a winner would receive an empty voucher.
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        Every voucher unit has its code.
+                      </>
+                    )}
+                  </p>
+                )}
+              </section>
+            );
+          })}
+      </div>
+    </ChartPanel>
+  );
+};
 
 /** One day of the chart: the stock left by type, and what was used that day. */
 type UsageSeries = {
@@ -510,6 +627,7 @@ const StockTable: React.FC<SectionProps> = ({ analytics, typeFilter }) => {
     <ChartPanel
       title="Stock by reward"
       subtitle="Most urgent first. Time left is the remaining stock at the pace of the last 7 days."
+      actions={<StockLegend />}
       isEmpty={rows.length === 0}
       emptyMessage={
         analytics.rewards.length === 0
@@ -556,7 +674,7 @@ const StockTable: React.FC<SectionProps> = ({ analytics, typeFilter }) => {
                     </div>
                   </td>
                   <td className="py-2.5 px-2">
-                    <StockBar counts={row} />
+                    <StockBar counts={row} slim />
                   </td>
                   <td className="py-2.5 px-2 text-right text-brand-text">
                     <span className="font-semibold">
@@ -643,47 +761,96 @@ export const RewardAnalyticsDashboard: React.FC = () => {
         </div>
       </div>
 
-      <SectionTitle>Stock right now</SectionTitle>
-      <div className="grid grid-cols-4 gap-2 sm:gap-4">
-        <StatCard
-          title="Left in stock"
+      <SectionTitle index="01">Stock right now</SectionTitle>
+      <KpiGrid>
+        <KpiCard
+          label="Left in stock"
+          kind="Inventory"
+          tone="blue"
+          icon={Boxes}
           value={totals.remaining.toLocaleString()}
-          caption={`Of ${totals.total_stock.toLocaleString()} units across ${totals.rewards} ${totals.rewards === 1 ? "reward" : "rewards"}`}
-          icon={<Boxes className="h-4 w-4" />}
+          description={`Of ${totals.total_stock.toLocaleString()} units across ${totals.rewards} ${totals.rewards === 1 ? "reward" : "rewards"}`}
+          meter={{
+            type: "seg",
+            pct: percentOf(totals.remaining, totals.total_stock),
+            left: "Units available",
+            right: roundedShare(totals.remaining, totals.total_stock),
+          }}
         />
-        <StatCard
-          title="Won by players"
+        <KpiCard
+          label="Won by players"
+          kind="Redeemed"
+          tone="amber"
+          icon={Gift}
           value={totals.won.toLocaleString()}
-          caption={
+          description={
             totals.total_stock > 0
               ? `${share(totals.won, totals.total_stock)} of the stock, all time`
               : "No stock yet"
           }
-          icon={<Gift className="h-4 w-4" />}
+          meter={{
+            type: "seg",
+            pct: percentOf(totals.won, totals.total_stock),
+            left: "Share of stock",
+            right: share(totals.won, totals.total_stock),
+          }}
         />
-        <StatCard
-          title="Free to allocate"
+        <KpiCard
+          label="Free to allocate"
+          kind="Available"
+          tone="teal"
+          icon={Inbox}
           value={totals.unallocated.toLocaleString()}
-          caption={`${totals.reserved.toLocaleString()} more reserved in campaigns`}
-          icon={<PackageCheck className="h-4 w-4" />}
+          description={`${totals.reserved.toLocaleString()} more reserved in campaigns`}
+          meter={{
+            type: "seg",
+            pct: percentOf(totals.unallocated, totals.total_stock),
+            left: "Unreserved units",
+            right: roundedShare(totals.unallocated, totals.total_stock),
+          }}
         />
-        <StatCard
-          title="Rewards running low"
+        <KpiCard
+          label="Rewards running low"
+          kind="Alerts"
+          tone="vio"
+          icon={AlertTriangle}
           value={totals.at_risk.toLocaleString()}
-          caption={
+          description={
             totals.at_risk === 0
               ? `None of the ${typeNoun(typeFilter)} is close to running out`
               : `${totals.out_of_stock} out of stock · see the table below`
           }
-          icon={<AlertTriangle className="h-4 w-4" />}
+          meter={
+            totals.rewards === 0
+              ? null
+              : totals.rewards <= MAX_RISK_BLOCKS
+                ? {
+                    type: "blocks",
+                    on: totals.at_risk,
+                    total: totals.rewards,
+                    left: "Rewards at risk",
+                    right: `${totals.at_risk} of ${totals.rewards}`,
+                  }
+                : {
+                    type: "seg",
+                    pct: percentOf(totals.at_risk, totals.rewards),
+                    left: "Rewards at risk",
+                    right: `${totals.at_risk} of ${totals.rewards}`,
+                  }
+          }
         />
-      </div>
+      </KpiGrid>
 
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-5">
-          <StockByTypePanel analytics={analytics} typeFilter={typeFilter} />
+      {/* Stock by type takes 45% of the row, the usage chart the rest; stacked on phones. */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,45fr)_minmax(0,55fr)]">
+        <div className="min-w-0">
+          <StockByTypePanel
+            analytics={analytics}
+            typeFilter={typeFilter}
+            organizationId={organization?.id ?? null}
+          />
         </div>
-        <div className="col-span-12 xl:col-span-7">
+        <div className="min-w-0">
           <StockUsageChart
             organizationId={organization?.id ?? null}
             typeFilter={typeFilter}

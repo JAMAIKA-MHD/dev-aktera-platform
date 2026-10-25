@@ -1,14 +1,14 @@
 import React from "react";
-import { CheckCircle2, Flame, Trophy, Users } from "lucide-react";
+import { CheckCircle2, ClipboardList, Flame, Trophy } from "lucide-react";
 import { useCampaignAnalytics } from "../../hooks/useCampaignAnalytics";
 import { AlgeriaWilayaMap } from "./AlgeriaWilayaMap";
 import {
   OsDonutChart,
   ParticipantsLineChart,
   PrizeDistributionAreaChart,
-  StatCard,
   TimeSegmentationChart,
 } from "./CampaignAnalyticsCharts";
+import { KpiCard, KpiGrid, percentOf, roundedShare } from "./KpiCards";
 
 import {
   formatDuration,
@@ -62,45 +62,76 @@ export const CampaignAnalyticsDashboard: React.FC<
 
   return (
     <div id="campaign-analytics-dashboard" className="space-y-4">
-      {/* Four cards in one row at every width, like the other analytics sections. */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-4">
-        <StatCard
-          title="Total entries"
+      <KpiGrid>
+        <KpiCard
+          label="Total entries"
+          kind="Volume"
+          tone="blue"
+          icon={ClipboardList}
           value={analytics.total_entries.toLocaleString()}
-          caption={
+          description={
             analytics.avg_dwell_time_seconds === null
               ? "Participations recorded · no dwell time yet"
               : `Participations recorded · ${formatDuration(analytics.avg_dwell_time_seconds)} average time spent`
           }
-          icon={<Users className="w-4 h-4" />}
         />
-        <StatCard
-          title="Win rate"
+        <KpiCard
+          label="Win rate"
+          kind="Rewards"
+          tone="amber"
+          icon={Trophy}
           value={formatRate(analytics.win_rate)}
-          caption={`${analytics.total_wins.toLocaleString()} winners of ${analytics.total_entries.toLocaleString()} entries`}
-          icon={<Trophy className="w-4 h-4" />}
+          description={`${analytics.total_wins.toLocaleString()} winners of ${analytics.total_entries.toLocaleString()} entries`}
+          meter={{
+            type: "seg",
+            pct: percentOf(analytics.total_wins, analytics.total_entries),
+            left: "Winners per entry",
+            right: roundedShare(analytics.total_wins, analytics.total_entries),
+          }}
         />
-        <StatCard
-          title="Completion rate"
+        <KpiCard
+          label="Completion rate"
+          kind="Audience"
+          tone="teal"
+          icon={CheckCircle2}
           value={formatRate(analytics.completion_rate)}
-          caption={
+          description={
             analytics.completion_rate === null
               ? "No visitor sessions tracked yet"
               : `${analytics.completed_impressions.toLocaleString()} of ${analytics.total_impressions.toLocaleString()} visitors completed the form`
           }
-          icon={<CheckCircle2 className="w-4 h-4" />}
+          meter={{
+            type: "seg",
+            pct: percentOf(
+              analytics.completed_impressions,
+              analytics.total_impressions,
+            ),
+            left: "Visitors who completed",
+            right: roundedShare(
+              analytics.completed_impressions,
+              analytics.total_impressions,
+            ),
+          }}
         />
-        <StatCard
-          title="Prize burn rate"
+        <KpiCard
+          label="Prize burn rate"
+          kind="Stock"
+          tone="vio"
+          icon={Flame}
           value={formatRate(burn.percentage)}
-          caption={
+          description={
             burn.percentage === null
               ? "No prize stock allocated"
               : `${burn.total_won.toLocaleString()} of ${burn.total_quantity.toLocaleString()} prizes won`
           }
-          icon={<Flame className="w-4 h-4" />}
+          meter={{
+            type: "seg",
+            pct: percentOf(burn.total_won, burn.total_quantity),
+            left: "Prizes won of stock",
+            right: roundedShare(burn.total_won, burn.total_quantity),
+          }}
         />
-      </div>
+      </KpiGrid>
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 xl:col-span-7">
@@ -119,24 +150,24 @@ export const CampaignAnalyticsDashboard: React.FC<
         </div>
       </div>
 
-      {/* Time segmentation and devices: always side by side. */}
+      <TimeSegmentationChart
+        hourly={analytics.hourly_distribution}
+        weekday={analytics.weekday_distribution}
+        timezone={analytics.timezone}
+      />
+
+      {/* Devices and wilayas: half a row each; the wilaya card opens the full map. */}
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-7">
-          <TimeSegmentationChart
-            hourly={analytics.hourly_distribution}
-            weekday={analytics.weekday_distribution}
-            timezone={analytics.timezone}
+        <div className="col-span-12 lg:col-span-6">
+          <OsDonutChart data={analytics.os_distribution} layout="fill" />
+        </div>
+        <div className="col-span-12 lg:col-span-6">
+          <AlgeriaWilayaMap
+            locations={analytics.location_distribution}
+            unknownCount={analytics.location_unknown_count}
           />
         </div>
-        <div className="col-span-12 lg:col-span-5">
-          <OsDonutChart data={analytics.os_distribution} />
-        </div>
       </div>
-
-      <AlgeriaWilayaMap
-        locations={analytics.location_distribution}
-        unknownCount={analytics.location_unknown_count}
-      />
     </div>
   );
 };

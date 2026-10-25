@@ -4,13 +4,22 @@ import {
   PROGRAM_PERIODS,
   type ProgramPeriodKey,
 } from "../../lib/programAnalyticsTransforms";
+import "./kpiCards.css";
 
-export const SectionTitle: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
-  <h2 className="pt-2 text-[10px] font-semibold uppercase tracking-wider text-brand-text-muted">
-    {children}
-  </h2>
+/** Numbered section heading with a dotted rule to the right edge, then `action`. */
+export const SectionTitle: React.FC<{
+  index: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ index, action, children }) => (
+  <div className="kx kx-sec">
+    <span className="kx-sec-ix" aria-hidden>
+      {index}
+    </span>
+    <h2 className="kx-sec-title">{children}</h2>
+    <span className="kx-sec-rule" />
+    {action}
+  </div>
 );
 
 interface SegmentedToggleProps<K extends string> {

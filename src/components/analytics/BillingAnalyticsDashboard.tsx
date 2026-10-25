@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { CreditCard, Megaphone, ReceiptText, TrendingUp } from "lucide-react";
+import { ClipboardList, CreditCard, Megaphone, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Bar,
@@ -32,7 +32,26 @@ import {
   AnalyticsLoading,
   SectionTitle,
 } from "./AnalyticsControls";
-import { ChartPanel, StatCard, useChartTheme } from "./CampaignAnalyticsCharts";
+import { ChartPanel, useChartTheme } from "./CampaignAnalyticsCharts";
+import {
+  DayRuler,
+  KpiCard,
+  KpiGrid,
+  percentOf,
+  roundedShare,
+} from "./KpiCards";
+
+/** "Oct 25" for a day of a YYYY-MM month. */
+const monthDayLabel = (month: string, day: number) => {
+  const date = new Date(`${month}-${String(day).padStart(2, "0")}T00:00:00Z`);
+  return isNaN(date.getTime())
+    ? String(day)
+    : date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      });
+};
 
 const PAYMENT_BADGES: Record<BillingPayment["status"], string> = {
   paid: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-950/70 dark:text-emerald-300",
@@ -346,63 +365,99 @@ export const BillingAnalyticsDashboard: React.FC = () => {
       id="billing-analytics-dashboard"
       className={`mb-4 space-y-4 transition-opacity ${refreshing ? "opacity-60" : ""}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SectionTitle>
-          {formatMonthName(month.month)} · day {month.days_elapsed} of{" "}
-          {month.days_in_month}
-        </SectionTitle>
-        <Link
-          to={PATHS.billing}
-          className="glass-panel rounded-xl px-3 py-1.5 text-xs text-brand-text hover:bg-card-bg-subtle transition-colors"
-        >
-          Manage plan
-        </Link>
-      </div>
+      <SectionTitle
+        index="01"
+        action={
+          <Link to={PATHS.billing} className="kx-btn">
+            Manage plan
+          </Link>
+        }
+      >
+        {formatMonthName(month.month)} · day {month.days_elapsed} of{" "}
+        {month.days_in_month}
+      </SectionTitle>
 
-      <div className="grid grid-cols-4 gap-2 sm:gap-4">
-        <StatCard
-          title="Current plan"
+      <DayRuler
+        today={month.days_elapsed}
+        daysInMonth={month.days_in_month}
+        startLabel={monthDayLabel(month.month, 1)}
+        todayLabel={`Today · ${monthDayLabel(month.month, month.days_elapsed)}`}
+        endLabel={monthDayLabel(month.month, month.days_in_month)}
+      />
+
+      <KpiGrid>
+        <KpiCard
+          label="Current plan"
+          kind="Plan"
+          tone="blue"
+          icon={CreditCard}
           value={allowance.label}
-          caption={
+          description={
             subscription
               ? `Billing period ends ${formatDayLabel(subscription.period_end)} · ${subscription.days_left} ${subscription.days_left === 1 ? "day" : "days"} left`
               : "No billing period running"
           }
-          icon={<CreditCard className="h-4 w-4" />}
         />
-        <StatCard
-          title="Entries this month"
-          value={`${month.entries.toLocaleString()} / ${limit.toLocaleString()}`}
-          caption={`${used}% used · ${Math.max(0, limit - month.entries).toLocaleString()} left · ${month.entries_last_month.toLocaleString()} last month`}
-          icon={<ReceiptText className="h-4 w-4" />}
+        <KpiCard
+          label="Entries this month"
+          kind="Usage"
+          tone="teal"
+          icon={ClipboardList}
+          value={month.entries.toLocaleString()}
+          suffix={`/ ${limit.toLocaleString()}`}
+          description={`${used}% used · ${Math.max(0, limit - month.entries).toLocaleString()} left · ${month.entries_last_month.toLocaleString()} last month`}
+          meter={{
+            type: "seg",
+            pct: percentOf(month.entries, limit),
+            left: "Monthly allowance",
+            right: roundedShare(month.entries, limit),
+          }}
         />
-        <StatCard
-          title="Projected by month end"
+        <KpiCard
+          label="Projected by month end"
+          kind="Forecast"
+          tone="vio"
+          icon={TrendingUp}
           value={month.projected_entries.toLocaleString()}
-          caption={
+          description={
             overshoot > 0
               ? `${overshoot.toLocaleString()} over the allowance at the current pace`
               : `${usagePercent(month.projected_entries, limit)}% of the allowance at the current pace`
           }
-          icon={<TrendingUp className="h-4 w-4" />}
+          meter={{
+            type: "seg",
+            pct: percentOf(month.projected_entries, limit),
+            left: "Projected vs allowance",
+            right: roundedShare(month.projected_entries, limit),
+          }}
         />
-        <StatCard
-          title="Active campaigns"
-          value={
-            campaignLimit === null
-              ? month.active_campaigns.toLocaleString()
-              : `${month.active_campaigns} / ${campaignLimit}`
-          }
-          caption={
+        <KpiCard
+          label="Active campaigns"
+          kind="Capacity"
+          tone="amber"
+          icon={Megaphone}
+          value={month.active_campaigns.toLocaleString()}
+          suffix={campaignLimit === null ? undefined : `/ ${campaignLimit}`}
+          description={
             campaignLimit === null
               ? "No limit on this plan"
               : month.active_campaigns > campaignLimit
                 ? `${month.active_campaigns - campaignLimit} over the plan's limit`
                 : `${campaignLimit - month.active_campaigns} more can run at once`
           }
-          icon={<Megaphone className="h-4 w-4" />}
+          meter={
+            campaignLimit === null || campaignLimit <= 0
+              ? null
+              : {
+                  type: "blocks",
+                  on: month.active_campaigns,
+                  total: campaignLimit,
+                  left: "Slots in use",
+                  right: `${month.active_campaigns} of ${campaignLimit}`,
+                }
+          }
         />
-      </div>
+      </KpiGrid>
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 xl:col-span-8">
@@ -413,7 +468,7 @@ export const BillingAnalyticsDashboard: React.FC = () => {
         </div>
       </div>
 
-      <SectionTitle>Over time</SectionTitle>
+      <SectionTitle index="02">Over time</SectionTitle>
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 xl:col-span-7">
           <MonthlyUsageChart analytics={analytics} allowance={allowance} />

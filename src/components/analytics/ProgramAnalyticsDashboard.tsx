@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Gift, ReceiptText, Repeat, Users } from "lucide-react";
+import { ClipboardList, Gift, Repeat, Users } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useProgramAnalytics } from "../../hooks/useProgramAnalytics";
 import { formatRate } from "../../lib/campaignAnalyticsTransforms";
@@ -10,28 +10,52 @@ import {
 import { ProgramAnalytics, ProgramCampaignStatusCounts } from "../../types";
 import { gameMeta } from "../campaigns/campaignMeta";
 import { AlgeriaWilayaMap } from "./AlgeriaWilayaMap";
+import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { SectionTitle } from "./AnalyticsControls";
 import {
   ChartPanel,
   OsDonutChart,
-  StatCard,
   TimeSegmentationChart,
-  useChartTheme,
 } from "./CampaignAnalyticsCharts";
-
-const shorten = (name: string, max: number) =>
-  name.length > max ? `${name.slice(0, max - 1)}…` : name;
+import { KpiCard, KpiGrid, percentOf, roundedShare } from "./KpiCards";
 
 const STATUS_TILES: {
   key: Exclude<keyof ProgramCampaignStatusCounts, "total">;
   label: string;
   dot: string;
+  /** Tile background and figure colour, so each state reads at a glance. */
+  tint: string;
 }[] = [
-  { key: "active", label: "Active", dot: "bg-emerald-500" },
-  { key: "paused", label: "Paused", dot: "bg-amber-500" },
-  { key: "draft", label: "Draft", dot: "bg-blue-500" },
-  { key: "ended", label: "Ended", dot: "bg-violet-500" },
-  { key: "archived", label: "Archived", dot: "bg-slate-400" },
+  {
+    key: "active",
+    label: "Active",
+    dot: "bg-emerald-500",
+    tint: "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300",
+  },
+  {
+    key: "paused",
+    label: "Paused",
+    dot: "bg-amber-500",
+    tint: "bg-amber-500/12 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300",
+  },
+  {
+    key: "draft",
+    label: "Draft",
+    dot: "bg-blue-500",
+    tint: "bg-blue-500/12 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
+  },
+  {
+    key: "ended",
+    label: "Ended",
+    dot: "bg-violet-500",
+    tint: "bg-violet-500/12 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300",
+  },
+  {
+    key: "archived",
+    label: "Archived",
+    dot: "bg-slate-400",
+    tint: "bg-slate-500/12 text-slate-600 dark:bg-slate-400/15 dark:text-slate-300",
+  },
 ];
 
 const headCell =
@@ -57,20 +81,24 @@ const CampaignStatusPanel: React.FC<SectionProps> = ({ analytics }) => {
           {counts.total.toLocaleString()} in total · as of now
         </span>
       </div>
+      {/* One strip, no gaps or dividers: each state is told apart by its colour. */}
       <dl
-        className="mt-3 grid gap-3"
+        className="mt-3 grid overflow-hidden rounded-xl"
         style={{
           gridTemplateColumns: `repeat(${tiles.length}, minmax(0, 1fr))`,
         }}
       >
         {tiles.map((tile) => (
-          <div key={tile.key}>
-            <dd className="text-2xl font-bold text-brand-text">
+          <div
+            key={tile.key}
+            className={`min-w-0 px-3 py-2.5 ${tile.tint} ${counts[tile.key] === 0 ? "opacity-60" : ""}`}
+          >
+            <dd className="text-2xl font-bold">
               {counts[tile.key].toLocaleString()}
             </dd>
-            <dt className="mt-0.5 flex items-center gap-1.5 text-[11px] text-brand-text-muted">
-              <span className={`h-2 w-2 rounded-full ${tile.dot}`} />
-              {tile.label}
+            <dt className="mt-0.5 flex items-center gap-1.5 text-[11px] font-medium">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${tile.dot}`} />
+              <span className="truncate">{tile.label}</span>
             </dt>
           </div>
         ))}
@@ -79,91 +107,8 @@ const CampaignStatusPanel: React.FC<SectionProps> = ({ analytics }) => {
   );
 };
 
-const Leaderboard: React.FC<
-  SectionProps & { onSelectCampaign: (campaignId: string) => void }
-> = ({ analytics, onSelectCampaign }) => {
-  const chart = useChartTheme();
-  const rows = analytics.leaderboard;
-  const maxEntries = rows[0]?.entries ?? 0;
-
-  return (
-    <ChartPanel
-      title="Campaign leaderboard"
-      subtitle="Entries, completion rate and rewards won per campaign. Select a campaign to open it."
-      isEmpty={rows.length === 0}
-      emptyMessage="No campaigns yet."
-      className="h-full"
-    >
-      <div className="max-h-96 overflow-auto">
-        <table className="w-full border-collapse text-left text-xs">
-          <thead>
-            <tr className="border-b border-brand-border/50">
-              <th className={`${headCell} w-8`}>#</th>
-              <th className={headCell}>Campaign</th>
-              <th className={`${headCell} w-2/5`}>Entries</th>
-              <th className={`${headCell} text-right`}>Completion</th>
-              <th className={`${headCell} text-right`}>Rewards</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-brand-border/30">
-            {rows.map((row, index) => (
-              <tr
-                key={row.campaign_id}
-                className="cursor-pointer transition-colors hover:bg-card-bg-subtle"
-                onClick={() => onSelectCampaign(row.campaign_id)}
-              >
-                <td className="py-2.5 px-2 text-brand-text-muted">
-                  {index + 1}
-                </td>
-                <td className="py-2.5 px-2">
-                  <div
-                    className="font-semibold text-brand-text"
-                    title={row.campaign_name}
-                    dir="auto"
-                  >
-                    {shorten(row.campaign_name, 40)}
-                  </div>
-                  <div className="text-[10px] capitalize text-brand-text-muted">
-                    {gameMeta(row.game_type).label} · {row.status}
-                  </div>
-                </td>
-                <td className="py-2.5 px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-card-bg-subtle">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${maxEntries > 0 ? (row.entries / maxEntries) * 100 : 0}%`,
-                          backgroundColor: chart.series[0],
-                        }}
-                      />
-                    </div>
-                    <span className="w-12 text-right font-semibold text-brand-text">
-                      {row.entries.toLocaleString()}
-                    </span>
-                  </div>
-                </td>
-                <td
-                  className="py-2.5 px-2 text-right text-brand-text"
-                  title={
-                    row.completion_rate === null
-                      ? "No visitor sessions tracked in this period"
-                      : `${row.completed_impressions.toLocaleString()} of ${row.impressions.toLocaleString()} visitors completed the form`
-                  }
-                >
-                  {formatRate(row.completion_rate)}
-                </td>
-                <td className="py-2.5 px-2 text-right text-brand-text">
-                  {row.rewards.toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </ChartPanel>
-  );
-};
+// Mechanics shown before the table scrolls; the hint below it appears past this.
+const MECHANICS_VISIBLE = 4;
 
 const MechanicsPanel: React.FC<SectionProps> = ({ analytics }) => (
   <ChartPanel
@@ -173,53 +118,61 @@ const MechanicsPanel: React.FC<SectionProps> = ({ analytics }) => (
     emptyMessage="No campaigns yet."
     className="h-full"
   >
-    <table className="w-full border-collapse text-left text-xs">
-      <thead>
-        <tr className="border-b border-brand-border/50">
-          <th className={headCell}>Mechanic</th>
-          <th className={`${headCell} text-right`}>Entries</th>
-          <th className={`${headCell} text-right`}>Completion</th>
-          <th className={`${headCell} text-right`}>Rewards</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-brand-border/30">
-        {analytics.mechanics.map((row) => {
-          const game = gameMeta(row.game_type);
-          const Icon = game.icon;
-          return (
-            <tr key={row.game_type}>
-              <td className="py-2.5 px-2">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg ${game.tile}`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                  </span>
-                  <div>
-                    <div className="font-semibold text-brand-text">
-                      {game.label}
-                    </div>
-                    <div className="text-[10px] text-brand-text-muted">
-                      {row.campaigns}{" "}
-                      {row.campaigns === 1 ? "campaign" : "campaigns"}
+    {/* About four mechanics show at once; the rest scroll under the pinned header. */}
+    <div className="max-h-[200px] min-h-0 flex-1 overflow-y-auto">
+      <table className="w-full border-collapse text-left text-xs">
+        <thead className="sticky top-0 z-10 bg-brand-surface">
+          <tr className="border-b border-brand-border/50">
+            <th className={headCell}>Mechanic</th>
+            <th className={`${headCell} text-right`}>Entries</th>
+            <th className={`${headCell} text-right`}>Completion</th>
+            <th className={`${headCell} text-right`}>Rewards</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-brand-border/30">
+          {analytics.mechanics.map((row) => {
+            const game = gameMeta(row.game_type);
+            const Icon = game.icon;
+            return (
+              <tr key={row.game_type}>
+                <td className="py-1.5 px-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-lg ${game.tile}`}
+                    >
+                      <Icon className="h-3 w-3" />
+                    </span>
+                    <div>
+                      <div className="font-semibold text-brand-text">
+                        {game.label}
+                      </div>
+                      <div className="text-[10px] text-brand-text-muted">
+                        {row.campaigns}{" "}
+                        {row.campaigns === 1 ? "campaign" : "campaigns"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </td>
-              <td className="py-2.5 px-2 text-right font-semibold text-brand-text">
-                {row.entries.toLocaleString()}
-              </td>
-              <td className="py-2.5 px-2 text-right text-brand-text">
-                {formatRate(row.completion_rate)}
-              </td>
-              <td className="py-2.5 px-2 text-right text-brand-text">
-                {row.rewards.toLocaleString()}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                </td>
+                <td className="py-1.5 px-2 text-right font-semibold text-brand-text">
+                  {row.entries.toLocaleString()}
+                </td>
+                <td className="py-1.5 px-2 text-right text-brand-text">
+                  {formatRate(row.completion_rate)}
+                </td>
+                <td className="py-1.5 px-2 text-right text-brand-text">
+                  {row.rewards.toLocaleString()}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    {analytics.mechanics.length > MECHANICS_VISIBLE && (
+      <p className="mt-2 text-[10px] text-brand-text-muted">
+        {analytics.mechanics.length} mechanics · scroll to see them all
+      </p>
+    )}
   </ChartPanel>
 );
 
@@ -260,69 +213,119 @@ export const ProgramAnalyticsDashboard: React.FC<
   }
 
   const { totals, audience } = analytics;
+  const topMechanic = analytics.mechanics.reduce<
+    ProgramAnalytics["mechanics"][number] | null
+  >((top, row) => (top && top.entries >= row.entries ? top : row), null);
 
   return (
     <div
       id="program-analytics-dashboard"
       className={`mb-4 space-y-4 transition-opacity ${refreshing ? "opacity-60" : ""}`}
     >
-      <SectionTitle>Program totals</SectionTitle>
+      <SectionTitle index="01">Program totals</SectionTitle>
 
-      <div className="grid grid-cols-4 gap-2 sm:gap-4">
-        <StatCard
-          title="Total entries"
+      <KpiGrid>
+        <KpiCard
+          label="Total entries"
+          kind="Volume"
+          tone="blue"
+          icon={ClipboardList}
           value={totals.entries.toLocaleString()}
-          caption="Participations across all campaigns"
-          icon={<ReceiptText className="h-4 w-4" />}
+          description="Participations across all campaigns"
+          meter={
+            topMechanic
+              ? {
+                  type: "seg",
+                  pct: percentOf(topMechanic.entries, totals.entries),
+                  left: `Top mechanic · ${gameMeta(topMechanic.game_type).label}`,
+                  right: roundedShare(topMechanic.entries, totals.entries),
+                }
+              : null
+          }
         />
-        <StatCard
-          title="Prizes distributed"
+        <KpiCard
+          label="Prizes distributed"
+          kind="Rewards"
+          tone="amber"
+          icon={Gift}
           value={totals.prizes_distributed.toLocaleString()}
-          caption="Winning entries across all campaigns"
-          icon={<Gift className="h-4 w-4" />}
+          description="Winning entries across all campaigns"
+          meter={{
+            type: "seg",
+            pct: percentOf(totals.prizes_distributed, totals.entries),
+            left: "Win rate",
+            right: roundedShare(totals.prizes_distributed, totals.entries),
+          }}
         />
-        <StatCard
-          title="Unique audience"
+        <KpiCard
+          label="Unique audience"
+          kind="Audience"
+          tone="teal"
+          icon={Users}
           value={audience.unique_audience.toLocaleString()}
-          caption="Distinct participants, by phone number"
-          icon={<Users className="h-4 w-4" />}
+          description="Distinct participants, by phone number"
+          meter={{
+            type: "seg",
+            pct: percentOf(audience.unique_audience, totals.entries),
+            left: "Unique per entry",
+            right: roundedShare(audience.unique_audience, totals.entries),
+          }}
         />
-        <StatCard
-          title="Repeat participation"
+        <KpiCard
+          label="Repeat participation"
+          kind="Retention"
+          tone="vio"
+          icon={Repeat}
           value={formatRate(audience.repeat_participation_rate)}
-          caption={
+          description={
             audience.repeat_participation_rate === null
               ? "No identified participants yet"
               : `${audience.repeat_participants.toLocaleString()} played 2 or more campaigns`
           }
-          icon={<Repeat className="h-4 w-4" />}
+          meter={{
+            type: "seg",
+            pct: audience.repeat_participation_rate ?? 0,
+            left: "Returning players",
+            right:
+              audience.repeat_participation_rate === null
+                ? "—"
+                : `${Math.round(audience.repeat_participation_rate)}%`,
+          }}
         />
-      </div>
+      </KpiGrid>
 
       <CampaignStatusPanel analytics={analytics} />
 
-      <SectionTitle>Comparison</SectionTitle>
-      <Leaderboard analytics={analytics} onSelectCampaign={onSelectCampaign} />
+      <SectionTitle index="02">Comparison</SectionTitle>
+      <CampaignLeaderboard
+        rows={analytics.leaderboard}
+        onSelectCampaign={onSelectCampaign}
+      />
 
-      <SectionTitle>Segmentation</SectionTitle>
-      <MechanicsPanel analytics={analytics} />
-      {/* Time segmentation and devices: always side by side. */}
+      <SectionTitle index="03">Segmentation</SectionTitle>
+      <TimeSegmentationChart
+        hourly={analytics.hourly_distribution}
+        weekday={analytics.weekday_distribution}
+        timezone={analytics.timezone}
+      />
+      {/* Left half: devices and mechanics share its height equally; wilayas on the
+          right half. The wilaya card opens the full map. */}
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-7">
-          <TimeSegmentationChart
-            hourly={analytics.hourly_distribution}
-            weekday={analytics.weekday_distribution}
-            timezone={analytics.timezone}
+        <div className="col-span-12 grid grid-rows-2 gap-4 lg:col-span-6">
+          <div className="min-h-0">
+            <OsDonutChart data={analytics.os_distribution} />
+          </div>
+          <div className="min-h-0">
+            <MechanicsPanel analytics={analytics} />
+          </div>
+        </div>
+        <div className="col-span-12 lg:col-span-6">
+          <AlgeriaWilayaMap
+            locations={analytics.location_distribution}
+            unknownCount={analytics.location_unknown_count}
           />
         </div>
-        <div className="col-span-12 lg:col-span-5">
-          <OsDonutChart data={analytics.os_distribution} />
-        </div>
       </div>
-      <AlgeriaWilayaMap
-        locations={analytics.location_distribution}
-        unknownCount={analytics.location_unknown_count}
-      />
     </div>
   );
 };
