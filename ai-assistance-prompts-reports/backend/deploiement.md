@@ -345,6 +345,36 @@ Invoke-RestMethod "$u/rest/v1/campaigns?select=id,win_probability" -Headers $h  
 
 ---
 
+## 11. Reward Library : expiration des codes et statut de livraison
+
+À faire **après** les étapes 1 à 10 (ou sur une base qui les a déjà), pour les migrations `supabase/migrations/20261012090000_reward_expiry_and_delivery.sql` `20261013090000_reward_partners.sql` (nouvelle table `reward_partners`, les partenaires que la marque enregistre : RLS par organisation, rien pour `anon`) et `20261014090000_reward_template_expiry.sql` (colonne `prize_templates.expires_at` : la date d'expiration choisie à la création d'un lot numérique ; `is_code_assignable` l'applique aux codes qui n'ont pas de date propre) et `20261015090000_reward_expiry_after_delivery.sql` (colonne `prize_templates.expiry_days` : une durée de validité qui démarre à la livraison du code ; colonne `coupon_redemptions.expires_at` : l'échéance figée au moment où le code est donné ; fonction `coupon_expiry_for_entry`, réservée à `service_role`). L'Edge Function `select-prize` renvoie désormais `coupon.expires_at` : la redéployer après la migration. Elle est **additive** (nouvelles colonnes avec valeurs par défaut sûres, nouvelles fonctions, deux fonctions existantes remplacées à l'identique avec une condition en plus) : l'ancien front et l'ancienne `select-prize` continuent de fonctionner avec la nouvelle base, donc l'ordre n'est pas critique ; l'ordre conseillé reste le suivant.
+
+1. **Migration** : `npx supabase db push` (ou le SQL Editor). Elle ajoute `prize_template_items.expires_at`, `entries.delivery_status` / `delivered_at`, `is_code_assignable`, `prize_has_assignable_reward`, `set_entry_delivery_status`, un trigger de garde sur `entries`, et remplace `claim_campaign_prize_coupon` et `draw_and_claim_campaign_prize` (qui reste `SECURITY INVOKER`).
+2. **Edge Function** : redéployer `select-prize` (elle marque `metadata.reward_unavailable` si un gain à codes n'a pas reçu de code).
+3. **Front** : `demo`, puis `stable` (étapes 5 et 6).
+
+**Vérification des droits (SQL Editor)**, résultat attendu : `anon` à `false` partout ; `authenticated` à `true` sauf pour `claim_campaign_prize_coupon` :
+
+```sql
+select p.proname,
+       has_function_privilege('anon', p.oid, 'execute')          as anon,
+       has_function_privilege('authenticated', p.oid, 'execute') as authenticated,
+       has_function_privilege('service_role', p.oid, 'execute')  as service_role
+from pg_proc p
+where p.pronamespace = 'public'::regnamespace
+  and p.proname in ('is_code_assignable', 'prize_has_assignable_reward',
+                    'set_entry_delivery_status', 'draw_and_claim_campaign_prize',
+                    'claim_campaign_prize_coupon');
+```
+
+Pour la table `reward_partners` : `select grantee, string_agg(privilege_type, ',') from information_schema.role_table_grants where table_name = 'reward_partners' and grantee in ('anon', 'authenticated') group by 1;` doit donner **uniquement** `authenticated` avec `DELETE,INSERT,SELECT,UPDATE` (pas de `TRUNCATE`, rien pour `anon`).
+
+Les scripts `npm run backend:rewards` et `npm run backend:smoke` **refusent** de tourner hors de la pile locale : ne pas les lancer contre le cloud. Recette en ligne, à la main, sur `demo` : un lot numérique avec un code expiré et un valide (seul le valide est donné), un lot physique (le statut passe à `Delivered` et reste après rechargement, un compte `viewer` est en lecture seule), l'onglet « Partner Library » (« Coming soon »).
+
+**Retour arrière** : les colonnes peuvent rester. Pour revenir au tirage précédent, rejouer la définition de `draw_and_claim_campaign_prize` de `supabase/migrations/20260831145100_add_game_type_and_logic_config.sql` suivie de `ALTER FUNCTION public.draw_and_claim_campaign_prize(uuid, boolean) SECURITY INVOKER;` ; pour `claim_campaign_prize_coupon`, celle de `20260929150000_claim_coupon_without_duplicates.sql` (son repli lit une colonne inexistante et lève une erreur quand il n'y a plus de code : c'est pourquoi la nouvelle version l'a retiré).
+
+---
+
 ## Après la mise en ligne
 
 - Dis-moi le résultat de chaque étape. Je note la recette en ligne dans la documentation de la phase B6.

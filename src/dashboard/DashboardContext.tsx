@@ -118,7 +118,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       if (!orgId) throw new Error(ORG_NOT_LOADED);
       setActionError(null);
       await addPrizeTemplateService(newPrize, orgId);
-      refetchPrizes();
+      await refetchPrizes();
     };
 
     const updatePrize = async (id: string, updates: NewPrizeTemplate) => {
@@ -132,7 +132,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         );
       }
       await updatePrizeTemplateService(id, updates);
-      refetchPrizes();
+      await refetchPrizes();
     };
 
     const deletePrize = async (id: string) => {

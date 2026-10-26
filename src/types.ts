@@ -73,6 +73,13 @@ export interface PrizeTemplate {
   campaignUsageCount?: number; // Number of campaign prize rows using this template
   quantityWonCount?: number; // Number of winning units historically consumed from this template
   image?: string;
+  /**
+   * Digital rewards: when its codes expire (a code may carry a date of its own). Physical
+   * rewards: an optional date, only informative (the draw never reads it).
+   */
+  expiresAt?: string | null;
+  /** Digital rewards: a validity period in days that starts when a code is given to the winner. */
+  expiryDays?: number | null;
   createdAt?: string;
 }
 
@@ -87,6 +94,45 @@ export interface PrizeTemplateItem {
   isRedeemed: boolean; // True if given to a player
   assignedEntryId?: string; // Linked player entry on win
   redeemedAt?: string;
+}
+
+/**
+ * Delivery of a physical reward. The brand hands the reward over itself; AKTERA only records
+ * whether it did (entries.delivery_status).
+ */
+export type DeliveryStatus = "not_delivered" | "delivered";
+
+/** A winner of a physical reward, as listed in the Reward Library's delivery panel. */
+export interface PhysicalWinner {
+  entryId: string;
+  phoneNumber: string | null;
+  participantName: string | null;
+  prizeName: string;
+  wonAt: string;
+  deliveryStatus: DeliveryStatus;
+  deliveredAt: string | null;
+}
+
+/** A partner the brand registered in the Reward Library (nothing is connected to it yet). */
+export interface RewardPartner {
+  id: string;
+  name: string;
+  description: string | null;
+  websiteUrl: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  createdAt: string;
+}
+
+/** What the "Add a partner" form collects. */
+export interface RewardPartnerInput {
+  name: string;
+  description: string;
+  websiteUrl: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
 }
 
 /**

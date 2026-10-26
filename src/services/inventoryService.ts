@@ -1,3 +1,4 @@
+import { parseImportedDay } from "../lib/codeExpiry";
 import { supabase } from "../lib/supabase";
 
 export interface TemplateItemRow {
@@ -6,10 +7,13 @@ export interface TemplateItemRow {
   item_index: number;
   item_value: string | null;
   source_type: "manual" | "bulk";
+  expires_at?: string | null;
   is_used?: boolean;
   is_redeemed?: boolean;
   redeemed_at?: string | null;
   redeemed_by_player?: boolean;
+  /** The deadline fixed when the code was given (reward valid for a period after delivery). */
+  redemption_expires_at?: string | null;
 }
 
 export type ImportMode = "append" | "replace";
@@ -25,12 +29,23 @@ export interface RawParsedCode {
   lineNumber: number;
   code: string;
   explicitIndex?: number;
+  /**
+   * The Expires column of the file: the end of that day (ISO), or null for an empty cell.
+   * Undefined when the file has no Expires column.
+   */
+  expiresAt?: string | null;
+  /** What was written in the Expires cell when it is not a date. */
+  expiresInvalid?: string;
 }
 
 export interface ImportValidationResult {
   success: boolean;
   mode: ImportMode;
-  itemsToSave: { id: string; item_value: string | null }[];
+  itemsToSave: {
+    id: string;
+    item_value: string | null;
+    expires_at?: string | null;
+  }[];
   totalParsedCodes: number;
   importedCount: number;
   emptySlotsAvailable: number;
@@ -68,7 +83,9 @@ export async function fetchTemplateItemsService(
   while (hasMore) {
     const { data: pageData, error: pageError } = await supabase
       .from("prize_template_items")
-      .select("id, prize_template_id, item_index, item_value, source_type")
+      .select(
+        "id, prize_template_id, item_index, item_value, source_type, expires_at",
+      )
       .eq("prize_template_id", prizeTemplateId)
       .order("item_index", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
@@ -95,7 +112,11 @@ export async function fetchTemplateItemsService(
     const itemIds = allRows.map((r) => r.id);
     const redemptionMap = new Map<
       string,
-      { redeemed_at: string | null; redeemed_by_player: boolean }
+      {
+        redeemed_at: string | null;
+        redeemed_by_player: boolean;
+        expires_at: string | null;
+      }
     >();
 
     const CHUNK_SIZE = 100;
@@ -103,7 +124,9 @@ export async function fetchTemplateItemsService(
       const chunk = itemIds.slice(i, i + CHUNK_SIZE);
       const { data: redemptionsData, error: redemptionsError } = await supabase
         .from("coupon_redemptions")
-        .select("prize_template_item_id, redeemed_at, redeemed_by_player")
+        .select(
+          "prize_template_item_id, redeemed_at, redeemed_by_player, expires_at",
+        )
         .in("prize_template_item_id", chunk);
 
       if (!redemptionsError && redemptionsData) {
@@ -111,6 +134,7 @@ export async function fetchTemplateItemsService(
           redemptionMap.set(r.prize_template_item_id, {
             redeemed_at: r.redeemed_at ?? null,
             redeemed_by_player: Boolean(r.redeemed_by_player),
+            expires_at: r.expires_at ?? null,
           });
         }
       }
@@ -157,6 +181,7 @@ export async function fetchTemplateItemsService(
         row.is_used = true;
         row.redeemed_at = redemption?.redeemed_at || entryRedeemedAt || null;
         row.redeemed_by_player = redemption?.redeemed_by_player ?? true;
+        row.redemption_expires_at = redemption?.expires_at ?? null;
       } else {
         row.is_redeemed = false;
         row.is_used = false;
@@ -211,8 +236,47 @@ export async function updateSingleTemplateItemService(
   if (error) throw error;
 }
 
+/** Sets (or clears, with null) the expiry of one code. */
+export async function updateItemExpiryService(
+  id: string,
+  expiresAt: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("prize_template_items")
+    .update({ expires_at: expiresAt })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+/**
+ * Sets the same expiry on every code of a reward that has a value. By default a date already
+ * set is kept; returns how many codes were updated.
+ */
+export async function setExpiryForTemplateItemsService(
+  prizeTemplateId: string,
+  expiresAt: string | null,
+  options: { onlyWithoutDate?: boolean } = {},
+): Promise<number> {
+  const { onlyWithoutDate = true } = options;
+  let query = supabase
+    .from("prize_template_items")
+    .update({ expires_at: expiresAt })
+    .eq("prize_template_id", prizeTemplateId)
+    .not("item_value", "is", null);
+  if (onlyWithoutDate) query = query.is("expires_at", null);
+
+  const { data, error } = await query.select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
+}
+
 export async function bulkUpdateTemplateItemsService(
-  items: { id: string; item_value: string | null }[],
+  items: {
+    id: string;
+    item_value: string | null;
+    expires_at?: string | null;
+  }[],
 ): Promise<void> {
   if (items.length === 0) return;
 
@@ -225,6 +289,10 @@ export async function bulkUpdateTemplateItemsService(
         .update({
           item_value: item.item_value,
           source_type: "bulk",
+          // Only when the file had an Expires column: otherwise the dates stay as they are.
+          ...(item.expires_at !== undefined
+            ? { expires_at: item.expires_at }
+            : {}),
         })
         .eq("id", item.id),
     );
@@ -268,6 +336,8 @@ export function parseRawCodes(input: {
           .includes("itemindex") || k.toLowerCase().includes("index"),
     );
 
+    const expKey = keys.find((k) => k.toLowerCase().includes("expir"));
+
     input.rawRows.forEach((row, index) => {
       const code = String(row[valKey ?? ""] ?? "").trim();
       if (code.length === 0) return;
@@ -280,11 +350,17 @@ export function parseRawCodes(input: {
         }
       }
 
-      parsed.push({
+      const entry: RawParsedCode = {
         lineNumber: index + 1,
         code,
         explicitIndex,
-      });
+      };
+      if (expKey) {
+        const day = parseImportedDay(row[expKey]);
+        if (day.ok) entry.expiresAt = day.iso;
+        else entry.expiresInvalid = String(row[expKey]).trim();
+      }
+      parsed.push(entry);
     });
   } else if (input.rawLines && input.rawLines.length > 0) {
     input.rawLines.forEach((line, index) => {
@@ -324,9 +400,26 @@ export function validateAndPrepareImportService(options: {
       importedCount: 0,
       emptySlotsAvailable: 0,
       overflow: false,
-      errorMessage: "No valid voucher codes found in the provided input.",
+      errorMessage: "No valid codes found in the provided input.",
       conflicts: [],
       rawParsedCodes: [],
+    };
+  }
+
+  // An Expires cell that is not a date: nothing is imported, and the line is named.
+  const badDate = rawParsedCodes.find((parsed) => parsed.expiresInvalid);
+  if (badDate) {
+    return {
+      success: false,
+      mode,
+      itemsToSave: [],
+      totalParsedCodes: rawParsedCodes.length,
+      importedCount: 0,
+      emptySlotsAvailable: 0,
+      overflow: false,
+      errorMessage: `Import rejected: line ${badDate.lineNumber} has an Expires value that is not a date ("${badDate.expiresInvalid}"). Write it 2026-12-31 or 31/12/2026, or leave it empty.`,
+      conflicts: [],
+      rawParsedCodes,
     };
   }
 
@@ -424,17 +517,20 @@ export function validateAndPrepareImportService(options: {
   }
 
   // 3. CONSTRUCT TARGET SLOTS MAPPING (itemsToSave)
-  const itemsToSave: { id: string; item_value: string | null }[] = [];
+  const itemsToSave: ImportValidationResult["itemsToSave"] = [];
+  // A file with an Expires column sets the date of each code it writes (empty clears it).
+  const entryFor = (id: string, parsed: RawParsedCode) => ({
+    id,
+    item_value: parsed.code,
+    ...(parsed.expiresAt !== undefined ? { expires_at: parsed.expiresAt } : {}),
+  });
 
   if (mode === "append") {
     // Sequentially assign parsed codes into the empty slots
     for (let i = 0; i < rawParsedCodes.length; i++) {
       const targetSlot = emptySlots[i];
       if (targetSlot) {
-        itemsToSave.push({
-          id: targetSlot.id,
-          item_value: rawParsedCodes[i].code,
-        });
+        itemsToSave.push(entryFor(targetSlot.id, rawParsedCodes[i]));
       }
     }
   } else {
@@ -442,10 +538,7 @@ export function validateAndPrepareImportService(options: {
     for (let i = 0; i < rawParsedCodes.length; i++) {
       const targetSlot = currentItems[i];
       if (targetSlot) {
-        itemsToSave.push({
-          id: targetSlot.id,
-          item_value: rawParsedCodes[i].code,
-        });
+        itemsToSave.push(entryFor(targetSlot.id, rawParsedCodes[i]));
       }
     }
   }

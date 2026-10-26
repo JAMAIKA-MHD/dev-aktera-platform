@@ -131,7 +131,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
 
           couponCode =
             items?.[0]?.item_value ??
-            `TEST-VOUCHER-${Math.floor(1000 + Math.random() * 9000)}`;
+            `TEST-CODE-${Math.floor(1000 + Math.random() * 9000)}`;
         }
       }
 
@@ -430,7 +430,7 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
                     </div>
                     {playResult.coupon_code && (
                       <p className="font-mono text-[11px] mt-1">
-                        Voucher Code: <strong>{playResult.coupon_code}</strong>
+                        Code: <strong>{playResult.coupon_code}</strong>
                       </p>
                     )}
                     <p className="text-slate-400 text-[11px]">

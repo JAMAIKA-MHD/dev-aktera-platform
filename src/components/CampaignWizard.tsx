@@ -756,7 +756,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                               isDark ? "text-white" : "text-slate-900"
                             }`}
                           >
-                            Auto-Paced Daily Voucher Distribution
+                            Auto-Paced Daily Reward Distribution
                           </span>
                           {autoPacePrizes && (
                             <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
@@ -765,7 +765,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                           )}
                         </div>
                         <p className="text-xs text-brand-textMuted mt-1 leading-relaxed max-w-xl">
-                          Evenly distribute your allocated vouchers across the
+                          Evenly distribute your allocated rewards across the
                           campaign duration ({calculatedDays} days). When
                           enabled, the server dynamically controls daily winning
                           limits, and manual win percentage is locked.
@@ -790,11 +790,11 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                         <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
                         <span>
                           Estimated Daily Budget: ~{dailyVouchersEst}{" "}
-                          vouchers/day
+                          rewards/day
                         </span>
                       </div>
                       <span className="text-brand-textMuted font-mono text-[11px]">
-                        Total: {totalAllocatedQty} vouchers ÷ {calculatedDays}{" "}
+                        Total: {totalAllocatedQty} rewards ÷ {calculatedDays}{" "}
                         days
                       </span>
                     </div>
@@ -987,7 +987,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
               {type === "scratch_card" && (
                 <p className="text-xs text-brand-textMuted leading-relaxed">
                   Players scratch the digital coating to reveal prize outcomes.
-                  Winning outcomes and voucher codes are securely determined
+                  Winning outcomes and reward codes are securely determined
                   server-side using your configured win probability and prize
                   weights.
                 </p>
@@ -1709,7 +1709,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 )}
 
                 <p className="text-brand-textMuted">
-                  Existing won vouchers and completed player entries will be
+                  Existing won rewards and completed player entries will be
                   fully preserved in history.
                 </p>
               </div>

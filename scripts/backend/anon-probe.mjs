@@ -160,6 +160,37 @@ const anonChecks = [
       ),
   },
   {
+    name: "anon cannot call set_entry_delivery_status",
+    run: async () =>
+      blocked(
+        (
+          await anon.rpc("set_entry_delivery_status", {
+            p_entry_id: missingId(),
+            p_status: "delivered",
+          })
+        ).error,
+      ),
+  },
+  {
+    name: "anon cannot call is_code_assignable",
+    run: async () =>
+      blocked(
+        (await anon.rpc("is_code_assignable", { p_item_id: missingId() }))
+          .error,
+      ),
+  },
+  {
+    name: "anon cannot call prize_has_assignable_reward",
+    run: async () =>
+      blocked(
+        (
+          await anon.rpc("prize_has_assignable_reward", {
+            p_prize_id: missingId(),
+          })
+        ).error,
+      ),
+  },
+  {
     name: "anon cannot call save_campaign_full_in_place",
     run: async () =>
       blocked(
@@ -486,6 +517,30 @@ async function memberChecks() {
         return {
           ok: data?.error === "Campaign is not active.",
           detail: JSON.stringify(data),
+        };
+      },
+    },
+    {
+      name: "member cannot set the delivery status of another organization's entry",
+      run: async () => {
+        const { data: foreignEntry } = await admin
+          .from("entries")
+          .select("id")
+          .neq("organization_id", ownOrg)
+          .limit(1)
+          .maybeSingle();
+        if (!foreignEntry)
+          return {
+            ok: true,
+            detail: "SKIP: no entry in another organization",
+          };
+        const { error: deliveryError } = await member.rpc(
+          "set_entry_delivery_status",
+          { p_entry_id: foreignEntry.id, p_status: "delivered" },
+        );
+        return {
+          ok: Boolean(deliveryError),
+          detail: deliveryError?.message ?? "no error: the call went through",
         };
       },
     },

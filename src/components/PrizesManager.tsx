@@ -1,13 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   Check,
-  Clipboard,
-  ClipboardCheck,
-  Download,
   Eye,
   EyeOff,
-  FileText,
   Loader2,
   PackageSearch,
   Pencil,
@@ -15,26 +12,39 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Upload,
   X,
   Droplet,
-  Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Campaign, PrizeTemplate } from "../types";
 import { ImageUploader } from "./common/ImageUploader";
 import { useTheme } from "../contexts/ThemeContext";
-import { useInventoryManager } from "../hooks/useInventoryManager";
 import {
-  parseCSVFile,
-  parseExcelFile,
-  exportToCSV,
-  exportToExcel,
-} from "../lib/exportUtils";
+  algiersEndOfDayToIso,
+  isCodeExpired,
+  isoToAlgiersDay,
+} from "../lib/codeExpiry";
+import { REWARD_TYPE_NAME, rewardTypeName } from "../lib/rewardTypes";
 import {
-  ImportMode,
-  ImportValidationResult,
-} from "../services/inventoryService";
+  DEFAULT_EXPIRY_POLICY,
+  formatDuration,
+  policyFromReward,
+  policyToStored,
+  type ExpiryPolicyForm,
+} from "../lib/expiryPolicy";
+import { setExpiryForTemplateItemsService } from "../services/inventoryService";
+import {
+  CodesExpiryFields,
+  EMPTY_CODES_EXPIRY,
+  type CodesExpiryForm,
+} from "./rewards/CodesExpiryFields";
+import { ExpiryPolicyFields } from "./rewards/ExpiryPolicyFields";
+import { RewardTypeFilter } from "./rewards/RewardTypeFilter";
+import {
+  REWARD_CARD_THEME,
+  matchesRewardType,
+  type RewardTypeFilterValue,
+} from "./rewards/rewardCardTheme";
 
 type PrizeTemplatePayload = Omit<
   PrizeTemplate,
@@ -44,11 +54,11 @@ type PrizeTemplatePayload = Omit<
 interface PrizesManagerProps {
   prizes: PrizeTemplate[];
   campaigns?: Campaign[];
-  organizationId?: string | null;
   onAddPrize: (newPrize: PrizeTemplatePayload) => Promise<void>;
   onUpdatePrize: (id: string, updates: PrizeTemplatePayload) => Promise<void>;
   onDeletePrize: (id: string) => Promise<void>;
-  onRefreshPrizes?: () => void;
+  /** A reward was clicked: open its codes (the page of the reward). */
+  onOpenReward: (reward: PrizeTemplate) => void;
 }
 
 const defaultForm = {
@@ -63,34 +73,18 @@ const defaultForm = {
 export const PrizesManager: React.FC<PrizesManagerProps> = ({
   prizes,
   campaigns = [],
-  organizationId = null,
   onAddPrize,
   onUpdatePrize,
   onDeletePrize,
-  onRefreshPrizes,
+  onOpenReward,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<RewardTypeFilterValue>("all");
   const [showCreator, setShowCreator] = useState(false);
   const [expandedPrizeId, setExpandedPrizeId] = useState<string | null>(null);
-  const [activeCodesTemplate, setActiveCodesTemplate] =
-    useState<PrizeTemplate | null>(null);
-  const [codesSearch, setCodesSearch] = useState("");
-  const [showBulkPaste, setShowBulkPaste] = useState(false);
-  const [bulkPasteText, setBulkPasteText] = useState("");
-  const [copiedAll, setCopiedAll] = useState(false);
-
-  // Import mode and validation state
-  const [importMode, setImportMode] = useState<ImportMode>("append");
-  const [activeValidationResult, setActiveValidationResult] =
-    useState<ImportValidationResult | null>(null);
-  const [conflictFixInputs, setConflictFixInputs] = useState<
-    Record<number, string>
-  >({});
-  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
-
   const [editingTemplate, setEditingTemplate] = useState<PrizeTemplate | null>(
     null,
   );
@@ -102,39 +96,45 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   const [itemValue, setItemValue] = useState(defaultForm.itemValue);
   const [totalStock, setTotalStock] = useState(defaultForm.totalStock);
   const [imageUrl, setImageUrl] = useState(defaultForm.image);
+  // How the codes of a digital reward expire: never, on a date, or a period after delivery
+  const [expiryPolicy, setExpiryPolicy] = useState<ExpiryPolicyForm>(
+    DEFAULT_EXPIRY_POLICY,
+  );
+  // Editing a digital reward: an optional date put on all the codes it already holds
+  const [codesExpiry, setCodesExpiry] =
+    useState<CodesExpiryForm>(EMPTY_CODES_EXPIRY);
+  // A physical reward: an optional expiry day ("YYYY-MM-DD"), only informative
+  const [physicalExpiryDay, setPhysicalExpiryDay] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const {
-    templateItems,
-    setTemplateItems,
-    loading: codesLoading,
-    saving: codesSaving,
-    error: _codesHookError,
-    unresolvedConflicts,
-    clearUnresolvedConflicts,
-    loadTemplateItems,
-    updateSingleItemValue,
-    validateImport,
-    resolveConflict,
-    executeImport,
-    generateRandomCodes,
-    fillEmptySlotsWithRandom,
-  } = useInventoryManager(organizationId);
-
   const filteredPrizes = useMemo(
     () =>
-      prizes.filter((prize) =>
-        [prize.name, prize.description, prize.category, prize.itemValue]
-          .join(" ")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()),
+      prizes.filter(
+        (prize) =>
+          matchesRewardType(prize, typeFilter) &&
+          [
+            prize.name,
+            prize.description,
+            rewardTypeName(prize.category),
+            prize.itemValue,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()),
       ),
-    [prizes, searchTerm],
+    [prizes, searchTerm, typeFilter],
+  );
+
+  const typeCounts = useMemo(
+    () => ({
+      all: prizes.length,
+      voucher: prizes.filter((p) => p.category === "voucher").length,
+      physical: prizes.filter((p) => p.category === "physical").length,
+    }),
+    [prizes],
   );
 
   const resetForm = () => {
@@ -145,6 +145,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     setItemValue(defaultForm.itemValue);
     setTotalStock(defaultForm.totalStock);
     setImageUrl(defaultForm.image);
+    setExpiryPolicy(DEFAULT_EXPIRY_POLICY);
+    setCodesExpiry(EMPTY_CODES_EXPIRY);
+    setPhysicalExpiryDay("");
     setFormError(null);
   };
 
@@ -166,6 +169,13 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
       setItemValue(template.itemValue);
       setTotalStock(template.totalStock);
       setImageUrl(template.image ?? "");
+      setExpiryPolicy(policyFromReward(template));
+      setCodesExpiry(EMPTY_CODES_EXPIRY);
+      setPhysicalExpiryDay(
+        template.category === "physical"
+          ? isoToAlgiersDay(template.expiresAt)
+          : "",
+      );
     } else {
       resetForm();
     }
@@ -182,6 +192,48 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     e.preventDefault();
     if (!name.trim() || !itemValue.trim()) return;
 
+    const normalizedName = name.trim().toLocaleLowerCase();
+    const duplicate = prizes.some(
+      (prize) =>
+        prize.id !== editingTemplate?.id &&
+        prize.name.trim().toLocaleLowerCase() === normalizedName,
+    );
+    if (duplicate) {
+      setFormError("A reward with this name already exists in your library.");
+      return;
+    }
+
+    // A digital reward: how its codes expire. A physical reward: its optional date, end of that
+    // day in Algiers (only informative, the draw never reads it).
+    const expiry = policyToStored(
+      category === "voucher" ? expiryPolicy : DEFAULT_EXPIRY_POLICY,
+    );
+    if (expiry.ok === false) {
+      setFormError(expiry.error);
+      return;
+    }
+    const physicalExpiresAt =
+      category === "physical" && physicalExpiryDay
+        ? algiersEndOfDayToIso(physicalExpiryDay)
+        : null;
+    if (category === "physical" && physicalExpiryDay && !physicalExpiresAt) {
+      setFormError("Choose a valid expiry date, or leave it empty.");
+      return;
+    }
+
+    // The date for all the codes, only when a digital reward with codes is edited.
+    const editsCodes =
+      editingTemplate !== null &&
+      category === "voucher" &&
+      codesExpiry.day !== "";
+    const codesExpiresAt = editsCodes
+      ? algiersEndOfDayToIso(codesExpiry.day)
+      : null;
+    if (editsCodes && !codesExpiresAt) {
+      setFormError("Choose a valid expiry date for the codes.");
+      return;
+    }
+
     setSubmitting(true);
     setFormError(null);
     setPageError(null);
@@ -194,7 +246,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         description: description.trim(),
         itemValue: itemValue.trim(),
         totalStock,
-        image: imageUrl || undefined,
+        image: category === "physical" ? imageUrl || undefined : undefined,
+        expiresAt:
+          category === "physical" ? physicalExpiresAt : expiry.expiresAt,
+        expiryDays: category === "physical" ? null : expiry.expiryDays,
         filledValuesCount: editingTemplate?.filledValuesCount,
         campaignUsageCount: editingTemplate?.campaignUsageCount,
         quantityWonCount: editingTemplate?.quantityWonCount,
@@ -202,7 +257,25 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
       if (editingTemplate) {
         await onUpdatePrize(editingTemplate.id, payload);
-        showSuccess("Reward template updated successfully.");
+        if (codesExpiresAt) {
+          try {
+            const updated = await setExpiryForTemplateItemsService(
+              editingTemplate.id,
+              codesExpiresAt,
+              { onlyWithoutDate: !codesExpiry.replaceExisting },
+            );
+            showSuccess(
+              `Reward template updated. Expiry set on ${updated} code${updated === 1 ? "" : "s"}.`,
+            );
+          } catch {
+            // The reward itself is saved: only the date of its codes is missing.
+            setPageError(
+              "The reward was updated, but the expiry could not be set on its codes. Please try again.",
+            );
+          }
+        } else {
+          showSuccess("Reward template updated successfully.");
+        }
       } else {
         await onAddPrize(payload);
         showSuccess("Reward template created successfully.");
@@ -247,242 +320,6 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
     }
   };
 
-  // Open Codes Modal for a Prize Ticket
-  const handleOpenCodesModal = async (prize: PrizeTemplate) => {
-    setActiveCodesTemplate(prize);
-    setShowBulkPaste(false);
-    setBulkPasteText("");
-    await loadTemplateItems(prize);
-  };
-
-  const handleCloseCodesModal = () => {
-    setActiveCodesTemplate(null);
-    setTemplateItems([]);
-    setShowBulkPaste(false);
-    setBulkPasteText("");
-    onRefreshPrizes?.();
-  };
-
-  // Copy all non-empty codes
-  const handleCopyAllCodes = async () => {
-    const codesToCopy = templateItems
-      .map((item) => item.item_value)
-      .filter((val): val is string => Boolean(val && val.trim().length > 0));
-
-    if (codesToCopy.length === 0) {
-      alert("No prepared codes found to copy.");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(codesToCopy.join("\n"));
-      setCopiedAll(true);
-      window.setTimeout(() => setCopiedAll(false), 2500);
-    } catch {
-      alert("Failed to copy to clipboard.");
-    }
-  };
-
-  // Export codes to CSV or Excel
-  const handleExportCodes = (format: "csv" | "xlsx" = "csv") => {
-    if (!activeCodesTemplate) return;
-
-    const dataToExport = templateItems.map((item) => ({
-      Index: item.item_index,
-      Code: item.item_value ?? "",
-      Status: item.item_value?.trim() ? "Prepared" : "Empty",
-    }));
-
-    const filename = `octoreach_codes_${activeCodesTemplate.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}`;
-
-    if (format === "xlsx") {
-      exportToExcel(
-        dataToExport as unknown as Record<string, unknown>[],
-        filename,
-        "Codes",
-      );
-    } else {
-      exportToCSV(
-        dataToExport as unknown as Record<string, unknown>[],
-        filename,
-      );
-    }
-  };
-
-  // Import codes from File
-  const handleFileImport = async (file: File) => {
-    if (!activeCodesTemplate) return;
-
-    try {
-      const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
-      const rows = isExcel
-        ? await parseExcelFile<Record<string, unknown>>(file)
-        : await parseCSVFile<Record<string, unknown>>(file);
-
-      if (!rows || rows.length === 0) {
-        alert("Import file is empty or could not be parsed.");
-        return;
-      }
-
-      const validation = validateImport(
-        importMode,
-        { rawRows: rows },
-        activeCodesTemplate.totalStock,
-      );
-
-      if (validation.overflow) {
-        alert(
-          validation.errorMessage ||
-            "Import rejected: code count exceeds available slots.",
-        );
-        return;
-      }
-
-      if (!validation.success && validation.conflicts.length > 0) {
-        const initialFixes: Record<number, string> = {};
-        validation.conflicts.forEach((c) => {
-          initialFixes[c.lineNumber] = "";
-        });
-        setConflictFixInputs(initialFixes);
-        setActiveValidationResult(validation);
-        return;
-      }
-
-      const success = await executeImport(activeCodesTemplate, validation);
-      if (success) {
-        onRefreshPrizes?.();
-        showSuccess(
-          `Successfully imported ${validation.importedCount} code(s) in ${importMode === "append" ? "Append" : "Replace All"} mode.`,
-        );
-      }
-    } catch (err) {
-      alert(
-        `Import failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-      );
-    }
-  };
-
-  // Handle Bulk Paste Lines
-  const handleApplyBulkPaste = async () => {
-    if (!activeCodesTemplate) return;
-
-    const lines = bulkPasteText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-
-    if (lines.length === 0) return;
-
-    const validation = validateImport(
-      importMode,
-      { rawLines: lines },
-      activeCodesTemplate.totalStock,
-    );
-
-    if (validation.overflow) {
-      alert(
-        validation.errorMessage ||
-          "Import rejected: code count exceeds available slots.",
-      );
-      return;
-    }
-
-    if (!validation.success && validation.conflicts.length > 0) {
-      const initialFixes: Record<number, string> = {};
-      validation.conflicts.forEach((c) => {
-        initialFixes[c.lineNumber] = "";
-      });
-      setConflictFixInputs(initialFixes);
-      setActiveValidationResult(validation);
-      return;
-    }
-
-    const success = await executeImport(activeCodesTemplate, validation);
-    if (success) {
-      setShowBulkPaste(false);
-      setBulkPasteText("");
-      onRefreshPrizes?.();
-      showSuccess(
-        `Applied ${validation.importedCount} code(s) in ${importMode === "append" ? "Append" : "Replace All"} mode.`,
-      );
-    }
-  };
-
-  const handleApplyConflictFix = (lineNumber: number) => {
-    if (!activeValidationResult || !activeCodesTemplate) return;
-    const replacement = (conflictFixInputs[lineNumber] || "").trim();
-    if (!replacement) return;
-
-    const updatedValidation = resolveConflict(
-      activeValidationResult,
-      lineNumber,
-      replacement,
-      activeCodesTemplate.totalStock,
-    );
-
-    setActiveValidationResult(updatedValidation);
-  };
-
-  const handleProceedWithConflicts = async () => {
-    if (!activeValidationResult || !activeCodesTemplate) return;
-    const success = await executeImport(
-      activeCodesTemplate,
-      activeValidationResult,
-      true,
-    );
-    if (success) {
-      setActiveValidationResult(null);
-      setShowBulkPaste(false);
-      setBulkPasteText("");
-      onRefreshPrizes?.();
-      showSuccess(
-        `Imported ${activeValidationResult.importedCount} codes with duplicate warnings retained.`,
-      );
-    }
-  };
-
-  const handleFillRandomSlots = async () => {
-    if (!activeCodesTemplate) return;
-    setIsGeneratingRandom(true);
-    try {
-      const success = await fillEmptySlotsWithRandom(activeCodesTemplate);
-      if (success) {
-        onRefreshPrizes?.();
-        showSuccess(
-          "Filled empty slots with collision-free random 8-character uppercase codes.",
-        );
-      }
-    } finally {
-      setIsGeneratingRandom(false);
-    }
-  };
-
-  const handleGenerateSingleRandom = async (itemId: string) => {
-    if (!activeCodesTemplate) return;
-    const gen = generateRandomCodes(1);
-    if (gen.success && gen.codes[0]) {
-      await updateSingleItemValue(itemId, gen.codes[0]);
-      onRefreshPrizes?.();
-      showSuccess(`Generated code: ${gen.codes[0]}`);
-    }
-  };
-
-  // Filtered items in the modal table
-  const displayedModalItems = useMemo(() => {
-    if (!codesSearch.trim()) return templateItems;
-    return templateItems.filter(
-      (item) =>
-        (item.item_value || "")
-          .toLowerCase()
-          .includes(codesSearch.toLowerCase()) ||
-        String(item.item_index).includes(codesSearch),
-    );
-  }, [templateItems, codesSearch]);
-
-  const preparedCount = templateItems.filter((item) =>
-    Boolean(item.item_value && item.item_value.trim().length > 0),
-  ).length;
-
   return (
     <div
       id="prizes-manager-root"
@@ -495,8 +332,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
             Reward Library
           </h2>
           <p className="text-brand-textMuted text-sm font-medium mt-1">
-            Define reusable vouchers, data passes, and branded physical rewards.
-            Click any ticket to manage its codes list.
+            Define reusable Digital Items and Physical Items. Click any ticket
+            to manage it.
           </p>
         </div>
 
@@ -539,175 +376,251 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         </motion.div>
       )}
 
-      {/* Creation / Edit Form Modal/Drawer */}
-      {showCreator && (
-        <motion.form
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          onSubmit={handleSubmit}
-          className="bg-card-bg border border-card-border rounded-[28px] p-7 space-y-5 shadow-xl"
-        >
-          <div className="flex items-center justify-between gap-3 border-b border-brand-border/20 pb-4">
-            <h3 className="font-black text-base text-emerald-500 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-500" />
-              <span>
-                {editingTemplate
-                  ? "Edit Reusable Reward Template"
-                  : "Create Reusable Reward Template"}
-              </span>
-            </h3>
-            <button
-              type="button"
-              onClick={closeCreator}
-              className="rounded-2xl bg-card-bg-subtle p-2 text-brand-textMuted transition hover:text-brand-text border border-card-border cursor-pointer"
-              aria-label="Close reward creator"
+      {/* Creation / Edit Form Dialog */}
+      {showCreator &&
+        createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm sm:p-6"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !submitting) {
+                closeCreator();
+              }
+            }}
+          >
+            <motion.form
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reward-dialog-title"
+              noValidate
+              onSubmit={handleSubmit}
+              className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-card-border bg-card-bg text-brand-text shadow-2xl"
             >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {formError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-xs font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{formError}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
-                Reward Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Djezzy 1500 DA Voucher"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
-                Display Value / Face Value
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. 36,666 DA"
-                value={itemValue}
-                onChange={(e) => setItemValue(e.target.value)}
-                className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
-                Category
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between gap-3 border-b border-brand-border/20 p-6">
+                <h3
+                  id="reward-dialog-title"
+                  className="font-black text-base text-emerald-500"
+                >
+                  {editingTemplate
+                    ? "Edit Reusable Reward Template"
+                    : "Create Reusable Reward Template"}
+                </h3>
                 <button
                   type="button"
-                  onClick={() => setCategory("voucher")}
-                  className={`py-2.5 px-3 rounded-2xl border text-center transition-all cursor-pointer text-xs font-bold ${
-                    category === "voucher"
-                      ? "bg-emerald-500/15 border-emerald-500 text-emerald-500 font-black"
-                      : "bg-card-bg-subtle border-card-border text-brand-textMuted hover:bg-card-bg"
-                  }`}
+                  onClick={closeCreator}
+                  disabled={submitting}
+                  className="rounded-2xl bg-card-bg-subtle p-2 text-brand-textMuted transition hover:text-brand-text border border-card-border cursor-pointer disabled:opacity-50"
+                  aria-label="Close reward creator"
                 >
-                  Digital Voucher / Code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategory("physical")}
-                  className={`py-2.5 px-3 rounded-2xl border text-center transition-all cursor-pointer text-xs font-bold ${
-                    category === "physical"
-                      ? "bg-emerald-500/15 border-emerald-500 text-emerald-500 font-black"
-                      : "bg-card-bg-subtle border-card-border text-brand-textMuted hover:bg-card-bg"
-                  }`}
-                >
-                  Physical Item / Merch
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
-                Total Warehouse Stock
-              </label>
-              <input
-                type="number"
-                min={editingTemplate?.allocatedStock ?? 0}
-                max="100000"
-                value={totalStock}
-                onChange={(e) => setTotalStock(Number(e.target.value))}
-                className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none font-mono font-bold"
-              />
-            </div>
+              <div className="space-y-5 overflow-y-auto p-6">
+                {formError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
 
-            <div className="col-span-full flex flex-col gap-1.5">
-              <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
-                Redemption Instructions
-              </label>
-              <textarea
-                placeholder="How do players claim this prize? E.g. present coupon code to any partner branch."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl p-4 text-xs text-brand-text placeholder-brand-textMuted min-h-20 focus:outline-none"
-              />
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
+                      Reward Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Djezzy 1500 DA"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none"
+                      required
+                    />
+                  </div>
 
-            <div className="col-span-full space-y-3 rounded-2xl bg-card-bg-subtle border border-card-border p-4">
-              <ImageUploader
-                value={imageUrl}
-                onChange={setImageUrl}
-                folder="prizes"
-                label="Prize template image"
-              />
-            </div>
-          </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
+                      Display Value / Face Value
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 36,666 DA"
+                      value={itemValue}
+                      onChange={(e) => setItemValue(e.target.value)}
+                      className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none"
+                      required
+                    />
+                  </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-brand-border/20">
-            <button
-              type="button"
-              onClick={closeCreator}
-              disabled={submitting}
-              className="text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer px-5 py-2.5 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !name.trim() || !itemValue.trim()}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs sm:text-sm px-6 py-2.5 rounded-2xl font-black cursor-pointer transition-all flex items-center gap-2"
-            >
-              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>
-                {submitting
-                  ? "Saving..."
-                  : editingTemplate
-                    ? "Update Library Template"
-                    : "Save to Library"}
-              </span>
-            </button>
-          </div>
-        </motion.form>
-      )}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
+                      Category
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCategory("voucher")}
+                        className={`py-2.5 px-3 rounded-2xl border text-center transition-all cursor-pointer text-xs font-bold ${
+                          category === "voucher"
+                            ? "bg-emerald-500/15 border-emerald-500 text-emerald-500 font-black"
+                            : "bg-card-bg-subtle border-card-border text-brand-textMuted hover:bg-card-bg"
+                        }`}
+                      >
+                        {REWARD_TYPE_NAME.voucher}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategory("physical")}
+                        className={`py-2.5 px-3 rounded-2xl border text-center transition-all cursor-pointer text-xs font-bold ${
+                          category === "physical"
+                            ? "bg-emerald-500/15 border-emerald-500 text-emerald-500 font-black"
+                            : "bg-card-bg-subtle border-card-border text-brand-textMuted hover:bg-card-bg"
+                        }`}
+                      >
+                        {REWARD_TYPE_NAME.physical}
+                      </button>
+                    </div>
+                  </div>
 
-      {/* Filter Search Input */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Filter rewards by title or category..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={`w-full rounded-2xl pl-11 pr-5 py-2.5 text-xs sm:text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm border ${
-            isDark
-              ? "bg-[#151E30] border-slate-800 text-white placeholder-slate-500"
-              : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
-          }`}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
+                      Total Warehouse Stock
+                    </label>
+                    <input
+                      type="number"
+                      min={editingTemplate?.allocatedStock ?? 0}
+                      max="100000"
+                      value={totalStock}
+                      onChange={(e) => setTotalStock(Number(e.target.value))}
+                      className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text placeholder-brand-textMuted min-h-11 focus:outline-none font-mono font-bold"
+                    />
+                  </div>
+
+                  {category === "physical" && (
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="physical-reward-expiry"
+                        className="text-[11px] font-black text-brand-text uppercase tracking-wider"
+                      >
+                        Expiry Date{" "}
+                        <span className="font-bold normal-case tracking-normal text-brand-textMuted">
+                          (optional)
+                        </span>
+                      </label>
+                      <input
+                        id="physical-reward-expiry"
+                        type="date"
+                        value={physicalExpiryDay}
+                        onChange={(e) => setPhysicalExpiryDay(e.target.value)}
+                        disabled={submitting}
+                        className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-brand-text min-h-11 focus:outline-none disabled:opacity-60"
+                      />
+                      <p className="text-[11px] text-brand-textMuted">
+                        Leave empty if this item does not expire. For
+                        information only: the item can still be won after this
+                        date.
+                      </p>
+                    </div>
+                  )}
+
+                  {category === "voucher" && (
+                    <div className="col-span-full">
+                      <ExpiryPolicyFields
+                        value={expiryPolicy}
+                        onChange={setExpiryPolicy}
+                        disabled={submitting}
+                      />
+                    </div>
+                  )}
+
+                  {editingTemplate &&
+                    category === "voucher" &&
+                    (editingTemplate.filledValuesCount ?? 0) > 0 && (
+                      <div className="col-span-full">
+                        <CodesExpiryFields
+                          value={codesExpiry}
+                          onChange={setCodesExpiry}
+                          disabled={submitting}
+                        />
+                      </div>
+                    )}
+
+                  <div className="col-span-full flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-brand-text uppercase tracking-wider">
+                      Redemption Instructions
+                    </label>
+                    <textarea
+                      placeholder="How do players claim this prize? E.g. present coupon code to any partner branch."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full bg-card-bg-subtle border border-card-border focus:border-emerald-500 rounded-2xl p-4 text-xs text-brand-text placeholder-brand-textMuted min-h-20 focus:outline-none"
+                    />
+                  </div>
+
+                  {category === "physical" && (
+                    <div className="col-span-full space-y-3 rounded-2xl bg-card-bg-subtle border border-card-border p-4">
+                      <ImageUploader
+                        value={imageUrl}
+                        onChange={setImageUrl}
+                        folder="prizes"
+                        label="Prize template image"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-brand-border/20 bg-card-bg-subtle p-4">
+                <button
+                  type="button"
+                  onClick={closeCreator}
+                  disabled={submitting}
+                  className="text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer px-5 py-2.5 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !name.trim() || !itemValue.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs sm:text-sm px-6 py-2.5 rounded-2xl font-black cursor-pointer transition-all flex items-center gap-2"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>
+                    {submitting
+                      ? "Saving..."
+                      : editingTemplate
+                        ? "Update Library Template"
+                        : "Save to Library"}
+                  </span>
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>,
+          document.body,
+        )}
+
+      {/* Filter: search + reward type (all by default) */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-4 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Filter rewards by title or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`w-full rounded-2xl pl-11 pr-5 py-2.5 text-xs sm:text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm border ${
+              isDark
+                ? "bg-[#151E30] border-slate-800 text-white placeholder-slate-500"
+                : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+            }`}
+          />
+        </div>
+        <RewardTypeFilter
+          value={typeFilter}
+          onChange={setTypeFilter}
+          counts={typeCounts}
         />
       </div>
 
@@ -716,6 +629,8 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
         {filteredPrizes.map((prize) => {
           const isDeleteBlocked = (prize.campaignUsageCount ?? 0) > 0;
           const isExpanded = expandedPrizeId === prize.id;
+          const theme = REWARD_CARD_THEME[prize.category];
+          const TypeIcon = theme.icon;
 
           const linkedCampaigns = campaigns.filter((camp) =>
             camp.prizes?.some((p) => p.templateId === prize.id),
@@ -739,22 +654,27 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              onClick={() => handleOpenCodesModal(prize)}
-              className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer ${
+              onClick={() => onOpenReward(prize)}
+              className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex flex-col group border relative overflow-hidden cursor-pointer min-w-0 ${theme.hoverBorder} ${
                 isDark
-                  ? "bg-[#151E30] border-slate-800 text-white hover:border-emerald-500/50"
-                  : "bg-white border-slate-200 text-slate-900 hover:border-emerald-500/50"
+                  ? "bg-[#151E30] border-slate-800 text-white"
+                  : "bg-white border-slate-200 text-slate-900"
               }`}
             >
               {/* TOP BANNER & MAIN TICKET ROW */}
               <div className="flex items-stretch w-full relative">
                 {/* 1. LEFT MAIN COLUMN */}
-                <div className="flex-1 flex flex-col justify-between">
-                  {/* Left Green Header */}
-                  <div className="bg-emerald-600 text-white px-3.5 py-2 select-none border-b border-emerald-700/40">
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  {/* Type header: color and icon tell a digital code from a physical reward */}
+                  <div
+                    className={`${theme.header} text-white px-3.5 py-2 select-none border-b flex items-center gap-2 min-w-0`}
+                  >
+                    <TypeIcon
+                      className="w-4 h-4 shrink-0 stroke-[2.2]"
+                      aria-hidden="true"
+                    />
                     <span className="font-black text-xs sm:text-sm tracking-wide block truncate">
-                      Reward Library{" "}
-                      {prize.category === "voucher" ? "Voucher" : "Item"}
+                      {theme.label}
                     </span>
                   </div>
 
@@ -764,30 +684,50 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                       isDark ? "bg-[#151E30]" : "bg-white"
                     }`}
                   >
+                    {prize.category === "physical" && prize.image && (
+                      <img
+                        src={prize.image}
+                        alt=""
+                        className="h-28 w-full rounded-2xl object-cover"
+                      />
+                    )}
                     {/* Category & Value + Action Buttons (Eye, Pencil, Trash2) */}
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4
-                          className={`font-black text-xs sm:text-sm tracking-wider uppercase ${
-                            isDark ? "text-slate-200" : "text-slate-800"
-                          }`}
-                        >
-                          {prize.category === "voucher"
-                            ? "VOUCHER"
-                            : "PHYSICAL"}
-                        </h4>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
                         <p
-                          className={`text-[10px] sm:text-xs font-bold uppercase mt-0.5 ${
+                          title={prize.itemValue || undefined}
+                          className={`text-[10px] sm:text-xs font-bold uppercase mt-0.5 truncate ${
                             isDark ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
                           {prize.itemValue || "REWARD VALUE"}
                         </p>
+                        {prize.expiryDays ? (
+                          <p className="text-[10px] font-bold mt-1 truncate text-brand-textMuted">
+                            Codes valid {formatDuration(prize.expiryDays)} after
+                            delivery
+                          </p>
+                        ) : prize.expiresAt ? (
+                          <p
+                            className={`text-[10px] font-bold mt-1 truncate ${
+                              isCodeExpired(prize.expiresAt)
+                                ? "text-amber-500"
+                                : "text-brand-textMuted"
+                            }`}
+                          >
+                            {isCodeExpired(prize.expiresAt)
+                              ? "Expired "
+                              : prize.category === "physical"
+                                ? "Expires "
+                                : "Codes expire "}
+                            {isoToAlgiersDay(prize.expiresAt)}
+                          </p>
+                        ) : null}
                       </div>
 
                       {/* Action Buttons Row */}
                       <div
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Eye Toggle Button */}
@@ -858,9 +798,10 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                     </div>
 
                     {/* Reward Name */}
-                    <div>
+                    <div className="min-w-0">
                       <h3
-                        className={`font-black text-sm sm:text-base lg:text-lg uppercase leading-tight truncate ${
+                        title={prize.name}
+                        className={`font-black text-sm sm:text-base lg:text-lg uppercase leading-tight line-clamp-2 [overflow-wrap:anywhere] ${
                           isDark ? "text-white" : "text-slate-900"
                         }`}
                       >
@@ -906,7 +847,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                         >
                           AVAILABLE
                         </span>
-                        <span className="text-xs sm:text-sm font-black text-emerald-500 mt-0.5 block">
+                        <span
+                          className={`text-xs sm:text-sm font-black ${theme.accentText} mt-0.5 block`}
+                        >
                           {prize.availableStock.toLocaleString()}
                         </span>
                       </div>
@@ -916,7 +859,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
                 {/* 2. RIGHT STUB COLUMN (Scaled 25% smaller) */}
                 <div
-                  className={`w-21 sm:w-24 flex flex-col justify-between select-none border-l-2 border-dashed relative ${
+                  className={`w-21 sm:w-24 shrink-0 flex flex-col justify-between select-none border-l-2 border-dashed relative ${
                     isDark
                       ? "border-slate-700 bg-slate-900/50"
                       : "border-slate-300 bg-slate-50"
@@ -937,7 +880,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   ></div>
 
                   {/* Right Green Stub Header */}
-                  <div className="bg-emerald-700/40 text-white px-2 py-2 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider border-b border-emerald-700/40">
+                  <div
+                    className={`${theme.stubHeader} text-white px-2 py-2 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider border-b`}
+                  >
                     <div className="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
                       <Droplet className="w-2 h-2 fill-white text-white" />
                     </div>
@@ -948,7 +893,9 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                   <div className="flex-1 p-3 sm:p-3.5 flex flex-col items-center justify-between text-center">
                     {/* Big Stock Number */}
                     <div className="my-auto text-center">
-                      <h3 className="text-3xl sm:text-4xl font-black text-emerald-500 leading-none">
+                      <h3
+                        className={`text-3xl sm:text-4xl font-black ${theme.accentText} leading-none`}
+                      >
                         {prize.availableStock > 0 ? prize.availableStock : "0"}
                       </h3>
                       <span
@@ -956,39 +903,50 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
                           isDark ? "text-slate-400" : "text-slate-500"
                         }`}
                       >
-                        STOCK
+                        {theme.unit}
                       </span>
                     </div>
 
-                    {/* Realistic SVG Barcode */}
-                    <div className="w-full mt-1.5 flex flex-col items-center">
-                      <svg
-                        viewBox="0 0 80 28"
-                        className={`w-full h-6 fill-current ${
-                          isDark ? "text-slate-400" : "text-slate-800"
-                        }`}
-                      >
-                        <rect x="0" y="0" width="3" height="28" />
-                        <rect x="5" y="0" width="1" height="28" />
-                        <rect x="8" y="0" width="4" height="28" />
-                        <rect x="14" y="0" width="2" height="28" />
-                        <rect x="18" y="0" width="1" height="28" />
-                        <rect x="21" y="0" width="3" height="28" />
-                        <rect x="26" y="0" width="1" height="28" />
-                        <rect x="29" y="0" width="4" height="28" />
-                        <rect x="35" y="0" width="2" height="28" />
-                        <rect x="39" y="0" width="1" height="28" />
-                        <rect x="42" y="0" width="3" height="28" />
-                        <rect x="47" y="0" width="2" height="28" />
-                        <rect x="51" y="0" width="1" height="28" />
-                        <rect x="54" y="0" width="4" height="28" />
-                        <rect x="60" y="0" width="1" height="28" />
-                        <rect x="63" y="0" width="3" height="28" />
-                        <rect x="68" y="0" width="2" height="28" />
-                        <rect x="72" y="0" width="4" height="28" />
-                        <rect x="78" y="0" width="2" height="28" />
-                      </svg>
-                    </div>
+                    {prize.category === "physical" ? (
+                      <div className="w-full mt-1.5 flex flex-col items-center">
+                        <TypeIcon
+                          className={`w-6 h-6 ${theme.accentText} stroke-[1.6]`}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Realistic SVG Barcode */}
+                        <div className="w-full mt-1.5 flex flex-col items-center">
+                          <svg
+                            viewBox="0 0 80 28"
+                            className={`w-full h-6 fill-current ${
+                              isDark ? "text-slate-400" : "text-slate-800"
+                            }`}
+                          >
+                            <rect x="0" y="0" width="3" height="28" />
+                            <rect x="5" y="0" width="1" height="28" />
+                            <rect x="8" y="0" width="4" height="28" />
+                            <rect x="14" y="0" width="2" height="28" />
+                            <rect x="18" y="0" width="1" height="28" />
+                            <rect x="21" y="0" width="3" height="28" />
+                            <rect x="26" y="0" width="1" height="28" />
+                            <rect x="29" y="0" width="4" height="28" />
+                            <rect x="35" y="0" width="2" height="28" />
+                            <rect x="39" y="0" width="1" height="28" />
+                            <rect x="42" y="0" width="3" height="28" />
+                            <rect x="47" y="0" width="2" height="28" />
+                            <rect x="51" y="0" width="1" height="28" />
+                            <rect x="54" y="0" width="4" height="28" />
+                            <rect x="60" y="0" width="1" height="28" />
+                            <rect x="63" y="0" width="3" height="28" />
+                            <rect x="68" y="0" width="2" height="28" />
+                            <rect x="72" y="0" width="4" height="28" />
+                            <rect x="78" y="0" width="2" height="28" />
+                          </svg>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1118,500 +1076,6 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
           </div>
         )}
       </div>
-
-      {/* CODES LIST MODAL / DRAWER */}
-      <AnimatePresence>
-        {activeCodesTemplate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className={`w-full max-w-4xl rounded-[32px] border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden ${
-                isDark
-                  ? "bg-[#121929] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              {/* Modal Header */}
-              <div className="p-6 sm:p-7 border-b border-card-border flex items-center justify-between shrink-0">
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-brand-text">
-                      {activeCodesTemplate.name}
-                    </h3>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
-                      {activeCodesTemplate.category}
-                    </span>
-                  </div>
-                  <p className="text-xs text-brand-textMuted mt-1">
-                    Prepared Codes:{" "}
-                    <strong className="text-emerald-500">
-                      {preparedCount}
-                    </strong>{" "}
-                    / {templateItems.length} total units reserved in inventory.
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleCloseCodesModal}
-                  className="w-10 h-10 rounded-full bg-card-bg-subtle border border-card-border flex items-center justify-center text-brand-textMuted hover:text-brand-text transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Persistent Duplicate Conflicts Alert */}
-              {unresolvedConflicts.length > 0 && (
-                <div className="mx-6 mt-4 p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/15 flex items-center justify-between text-xs text-amber-300">
-                  <div className="flex items-center gap-2.5">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-                    <span>
-                      <strong>Warning:</strong> {unresolvedConflicts.length}{" "}
-                      duplicate voucher code(s) exist in this template.
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={clearUnresolvedConflicts}
-                    className="px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-
-              {/* Action Toolbar */}
-              <div className="p-4 sm:px-7 bg-card-bg-subtle border-b border-card-border flex flex-wrap items-center justify-between gap-3 shrink-0">
-                {/* Search in codes */}
-                <div className="relative flex-1 min-w-[180px] max-w-xs">
-                  <Search className="absolute left-3.5 w-4 h-4 text-brand-textMuted top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search codes..."
-                    value={codesSearch}
-                    onChange={(e) => setCodesSearch(e.target.value)}
-                    className="w-full bg-card-bg border border-card-border rounded-xl pl-9 pr-3 py-2 text-xs text-brand-text placeholder-brand-textMuted focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Import Mode Selector + Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Import Mode Selector */}
-                  <div className="flex items-center bg-card-bg p-1 rounded-xl border border-card-border">
-                    <button
-                      type="button"
-                      onClick={() => setImportMode("append")}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        importMode === "append"
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "text-brand-textMuted hover:text-brand-text"
-                      }`}
-                      title="Preserves existing codes and fills next empty slots"
-                    >
-                      Append
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImportMode("replace")}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        importMode === "replace"
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "text-brand-textMuted hover:text-brand-text"
-                      }`}
-                      title="Overwrites existing codes from slot 1"
-                    >
-                      Replace All
-                    </button>
-                  </div>
-
-                  {/* Auto-Fill Random Codes */}
-                  <button
-                    type="button"
-                    onClick={handleFillRandomSlots}
-                    disabled={isGeneratingRandom || codesSaving}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition-all shadow-sm disabled:opacity-50"
-                    title="Auto-fills all empty slots with unique 8-character uppercase alphanumeric codes"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>
-                      {isGeneratingRandom ? "Generating..." : "Auto-Fill Empty"}
-                    </span>
-                  </button>
-
-                  {/* Copy All */}
-                  <button
-                    onClick={handleCopyAllCodes}
-                    className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
-                  >
-                    {copiedAll ? (
-                      <ClipboardCheck className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <Clipboard className="w-4 h-4 text-slate-500" />
-                    )}
-                    <span>{copiedAll ? "Copied" : "Copy"}</span>
-                  </button>
-
-                  {/* Bulk Paste Toggle */}
-                  <button
-                    onClick={() => setShowBulkPaste(!showBulkPaste)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border cursor-pointer transition-all shadow-sm ${
-                      showBulkPaste
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "border-card-border bg-card-bg hover:bg-card-bg-subtle"
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Paste Bulk</span>
-                  </button>
-
-                  {/* Export CSV */}
-                  <button
-                    onClick={() => handleExportCodes("csv")}
-                    className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-card-border bg-card-bg hover:bg-card-bg-subtle cursor-pointer transition-all shadow-sm"
-                  >
-                    <Download className="w-4 h-4 text-slate-500" />
-                    <span>Export</span>
-                  </button>
-
-                  {/* Import File (Hidden file input) */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept=".csv,.xlsx,.xls"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileImport(file);
-                    }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all shadow-sm"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>Import File</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Bulk Paste Dropdown Section */}
-              <AnimatePresence>
-                {showBulkPaste && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="p-5 border-b border-card-border bg-card-bg space-y-3 shrink-0"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-brand-text">
-                        Paste codes line-by-line (one per row):
-                      </span>
-                      <span className="text-[11px] text-brand-textMuted">
-                        Mode:{" "}
-                        <strong className="text-emerald-500 uppercase">
-                          {importMode}
-                        </strong>{" "}
-                        (
-                        {importMode === "append"
-                          ? "Fills empty slots sequentially"
-                          : "Overwrites from slot 1"}
-                        )
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      placeholder="COUPON-DZ-101&#10;COUPON-DZ-102&#10;COUPON-DZ-103"
-                      value={bulkPasteText}
-                      onChange={(e) => setBulkPasteText(e.target.value)}
-                      className="w-full bg-card-bg-subtle border border-card-border rounded-xl p-3 text-xs font-mono text-brand-text placeholder-brand-textMuted focus:outline-none focus:border-emerald-500"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setShowBulkPaste(false)}
-                        className="px-4 py-1.5 text-xs text-brand-textMuted hover:text-brand-text cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleApplyBulkPaste}
-                        disabled={!bulkPasteText.trim() || codesSaving}
-                        className="px-5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer transition-all"
-                      >
-                        {codesSaving
-                          ? "Saving..."
-                          : `Apply (${importMode === "append" ? "Append" : "Replace All"})`}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Codes Table List */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-7">
-                {codesLoading ? (
-                  <div className="py-16 flex flex-col items-center justify-center text-center space-y-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                    <p className="text-xs font-semibold text-brand-textMuted">
-                      Loading inventory codes from database...
-                    </p>
-                  </div>
-                ) : displayedModalItems.length === 0 ? (
-                  <div className="py-16 flex flex-col items-center justify-center text-center text-brand-textMuted text-xs">
-                    No codes matching your search query.
-                  </div>
-                ) : (
-                  <div className="border border-card-border rounded-2xl overflow-hidden shadow-sm">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-card-bg-subtle border-b border-card-border text-brand-textMuted uppercase font-black text-[10px]">
-                        <tr>
-                          <th className="py-3 px-4 w-16">#</th>
-                          <th className="py-3 px-4">Voucher / Unique Code</th>
-                          <th className="py-3 px-4 w-32 text-center">Status</th>
-                          <th className="py-3 px-4 w-24 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-card-border">
-                        {displayedModalItems.map((item) => {
-                          const isRedeemed = Boolean(
-                            item.is_redeemed || item.is_used,
-                          );
-                          const hasValue = Boolean(
-                            item.item_value &&
-                            item.item_value.trim().length > 0,
-                          );
-
-                          return (
-                            <tr
-                              key={item.id}
-                              className={`transition-colors ${
-                                isRedeemed
-                                  ? "bg-red-500/10 hover:bg-red-500/15 border-l-4 border-l-red-500"
-                                  : "hover:bg-card-bg-subtle/50"
-                              }`}
-                            >
-                              <td className="py-3 px-4 font-mono font-bold text-brand-textMuted">
-                                {item.item_index}
-                              </td>
-                              <td className="py-2 px-4">
-                                <input
-                                  type="text"
-                                  disabled={isRedeemed}
-                                  value={item.item_value ?? ""}
-                                  placeholder={
-                                    isRedeemed
-                                      ? "Redeemed by player"
-                                      : "Click to enter code..."
-                                  }
-                                  onChange={(e) => {
-                                    const newVal = e.target.value;
-                                    setTemplateItems((current) =>
-                                      current.map((t) =>
-                                        t.id === item.id
-                                          ? { ...t, item_value: newVal }
-                                          : t,
-                                      ),
-                                    );
-                                  }}
-                                  onBlur={(e) => {
-                                    void updateSingleItemValue(
-                                      item.id,
-                                      e.target.value,
-                                    );
-                                    onRefreshPrizes?.();
-                                  }}
-                                  className={`w-full font-mono text-xs font-bold rounded-lg px-2 py-1 outline-none transition-all ${
-                                    isRedeemed
-                                      ? "bg-red-500/15 text-red-500 dark:text-red-400 font-black line-through cursor-not-allowed border border-red-500/40"
-                                      : "bg-transparent border-none text-brand-text focus:bg-card-bg focus:ring-1 focus:ring-emerald-500"
-                                  }`}
-                                />
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                {isRedeemed ? (
-                                  <span
-                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40"
-                                    title={`Redeemed at: ${item.redeemed_at || "N/A"}`}
-                                  >
-                                    <Lock className="w-3 h-3 text-red-500" />
-                                    Redeemed
-                                  </span>
-                                ) : hasValue ? (
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400">
-                                    Prepared
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                    Empty
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                {!isRedeemed && !hasValue && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleGenerateSingleRandom(item.id)
-                                    }
-                                    className="text-purple-400 hover:text-purple-300 p-1 cursor-pointer"
-                                    title="Generate 8-char random alphanumeric code"
-                                  >
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                {!isRedeemed && hasValue && (
-                                  <button
-                                    onClick={async () => {
-                                      await updateSingleItemValue(item.id, "");
-                                      onRefreshPrizes?.();
-                                    }}
-                                    className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                    title="Clear code"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 sm:p-5 bg-card-bg-subtle border-t border-card-border flex items-center justify-between shrink-0">
-                <span className="text-xs text-brand-textMuted">
-                  Changes save automatically to the database when you click
-                  outside an input.
-                </span>
-                <button
-                  onClick={handleCloseCodesModal}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all"
-                >
-                  Done
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-      {/* CONFLICT RESOLUTION MODAL */}
-      <AnimatePresence>
-        {activeValidationResult &&
-          activeValidationResult.conflicts.length > 0 && (
-            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-card-bg border border-card-border rounded-3xl w-full max-w-2xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden"
-              >
-                <div className="p-5 border-b border-card-border bg-amber-500/10 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black text-brand-text">
-                        Duplicate Codes Detected (
-                        {activeValidationResult.conflicts.length})
-                      </h3>
-                      <p className="text-xs text-amber-300/80">
-                        Some codes in this batch collide with existing template
-                        codes or appear multiple times.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveValidationResult(null)}
-                    className="text-brand-textMuted hover:text-brand-text cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                  <p className="text-xs text-brand-textMuted">
-                    You can provide replacement codes inline below, or proceed
-                    with warnings retained:
-                  </p>
-
-                  <div className="space-y-2.5">
-                    {activeValidationResult.conflicts.map((conflict, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3.5 rounded-2xl bg-card-bg-subtle border border-card-border space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-mono font-bold text-brand-text">
-                            Line #{conflict.lineNumber}:{" "}
-                            <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                              {conflict.code}
-                            </code>
-                          </span>
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                            {conflict.reason === "batch_duplicate"
-                              ? "Duplicate in Batch"
-                              : "Already Exists in Template"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="Enter new unique code..."
-                            value={conflictFixInputs[conflict.lineNumber] ?? ""}
-                            onChange={(e) =>
-                              setConflictFixInputs({
-                                ...conflictFixInputs,
-                                [conflict.lineNumber]: e.target.value,
-                              })
-                            }
-                            className="flex-1 bg-card-bg border border-card-border rounded-xl px-3 py-1.5 text-xs font-mono text-brand-text focus:outline-none focus:border-emerald-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleApplyConflictFix(conflict.lineNumber)
-                            }
-                            disabled={
-                              !conflictFixInputs[conflict.lineNumber]?.trim()
-                            }
-                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition disabled:opacity-40 cursor-pointer"
-                          >
-                            Fix
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 border-t border-card-border bg-card-bg-subtle flex items-center justify-between shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setActiveValidationResult(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-brand-textMuted hover:text-brand-text cursor-pointer"
-                  >
-                    Cancel Import
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleProceedWithConflicts}
-                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
-                  >
-                    Proceed Anyway (Keep Warnings)
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-      </AnimatePresence>
     </div>
   );
 };

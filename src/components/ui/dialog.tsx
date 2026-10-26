@@ -1,134 +1,208 @@
-// shadcn/ui Dialog, written without Radix (not installed, like the Button and the Badge): a modal
-// window over the page with a title and a close button. It traps the Tab key inside, closes on
-// Escape or on a click on the dim background, locks the scroll of the page behind it, and gives
-// the focus back to what had it when it opened.
+// shadcn/ui Dialog (new-york look). Adapted: Radix is not installed (decision D1), so the
+// behaviour Radix gives is written here, with the same parts and names: an overlay, a labelled
+// modal, Escape and a click outside to close, the focus kept inside and given back, and the page
+// behind not scrolling.
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 
-const FOCUSABLE =
-  'a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+interface DialogContextValue {
+  onOpenChange: (open: boolean) => void;
+  titleId: string;
+  descriptionId: string;
+}
 
-export interface DialogProps {
+const DialogContext = React.createContext<DialogContextValue | null>(null);
+
+function useDialog() {
+  const value = React.useContext(DialogContext);
+  if (!value) throw new Error("Dialog parts must be used inside <Dialog>.");
+  return value;
+}
+
+interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  description?: string;
-  /** Close button label, for the screen readers. */
-  closeLabel?: string;
-  /** Width of the window; a Tailwind max-width class. */
-  className?: string;
   children: React.ReactNode;
 }
 
-function Dialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  closeLabel = "Close",
+function Dialog({ open, onOpenChange, children }: DialogProps) {
+  const id = React.useId();
+  const value = React.useMemo(
+    () => ({
+      onOpenChange,
+      titleId: `${id}-title`,
+      descriptionId: `${id}-description`,
+    }),
+    [id, onOpenChange],
+  );
+  if (!open) return null;
+  return (
+    <DialogContext.Provider value={value}>{children}</DialogContext.Provider>
+  );
+}
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+interface DialogContentProps extends React.ComponentProps<"div"> {
+  /** The cross in the corner. */
+  showCloseButton?: boolean;
+}
+
+function DialogContent({
   className,
   children,
-}: DialogProps) {
-  const titleId = React.useId();
-  const descriptionId = React.useId();
-  const panel = React.useRef<HTMLDivElement>(null);
-  // Read by the effect below without making it run again when the caller passes a new function.
+  showCloseButton = true,
+  ...props
+}: DialogContentProps) {
+  const { onOpenChange, titleId, descriptionId } = useDialog();
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  // Keep the latest callback without re-running the effects below.
   const onOpenChangeRef = React.useRef(onOpenChange);
-  React.useEffect(() => {
-    onOpenChangeRef.current = onOpenChange;
-  });
+  onOpenChangeRef.current = onOpenChange;
 
   React.useEffect(() => {
-    if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    const content = contentRef.current;
+    const first =
+      content?.querySelector<HTMLElement>("[data-autofocus]") ??
+      content?.querySelector<HTMLElement>(FOCUSABLE) ??
+      content;
+    first?.focus();
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    // The first field of the window, else its first control (the close button).
-    const focusables = () =>
-      Array.from(panel.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []);
-    const first =
-      panel.current?.querySelector<HTMLElement>("[data-autofocus]") ??
-      focusables()[0];
-    first?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onOpenChangeRef.current(false);
+        return;
+      }
+      if (event.key !== "Tab" || !content) return;
+      // Tab goes round inside the dialog.
+      const focusable = Array.from(
+        content.querySelectorAll<HTMLElement>(FOCUSABLE),
+      ).filter((element) => !element.hasAttribute("hidden"));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const firstElement = focusable[0];
+      const lastElement = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === firstElement || active === content)) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && active === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
 
     return () => {
+      document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus?.();
     };
-  }, [open]);
-
-  if (!open) return null;
-
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      onOpenChangeRef.current(false);
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const items = Array.from(
-      panel.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
-    );
-    if (items.length === 0) return;
-    const firstItem = items[0];
-    const lastItem = items[items.length - 1];
-    if (event.shiftKey && document.activeElement === firstItem) {
-      event.preventDefault();
-      lastItem.focus();
-    } else if (!event.shiftKey && document.activeElement === lastItem) {
-      event.preventDefault();
-      firstItem.focus();
-    }
-  };
+  }, []);
 
   return createPortal(
     <div
       data-slot="dialog-overlay"
-      className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onOpenChange(false);
       }}
-      onKeyDown={onKeyDown}
     >
       <div
-        ref={panel}
+        ref={contentRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={description ? descriptionId : undefined}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
         data-slot="dialog-content"
         className={cn(
-          "relative my-auto w-full max-w-lg rounded-2xl border border-border bg-background p-6 text-foreground shadow-2xl",
+          "relative flex max-h-[90vh] w-full max-w-lg flex-col gap-4 overflow-hidden rounded-xl border border-border bg-background p-6 text-foreground shadow-lg outline-none",
           className,
         )}
+        {...props}
       >
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          aria-label={closeLabel}
-          className="absolute right-4 top-4 flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          <X className="size-4" aria-hidden />
-        </button>
-        <div className="mb-5 space-y-1 pr-8">
-          <h2 id={titleId} className="text-lg font-bold leading-tight">
-            {title}
-          </h2>
-          {description && (
-            <p id={descriptionId} className="text-sm text-muted-foreground">
-              {description}
-            </p>
-          )}
-        </div>
         {children}
+        {showCloseButton && (
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="Close"
+            className="absolute right-4 top-4 rounded-sm opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        )}
       </div>
     </div>,
     document.body,
   );
 }
 
-export { Dialog };
+function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn("flex flex-col gap-2 pr-6 text-left", className)}
+      {...props}
+    />
+  );
+}
+
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-footer"
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function DialogTitle({ className, ...props }: React.ComponentProps<"h2">) {
+  const { titleId } = useDialog();
+  return (
+    <h2
+      id={titleId}
+      data-slot="dialog-title"
+      className={cn("text-lg font-semibold leading-none", className)}
+      {...props}
+    />
+  );
+}
+
+function DialogDescription({ className, ...props }: React.ComponentProps<"p">) {
+  const { descriptionId } = useDialog();
+  return (
+    <p
+      id={descriptionId}
+      data-slot="dialog-description"
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  );
+}
+
+export {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+};
