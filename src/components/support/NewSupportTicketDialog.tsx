@@ -28,7 +28,13 @@ import {
 } from "../../services/supportService";
 import type { SupportTicket } from "../../types";
 import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import { NativeSelect } from "../ui/native-select";
 import { Textarea } from "../ui/textarea";
 
@@ -379,19 +385,24 @@ export function NewSupportTicketDialog({
   onCreated: (ticket: SupportTicket) => void;
 }) {
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Open a new support ticket"
-      description="Tell us about a problem with the platform. We answer by email."
-      className="max-w-xl"
-    >
-      {/* Mounted only while open: a new ticket always starts from an empty form. */}
-      <TicketForm
-        account={account}
-        onCreated={onCreated}
-        onClose={() => onOpenChange(false)}
-      />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Open a new support ticket</DialogTitle>
+          <DialogDescription>
+            Tell us about a problem with the platform. We answer by email.
+          </DialogDescription>
+        </DialogHeader>
+        {/* The window keeps its height: the form scrolls inside it on a short screen. */}
+        <div className="-m-1 min-h-0 overflow-y-auto p-1">
+          {/* Mounted only while open: a new ticket always starts from an empty form. */}
+          <TicketForm
+            account={account}
+            onCreated={onCreated}
+            onClose={() => onOpenChange(false)}
+          />
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }

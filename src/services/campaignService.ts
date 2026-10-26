@@ -63,8 +63,18 @@ export async function addPrizeTemplateService(
     category: prizeData.category || "voucher",
     stock_quantity: prizeData.totalStock || 100,
     value: numericValue,
-    image_url: prizeData.image || null,
+    image_url:
+      (prizeData.category || "voucher") === "physical"
+        ? prizeData.image || null
+        : null,
     description: prizeData.description || null,
+    // A date for either kind (on a physical reward it is only informative); a period after
+    // delivery only for a digital reward, the one that has codes to deliver.
+    expires_at: prizeData.expiresAt ?? null,
+    expiry_days:
+      (prizeData.category || "voucher") === "voucher"
+        ? (prizeData.expiryDays ?? null)
+        : null,
   };
 
   const { data, error } = await supabase
@@ -73,7 +83,14 @@ export async function addPrizeTemplateService(
     .select("id")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(
+        "A reward with this name already exists in your library.",
+      );
+    }
+    throw error;
+  }
   return data.id;
 }
 
@@ -90,8 +107,12 @@ export async function updatePrizeTemplateService(
     category: prizeData.category,
     stock_quantity: prizeData.totalStock,
     value: numericValue,
-    image_url: prizeData.image || null,
+    image_url:
+      prizeData.category === "physical" ? prizeData.image || null : null,
     description: prizeData.description || null,
+    expires_at: prizeData.expiresAt ?? null,
+    expiry_days:
+      prizeData.category === "voucher" ? (prizeData.expiryDays ?? null) : null,
   };
 
   const { error } = await supabase
@@ -99,7 +120,14 @@ export async function updatePrizeTemplateService(
     .update(payload)
     .eq("id", id);
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(
+        "A reward with this name already exists in your library.",
+      );
+    }
+    throw error;
+  }
 }
 
 export async function deletePrizeTemplateService(id: string): Promise<void> {

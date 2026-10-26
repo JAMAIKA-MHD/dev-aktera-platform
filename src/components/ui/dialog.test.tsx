@@ -1,92 +1,151 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { Dialog } from "./dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
 
-function Harness() {
+function Example({
+  onOpenChange,
+  showCloseButton,
+}: {
+  onOpenChange?: (open: boolean) => void;
+  showCloseButton?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const change = (next: boolean) => {
+    setOpen(next);
+    onOpenChange?.(next);
+  };
   return (
     <>
-      <button onClick={() => setOpen(true)}>Open</button>
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-        title="Edit thing"
-        description="Change the thing."
-      >
-        <input aria-label="First" />
-        <button>Second</button>
-        <input aria-label="Third" data-autofocus />
+      <button type="button" onClick={() => setOpen(true)}>
+        Open it
+      </button>
+      <Dialog open={open} onOpenChange={change}>
+        <DialogContent showCloseButton={showCloseButton}>
+          <DialogHeader>
+            <DialogTitle>Export the file</DialogTitle>
+            <DialogDescription>What the file holds.</DialogDescription>
+          </DialogHeader>
+          <input aria-label="First field" />
+          <DialogFooter>
+            <button type="button">Cancel</button>
+            <button type="button">Go</button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
 }
 
 describe("Dialog", () => {
-  it("is a named modal window, described, and hidden while closed", async () => {
-    const user = userEvent.setup();
-    render(<Harness />);
+  it("renders nothing while closed", () => {
+    render(<Example />);
     expect(screen.queryByRole("dialog")).toBeNull();
-    await user.click(screen.getByText("Open"));
-    const dialog = screen.getByRole("dialog", { name: "Edit thing" });
-    expect(dialog.getAttribute("aria-modal")).toBe("true");
-    expect(dialog.getAttribute("aria-describedby")).not.toBeNull();
-    expect(screen.getByText("Change the thing.")).toBeTruthy();
   });
 
-  it("puts the focus on the field marked for it, and gives it back on close", async () => {
+  it("is a modal labelled by its title and described by its text", async () => {
+    render(<Example />);
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Open it" }));
+    const dialog = screen.getByRole("dialog", { name: "Export the file" });
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-describedby")).toBe(
+      screen.getByText("What the file holds.").id,
+    );
+  });
+
+  it("is rendered on the body, outside the page it was opened from", async () => {
+    const { container } = render(<Example />);
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Open it" }));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+  });
+
+  it("puts the focus inside, and gives it back when it closes", async () => {
     const user = userEvent.setup();
-    render(<Harness />);
-    const opener = screen.getByText("Open");
+    render(<Example />);
+    const opener = screen.getByRole("button", { name: "Open it" });
     await user.click(opener);
-    expect(document.activeElement).toBe(screen.getByLabelText("Third"));
+    // The cross comes first in the tab order of the content.
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(
+      true,
+    );
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(opener);
   });
 
-  it("keeps the Tab key inside the window, both ways", async () => {
+  it("closes with Escape, with the cross and with a click outside", async () => {
+    const onOpenChange = vi.fn();
     const user = userEvent.setup();
-    render(<Harness />);
-    await user.click(screen.getByText("Open"));
-    const close = screen.getByRole("button", { name: "Close" });
-    const third = screen.getByLabelText("Third");
-    // Third is the last control: Tab goes back to the first (the close button).
-    third.focus();
-    await user.tab();
-    expect(document.activeElement).toBe(close);
-    // Shift+Tab from the first goes to the last.
-    await user.tab({ shift: true });
-    expect(document.activeElement).toBe(third);
-  });
+    render(<Example onOpenChange={onOpenChange} />);
 
-  it("closes with the close button and with a click on the dim background", async () => {
-    const user = userEvent.setup();
-    render(<Harness />);
-    await user.click(screen.getByText("Open"));
+    await user.click(screen.getByRole("button", { name: "Open it" }));
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Open it" }));
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    await user.click(screen.getByText("Open"));
-    // A click inside the window does not close it.
-    await user.click(screen.getByText("Edit thing"));
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    // A click on the background does.
-    await user.click(
-      document.querySelector('[data-slot="dialog-overlay"]') as HTMLElement,
-    );
+    await user.click(screen.getByRole("button", { name: "Open it" }));
+    const overlay = document.body.querySelector(
+      '[data-slot="dialog-overlay"]',
+    )!;
+    fireEvent.mouseDown(overlay);
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
   });
 
-  it("locks the scroll of the page behind it, and unlocks it on close", async () => {
+  it("stays open when the click is inside the dialog", async () => {
     const user = userEvent.setup();
-    render(<Harness />);
-    expect(document.body.style.overflow).not.toBe("hidden");
-    await user.click(screen.getByText("Open"));
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Open it" }));
+    await user.click(screen.getByText("What the file holds."));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("keeps the focus going round inside with Tab and Shift+Tab", async () => {
+    const user = userEvent.setup();
+    render(<Example showCloseButton={false} />);
+    await user.click(screen.getByRole("button", { name: "Open it" }));
+    const field = screen.getByLabelText("First field");
+    const go = screen.getByRole("button", { name: "Go" });
+    expect(document.activeElement).toBe(field);
+
+    go.focus();
+    await user.tab();
+    expect(document.activeElement).toBe(field);
+
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(go);
+  });
+
+  it("stops the page behind from scrolling while open", async () => {
+    const user = userEvent.setup();
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Open it" }));
     expect(document.body.style.overflow).toBe("hidden");
     await user.keyboard("{Escape}");
     expect(document.body.style.overflow).not.toBe("hidden");
+  });
+
+  it("can do without the cross", async () => {
+    const user = userEvent.setup();
+    render(<Example showCloseButton={false} />);
+    await user.click(screen.getByRole("button", { name: "Open it" }));
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 });

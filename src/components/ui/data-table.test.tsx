@@ -246,4 +246,15 @@ describe("DataTable", () => {
       "hidden @4xl:table-cell",
     );
   });
+
+  it("gives a row the classes the caller asks for", () => {
+    renderTable({
+      rowClassName: (fruit) => (fruit.color === "red" ? "row-red" : undefined),
+    });
+    const row = screen.getByText("Fruit 01").closest("tr");
+    expect(row?.className).toContain("row-red");
+    expect(screen.getByText("Fruit 02").closest("tr")?.className).not.toContain(
+      "row-red",
+    );
+  });
 });

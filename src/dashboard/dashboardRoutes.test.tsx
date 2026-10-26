@@ -59,8 +59,22 @@ vi.mock("../hooks/useCampaigns", () => ({
     refetch: vi.fn(),
   }),
 }));
+// What the rewards hook answers: one digital reward in the tests of the reward pages.
+const rewardHook = vi.hoisted(() => ({
+  prizes: [] as unknown[],
+  loading: false,
+}));
 vi.mock("../hooks/usePrizeTemplates", () => ({
-  usePrizeTemplates: () => ({ prizes: [], loading: false, refetch: vi.fn() }),
+  usePrizeTemplates: () => ({
+    prizes: rewardHook.prizes,
+    loading: rewardHook.loading,
+    refetch: vi.fn(),
+  }),
+}));
+vi.mock("../components/rewards/RewardCodesView", () => ({
+  RewardCodesView: ({ reward }: { reward: { id: string; name: string } }) => (
+    <p>codes:{reward.id}</p>
+  ),
 }));
 vi.mock("../hooks/useEntries", () => ({
   useEntries: () => ({ entries: [], refetch: vi.fn() }),
@@ -162,6 +176,8 @@ const findStudio = async () =>
 beforeEach(() => {
   localStorage.clear();
   hook.loading = false;
+  rewardHook.prizes = [];
+  rewardHook.loading = false;
 });
 
 describe("Dashboard routing", { timeout: 15000 }, () => {
@@ -226,6 +242,110 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
     renderAt("/campaigns/c2");
     expect(await screen.findByText("workspace:c2")).toBeTruthy();
     expect(url()).toBe("/campaigns/c2");
+  });
+
+  it("opens the Reward Library on its libraries, then the Local Library on its own URL", async () => {
+    renderAt("/prizes");
+    const user = userEvent.setup();
+    expect(
+      await screen.findByRole(
+        "heading",
+        { name: "Reward Library" },
+        { timeout: 5000 },
+      ),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Coming soon")).toHaveLength(3);
+
+    await user.click(screen.getByRole("link", { name: /Local Library/ }));
+    await waitFor(() => expect(url()).toBe("/prizes/local"), {
+      timeout: 5000,
+    });
+    const nav = screen.getByRole("navigation", { name: "Dashboard" });
+    // The menu entry stays the current page inside the library.
+    expect(
+      within(nav)
+        .getByRole("link", { name: /Reward Library/ })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+
+    const breadcrumb = await screen.findByRole(
+      "navigation",
+      { name: "Breadcrumb" },
+      { timeout: 5000 },
+    );
+    await user.click(within(breadcrumb).getByRole("link"));
+    await waitFor(() => expect(url()).toBe("/prizes"));
+  });
+
+  it("opens the Local Library directly from its URL, as after a refresh", async () => {
+    renderAt("/prizes/local");
+    expect(
+      await screen.findByRole(
+        "navigation",
+        { name: "Breadcrumb" },
+        { timeout: 5000 },
+      ),
+    ).toBeTruthy();
+    expect(url()).toBe("/prizes/local");
+  });
+
+  describe("the codes of a reward", () => {
+    const reward = {
+      id: "r1",
+      name: "Ooredoo 500 DA",
+      category: "voucher",
+      description: "",
+      totalStock: 3,
+      availableStock: 3,
+      allocatedStock: 0,
+      itemValue: "500 DA",
+    };
+
+    it("opens on a page of its own, with the reward in the address, when a reward is clicked", async () => {
+      rewardHook.prizes = [reward];
+      renderAt("/prizes/local");
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByText("Ooredoo 500 DA", {}, { timeout: 5000 }),
+      );
+      expect(
+        await screen.findByText("codes:r1", {}, { timeout: 5000 }),
+      ).toBeTruthy();
+      expect(url()).toBe("/prizes/local/r1");
+      expect(screen.queryByRole("dialog")).toBeNull();
+      // The menu entry stays the current page inside the library.
+      const nav = screen.getByRole("navigation", { name: "Dashboard" });
+      expect(
+        within(nav)
+          .getByRole("link", { name: /Reward Library/ })
+          .getAttribute("aria-current"),
+      ).toBe("page");
+    });
+
+    it("opens directly from its address, as after a refresh", async () => {
+      rewardHook.prizes = [reward];
+      renderAt("/prizes/local/r1");
+      expect(
+        await screen.findByText("codes:r1", {}, { timeout: 5000 }),
+      ).toBeTruthy();
+      expect(url()).toBe("/prizes/local/r1");
+    });
+
+    it("sends an unknown reward back to the Local Library", async () => {
+      rewardHook.prizes = [reward];
+      renderAt("/prizes/local/nope");
+      await waitFor(() => expect(url()).toBe("/prizes/local"), {
+        timeout: 5000,
+      });
+    });
+
+    it("waits for the rewards before judging the address", async () => {
+      rewardHook.loading = true;
+      renderAt("/prizes/local/r1");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(url()).toBe("/prizes/local/r1");
+      expect(screen.queryByText("codes:r1")).toBeNull();
+    });
   });
 
   it("opens the wizard to edit or relaunch the campaign named in the URL", async () => {

@@ -1,3 +1,4 @@
+import { rewardTypeName } from "../lib/rewardTypes";
 import React, { useMemo, useState } from "react";
 import { Campaign, LeadEntry, PrizeTemplate } from "../types";
 import {
@@ -665,7 +666,7 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                 <div>
                   <h5 className="font-bold text-sm">{prize.templateName}</h5>
                   <p className="text-xs text-brand-textMuted mt-0.5">
-                    {prize.category} • {prize.faceValue}
+                    {rewardTypeName(prize.category)} • {prize.faceValue}
                   </p>
                 </div>
                 <div className="flex items-center gap-6 text-xs text-center font-bold">

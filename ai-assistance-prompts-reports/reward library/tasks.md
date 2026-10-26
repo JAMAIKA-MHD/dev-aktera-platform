@@ -1,0 +1,226 @@
+# Tasks — Reward Types & Inventory Logic
+
+> Cocher une case **seulement** quand la tâche est terminée et vérifiée (règle 33 de `rules.md`).
+> **Chaque tâche est commitée par Claude lui-même, sans demander la permission** (règle 32) ; jamais de push
+> ni de déploiement sans demande. Le détail de chaque tâche est dans `P0/` … `P5/` (un fichier par tâche).
+> Ordre conseillé : P0 → P1 → P2 → P3 → P4 → P5. Chaque phase se termine par un commit.
+> Légende des fichiers : `SQL` = `supabase/migrations/…`, `FN` = `supabase/functions/select-prize/index.ts`.
+
+---
+
+## P0 — Préparation (lecture seule, ~30 min)
+
+- [x] **T0.1 Confirmer la définition actuelle du tirage.** Ouvrir la **dernière** définition de
+      `draw_and_claim_campaign_prize` (la migration `20260831145100_…` la définit ; vérifier qu'aucune
+      migration postérieure, ni `resolve_game_outcome`, ne la redéfinit). Repérer les **deux** boucles
+      de candidats (mode auto-pace et mode probabilité) et l'endroit où `quantity_won` est incrémenté.
+      Noter le résultat dans « Écarts rencontrés » en bas de ce fichier.
+- [x] **T0.2 Confirmer l'écran concerné.** La Reward Library = `PrizesManager.tsx` (route `/prizes`).
+      `InventoryManager.tsx` n'est importé nulle part : ne pas y travailler.
+- [x] **T0.3 Repérer le tableau des codes** dans `PrizesManager.tsx` (recherche « Loading inventory
+      codes from database ») et la liste des lots (catégories `voucher` / `physical`) pour savoir où
+      ajouter l'expiration et le panneau de livraison.
+- [x] **T0.4 Baseline.** Lancer `npm run verify` et noter l'état (tests verts avant de commencer).
+
+---
+
+## P1 — Base de données (une migration)
+
+Fichier : `supabase/migrations/<timestamp>_reward_expiry_and_delivery.sql`
+
+- [x] **T1.1 Colonnes.**
+  - `prize_template_items.expires_at timestamptz NULL`.
+  - `entries.delivery_status text NOT NULL DEFAULT 'not_delivered'` avec
+    `CHECK (delivery_status IN ('not_delivered','delivered'))`.
+  - `entries.delivered_at timestamptz NULL`.
+  - Index partiel utile au tirage : sur `prize_template_items(prize_template_id)` filtré sur les
+    codes non attribués si absent (réutiliser `idx_prize_template_items_available` s'il suffit).
+- [x] **T1.2 Fonction `is_code_assignable`.** Fonction SQL `STABLE` `(p_item_id uuid)` ou version
+      sur ligne : vrai si `item_value` non vide, aucune ligne dans `coupon_redemptions` pour cet
+      item, et `expires_at IS NULL OR expires_at > now()`. `SET search_path = public`, `REVOKE`
+      puis `GRANT EXECUTE` à `service_role` (règle 11).
+- [x] **T1.3 Attribution filtrée.** `CREATE OR REPLACE FUNCTION public.claim_campaign_prize_coupon`
+      en recopiant la version actuelle (`20260929150000_claim_coupon_without_duplicates.sql`) et en
+      ajoutant **uniquement** la condition d'expiration dans la sélection (`FOR UPDATE SKIP LOCKED`
+      conservé). Re-`REVOKE`/`GRANT` à `service_role`.
+- [x] **T1.4 Tirage : exclure un lot à codes épuisé.** Dans les **deux** boucles de candidats, ajouter
+      la règle du plan §4.3 : un lot est éligible si (a) son modèle n'a **aucun** code chargé, ou
+      (b) il existe au moins un code attribuable. Recopier la fonction à l'identique pour le reste
+      (règle 2). Ne pas changer sa signature ni ses `GRANT`.
+- [x] **T1.5 RPC `set_entry_delivery_status(p_entry_id uuid, p_status text)`.** `SECURITY DEFINER`,
+      `SET search_path = public`. Contrôles dans cet ordre : `auth.uid()` non nul ; statut dans la
+      liste ; entrée trouvée et `is_winner = true` ; lot de catégorie `physical` (via
+      `prizes → prize_templates`) ; appelant membre de `entries.organization_id` ; rôle ≠ `viewer`.
+      Met à jour `delivery_status` et `delivered_at` (`now()` si `delivered`, `NULL` sinon).
+      `REVOKE ALL … FROM PUBLIC, anon, authenticated` puis `GRANT EXECUTE … TO authenticated`.
+      Messages d'erreur clairs et distincts (non autorisé / introuvable / pas un lot physique).
+- [x] **T1.6 Application locale.** `npx supabase db reset` passe sans erreur ; le seed existant
+      (`npm run db:seed`) fonctionne toujours.
+
+### Tests de la phase (règle 27)
+
+- [x] **T1.7 Script de sonde SQL** (`scripts/probe-rewards.sql` ou intégré à `backend:probe`) :
+  - [x] code expiré + code valide → l'attribution renvoie le valide ;
+  - [x] seul un code expiré → l'attribution ne renvoie rien ;
+  - [x] deux attributions concurrentes (deux sessions) → deux codes différents ;
+  - [x] tous les codes utilisés ou expirés → le tirage ne désigne jamais ce lot (boucler ≥ 200 tirages) ;
+  - [x] lot sans aucun code → toujours éligible (gagnant sans code possible) ;
+  - [x] `set_entry_delivery_status` : membre OK ; `viewer` refusé ; autre organisation refusée ;
+        entrée perdante refusée ; lot numérique refusé ; `anon` refusé.
+- [x] **T1.8 Étendre `npm run backend:probe`** : `anon` ne peut appeler ni `set_entry_delivery_status`
+      ni `is_code_assignable`.
+
+**Commits :** un par tâche, messages dans les fichiers `Pn/` correspondants.
+
+---
+
+## P2 — Edge Function
+
+- [x] **T2.1 Marquer l'attribution manquée.** Dans `claimCoupon`/l'étape 10 de `select-prize` : si le
+      gain est un lot **qui a des codes** et que l'attribution ne renvoie rien, mettre
+      `metadata.reward_unavailable = true` sur l'entrée et `console.warn`. Pour un lot sans code,
+      aucun changement (le « You Won! » sans récompense continue de marcher). Ne toucher ni aux
+      codes d'erreur, ni à la forme de la réponse.
+- [x] **T2.2 Vérifier** avec `npx supabase functions serve --env-file .env.local` puis
+      `npm run backend:smoke` : gain avec code, gain sans code, lot épuisé (pas de gain), rejeu avec
+      le même `client_request_id` (réponse identique, `replayed: true`).
+
+**Commits :** un par tâche, messages dans les fichiers `Pn/` correspondants.
+
+---
+
+## P3 — Front : types, services, données
+
+- [x] **T3.1 Types.** `src/types.ts` : `PrizeTemplateItem.expiresAt?: string | null` ; un type
+      `DeliveryStatus = "not_delivered" | "delivered"` ; `PhysicalWinner` (id d'entrée, téléphone,
+      nom du participant, nom du lot, date du gain, `deliveryStatus`, `deliveredAt`).
+- [x] **T3.2 Lecture/écriture de l'expiration.** `inventoryService.ts` et le hook
+      `useInventoryManager.ts` : lire `expires_at`, le mapper en `expiresAt`, et ajouter deux
+      fonctions : mettre à jour la date d'un code ; appliquer une date à tous les codes d'un lot
+      (option « seulement ceux sans date »). Validation : date valide ; un avertissement (pas un
+      blocage) si la date est passée.
+- [x] **T3.3 Compteurs de disponibilité.** Dans le mapping, calculer pour chaque lot : codes
+      disponibles / utilisés / expirés (pour l'affichage uniquement). Ne pas changer le sens des
+      champs existants (`availableStock`, `allocatedStock`…).
+- [x] **T3.4 `src/services/deliveryService.ts`.** (a) `fetchPhysicalWinners(organizationId, templateId?)` :
+      lecture directe de `entries` (RLS par organisation) avec jointure sur `prizes` et
+      `prize_templates` filtrée sur `category = 'physical'` et `is_winner = true`, triée par date ;
+      (b) `setDeliveryStatus(entryId, status)` : appel de la RPC, erreur propagée avec un message
+      lisible.
+- [x] **T3.5 Tests Vitest** : mapping de `expires_at`, service de livraison (succès, erreur RPC),
+      date en lot (n'écrase pas une date existante par défaut).
+
+**Commits :** un par tâche, messages dans les fichiers `Pn/` correspondants.
+
+---
+
+## P4 — Front : interface
+
+Nouveaux composants dans `src/components/rewards/` ; points d'entrée minimaux dans `PrizesManager.tsx`
+(règle 21).
+
+- [x] **T4.1 Sélecteur Local / Partner.** Deux onglets en haut de la Reward Library. « Local Library »
+      affiche exactement l'écran actuel. « Partner Library » affiche `PartnerLibraryComingSoon`
+      (nouveau composant) : cartes Chargily et Gifty, badge « Coming soon », texte court, rien de
+      cliquable, aucun appel réseau.
+- [x] **T4.2 Expiration dans le tableau des codes.** Colonne « Expires » : date par code (champ date,
+      vide = n'expire pas), badge « Expired » pour un code périmé (visible, non supprimé), ligne
+      grisée. Saisie de la date = **fin de journée à Alger** (23:59:59, `Africa/Algiers`) convertie en
+      UTC pour la base. Action « Set expiry for all codes » (option : seulement ceux sans date).
+      Disponible pour les lots `voucher` uniquement.
+- [x] **T4.3 Résumé de stock du lot.** Dans la fiche d'un lot numérique : « X available · Y used ·
+      Z expired », et un avertissement visible quand `available = 0` ou quand l'allocation d'une
+      campagne dépasse les codes disponibles (« this reward will stop being drawn when codes run out »).
+- [x] **T4.4 Panneau « Winners & delivery ».** Pour un lot `physical` : liste des gagnants (nom,
+      téléphone, date, statut) avec un sélecteur `Not delivered / Delivered` par ligne ; changement
+      immédiat via `deliveryService` avec état de chargement par ligne, retour d'erreur lisible et
+      annulation du changement affiché en cas d'échec. Masquer le contrôle (lecture seule) pour le
+      rôle `viewer`. Mention fixe : « You handle delivery. AKTERA only records the status. »
+      États vide / chargement / erreur gérés.
+- [x] **T4.5 Libellés.** Tous en anglais ; si le projet passe par `t()` pour cet écran, suivre le même
+      usage, sinon rester cohérent avec le fichier.
+- [x] **T4.6 Tests Vitest/Testing Library** : onglet Partner (badges, `supabase` jamais appelé) ;
+      tableau des codes (badge expiré, saisie de date, date en lot) ; panneau de livraison (changer le
+      statut, rollback sur erreur, lecture seule pour `viewer`, état vide).
+
+**Commits :** un par tâche, messages dans les fichiers `Pn/` correspondants.
+
+---
+
+## P5 — Vérification finale
+
+- [x] **T5.1** `npm run verify` (lint + typecheck + tests + build) vert.
+- [x] **T5.2** `npm run backend:probe` vert (anon et membre).
+- [x] **T5.3 Parcours de bout en bout** contre la vraie Edge Function et la vraie base (`npm run backend:smoke`
+      15/15 et `npm run backend:rewards` 21/21) : codes dont un expiré (T13), lot sans code → « You Won! »
+      sans code (T11), lot physique → statut `not_delivered` (T14), changement de statut par un manager
+      et refus d'un `viewer` (`backend:rewards`). Voir les notes « T5.3 » plus bas.
+- [ ] **T5.3b Contrôle visuel dans le navigateur (à faire par une personne, `npm run dev` + base locale).**
+      Claude n'a pas de navigateur automatisable ici. À vérifier : (1) un lot numérique : colonne
+      « Expires », badge « Expired », résumé « X available · Y used · Z expired », date pour tous les
+      codes ; (2) un lot physique : panneau « Winners & delivery », passer à `Delivered`, recharger, le
+      statut est conservé, un compte `viewer` est en lecture seule ; (3) onglet « Partner Library » :
+      « Coming soon », rien de cliquable ; (4) l'écran « You Won! » côté joueur pour un lot sans code.
+- [x] **T5.4 Régression** : import CSV, génération de codes, détection de doublons, allocation à une
+      campagne, détail d'une campagne et analytics fonctionnent comme avant.
+- [x] **T5.5 Documentation.** Ajouter au runbook `ai-assistance-prompts-reports/backend/deploiement.md`
+      l'ordre de déploiement de cette migration (migration → Edge Function → front). Mettre à jour
+      `supabase/SEED.md` seulement si le seed est modifié.
+- [x] **T5.6** Préparer la description de la merge request (changements, migration, compatibilité,
+      comment tester). Ne pas pousser ni déployer sans demande.
+
+---
+
+## Écarts rencontrés
+
+_(à remplir pendant le travail : tout fait qui contredit le plan, avec la décision prise)_
+
+**T0.1 — Tirage.**
+
+- Dernière **définition** de `draw_and_claim_campaign_prize` : `supabase/migrations/20260831145100_add_game_type_and_logic_config.sql` (lignes ~460-690). Aucune migration postérieure ne la redéfinit ; `20260929120000_close_anonymous_access.sql` fait seulement `ALTER … SECURITY INVOKER`, `REVOKE … FROM PUBLIC, anon`, `GRANT … TO authenticated, service_role`.
+- Deux boucles de candidats : mode auto-pace (~l.529-554, condition `v_remaining_qty > 0 AND v_won_today < v_daily_limit_today`) et mode probabilité (~l.596-603, condition `(p.quantity - quantity_won) > 0`). `quantity_won` est incrémenté après le claim de `prize_inventory` (~l.661).
+- `resolve_game_outcome` (redéfinie en `20260929140000_…`) **appelle** le tirage (elle ne le recopie pas).
+- **Écart avec le plan :** la fonction est `SECURITY INVOKER` et exécutable par `authenticated` (le test du dashboard, `CampaignTestModal`, l'appelle). Donc (a) le `CREATE OR REPLACE` doit **garder `SECURITY INVOKER`** et refaire les mêmes `REVOKE`/`GRANT` ; (b) l'aide `is_code_assignable` doit être exécutable par `authenticated` **et** `service_role` (pas `anon`), en `SECURITY INVOKER` : un membre ne voit que les codes de son organisation (RLS). Règle 11 de `rules.md` adaptée en conséquence.
+
+**T0.2 — Écran.** `/prizes` → `PrizesPage` → `PrizesManager.tsx` (« Reward Library »). `InventoryManager.tsx` n'est importé nulle part (code mort, non touché).
+
+**T0.3 — Points d'insertion dans `PrizesManager.tsx`.**
+
+- En-tête (« Reward Library » + bouton « Add Custom Reward », ~l.492-515) → sélecteur Local / Partner.
+- Tableau des codes (~l.1366-1440, colonnes `#`, `Voucher / Unique Code`, `Status`, `Actions`) → colonne « Expires ».
+- Cartes de lots (~l.740-790, `prize.category === "voucher" ? "Voucher" : "Item"`) et fenêtre de détail d'un lot → résumé de stock et panneau de livraison.
+- **Écart avec le plan :** les lignes de codes sont en **snake_case** (`TemplateItemRow` dans `inventoryService.ts` : `item_value`, `is_used`, `redeemed_at`…). Le champ d'expiration sera donc `expires_at` dans `TemplateItemRow` (T3.1/T3.2), pas `expiresAt`. Le `select(...)` de `fetchTemplateItemsService` (l.~66) doit lister `expires_at`.
+
+**T1.3 — Défaut existant corrigé.** Le repli de `claim_campaign_prize_coupon` lisait `prize_templates.item_value`, **colonne inexistante** : la fonction levait une erreur dès qu'aucun code n'était disponible (y compris pour un lot sans aucun code). `select-prize` avalait l'erreur (`coupon claim failed`) et renvoyait donc `coupon: null`, ce qui masquait le problème. Le bloc mort est retiré : la fonction renvoie proprement `NULL`. Le « code unique partagé » n'a donc jamais existé ; la ligne correspondante du « Hors périmètre » du plan est sans objet.
+
+**T1.6 — Application locale.** `npx supabase db reset` : 1ʳᵉ exécution en échec sans détail (`error running container`, transitoire), 2ᵉ exécution (`--debug`) complète, migration appliquée ; `npm run db:seed` OK ; `npm run backend:probe` : 18/18.
+
+**T1.5 / T1.7 — Contrôle ajouté.** La sonde a montré qu'un membre (même `viewer`) pouvait modifier `entries.delivery_status` **directement** (politique existante `update_org_entries`). Ajout d'un trigger `guard_entry_delivery_status` : seul `set_entry_delivery_status` (SECURITY DEFINER) peut changer ces deux colonnes. Écart avec le plan : la sonde est un script Node (`scripts/backend/rewards-probe.mjs`, `npm run backend:rewards`) et non un fichier SQL, pour tester la concurrence réelle (`Promise.all`) et des utilisateurs réellement connectés. Le trou plus large de `update_org_entries` (un membre peut modifier `is_winner`, `prize_id`…) existe déjà et sort du périmètre : à traiter avec le correctif de sécurité de `analyse-organisations.md`.
+
+**T2.1 / T2.2 — Résultats.** `npx supabase functions serve --env-file .env.local` + `npm run backend:smoke` : **13/13**. Au 1ᵉʳ lancement à froid, T8 (10 joueurs simultanés) a échoué une fois (`An invalid response was received from the upstream server`, démarrage du runtime) ; 3 relances : 11/11 puis 13/13, sans échec. Deux scénarios ajoutés au smoke : T11 (lot sans code → gagnant, `coupon: null`, entrée non marquée) et T12 (lot dont l'unique code a expiré → jamais tiré). Le marquage `reward_unavailable` a été prouvé à la main avec un trigger temporaire qui fait expirer le dernier code entre le tirage et l'attribution : gagnant sans code, `metadata.reward_unavailable = true` ; trigger et données supprimés.
+
+**P3 — Écarts.** (a) Les lignes de codes restent en snake_case (`TemplateItemRow.expires_at`), conformément au code existant ; `PrizeTemplateItem` de `types.ts` n'est pas utilisé et n'a pas été touché. (b) T3.3 : les compteurs disponibles / utilisés / expirés sont calculés par `computeCodeCounts` (`src/lib/codeExpiry.ts`) à partir des codes **déjà chargés** par `useInventoryManager` (lecture paginée complète, avec l'état « utilisé »), pas dans `usePrizeTemplates`, dont les requêtes sont plafonnées à 1000 lignes par PostgREST : un compteur faux au-delà serait pire que pas de compteur. (c) Les helpers de date (fin de journée à Alger ↔ UTC) sont dans `src/lib/codeExpiry.ts`. (d) Cas limite connu : remplacer un code par un import (mode « replace ») conserve l'`expires_at` de la ligne ; non traité (rare), à surveiller.
+
+**P4 — Écarts.** (a) T4.1 : le sélecteur Local / Partner est un composant enveloppe `rewards/RewardLibrary.tsx` (utilisé par `PrizesPage`), pas une modification de `PrizesManager` : l'écran local est strictement inchangé. (b) L'action « Expiry for all codes » (demandée en T4.2) vit dans `CodeStockSummary` (T4.3), avec le résumé de stock. (c) Les tests de l'interface ont été écrits avec chaque composant (et pas seulement en T4.6) ; T4.6 consiste à tout relancer ensemble : `npx vitest run src/components/rewards` → 5 fichiers, 35 tests verts, plus `dashboardRoutes.test.tsx` vert. (d) Pas de `jest-dom` dans le projet : assertions avec `toBeTruthy()` / `toBeNull()`. (e) T4.5 : libellés en anglais ; `PrizesManager` n'utilise pas `t()`, les nouveaux composants non plus (cohérence avec le fichier) ; ESLint propre sur tous les fichiers touchés ; champs avec `aria-label`/`label`, onglets avec rôles `tablist`/`tab`/`tabpanel`.
+
+**T5.2 — Sondes.** `npm run backend:probe` : 21/21 (les contrôles membres, qui demandent `BACKEND_PROBE_EMAIL/PASSWORD`, n'ont pas tourné ; le comportement membre est couvert par `npm run backend:rewards`, 21/21, avec de vrais utilisateurs connectés).
+
+**T5.3 — Parcours.** Aucun navigateur automatisable n'est disponible dans cet environnement (pas de Playwright/Puppeteer) : le parcours **visuel** n'a pas pu être exécuté par Claude. Fait à la place, de bout en bout contre la vraie Edge Function et la vraie base : scénarios 1 à 3 du plan (smoke T13 : 1 code valide + 1 expiré, 3 gains attendus → 1 seul gagnant avec le code valide, puis plus personne ; T11 : lot sans code → gagnant « You Won! » sans code ; T14 : lot physique → gagnant sans code, `delivery_status = not_delivered`), le changement de statut par un manager / le refus d'un `viewer` (`backend:rewards`), et l'interface en jsdom (35 tests de composants, dont la fenêtre de codes réelle de `PrizesManager`). `npm run backend:smoke` : **15/15**. Reste **à faire par une personne** : T5.3b (voir plus bas), le contrôle visuel dans `npm run dev`.
+
+**T5.4 — Régression.** Revue du diff depuis le début du travail : `inventoryService.ts` et `PrizesManager.tsx` n'ont **aucune suppression** hormis la chaîne du `select` de `fetchTemplateItemsService` (qui ajoute `expires_at`) ; tout le reste est additif. L'import CSV, la génération, la détection de doublons, l'allocation et les analytics n'ont pas été touchés ; la suite complète de tests (`npm run verify`, voir T5.1) les couvre.
+
+**T5.1 — `npm run verify`.** Lancé sur une **copie propre de `HEAD`** (git worktree), car le dossier de travail porte le renommage d'icône indexé qui casse le typecheck (voir T0.4). Résultat : lint 0 erreur (6 avertissements existants) ; typecheck normal et strict OK ; tests **1160 verts, 2 en échec** (`PublicPlayPage.test.tsx` : titre du document ; `CampaignStudio.test.tsx` : délai de 5 s dépassé) — la machine faisait tourner en même temps les sondes, le smoke et la base ; relancés seuls, **les 2 fichiers passent (5/5)** ; build OK (34 s). Aucun de ces deux fichiers n'est touché par ce travail. Dans le dossier de travail, `npm run verify` reste rouge pour la seule raison étrangère décrite en T0.4. Incident : la suppression forcée de la copie a effacé ~118 paquets de `node_modules` (lien de dossier) ; réinstallés avec `npm install` depuis le lockfile (aucun fichier suivi modifié), outils et tests de nouveau OK.
+
+**T0.4 — Baseline `npm run verify` (2026-10-12, branche `feat/inventory-reward-library`).**
+
+- Lint : 0 erreur, 6 avertissements existants. Typecheck : **1 erreur existante** `DeviceToolbar.tsx(5,33): Cannot find module './PhoneRotateIcon'`. Tests : **8 fichiers en échec à l'import (même cause), 1039 tests verts**. Build non lancé (arrêt au typecheck). Durée des tests : ~21 min en entier.
+- Cause : un renommage `PhoneRotateIcon.tsx → ScreenRotationIcon.tsx` est **indexé (staged)** dans le dossier de travail, mais `DeviceToolbar.tsx` (commité) importe encore l'ancien nom. Ce travail (icône de rotation du Studio) n'appartient pas à cette issue : **non touché**. Mes commits n'incluent que mes fichiers (`git commit -- <fichiers>`).
+- Conséquence : `npm run verify` est rouge pour une raison étrangère à l'issue. Critère utilisé pendant le travail : aucune erreur nouvelle par rapport à cette baseline (typecheck filtré, tests ciblés sur les fichiers modifiés).
+
+## Questions ouvertes (reprises du plan, avec le choix par défaut)
+
+| Question                                      | Choix par défaut                                   |
+| --------------------------------------------- | -------------------------------------------------- |
+| Dernier code pris entre tirage et attribution | Marquer l'entrée `reward_unavailable` (T2.1)       |
+| Qui change le statut de livraison             | `owner`, `admin`, `manager` ; pas `viewer`         |
+| Date d'expiration à l'import CSV              | Saisie en lot après import ; colonne CSV plus tard |

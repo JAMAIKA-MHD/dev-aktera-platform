@@ -16,6 +16,9 @@ export const PATHS = {
   edit: (id: string) => `/create/${id}/edit`,
   relaunch: (id: string) => `/create/${id}/relaunch`,
   prizes: "/prizes",
+  prizesLocal: "/prizes/local",
+  /** The codes of one reward, on a page of their own. */
+  rewardCodes: (id: string) => `/prizes/local/${id}`,
   analytics: "/analytics",
   analyticsFor: (id: string) => `/analytics/${id}`,
   analyticsSection: (section: AnalyticsSection) =>

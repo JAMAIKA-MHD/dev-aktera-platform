@@ -57,6 +57,8 @@ export interface DataTableProps<TData> {
   emptyState?: ReactNode;
   noResultsState?: ReactNode;
   hiddenColumnsBelow?: Partial<Record<string, HiddenBelow>>;
+  /** Extra classes for a row (a state worth showing at a glance, such as a used code). */
+  rowClassName?: (row: TData) => string | undefined;
 }
 
 // A click on a control inside the row (the "Open" button, a link) is handled by that control.
@@ -83,6 +85,7 @@ export function DataTable<TData>({
   emptyState,
   noResultsState,
   hiddenColumnsBelow = {},
+  rowClassName,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -170,6 +173,7 @@ export function DataTable<TData>({
       className={cn(
         onRowOpen &&
           "cursor-pointer outline-none focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        rowClassName?.(row.original),
       )}
     >
       {row.getVisibleCells().map((cell) => (
