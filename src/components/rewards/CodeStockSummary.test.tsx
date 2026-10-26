@@ -1,22 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { CodeStockSummary } from "./CodeStockSummary";
 
 const base = {
   counts: { available: 5, used: 2, expired: 0 },
   remainingToWin: 3,
-  canEdit: true,
-  onApplyExpiry: vi.fn().mockResolvedValue(4),
 };
-
-const pickDay = (day: string) =>
-  fireEvent.change(screen.getByLabelText("Expiry for all codes"), {
-    target: { value: day },
-  });
-const applyButton = () =>
-  screen.getByRole("button", {
-    name: "Apply to all codes",
-  }) as HTMLButtonElement;
 
 describe("CodeStockSummary", () => {
   it("shows available, used and expired", () => {
@@ -70,60 +59,11 @@ describe("CodeStockSummary", () => {
       />,
     );
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.queryByText("Apply to all codes")).toBeNull();
   });
 
-  it("applies one date to all codes, keeping dates already set by default", async () => {
-    const onApplyExpiry = vi.fn().mockResolvedValue(4);
-    render(<CodeStockSummary {...base} onApplyExpiry={onApplyExpiry} />);
-    expect(applyButton().disabled).toBe(true);
-
-    pickDay("2099-12-31");
-    fireEvent.click(applyButton());
-    await waitFor(() =>
-      expect(onApplyExpiry).toHaveBeenCalledWith(
-        "2099-12-31T22:59:59.000Z",
-        true,
-      ),
-    );
-    expect(await screen.findByText("Expiry set on 4 codes.")).toBeTruthy();
-  });
-
-  it("replaces dates already set only when the box is ticked", async () => {
-    const onApplyExpiry = vi.fn().mockResolvedValue(1);
-    render(<CodeStockSummary {...base} onApplyExpiry={onApplyExpiry} />);
-    fireEvent.click(screen.getByLabelText("Replace dates already set"));
-    pickDay("2099-12-31");
-    fireEvent.click(applyButton());
-    await waitFor(() =>
-      expect(onApplyExpiry).toHaveBeenCalledWith(
-        "2099-12-31T22:59:59.000Z",
-        false,
-      ),
-    );
-  });
-
-  it("warns, without blocking, about a date in the past", () => {
+  // The date of all the codes is set from the reward form: see CodesExpiryFields.test.tsx.
+  it("has no expiry field of its own", () => {
     render(<CodeStockSummary {...base} />);
-    pickDay("2020-01-01");
-    expect(screen.getByText(/in the past/)).toBeTruthy();
-    expect(applyButton().disabled).toBe(false);
-  });
-
-  it("reports a failure", async () => {
-    render(
-      <CodeStockSummary
-        {...base}
-        onApplyExpiry={vi.fn().mockResolvedValue(null)}
-      />,
-    );
-    pickDay("2099-12-31");
-    fireEvent.click(applyButton());
-    expect(await screen.findByText(/could not be set/)).toBeTruthy();
-  });
-
-  it("is read-only for a viewer", () => {
-    render(<CodeStockSummary {...base} canEdit={false} />);
-    expect(screen.queryByLabelText("Expiry for all codes")).toBeNull();
+    expect(screen.queryByLabelText("Expiry date for all codes")).toBeNull();
   });
 });
