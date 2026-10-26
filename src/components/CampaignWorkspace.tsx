@@ -2,30 +2,120 @@ import { rewardTypeName } from "../lib/rewardTypes";
 import React, { useMemo, useState } from "react";
 import { Campaign, LeadEntry, PrizeTemplate } from "../types";
 import {
-  ArrowLeft,
-  Calendar,
+  BarChart3,
+  Check,
+  ChevronRight,
   Copy,
   ExternalLink,
-  Gift,
+  FlaskConical,
+  Palette,
   Pause,
   Pencil,
   Play,
-  RefreshCw,
-  Trophy,
-  Users,
-  Box,
-  Check,
-  Sparkles,
-  HelpCircle,
-  Disc,
-  FlaskConical,
-  Layers,
-  Zap,
+  Rocket,
 } from "lucide-react";
-import { motion } from "motion/react";
-import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../lib/defaultImages";
+import { cn } from "../lib/utils";
+import { campaignDurationDays, gameMeta } from "./campaigns/campaignMeta";
+import {
+  ActionMenu,
+  CampaignStatusBadge,
+  CxBadge,
+  CxBar,
+  CxButton,
+  cxButtonClass,
+  cxCount,
+  cxFocus,
+  cxPanel,
+  cxRoot,
+  cxText,
+  type ActionMenuItem,
+} from "./campaigns/campaignUi";
+import { GameEmblem } from "./campaigns/GameEmblem";
 import { CampaignTestModal } from "./CampaignTestModal";
+import { formatPeriod } from "./playerStudio/studioCampaignCells";
+
+// Behind the phone when the campaign has no image of its own: the game's colors.
+const GAME_BACKDROPS: Record<string, { gradient: string; glow: string }> = {
+  quiz: {
+    gradient: "bg-gradient-to-br from-[#180d38] via-[#0B1120] to-[#251352]",
+    glow: "bg-purple-600",
+  },
+  scratch_card: {
+    gradient: "bg-gradient-to-br from-[#2f1807] via-[#0B1120] to-[#3a1d06]",
+    glow: "bg-amber-500",
+  },
+  mystery_box: {
+    gradient: "bg-gradient-to-br from-[#0a1c38] via-[#0B1120] to-[#0e274d]",
+    glow: "bg-blue-600",
+  },
+  hit_it: {
+    gradient: "bg-gradient-to-br from-[#330c14] via-[#0B1120] to-[#450e19]",
+    glow: "bg-rose-600",
+  },
+  lucky_wheel: {
+    gradient: "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26]",
+    glow: "bg-emerald-500",
+  },
+};
+
+// How many participants the details page lists; the rest are in the analytics.
+const PARTICIPANTS_SHOWN = 8;
+
+const MONTH = new Intl.DateTimeFormat("en-US", { month: "short" });
+const TIME = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+// "28 Sep, 14:02"
+function formatEntryDate(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "—";
+  return `${date.getDate()} ${MONTH.format(date)}, ${TIME.format(date)}`;
+}
+
+const TH =
+  "border-b border-cx-border bg-cx-sunken px-5 py-3 text-left text-xs font-bold uppercase leading-4 tracking-[0.06em] text-cx-ink-subtle whitespace-nowrap";
+const TD = "px-5 py-3.5 align-middle text-cx-ink-muted";
+const ROW = "border-b border-cx-border last:border-b-0";
+
+// One number of the summary strip: caption, value, then a line or a bar under it.
+function Stat({
+  label,
+  value,
+  unit,
+  children,
+}: {
+  label: string;
+  value: React.ReactNode;
+  unit?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-1 content-start gap-1.5 bg-cx-surface p-5">
+      <dt className={cxText.label}>{label}</dt>
+      <dd className="grid grid-cols-1 gap-1.5">
+        <span
+          className={cn(
+            cxText.statValue,
+            "flex flex-wrap items-baseline gap-x-1.5",
+          )}
+        >
+          {value}
+          {unit && (
+            <small className="text-[13px] font-semibold leading-[18px] tracking-normal text-cx-ink-subtle">
+              {unit}
+            </small>
+          )}
+        </span>
+        {children}
+      </dd>
+    </div>
+  );
+}
+
+type TabId = "rewards" | "participants";
 
 interface CampaignWorkspaceProps {
   campaign: Campaign;
@@ -37,6 +127,8 @@ interface CampaignWorkspaceProps {
   onRelaunch: (campaign: Campaign) => void;
   onToggleStatus: (id: string) => void;
   onOpenAnalytics: (id: string) => void;
+  /** The phone playing the campaign's saved design, shown over its image. */
+  preview?: React.ReactNode;
 }
 
 export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
@@ -49,11 +141,12 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   onRelaunch,
   onToggleStatus,
   onOpenAnalytics,
+  preview,
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [tab, setTab] = useState<TabId>("rewards");
 
   const campaignEntries = useMemo(
     () => leads.filter((entry) => entry.campaignId === campaign.id),
@@ -65,6 +158,15 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
     (sum, prize) => sum + prize.quantity,
     0,
   );
+  const totalWeight = campaign.prizes.reduce(
+    (sum, prize) => sum + Number(prize.weight || 0),
+    0,
+  );
+  const wonPercent =
+    totalAllocated > 0
+      ? Math.round((campaign.rewardsClaimed / totalAllocated) * 100)
+      : 0;
+  const days = campaignDurationDays(campaign.startDate, campaign.endDate);
 
   const enrichedPrizes = campaign.prizes.map((prize) => {
     const template = prizes.find((item) => item.id === prize.templateId);
@@ -74,6 +176,11 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
       category: template?.category ?? "voucher",
       faceValue: template?.itemValue ?? "N/A",
       preparedValues: template?.filledValuesCount ?? 0,
+      won: prize.quantity_won ?? 0,
+      share:
+        totalWeight > 0
+          ? Math.round((Number(prize.weight || 0) / totalWeight) * 100)
+          : 0,
     };
   });
 
@@ -87,694 +194,418 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
     }
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "N/A";
-    const parts = dateStr.split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-    return dateStr;
-  };
+  const game = gameMeta(campaign.gameType);
+  const toggle =
+    campaign.status === "active"
+      ? { label: "Pause", icon: Pause }
+      : campaign.status === "draft"
+        ? { label: "Publish", icon: Rocket }
+        : { label: "Resume", icon: Play };
+  const ToggleIcon = toggle.icon;
+  const menuItems: ActionMenuItem[] = [
+    ...(onCustomizePlayerScreen
+      ? [
+          {
+            label: "Design player screens",
+            icon: Palette,
+            onSelect: () => onCustomizePlayerScreen(campaign),
+          },
+        ]
+      : []),
+    {
+      label: "Open analytics",
+      icon: BarChart3,
+      onSelect: () => onOpenAnalytics(campaign.id),
+    },
+    {
+      label: "Simulate plays",
+      icon: FlaskConical,
+      onSelect: () => setIsTestModalOpen(true),
+    },
+    {
+      label: "Duplicate & relaunch",
+      icon: Copy,
+      onSelect: () => onRelaunch(campaign),
+    },
+  ];
 
-  // State styling badge
-  const getStateBadge = () => {
-    switch (campaign.status) {
-      case "active":
-        return {
-          label: "Active",
-          text: "text-emerald-500",
-        };
-      case "paused":
-        return {
-          label: "Paused",
-          text: "text-amber-500",
-        };
-      case "archived":
-        return {
-          label: "Archived",
-          text: "text-red-500",
-        };
-      case "draft":
-      default:
-        return {
-          label: "Draft",
-          text: "text-blue-500",
-        };
-    }
-  };
+  const backdrop =
+    GAME_BACKDROPS[campaign.gameType] ?? GAME_BACKDROPS.lucky_wheel;
 
-  const getGameTheme = (gType: string) => {
-    switch (gType) {
-      case "quiz":
-        return {
-          title: "Trivia Quiz Challenge",
-          desc: "Knowledge & trivia questions before unlocking reward outcomes",
-          icon: HelpCircle,
-          bgGradient:
-            "bg-gradient-to-br from-[#180d38] via-[#0B1120] to-[#251352] text-white",
-          glowColor: "bg-purple-600",
-          iconBg:
-            "bg-indigo-600/25 border-indigo-500/50 text-indigo-400 shadow-indigo-500/20",
-          badgeBorder: "border-purple-500/30 bg-purple-500/20 text-purple-300",
-          emblemBorder: "border-purple-500 bg-[#1e1338] text-purple-400",
-        };
-      case "scratch_card":
-        return {
-          title: "Scratch Card Reveal",
-          desc: "Tactile digital scratching to reveal instant prize outcomes",
-          icon: Layers,
-          bgGradient:
-            "bg-gradient-to-br from-[#2f1807] via-[#0B1120] to-[#3a1d06] text-white",
-          glowColor: "bg-amber-500",
-          iconBg:
-            "bg-amber-600/25 border-amber-500/50 text-amber-400 shadow-amber-500/20",
-          badgeBorder: "border-amber-500/30 bg-amber-500/20 text-amber-300",
-          emblemBorder: "border-amber-500 bg-[#351e0e] text-amber-400",
-        };
-      case "mystery_box":
-        return {
-          title: "Mystery Box Draw",
-          desc: "Players select 1 of 3 surprise boxes to reveal their prize",
-          icon: Gift,
-          bgGradient:
-            "bg-gradient-to-br from-[#0a1c38] via-[#0B1120] to-[#0e274d] text-white",
-          glowColor: "bg-blue-600",
-          iconBg:
-            "bg-blue-600/25 border-blue-500/50 text-blue-400 shadow-blue-500/20",
-          badgeBorder: "border-blue-500/30 bg-blue-500/20 text-blue-300",
-          emblemBorder: "border-blue-500 bg-[#0e2142] text-blue-400",
-        };
-      case "hit_it":
-        return {
-          title: "Hit It Reaction Challenge",
-          desc: "Fast-paced target tapping challenge against a countdown timer",
-          icon: Zap,
-          bgGradient:
-            "bg-gradient-to-br from-[#330c14] via-[#0B1120] to-[#450e19] text-white",
-          glowColor: "bg-rose-600",
-          iconBg:
-            "bg-rose-600/25 border-rose-500/50 text-rose-400 shadow-rose-500/20",
-          badgeBorder: "border-rose-500/30 bg-rose-500/20 text-rose-300",
-          emblemBorder: "border-rose-500 bg-[#3a1019] text-rose-400",
-        };
-      case "lucky_wheel":
-      default:
-        return {
-          title: "Lucky Spin Wheel",
-          desc: "Visual spinning wheel with weighted prize segments",
-          icon: Disc,
-          bgGradient:
-            "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26] text-white",
-          glowColor: "bg-emerald-500",
-          iconBg:
-            "bg-emerald-600/25 border-emerald-500/50 text-emerald-400 shadow-emerald-500/20",
-          badgeBorder:
-            "border-emerald-500/30 bg-emerald-500/20 text-emerald-300",
-          emblemBorder: "border-emerald-500 bg-[#0c2b24] text-emerald-400",
-        };
-    }
-  };
-
-  const gameTheme = getGameTheme(campaign.gameType);
-  const GameIcon = gameTheme.icon;
-  const stateBadge = getStateBadge();
+  const tabs: { id: TabId; label: string; count: number }[] = [
+    { id: "rewards", label: "Rewards", count: enrichedPrizes.length },
+    {
+      id: "participants",
+      label: "Participants",
+      count: campaignEntries.length,
+    },
+  ];
 
   return (
     <div
       id="campaign-workspace-root"
-      className="space-y-8 text-brand-text max-w-[1800px] mx-auto pb-16"
+      className={cn(
+        cxRoot,
+        "mx-auto grid max-w-[1800px] grid-cols-1 gap-6 xl:grid-cols-2",
+      )}
     >
-      {/* Top Header Row with Back Button & Centered Campaign Name */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer border ${
-            isDark
-              ? "bg-[#151E30] border-slate-800 text-white hover:bg-slate-800"
-              : "bg-white border-slate-200 text-slate-800 hover:bg-slate-100"
-          }`}
+      {/* LEFT HALF: the campaign's details, all visible, nothing folded away */}
+      <div className="@container grid grid-cols-1 min-w-0 content-start gap-4 xl:pb-16">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-cx-ink-subtle"
         >
-          <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
-          <span>Back to Campaigns</span>
-        </button>
-
-        <h1 className="text-2xl sm:text-3xl font-black text-brand-text tracking-tight text-center">
-          {campaign.name}
-        </h1>
-
-        <div className="w-28 hidden sm:block"></div>
-      </div>
-
-      {/* UPPER MAIN SECTION: Left Preview Card + Right Controls & KPI Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT COLUMN: Campaign Hero Preview Card with State Badge & Game Icon */}
-        <div className="lg:col-span-5 relative">
-          {/* Outer Card Container */}
-          <div
-            className={`rounded-[32px] p-6 sm:p-7 flex flex-col items-center justify-center min-h-[380px] sm:min-h-[420px] relative border shadow-md overflow-hidden ${
-              isDark
-                ? "bg-[#151E30] border-slate-800 text-white"
-                : "bg-white border-slate-200 text-slate-900"
-            }`}
+          <button
+            type="button"
+            onClick={onBack}
+            className={cn(
+              cxFocus,
+              "cursor-pointer rounded-cx-sm text-cx-ink-muted transition-colors duration-[120ms] hover:text-cx-ink hover:underline",
+            )}
           >
-            {/* Top State Pill Tag + Circular Game Emblem Overhang */}
-            <div className="absolute top-4 right-4 flex items-center z-20">
-              {/* State Pill */}
-              <div
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-black text-xs shadow-md border ${
-                  isDark
-                    ? "bg-[#151E30] border-slate-700 text-slate-200"
-                    : "bg-white border-slate-200 text-slate-800"
-                }`}
-              >
-                <span className="text-brand-textMuted">State :</span>
-                <span className={`font-black ${stateBadge.text}`}>
-                  {stateBadge.label}
-                </span>
-              </div>
+            Campaigns
+          </button>
+          <ChevronRight className="size-4 shrink-0" aria-hidden />
+          <span className="truncate" aria-current="page">
+            {campaign.name}
+          </span>
+        </nav>
 
-              {/* Circular Game Emblem */}
-              <div
-                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 shadow-xl flex items-center justify-center shrink-0 -ml-2 ${gameTheme.emblemBorder}`}
-              >
-                <GameIcon
-                  className={`w-7 h-7 stroke-[2.2] ${campaign.gameType === "lucky_wheel" ? "animate-spin-slow" : ""}`}
+        {/* Header: the campaign, its state, and the one filled action */}
+        <header className="flex flex-wrap items-start gap-4 pb-2">
+          {/* Beside the actions when there is room, above them otherwise */}
+          <div className="flex min-w-0 flex-1 basis-full items-start gap-4 @3xl:basis-64">
+            <GameEmblem gameType={campaign.gameType} size={56} />
+            <div className="grid grid-cols-1 min-w-0 flex-1 gap-2">
+              <h1 className={cn(cxText.pageTitle, "[overflow-wrap:anywhere]")}>
+                {campaign.name}
+              </h1>
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-2 font-medium text-cx-ink-muted">
+                <CampaignStatusBadge campaign={campaign} t={t} />
+                <span>{t(game.key, game.label)}</span>
+                <span
+                  className="size-[3px] rounded-full bg-cx-ink-subtle"
+                  aria-hidden
                 />
-              </div>
-            </div>
-
-            {/* Campaign Visual / Hero Image / Interactive Game Canvas */}
-            <div className="w-full h-full flex-1 flex flex-col items-center justify-center relative min-h-[300px] rounded-2xl overflow-hidden border border-slate-700/60 shadow-inner bg-[#0B1120]">
-              {campaign.heroImageUrl ? (
-                <div className="relative w-full h-full min-h-[300px] flex items-center justify-center bg-slate-950 overflow-hidden">
-                  <img
-                    src={campaign.heroImageUrl}
-                    alt={campaign.name}
-                    className="w-full h-full object-cover rounded-xl"
-                    onError={(e) => {
-                      e.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-5">
-                    <p className="text-white font-black text-xl drop-shadow-md">
-                      {campaign.name}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                /* Rich Studio Game Theme Canvas (High contrast in all themes) */
-                <div
-                  className={`relative w-full h-full min-h-[300px] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden ${gameTheme.bgGradient}`}
-                >
-                  {/* Decorative background ambient glow */}
-                  <div
-                    className={`absolute w-64 h-64 rounded-full blur-3xl opacity-40 pointer-events-none ${gameTheme.glowColor}`}
-                  ></div>
-
-                  {/* Center Game Graphic Element */}
-                  <div className="relative z-10 flex flex-col items-center space-y-3.5">
-                    <div
-                      className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl border ${gameTheme.iconBg}`}
-                    >
-                      <GameIcon
-                        className={`w-10 h-10 stroke-[2.2] ${campaign.gameType === "lucky_wheel" ? "animate-spin-slow" : ""}`}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <h3 className="text-2xl font-black tracking-tight text-white drop-shadow-md">
-                        {campaign.name}
-                      </h3>
-                      <span
-                        className={`inline-block px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${gameTheme.badgeBorder}`}
-                      >
-                        {gameTheme.title}
-                      </span>
-                      <p className="text-[11px] text-zinc-400 max-w-xs font-medium mt-1">
-                        {gameTheme.desc}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                <span>
+                  {formatPeriod(campaign.startDate, campaign.endDate)}
+                </span>
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* RIGHT COLUMN: Action Buttons Row + 5 KPI Metric Cards */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Row of Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Edit Campaign */}
-            <button
-              type="button"
+          <div className="flex flex-wrap gap-2">
+            <CxButton
+              variant="primary"
               onClick={() => onEditCampaign(campaign)}
-              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
-                isDark
-                  ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-blue-500/25"
-                  : "bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-blue-500/25"
-              }`}
             >
-              <Pencil className="h-4 w-4 stroke-[2.5]" />
-              <span>Edit Campaign</span>
-            </button>
-
-            {/* Customize Player Screen UI */}
-            {onCustomizePlayerScreen && (
-              <button
-                type="button"
-                onClick={() => onCustomizePlayerScreen(campaign)}
-                className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-black shadow-sm transition-all hover:scale-102 cursor-pointer border bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-indigo-500/25"
-              >
-                <Sparkles className="h-4 w-4 stroke-[2.5]" />
-                <span>Customize Player UI</span>
-              </button>
+              <Pencil aria-hidden />
+              Edit campaign
+            </CxButton>
+            {campaign.status !== "archived" && (
+              <CxButton onClick={() => onToggleStatus(campaign.id)}>
+                <ToggleIcon aria-hidden />
+                {toggle.label}
+              </CxButton>
             )}
+            <ActionMenu
+              label="More actions"
+              placement="bottom"
+              variant="secondary"
+              size="md"
+              items={menuItems}
+            />
+          </div>
+        </header>
 
-            {/* Prepare Relaunch */}
-            <button
-              type="button"
-              onClick={() => onRelaunch(campaign)}
-              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
-                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-              }`}
-            >
-              <RefreshCw className="h-4 w-4 stroke-[2.2] text-indigo-500" />
-              <span>Prepare relaunch</span>
-            </button>
+        <dl
+          aria-label="Campaign summary"
+          className="grid grid-cols-2 gap-px overflow-hidden rounded-cx-lg bg-cx-border shadow-cx-card ring-1 ring-cx-border @2xl:grid-cols-4"
+        >
+          <Stat label="Participants" value={campaign.participantsCount}>
+            <span className={cxText.caption}>Entries recorded</span>
+          </Stat>
+          <Stat
+            label="Prizes won"
+            value={campaign.rewardsClaimed}
+            unit={`of ${totalAllocated}`}
+          >
+            <CxBar
+              percent={wonPercent}
+              tone="success"
+              label={`${wonPercent}% of prizes won`}
+            />
+          </Stat>
+          <Stat
+            label="Win chance"
+            value={
+              campaign.autoPacePrizes ? "Paced" : `${campaign.winProbability}%`
+            }
+          >
+            <span className={cxText.caption}>
+              {campaign.autoPacePrizes
+                ? "Dynamic daily quota pacing"
+                : "Server-side win chance"}
+            </span>
+          </Stat>
+          <Stat
+            label="Duration"
+            value={days ?? "—"}
+            unit={days === null ? undefined : days === 1 ? "day" : "days"}
+          >
+            <span className={cxText.caption}>
+              {formatPeriod(campaign.startDate, campaign.endDate)}
+            </span>
+          </Stat>
+        </dl>
 
-            {/* Copy Link */}
+        {/* Share: the one link players need, always visible */}
+        <section
+          aria-label="Player link"
+          className={cn(
+            cxPanel,
+            "flex flex-wrap items-center gap-3 py-3 pl-5 pr-3",
+          )}
+        >
+          <span className={cxText.label}>Player link</span>
+          <code
+            title={campaignLink}
+            className="min-w-0 flex-1 basis-48 truncate font-mono text-[13px] leading-5 text-cx-ink"
+          >
+            {campaignLink}
+          </code>
+          <CxButton size="sm" onClick={handleCopyLink}>
+            {copied ? (
+              <Check className="text-cx-success" aria-hidden />
+            ) : (
+              <Copy aria-hidden />
+            )}
+            {copied ? "Copied" : "Copy link"}
+          </CxButton>
+          <a
+            href={campaignLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open live page"
+            className={cxButtonClass({ size: "sm" })}
+          >
+            <ExternalLink aria-hidden />
+            Open
+          </a>
+        </section>
+
+        <div
+          role="tablist"
+          aria-label="Campaign details"
+          className="mt-2 flex gap-6 border-b border-cx-border"
+        >
+          {tabs.map((item) => (
             <button
+              key={item.id}
               type="button"
-              onClick={handleCopyLink}
-              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
-                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-              }`}
-            >
-              {copied ? (
-                <Check className="h-4 w-4 stroke-[2.5] text-emerald-500" />
-              ) : (
-                <Copy className="h-4 w-4 stroke-[2.2] text-slate-500" />
+              role="tab"
+              id={`campaign-tab-${item.id}`}
+              aria-selected={tab === item.id}
+              aria-controls={`campaign-panel-${item.id}`}
+              onClick={() => setTab(item.id)}
+              className={cn(
+                cxFocus,
+                "-mb-px inline-flex cursor-pointer items-center gap-2 border-b-2 px-0.5 py-3 font-semibold transition-colors duration-[120ms] hover:text-cx-ink",
+                tab === item.id
+                  ? "border-cx-brand text-cx-ink"
+                  : "border-transparent text-cx-ink-muted",
               )}
-              <span>{copied ? "Copied!" : "Copy link"}</span>
+            >
+              {item.label}
+              <span className={cxCount}>{item.count}</span>
             </button>
-
-            {/* Open Analytics */}
-            <button
-              type="button"
-              onClick={() => onOpenAnalytics(campaign.id)}
-              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
-                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-              }`}
-            >
-              <span>Open analytics</span>
-            </button>
-
-            {/* Test & Simulate Plays Console */}
-            <button
-              type="button"
-              onClick={() => setIsTestModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-black shadow-sm transition-all hover:scale-102 cursor-pointer border bg-purple-600 hover:bg-purple-700 text-white border-purple-600 shadow-purple-500/25"
-            >
-              <FlaskConical className="h-4 w-4 stroke-[2.5]" />
-              <span>Simulate Plays</span>
-            </button>
-
-            {/* Open Live Page */}
-            <a
-              href={campaignLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-102 cursor-pointer border ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-slate-200 hover:bg-slate-800"
-                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-              }`}
-            >
-              <span>Open live page</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
-
-          {/* Metric Cards Grid (5 KPI Cards with light-mode friendly pastel icon badges) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* 1. Participants */}
-            <div
-              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-bold text-brand-textMuted">
-                    Participants
-                  </span>
-                  <h4 className="text-2xl sm:text-3xl font-black mt-1">
-                    {campaign.participantsCount}
-                  </h4>
-                </div>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    isDark
-                      ? "bg-slate-800 text-blue-400"
-                      : "bg-blue-50 text-blue-600 border border-blue-100"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-[11px] font-medium text-brand-textMuted mt-3">
-                Entries recorded so far
-              </p>
-            </div>
-
-            {/* 2. Prizes Won */}
-            <div
-              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-bold text-brand-textMuted">
-                    Prizes Won
-                  </span>
-                  <h4 className="text-2xl sm:text-3xl font-black mt-1">
-                    {campaign.rewardsClaimed}
-                  </h4>
-                </div>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    isDark
-                      ? "bg-slate-800 text-amber-400"
-                      : "bg-amber-50 text-amber-600 border border-amber-100"
-                  }`}
-                >
-                  <Trophy className="w-4 h-4" />
-                </div>
-              </div>
-              {/* Progress bar */}
-              <div
-                className={`w-full h-2 rounded-full overflow-hidden mt-3 ${
-                  isDark ? "bg-slate-800" : "bg-slate-100"
-                }`}
-              >
-                <div
-                  className="bg-emerald-500 h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(
-                      totalAllocated > 0
-                        ? (campaign.rewardsClaimed / totalAllocated) * 100
-                        : 0,
-                      100,
-                    )}%`,
-                  }}
-                ></div>
-              </div>
-              <p className="text-[11px] font-medium text-brand-textMuted mt-1">
-                Winning entries in this campaign
-              </p>
-            </div>
-
-            {/* 3. Date */}
-            <div
-              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <h4 className="text-base font-black">Date</h4>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    isDark
-                      ? "bg-slate-800 text-purple-400"
-                      : "bg-purple-50 text-purple-600 border border-purple-100"
-                  }`}
-                >
-                  <Calendar className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="space-y-1 mt-2 text-xs font-bold">
-                <div className="flex items-center justify-between">
-                  <span className="text-brand-textMuted">start</span>
-                  <span className="font-black">
-                    {formatDate(campaign.startDate)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-brand-textMuted">end</span>
-                  <span className="font-black">
-                    {formatDate(campaign.endDate)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Win Probability */}
-            <div
-              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-bold text-brand-textMuted">
-                    {campaign.autoPacePrizes
-                      ? "Prize Distribution"
-                      : "Win Probability"}
-                  </span>
-                  <h4
-                    className={`text-2xl sm:text-3xl font-black mt-1 ${campaign.autoPacePrizes ? "text-blue-500 dark:text-blue-400" : "text-emerald-500"}`}
-                  >
-                    {campaign.autoPacePrizes
-                      ? "Auto-Paced"
-                      : `${campaign.winProbability}%`}
-                  </h4>
-                </div>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    campaign.autoPacePrizes
-                      ? isDark
-                        ? "bg-blue-950/60 text-blue-400"
-                        : "bg-blue-50 text-blue-600 border border-blue-100"
-                      : isDark
-                        ? "bg-emerald-950/60 text-emerald-400"
-                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                  }`}
-                >
-                  <Gift className="w-4 h-4" />
-                </div>
-              </div>
-              <div
-                className={`w-full h-2 rounded-full overflow-hidden mt-3 ${
-                  isDark ? "bg-slate-800" : "bg-slate-100"
-                }`}
-              >
-                <div
-                  className={`h-full rounded-full ${campaign.autoPacePrizes ? "bg-blue-500" : "bg-emerald-500"}`}
-                  style={{
-                    width: campaign.autoPacePrizes
-                      ? "100%"
-                      : `${Math.min(campaign.winProbability, 100)}%`,
-                  }}
-                ></div>
-              </div>
-              <p className="text-[11px] font-medium text-brand-textMuted mt-1">
-                {campaign.autoPacePrizes
-                  ? "Dynamic daily quota pacing"
-                  : "Server-side win chance"}
-              </p>
-            </div>
-
-            {/* 5. Allocated Stock */}
-            <div
-              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between ${
-                isDark
-                  ? "bg-[#151E30] border-slate-800 text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-bold text-brand-textMuted">
-                    Allocated Stock
-                  </span>
-                  <h4 className="text-2xl sm:text-3xl font-black mt-1">
-                    {totalAllocated}
-                  </h4>
-                </div>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    isDark
-                      ? "bg-slate-800 text-indigo-400"
-                      : "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                  }`}
-                >
-                  <Box className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-[11px] font-medium text-brand-textMuted mt-3">
-                Units reserved from templates
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
 
-      {/* LOWER SECTION: Allocated Rewards Card + Recent Participants Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Allocated Rewards Card */}
-        <div
-          className={`lg:col-span-6 rounded-[32px] p-6 sm:p-8 border shadow-sm space-y-4 ${
-            isDark
-              ? "bg-[#151E30] border-slate-800 text-white"
-              : "bg-white border-slate-200 text-slate-900"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-black">Allocated Rewards</h3>
-            <span className="text-xs font-mono font-bold text-brand-textMuted uppercase">
-              {enrichedPrizes.length} ROWS
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {enrichedPrizes.map((prize, idx) => (
-              <div
-                key={idx}
-                className={`p-4 rounded-2xl flex items-center justify-between border ${
-                  isDark
-                    ? "bg-[#121929] border-slate-700/80 text-white"
-                    : "bg-slate-50/80 border-slate-200/80 text-slate-900"
-                }`}
-              >
-                <div>
-                  <h5 className="font-bold text-sm">{prize.templateName}</h5>
-                  <p className="text-xs text-brand-textMuted mt-0.5">
-                    {rewardTypeName(prize.category)} • {prize.faceValue}
-                  </p>
-                </div>
-                <div className="flex items-center gap-6 text-xs text-center font-bold">
-                  <div>
-                    <span className="text-[10px] text-brand-textMuted uppercase font-mono block">
-                      Qty
-                    </span>
-                    <span className="font-black">{prize.quantity}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-brand-textMuted uppercase font-mono block">
-                      Weight
-                    </span>
-                    <span className="font-black">{prize.weight}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-brand-textMuted uppercase font-mono block">
-                      Prepared
-                    </span>
-                    <span className="font-black">{prize.preparedValues}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {enrichedPrizes.length === 0 && (
-              <div className="py-8 text-center text-xs text-brand-textMuted">
+        {tab === "rewards" && (
+          <section
+            role="tabpanel"
+            id="campaign-panel-rewards"
+            aria-labelledby="campaign-tab-rewards"
+            className={cn(cxPanel, "overflow-hidden")}
+          >
+            {enrichedPrizes.length === 0 ? (
+              <p className="px-5 py-10 text-center text-cx-ink-muted">
                 No reward templates allocated to this campaign.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse tabular-nums">
+                  <thead>
+                    <tr>
+                      <th className={TH}>Reward</th>
+                      <th className={TH}>Awarded</th>
+                      <th className={cn(TH, "text-right")}>Remaining</th>
+                      <th className={cn(TH, "text-right")}>
+                        {campaign.gameType === "lucky_wheel"
+                          ? "Wheel share"
+                          : "Share of wins"}
+                      </th>
+                      <th className={cn(TH, "text-right")}>Prepared</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enrichedPrizes.map((prize, idx) => (
+                      <tr key={idx} className={ROW}>
+                        <td className={TD}>
+                          <span className="font-semibold text-cx-ink">
+                            {prize.templateName}
+                          </span>
+                          <span className={cn(cxText.caption, "block")}>
+                            {rewardTypeName(prize.category)} · {prize.faceValue}
+                          </span>
+                        </td>
+                        <td className={TD}>
+                          <div className="grid grid-cols-1 min-w-[130px] gap-1.5">
+                            <span className="font-semibold text-cx-ink">
+                              {prize.won} of {prize.quantity}
+                            </span>
+                            <CxBar
+                              percent={
+                                prize.quantity > 0
+                                  ? (prize.won / prize.quantity) * 100
+                                  : 0
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className={cn(TD, "text-right")}>
+                          {Math.max(prize.quantity - prize.won, 0)}
+                        </td>
+                        <td
+                          className={cn(TD, "text-right")}
+                          title={`Weight ${prize.weight}`}
+                        >
+                          {prize.share}%
+                        </td>
+                        <td className={cn(TD, "text-right")}>
+                          {prize.preparedValues}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
-          </div>
-        </div>
+          </section>
+        )}
 
-        {/* Recent Participants Card */}
-        <div
-          className={`lg:col-span-6 rounded-[32px] p-6 sm:p-8 border shadow-sm space-y-4 ${
-            isDark
-              ? "bg-[#151E30] border-slate-800 text-white"
-              : "bg-white border-slate-200 text-slate-900"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-black">Recent Participants</h3>
-            <span className="text-xs font-mono font-bold text-brand-textMuted uppercase">
-              {campaignEntries.length} TOTAL
-            </span>
-          </div>
-
-          {campaignEntries.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center border border-dashed border-card-border rounded-2xl p-6">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
-                  isDark
-                    ? "bg-slate-800 text-slate-500"
-                    : "bg-slate-100 text-slate-400 border border-slate-200"
-                }`}
-              >
-                <Users className="w-6 h-6" />
-              </div>
-              <p className="text-xs sm:text-sm font-semibold text-brand-textMuted">
+        {tab === "participants" && (
+          <section
+            role="tabpanel"
+            id="campaign-panel-participants"
+            aria-labelledby="campaign-tab-participants"
+            className={cn(cxPanel, "overflow-hidden")}
+          >
+            {campaignEntries.length === 0 ? (
+              <p className="px-5 py-10 text-center text-cx-ink-muted">
                 No participations yet for this campaign.
               </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-xs text-left">
-                <thead className="border-b border-card-border text-brand-textMuted uppercase font-bold text-[10px]">
-                  <tr>
-                    <th className="py-2.5 px-3">Player</th>
-                    <th className="py-2.5 px-3">Phone</th>
-                    <th className="py-2.5 px-3">Prize</th>
-                    <th className="py-2.5 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-card-border">
-                  {campaignEntries.slice(0, 8).map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className="hover:bg-card-bg-subtle transition-colors"
-                    >
-                      <td className="py-2.5 px-3 font-bold">
-                        {entry.playerName}
-                      </td>
-                      <td className="py-2.5 px-3 text-brand-textMuted">
-                        {entry.phoneNumber || "—"}
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-emerald-500">
-                        {entry.prizeWon || "—"}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                            entry.status === "confirmed"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400"
-                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                          }`}
-                        >
-                          {entry.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse tabular-nums">
+                    <thead>
+                      <tr>
+                        <th className={TH}>Player</th>
+                        <th className={TH}>Result</th>
+                        <th className={TH}>Prize</th>
+                        <th className={TH}>Status</th>
+                        <th className={cn(TH, "text-right")}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campaignEntries
+                        .slice(0, PARTICIPANTS_SHOWN)
+                        .map((entry) => (
+                          <tr key={entry.id} className={ROW}>
+                            <td className={TD}>
+                              <span className="font-semibold text-cx-ink">
+                                {entry.playerName}
+                              </span>
+                              <span className={cn(cxText.caption, "block")}>
+                                {entry.phoneNumber || "—"}
+                              </span>
+                            </td>
+                            <td className={TD}>
+                              <CxBadge
+                                tone={entry.prizeWon ? "success" : "neutral"}
+                              >
+                                {entry.prizeWon ? "Won" : "No win"}
+                              </CxBadge>
+                            </td>
+                            <td className={TD}>{entry.prizeWon || "—"}</td>
+                            <td className={cn(TD, "capitalize")}>
+                              {entry.status}
+                            </td>
+                            <td
+                              className={cn(TD, "whitespace-nowrap text-right")}
+                            >
+                              {formatEntryDate(entry.timestamp)}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div
+                  className={cn(
+                    cxText.caption,
+                    "flex items-center justify-between gap-4 border-t border-cx-border bg-cx-sunken px-5 py-3",
+                  )}
+                >
+                  <span className="tabular-nums">
+                    Showing{" "}
+                    {Math.min(campaignEntries.length, PARTICIPANTS_SHOWN)} of{" "}
+                    {campaignEntries.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenAnalytics(campaign.id)}
+                    className={cn(
+                      cxFocus,
+                      "cursor-pointer rounded-cx-sm text-sm font-semibold text-cx-brand-text hover:underline",
+                    )}
+                  >
+                    View all participants
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
       </div>
+
+      {/* RIGHT HALF: the campaign's image, and on it the phone playing the saved design */}
+      <aside
+        aria-label="Player preview"
+        className="relative flex h-[720px] flex-col self-start overflow-hidden rounded-cx-xl border border-cx-border shadow-cx-card xl:sticky xl:top-2 xl:h-[calc(100dvh-7rem)] xl:min-h-[480px]"
+      >
+        {campaign.heroImageUrl ? (
+          <img
+            src={campaign.heroImageUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = DEFAULT_CAMPAIGN_IMAGE_URL;
+            }}
+          />
+        ) : (
+          <div
+            className={`absolute inset-0 flex items-center justify-center ${backdrop.gradient}`}
+          >
+            <div
+              className={`h-64 w-64 rounded-full opacity-40 blur-3xl ${backdrop.glow}`}
+            ></div>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/30" aria-hidden />
+        <div className="relative flex min-h-0 flex-1 flex-col">{preview}</div>
+      </aside>
 
       <CampaignTestModal
         campaign={campaign}
