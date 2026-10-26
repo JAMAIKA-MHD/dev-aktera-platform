@@ -86,6 +86,8 @@ const breaksConvention = (text: string) => {
   const inner = text.replace(/^["`>]|["`<]$/g, "").trim();
   if (/^(voucher|physical)$/.test(inner)) return false;
   if (/^\.{1,2}\//.test(inner) || /^src\//.test(inner)) return false;
+  // An id or a key ("physical-reward-expiry") is never read by the brand.
+  if (/^[a-z0-9]+(-[a-z0-9]+)+$/.test(inner)) return false;
   const withoutAllowed = inner.replace(/\b(Physical|Digital) Items?\b/g, "");
   return OTHER_NAMES.test(withoutAllowed);
 };
