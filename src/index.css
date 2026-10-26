@@ -1,5 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap");
+/* Campaign Radios screens (list, details, editor). */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 /* Player Experience runtime: breakpoint variants (split:, tight:, roomy:, compact:, wide:) and safe areas. */
 @import "./features/player-experience/runtime/layout/layout.css";
@@ -69,6 +71,209 @@
   --theme-card-hover: #1a233a;
   --theme-kpi-card: #151e30;
   --theme-kpi-border: rgba(59, 130, 246, 0.25);
+}
+
+/* Campaign Radios design tokens (list, details, editor). Components use them through the
+   `cx-*` utilities declared here; never a hex in a component. */
+@theme inline {
+  --font-cx:
+    "Plus Jakarta Sans", "Noto Sans Arabic", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --color-cx-page: var(--cx-surface-page);
+  --color-cx-surface: var(--cx-surface);
+  --color-cx-sunken: var(--cx-surface-sunken);
+  --color-cx-border: var(--cx-border);
+  --color-cx-control: var(--cx-border-control);
+  --color-cx-ink: var(--cx-ink);
+  --color-cx-ink-muted: var(--cx-ink-muted);
+  --color-cx-ink-subtle: var(--cx-ink-subtle);
+  --color-cx-brand: var(--cx-brand);
+  --color-cx-brand-hover: var(--cx-brand-hover);
+  --color-cx-brand-text: var(--cx-brand-text);
+  --color-cx-brand-soft: var(--cx-brand-soft);
+  --color-cx-on-brand: var(--cx-on-brand);
+  --color-cx-success: var(--cx-success);
+  --color-cx-success-soft: var(--cx-success-soft);
+  --color-cx-on-success: var(--cx-on-success);
+  --color-cx-warning: var(--cx-warning);
+  --color-cx-warning-soft: var(--cx-warning-soft);
+  --color-cx-danger: var(--cx-danger);
+  --color-cx-danger-soft: var(--cx-danger-soft);
+  --color-cx-focus: var(--cx-focus);
+  --color-cx-scrim: var(--cx-scrim);
+  /* The colour family of the game set by a `cx-g-<game>` class on an ancestor. */
+  --color-cx-game: var(--cx-g);
+  --color-cx-game-mid: var(--cx-gm);
+  --color-cx-game-soft: var(--cx-gs);
+  --shadow-cx-card: var(--cx-shadow-card);
+  --shadow-cx-pop: var(--cx-shadow-pop);
+  --radius-cx-sm: 6px;
+  --radius-cx-md: 10px;
+  --radius-cx-lg: 14px;
+  --radius-cx-xl: 20px;
+}
+
+:root {
+  --cx-surface-page: #f4f6fa;
+  --cx-surface: #ffffff;
+  --cx-surface-sunken: #eef1f6;
+  --cx-border: #e2e7ef;
+  --cx-border-control: #7c8798;
+  --cx-ink: #0f172a;
+  --cx-ink-muted: #3d4859;
+  --cx-ink-subtle: #596579;
+  --cx-brand: #1d4ed8;
+  --cx-brand-hover: #1e40af;
+  --cx-brand-text: #1d4ed8;
+  --cx-brand-soft: #e6edfc;
+  --cx-on-brand: #ffffff;
+  --cx-success: #036149;
+  --cx-success-soft: #e1f5ec;
+  --cx-on-success: #ffffff;
+  --cx-warning: #92400e;
+  --cx-warning-soft: #fdf0d9;
+  --cx-danger: #b42318;
+  --cx-danger-soft: #fde8e6;
+  --cx-focus: #1d4ed8;
+  --cx-scrim: rgba(15, 23, 42, 0.5);
+  --cx-shadow-card:
+    0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
+  --cx-shadow-pop: 0 24px 48px -12px rgba(15, 23, 42, 0.28);
+}
+
+[data-theme="dark"] {
+  --cx-surface-page: #0b1220;
+  --cx-surface: #111a2b;
+  --cx-surface-sunken: #0d1524;
+  --cx-border: #243249;
+  --cx-border-control: #66748c;
+  --cx-ink: #e8edf6;
+  --cx-ink-muted: #b4bfd1;
+  --cx-ink-subtle: #94a1b8;
+  --cx-brand: #6b97ff;
+  --cx-brand-hover: #8aaeff;
+  --cx-brand-text: #9ab9ff;
+  --cx-brand-soft: #14234a;
+  --cx-on-brand: #07101f;
+  --cx-success: #4fd9a0;
+  --cx-success-soft: #0e2f25;
+  --cx-on-success: #04140d;
+  --cx-warning: #f6bd57;
+  --cx-warning-soft: #35270c;
+  --cx-danger: #ff8a80;
+  --cx-danger-soft: #3b1613;
+  --cx-focus: #9ab9ff;
+  --cx-scrim: rgba(0, 0, 0, 0.6);
+  --cx-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --cx-shadow-pop: 0 24px 48px -12px rgba(0, 0, 0, 0.65);
+}
+
+/* Each game has its own colour family: strong, mid tone and soft ground. */
+:root {
+  --cx-game-wheel: #0f766e;
+  --cx-game-wheel-mid: #5fbfb3;
+  --cx-game-wheel-soft: #dcf3ef;
+  --cx-game-scratch: #b45309;
+  --cx-game-scratch-mid: #f0b455;
+  --cx-game-scratch-soft: #fff0d2;
+  --cx-game-mystery: #1d4ed8;
+  --cx-game-mystery-mid: #7aa2f5;
+  --cx-game-mystery-soft: #e6edfc;
+  --cx-game-hit: #be123c;
+  --cx-game-hit-mid: #f08aa0;
+  --cx-game-hit-soft: #ffe4ea;
+  --cx-game-quiz: #7e22ce;
+  --cx-game-quiz-mid: #c08bf0;
+  --cx-game-quiz-soft: #f1e6fd;
+}
+
+[data-theme="dark"] {
+  --cx-game-wheel: #4fd1c0;
+  --cx-game-wheel-mid: #1f7a70;
+  --cx-game-wheel-soft: #0f2f2c;
+  --cx-game-scratch: #f6b756;
+  --cx-game-scratch-mid: #8a5a14;
+  --cx-game-scratch-soft: #35270c;
+  --cx-game-mystery: #6b97ff;
+  --cx-game-mystery-mid: #2f55b5;
+  --cx-game-mystery-soft: #14234a;
+  --cx-game-hit: #ff7a98;
+  --cx-game-hit-mid: #9f1d3f;
+  --cx-game-hit-soft: #3a1220;
+  --cx-game-quiz: #c295ff;
+  --cx-game-quiz-mid: #5b2a92;
+  --cx-game-quiz-soft: #2a1745;
+}
+
+/* Set on a card or an emblem: everything inside takes that game's colours through the
+   `cx-game`, `cx-game-mid` and `cx-game-soft` utilities. */
+.cx-g-wheel {
+  --cx-g: var(--cx-game-wheel);
+  --cx-gm: var(--cx-game-wheel-mid);
+  --cx-gs: var(--cx-game-wheel-soft);
+}
+.cx-g-scratch {
+  --cx-g: var(--cx-game-scratch);
+  --cx-gm: var(--cx-game-scratch-mid);
+  --cx-gs: var(--cx-game-scratch-soft);
+}
+.cx-g-mystery {
+  --cx-g: var(--cx-game-mystery);
+  --cx-gm: var(--cx-game-mystery-mid);
+  --cx-gs: var(--cx-game-mystery-soft);
+}
+.cx-g-hit {
+  --cx-g: var(--cx-game-hit);
+  --cx-gm: var(--cx-game-hit-mid);
+  --cx-gs: var(--cx-game-hit-soft);
+}
+.cx-g-quiz {
+  --cx-g: var(--cx-game-quiz);
+  --cx-gm: var(--cx-game-quiz-mid);
+  --cx-gs: var(--cx-game-quiz-soft);
+}
+
+/* Banner pattern of a campaign card, one per game: rings, hatch, dots, grid, stripes.
+   It fades out towards the left, where the game's name is written. */
+.cx-pat-wheel::before,
+.cx-pat-scratch::before,
+.cx-pat-mystery::before,
+.cx-pat-hit::before,
+.cx-pat-quiz::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cx-pat-wheel::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    repeating-radial-gradient(
+      circle at 88% 130%,
+      transparent 0 13px,
+      var(--cx-gm) 13px 14px
+    );
+}
+.cx-pat-scratch::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    repeating-linear-gradient(135deg, transparent 0 9px, var(--cx-gm) 9px 10px);
+}
+.cx-pat-mystery::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    radial-gradient(var(--cx-gm) 1.6px, transparent 1.7px) 0 0 / 14px 14px;
+}
+.cx-pat-hit::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    linear-gradient(var(--cx-gm) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(90deg, var(--cx-gm) 1px, transparent 1px) 0 0 / 16px 16px;
+}
+.cx-pat-quiz::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    repeating-linear-gradient(90deg, transparent 0 11px, var(--cx-gm) 11px 13px);
 }
 
 /* Native dropdown lists (select) follow the dark theme instead of opening white. */

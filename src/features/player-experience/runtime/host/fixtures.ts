@@ -3,9 +3,16 @@ import type { FlowScreen } from "../../domain/flow";
 import { createDefaultExperience } from "../../domain/defaults";
 import type { GameType } from "../../domain/gameTypes";
 import { localized, type Locale } from "../../domain/locale";
+import {
+  DEFAULT_TEMPLATE_ID,
+  isTemplateId,
+  type TemplateId,
+} from "../../domain/templates";
 import type { ExperienceConfig, ScreenKey } from "../../domain/types";
 import { defaultTermsBody } from "../../presets/contentDefaults";
 import { createDemoCampaign } from "../../presets/demoCampaign";
+import { getTemplate } from "../../presets/templates";
+import { themeFromPreset } from "../../presets/themePresets";
 import type { ScriptedScenario } from "../../services/createLocalServices";
 import type { GatewayMode } from "../../services/ports";
 import type { FramePreviewState } from "./FramePreview";
@@ -461,8 +468,27 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
 
 export const FIXTURE_NAMES = Object.keys(FIXTURES);
 
-export function getFixture(name: string): Fixture | null {
-  return Object.hasOwn(FIXTURES, name) ? FIXTURES[name]() : null;
+// templateId: the same fixture dressed in a template of the library (&template=…), with
+// that template's palette: the responsive sweep checks every template on every page.
+export function getFixture(
+  name: string,
+  templateId?: TemplateId,
+): Fixture | null {
+  if (!Object.hasOwn(FIXTURES, name)) return null;
+  const built = FIXTURES[name]();
+  if (templateId && templateId !== DEFAULT_TEMPLATE_ID) {
+    built.config.templateId = templateId;
+    built.config.theme = themeFromPreset(
+      getTemplate(templateId).presetId ?? undefined,
+    );
+  }
+  return built;
+}
+
+export function readFixtureTemplate(
+  value: string | null,
+): TemplateId | undefined {
+  return isTemplateId(value) ? value : undefined;
 }
 
 export function readFixtureLocale(value: string | null): Locale {

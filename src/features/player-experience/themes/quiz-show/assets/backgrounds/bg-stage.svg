@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#1a1560"/>
+      <stop offset=".52" stop-color="#0a0b33"/>
+      <stop offset="1" stop-color="#04051a"/>
+    </radialGradient>
+    <linearGradient id="o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a3d" stop-opacity=".45"/><stop offset=".9" stop-color="#ff9a3d" stop-opacity="0"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a7bff" stop-opacity=".45"/><stop offset=".9" stop-color="#6a7bff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="f" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#3c2ba8"/><stop offset=".55" stop-color="#1a1450"/><stop offset="1" stop-color="#0a0820"/></radialGradient>
+    <polygon id="beam" points="101,0 119,0 220,430 0,430"/>
+  </defs>
+  <rect width="1280" height="720" fill="url(#g)"/>
+  <g>
+    <use href="#beam" x="125" fill="url(#o)" transform="rotate(-8 235 0)"/>
+    <use href="#beam" x="257" fill="url(#b)" transform="rotate(6 367 0)"/>
+    <use href="#beam" x="394" fill="url(#o)" transform="rotate(-4 504 0)"/>
+    <use href="#beam" x="540" fill="url(#b)" transform="rotate(8 650 0)"/>
+    <use href="#beam" x="687" fill="url(#o)" transform="rotate(-6 797 0)"/>
+    <use href="#beam" x="823" fill="url(#b)" transform="rotate(5 933 0)"/>
+    <use href="#beam" x="952" fill="url(#o)" transform="rotate(-9 1062 0)"/>
+  </g>
+  <g fill="#fff">
+    <circle cx="235" cy="16" r="9" fill="#ff9a3d"/><circle cx="367" cy="16" r="9" fill="#6a7bff"/>
+    <circle cx="504" cy="16" r="9" fill="#ffb35c"/><circle cx="650" cy="16" r="9" fill="#5aa0ff"/>
+    <circle cx="797" cy="16" r="9" fill="#ffb35c"/><circle cx="933" cy="16" r="9" fill="#6a7bff"/>
+    <circle cx="1062" cy="16" r="9" fill="#ff9a3d"/>
+  </g>
+  <ellipse cx="640" cy="640" rx="300" ry="66" fill="url(#f)" stroke="#ffc94a" stroke-width="4"/>
+  <ellipse cx="640" cy="640" rx="284" ry="52" fill="none" stroke="#ffc94a" stroke-opacity=".45" stroke-width="2"/>
+</svg>

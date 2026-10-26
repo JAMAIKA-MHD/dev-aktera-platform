@@ -97,6 +97,7 @@ describe("Sections › Play (the game)", () => {
     expect(actions).toEqual(
       [
         "applyPreset",
+        "applyTemplate",
         "hydrate",
         "replaceConfig",
         "resetGame",

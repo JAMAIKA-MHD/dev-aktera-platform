@@ -43,8 +43,10 @@ export function PrizeChips({
               className="flex min-w-0 flex-col items-center gap-0.5 rounded-[var(--xp-radius-md)] border px-2 py-2 text-center"
               style={{
                 backgroundColor:
-                  "color-mix(in srgb, var(--xp-text) 5%, color-mix(in srgb, var(--xp-surface) 70%, transparent))",
-                borderColor: tint("--xp-text", 12),
+                  "var(--xp-card-bg, color-mix(in srgb, var(--xp-text) 5%, color-mix(in srgb, var(--xp-surface) 70%, transparent)))",
+                borderColor: `var(--xp-card-border, ${tint("--xp-text", 12)})`,
+                borderWidth: "var(--xp-card-border-width, 1px)",
+                boxShadow: "var(--xp-chip-shadow, none)",
               }}
             >
               <span

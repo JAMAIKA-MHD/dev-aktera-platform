@@ -1,5 +1,6 @@
 import type { PrizeChip } from "../../domain/types";
 import { createUuid } from "../../domain/uuid";
+import { getThemeManifest } from "../../presets/themeManifests";
 import { IconPicker } from "../fields/IconPicker";
 import { ListEditor } from "../fields/ListEditor";
 import { LocalizedTextField } from "../fields/LocalizedTextField";
@@ -26,6 +27,10 @@ const TONES = [
 
 export function WelcomeSections() {
   const { jackpot, prizeChips } = useStudio((state) => state.config.sections);
+  const templateId = useStudio((state) => state.config.templateId);
+  // A template that opens on its texts alone never draws the teaser: nothing to set here.
+  const manifest = getThemeManifest(templateId);
+  const withTeaser = manifest?.layout.welcomeTeaser ?? true;
   const updateSection = useStudio((state) => state.updateSection);
   const textLocale = useTextLocale();
 
@@ -151,7 +156,16 @@ export function WelcomeSections() {
         )}
       </PanelSection>
 
-      <TeaserSettings />
+      {withTeaser ? (
+        <TeaserSettings />
+      ) : (
+        <PanelSection
+          title="Welcome teaser"
+          description={`The ${manifest?.label ?? ""} template opens on its texts alone: players first see the game on the Play screen.`}
+        >
+          {null}
+        </PanelSection>
+      )}
     </>
   );
 }

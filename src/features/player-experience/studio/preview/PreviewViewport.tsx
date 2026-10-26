@@ -24,6 +24,7 @@ export interface PreviewViewportProps {
   onFlowScreen?: (screen: FlowScreen) => void;
   // The zoom on show, for the summary of the device bar (it is "fit" most of the time).
   onZoomChange?: (zoom: number) => void;
+  bare?: boolean; // no dotted backdrop: only the device
 }
 
 export function PreviewViewport({
@@ -31,6 +32,7 @@ export function PreviewViewport({
   customDevices = [],
   onFlowScreen,
   onZoomChange,
+  bare = false,
 }: PreviewViewportProps) {
   const viewport = useStudio((state) => state.ui.viewport);
   const setViewport = useStudio((state) => state.setViewport);
@@ -90,7 +92,7 @@ export function PreviewViewport({
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={area}
-        className="min-h-40 flex-1 overflow-auto bg-[radial-gradient(circle,var(--color-card-border)_1px,transparent_1px)] [background-size:16px_16px]"
+        className={`min-h-40 flex-1 overflow-auto ${bare ? "" : "bg-[radial-gradient(circle,var(--color-card-border)_1px,transparent_1px)] [background-size:16px_16px]"}`}
         style={{ padding: PADDING }}
       >
         <div

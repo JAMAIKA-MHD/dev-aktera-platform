@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "../../domain/defaults";
 import { createInitialFlowState, type FlowState } from "../../domain/flow";
 import type { GameType } from "../../domain/gameTypes";
+import type { TemplateId } from "../../domain/templates";
 import type { DrawPrize } from "../../domain/participation";
 import type { ExperienceConfig } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
@@ -32,17 +33,21 @@ function setup(
   options: {
     gameType?: GameType;
     services?: ExperienceServices;
+    templateId?: TemplateId;
+    noPrizes?: boolean; // a draft campaign, before its prizes are set
   } = {},
 ) {
   const gameType = options.gameType ?? "lucky_wheel";
   const campaign = createDemoCampaign(gameType);
+  if (options.noPrizes) campaign.prizes = [];
   const config = createDefaultExperience({ gameType, campaign });
+  if (options.templateId) config.templateId = options.templateId;
   const services =
     options.services ??
     createLocalServices({ participation: "scripted", campaign });
   const track = vi.spyOn(services.analytics, "track");
   const confirm = vi.spyOn(services.participation, "confirmCoupon");
-  render(
+  const { container } = render(
     <ServicesProvider services={services}>
       <PlayerExperience
         config={config}
@@ -53,7 +58,14 @@ function setup(
       />
     </ServicesProvider>,
   );
-  return { user: userEvent.setup(), track, confirm, campaign, config };
+  return {
+    user: userEvent.setup(),
+    track,
+    confirm,
+    campaign,
+    config,
+    container,
+  };
 }
 
 const codeButton = () => screen.getByText("DEMO-0000-0000").closest("button")!;
@@ -150,6 +162,33 @@ describe("WinScreen", () => {
       expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
     );
     expect(confirmButton()).toBeNull(); // spent: no second attempt possible
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it("shows the win screen, never the loss, when the Studio asks for it on a campaign without prizes", () => {
+    const { container } = setup({ noPrizes: true });
+    expect(
+      container.querySelector(".xp-frame")?.getAttribute("data-xp-screen"),
+    ).toBe("win");
+    expect(screen.getByText("Votre lot")).toBeTruthy();
+    expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
+  });
+
+  it("follows a spotlight template's own win screen: its star over the title, the confirmation under the CTA", async () => {
+    const { container, confirm } = setup({ templateId: "comic-burst" });
+    const hero = container.querySelector('[data-xp-slot="hero"]');
+    expect(hero?.getAttribute("data-xp-hero")).toBe("art");
+    expect(hero?.querySelector("img")?.getAttribute("src")).toBeTruthy();
+    // The star replaces the prize popping in: it is drawn once, in slot 2.
+    expect(container.querySelector(".xp-result-art")).toBeNull();
+    const cta = container.querySelector('[data-xp-slot="cta"]')!;
+    expect(cta.contains(confirmButton())).toBe(true);
+    expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
+    fireEvent.click(confirmButton()!);
+    await vi.waitFor(() =>
+      expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
+    );
+    expect(confirmButton()).toBeNull();
     expect(confirm).toHaveBeenCalledOnce();
   });
 

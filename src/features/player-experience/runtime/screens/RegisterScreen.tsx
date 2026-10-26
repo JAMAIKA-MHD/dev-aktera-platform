@@ -73,9 +73,10 @@ export function RegisterScreen({ flow, config, locale, chrome }: ScreenProps) {
         }}
         className="flex max-h-full min-h-0 flex-col gap-[clamp(0.6rem,3cqh,1.1rem)] self-center overflow-y-auto overscroll-contain rounded-[var(--xp-radius-lg)] border p-[clamp(0.85rem,4cqmin,1.4rem)]"
         style={{
-          backgroundColor: tint("--xp-surface", 62),
-          borderColor: tint("--xp-text", 12),
-          boxShadow: `0 1.25rem 2.5rem -1rem ${tint("--xp-primary", 22)}`,
+          backgroundColor: `var(--xp-card-bg, ${tint("--xp-surface", 62)})`,
+          borderColor: `var(--xp-card-border, ${tint("--xp-text", 12)})`,
+          borderWidth: "var(--xp-card-border-width, 1px)",
+          boxShadow: `var(--xp-card-shadow, 0 1.25rem 2.5rem -1rem ${tint("--xp-primary", 22)})`,
         }}
       >
         {state.error && (

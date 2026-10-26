@@ -1,5 +1,6 @@
 import type { ScreenContent, ScreenKey } from "../../domain/types";
 import { TITLE_MAX_CHARS } from "../../domain/validation";
+import { getThemeManifest } from "../../presets/themeManifests";
 import { LocalizedTextField } from "../fields/LocalizedTextField";
 import { SegmentedControl } from "../fields/SegmentedControl";
 import { SelectField } from "../fields/SelectField";
@@ -36,6 +37,13 @@ export function ScreenTextFields({ screenKey: key }: { screenKey: ScreenKey }) {
   const screen = screens[key];
   const update = (patch: Partial<ScreenContent>) => updateScreen(key, patch);
   const path = (field: string) => `screens.${key}.${field}`;
+  // A spotlight template draws its own character above a result's title (useResultHeroArt).
+  const templateId = useStudio((state) => state.config.templateId);
+  const manifest = getThemeManifest(templateId);
+  const character =
+    manifest?.layout.kind === "spotlight" &&
+    ((key === "win" && manifest.characters.happy) ||
+      (key === "lose" && manifest.characters.sad));
 
   return (
     <>
@@ -84,6 +92,11 @@ export function ScreenTextFields({ screenKey: key }: { screenKey: ScreenKey }) {
           onChange={(hero) => update({ hero })}
           options={HEROES}
         />
+        {character && (
+          <p className="-mt-1 text-xs text-brand-text-muted">
+            {manifest.label} draws its own picture here; choose None to hide it.
+          </p>
+        )}
         <SelectField
           label="Encouragement"
           path={path("reinforcement.kind")}

@@ -1,11 +1,13 @@
 import type { CSSProperties } from "react";
-import { isArabicScript, startsOnScreenSide } from "../text";
+import { isArabicScript, scriptOf, startsOnScreenSide } from "../text";
 
 // Slot 3 (prototype Slot3Title): two lines at most (the cut is intended: data-xp-clamp).
 // Fluid size on the width, capped by the height for low screens and by the width of its
 // column (--xp-title-max, frame.css): a title the design checks accept always fits.
 // Arabic keeps normal spacing and a more generous line height (D6). In the split pane, the
 // text starts on the screen's reading side, even when a fallback is in another script.
+// A template with a wider display font scales the size down (--xp-title-scale), so the same
+// title still fits its two lines.
 export function TitleSlot({
   text,
   direction,
@@ -21,9 +23,10 @@ export function TitleSlot({
       data-xp-edit={editPath ? `${editPath}.title` : undefined}
       data-xp-clamp
       data-xp-rise
+      data-xp-script={scriptOf(text)}
       dir="auto"
       style={{ "--xp-rise-order": 1 } as CSSProperties}
-      className={`line-clamp-2 text-balance text-center font-extrabold wrap-anywhere text-[clamp(1.125rem,min(0.9rem+2.6vw,4.5svh,var(--xp-title-max)),2.5rem)] split:text-[clamp(1.125rem,min(0.6rem+2.4vw,6.5svh,var(--xp-title-max)),2.75rem)] ${
+      className={`line-clamp-2 text-balance text-center font-extrabold wrap-anywhere text-[calc(clamp(1.125rem,min(0.9rem+2.6vw,4.5svh,var(--xp-title-max)),2.5rem)*var(--xp-title-scale,1))] split:text-[calc(clamp(1.125rem,min(0.6rem+2.4vw,6.5svh,var(--xp-title-max)),2.75rem)*var(--xp-title-scale,1))] ${
         startsOnScreenSide(text, direction)
           ? "split:text-start"
           : "split:text-end"

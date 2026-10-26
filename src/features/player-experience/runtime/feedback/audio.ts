@@ -1,11 +1,13 @@
 // Sounds of the player screens, synthesized with the Web Audio API: no audio file to load
-// (sounds of player-editor/aktera-audio.ts, which the prototype shares). Browsers only let
+// (sounds of player-editor/aktera-audio.ts, which the prototype shares). A theme may bring its
+// own recordings (theme.json "sounds", setSoundFiles): those play instead, and a sound the
+// theme has no file for, or whose file the browser refuses, is still synthesized. Browsers only let
 // a page make noise after a user gesture: nothing plays, and no AudioContext even exists,
 // before the first tap or key press. Sound is off while features.sound is false. A sound
 // is a nicety: it never throws, whatever the browser refuses.
 
 export type SoundName =
-  "click" | "tick" | "countdown" | "scratch" | "win" | "lose";
+  "click" | "tick" | "countdown" | "scratch" | "win" | "lose" | "reward";
 
 interface Tone {
   frequency: number;
@@ -60,6 +62,7 @@ const TONES: Readonly<Record<Exclude<SoundName, "scratch">, Tone[]>> = {
   ],
   win: chord([523.25, 659.25, 783.99, 1046.5], 0.09, 0.45, 0.2, 0.03, true), // C5 E5 G5 C6
   lose: chord([392.0, 311.13, 261.63], 0.14, 0.4, 0.12, 0.04), // G4 Eb4 C4
+  reward: chord([783.99, 1046.5, 1318.51], 0.07, 0.3, 0.16, 0.02, true), // G5 C6 E6
 };
 
 function playTone(context: AudioContext, tone: Tone): void {
@@ -114,7 +117,15 @@ export interface AudioFeedback {
   readonly unlocked: boolean; // a gesture has created the audio context
   unlock(): void; // to call from a user gesture
   setEnabled(enabled: boolean): void; // features.sound
+  // The theme's own recordings (bundled URLs), replacing the synthesized sounds they name.
+  setSoundFiles(files: Readonly<Partial<Record<SoundName, string>>>): void;
   play(sound: SoundName): void;
+}
+
+type AudioFactory = (url: string) => HTMLAudioElement | null;
+
+function browserAudio(url: string): HTMLAudioElement | null {
+  return typeof Audio === "function" ? new Audio(url) : null;
 }
 
 type ContextFactory = () => AudioContext | null;
@@ -129,9 +140,17 @@ function browserContext(): AudioContext | null {
 
 export function createAudioFeedback(
   createContext: ContextFactory = browserContext,
+  createAudio: AudioFactory = browserAudio,
 ): AudioFeedback {
   let context: AudioContext | null = null;
   let enabled = true;
+  let files: Readonly<Partial<Record<SoundName, string>>> = {};
+  const recordings = new Map<string, HTMLAudioElement>();
+  const synthesize = (sound: SoundName) => {
+    if (!context) return;
+    if (sound === "scratch") playScratch(context);
+    else for (const tone of TONES[sound]) playTone(context, tone);
+  };
   return {
     get unlocked() {
       return context !== null;
@@ -150,11 +169,25 @@ export function createAudioFeedback(
     setEnabled(value) {
       enabled = value;
     },
+    setSoundFiles(value) {
+      files = value;
+    },
     play(sound) {
+      // Nothing before the first gesture, recordings included (autoplay rules).
       if (!enabled || !context) return;
       try {
-        if (sound === "scratch") playScratch(context);
-        else for (const tone of TONES[sound]) playTone(context, tone);
+        const url = files[sound];
+        const recording = url
+          ? (recordings.get(url) ??
+            (() => {
+              const created = createAudio(url);
+              if (created) recordings.set(url, created);
+              return created;
+            })())
+          : null;
+        if (!recording) return synthesize(sound);
+        recording.currentTime = 0; // a tick replayed before the last one ended restarts
+        void recording.play().catch(() => synthesize(sound));
       } catch {
         // The browser refused this sound: the game goes on in silence.
       }

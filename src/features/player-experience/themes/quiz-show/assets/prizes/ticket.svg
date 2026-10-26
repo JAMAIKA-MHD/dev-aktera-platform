@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7ad9"/><stop offset="1" stop-color="#7a2fe0"/></linearGradient></defs>
+  <path d="M24 72h208v40a16 16 0 0 0 0 32v40H24v-40a16 16 0 0 0 0-32z" fill="url(#g)" transform="translate(0 4)"/>
+  <line x1="172" y1="84" x2="172" y2="172" stroke="#fff" stroke-opacity=".7" stroke-width="4" stroke-dasharray="8 8"/>
+  <polygon points="96,98 106,122 132,124 112,140 119,166 96,152 73,166 80,140 60,124 86,122" fill="#fff6cf"/>
+</svg>

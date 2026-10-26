@@ -6,7 +6,13 @@ import type { ExperienceConfig } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
 import { ensureViewportFitCover } from "../layout/safeArea";
 import { FrameExperience, frameScreen } from "./FrameExperience";
-import { FIXTURE_NAMES, getFixture, readFixtureLocale } from "./fixtures";
+import {
+  FIXTURE_NAMES,
+  getFixture,
+  readFixtureLocale,
+  readFixtureTemplate,
+} from "./fixtures";
+import type { TemplateId } from "../../domain/templates";
 import { exposeLayoutAudit, useLayoutReport } from "./layoutReport";
 import { openPopoutChannel } from "./popoutChannel";
 import {
@@ -22,11 +28,23 @@ import { frameServices, Message, Stage } from "./Stage";
 //   ?source=bridge (default)        the Studio preview sends it with postMessage
 //   ?source=popout&campaignId=…     a separate tab, fed live by the Studio that opened it
 //   ?source=local&campaignId=…      a separate tab reads it from the local repository, live
-//   ?fixture=<name>[&locale=ar]     control pages for the responsive sweep (fixtures.ts)
+//   ?fixture=<name>[&locale=ar][&template=comic-burst]
+//                                   control pages for the responsive sweep (fixtures.ts)
 // The route reads no server data and always runs on demo services (DEMO badge).
 
-function FixtureFrame({ name, locale }: { name: string; locale: Locale }) {
-  const fixture = useMemo(() => getFixture(name), [name]);
+function FixtureFrame({
+  name,
+  locale,
+  templateId,
+}: {
+  name: string;
+  locale: Locale;
+  templateId?: TemplateId;
+}) {
+  const fixture = useMemo(
+    () => getFixture(name, templateId),
+    [name, templateId],
+  );
   if (!fixture) {
     return (
       <Message title={`Unknown fixture "${name}"`}>
@@ -292,6 +310,7 @@ export function FrameHost() {
       <FixtureFrame
         name={fixture}
         locale={readFixtureLocale(params.get("locale"))}
+        templateId={readFixtureTemplate(params.get("template"))}
       />
     );
   }

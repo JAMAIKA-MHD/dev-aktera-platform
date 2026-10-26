@@ -304,3 +304,153 @@ describe("screens forced by the preview", () => {
     expect(screen.getByText("Vos coordonnées")).toBeTruthy();
   });
 });
+
+describe("PlayerExperience · templates of the library", () => {
+  it("draws no stage with the classic template", () => {
+    const { container } = setup();
+    const root = container.querySelector(".xp-runtime");
+    expect(root?.getAttribute("data-xp-template")).toBe("eight-slot");
+    expect(container.querySelector(".xp-stage")).toBeNull();
+  });
+
+  it("dresses every screen from the template's theme.json: stage, fonts, panel", () => {
+    const { container, config, rerenderWith } = setup();
+    rerenderWith({ config: { ...config, templateId: "comic-burst" } });
+    const root = container.querySelector<HTMLElement>(".xp-runtime");
+    expect(root?.getAttribute("data-xp-template")).toBe("comic-burst");
+    expect(root?.getAttribute("data-xp-themed")).toBe("comic-burst");
+    expect(root?.style.getPropertyValue("--xp-font-display")).toContain(
+      "Luckiest Guy",
+    );
+    expect(root?.style.getPropertyValue("--xp-btn-radius")).toBe("0.95rem");
+    // Its panel is a shape (the cloud), in one column in the middle of the stage.
+    expect(root?.style.getPropertyValue("--xp-panel-shape")).toMatch(/^url\(/);
+    expect(root?.hasAttribute("data-xp-panel-shape")).toBe(true);
+    expect(root?.getAttribute("data-xp-layout")).toBe("spotlight");
+    // The template paints the page itself: the theme's background stands aside.
+    expect(root?.style.backgroundImage).toBe("");
+    const stage = container.querySelector<HTMLElement>(".xp-stage");
+    expect(stage?.getAttribute("aria-hidden")).toBe("true");
+    expect(
+      stage
+        ?.querySelector<HTMLElement>(".xp-stage-image")
+        ?.style.getPropertyValue("--xp-stage-image"),
+    ).toContain("url(");
+    expect(stage?.querySelectorAll(".xp-decor").length).toBeGreaterThan(0);
+    expect(document.getElementById("xp-template-comic-burst")).not.toBeNull();
+    // The frame says which screen it draws.
+    expect(
+      container.querySelector(".xp-frame")?.getAttribute("data-xp-screen"),
+    ).toBe("welcome");
+    // Its welcome opens on the texts alone: no teaser, no slot 5.
+    expect(
+      container.querySelector('.xp-frame > [data-xp-slot="interaction"]'),
+    ).toBeNull();
+  });
+
+  it("keeps the journey when the template changes (the stage is outside it)", () => {
+    const { config, rerenderWith } = setup();
+    press("Lancer le jeu");
+    expect(screen.getByText("Vos coordonnées")).toBeTruthy();
+    rerenderWith({ config: { ...config, templateId: "quiz-show" } });
+    expect(screen.getByText("Vos coordonnées")).toBeTruthy(); // still the form
+  });
+});
+
+describe("PlayerExperience · the shell with every theme", () => {
+  const THEMED = [
+    "comic-burst",
+    "quiz-show",
+    "arcade-night",
+    "pixel-quest",
+  ] as const;
+
+  it.each(THEMED)(
+    "%s: the same win screen — prize, code, copy, restart — on the shell",
+    (templateId) => {
+      const prize = createDemoCampaign("lucky_wheel").prizes[0];
+      const { container, config, rerenderWith, track } = setup({
+        initialScreen: "win",
+      });
+      rerenderWith({ config: { ...config, templateId } });
+      expect(container.querySelector("[data-xp-result='win']")).not.toBeNull();
+      expect(
+        container.querySelector("[data-xp-reward]")?.textContent,
+      ).toContain(prize.name);
+      fireEvent.click(screen.getByText(PREVIEW_COUPON_CODE));
+      expect(track).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "coupon_copied" }),
+      );
+      fireEvent.click(screen.getByText("Terminer"));
+      expect(screen.getByText("Lancer le jeu")).toBeTruthy();
+    },
+  );
+
+  it("sets the stage's mood and its own background from the screen", () => {
+    const { container, config, rerenderWith } = setup({
+      initialScreen: "lose",
+    });
+    rerenderWith({ config: { ...config, templateId: "quiz-show" } });
+    const stage = () => container.querySelector<HTMLElement>(".xp-stage");
+    const image = () =>
+      stage()
+        ?.querySelector<HTMLElement>(".xp-stage-image")
+        ?.style.getPropertyValue("--xp-stage-image") ?? "";
+    expect(stage()?.dataset.xpMood).toBe("lose");
+    const onLose = image();
+    // quiz-show has a background of its own for a win (bg-confetti).
+    rerenderWith({
+      config: { ...config, templateId: "quiz-show" },
+      initialScreen: "win",
+    });
+    expect(stage()?.dataset.xpMood).toBe("win");
+    expect(image()).not.toBe(onLose);
+  });
+
+  it("draws the theme's wheel: its lights, and the prize art on the prize slices", () => {
+    const { container, config, rerenderWith } = setup({
+      initialScreen: "play",
+    });
+    rerenderWith({ config: { ...config, templateId: "comic-burst" } });
+    const wheel = container.querySelector("[data-xp-game='lucky_wheel']");
+    // One inked light on each line between two slices (bulbsPerSlice: 1).
+    expect(wheel?.querySelectorAll(".xp-wheel-bulb").length).toBe(
+      wheel?.querySelectorAll(".xp-wheel-segment").length,
+    );
+    expect(wheel?.querySelector(".xp-wheel-bulb")?.getAttribute("stroke")).toBe(
+      "var(--xp-wheel-bulb-ink)",
+    );
+    // The theme's own pointer, and the prize art on the prize slices.
+    expect(
+      wheel?.querySelector("image.xp-wheel-pointer")?.getAttribute("href"),
+    ).toBeTruthy();
+    expect(
+      wheel?.querySelectorAll("image:not(.xp-wheel-pointer)").length,
+    ).toBeGreaterThan(0);
+    expect(
+      wheel?.querySelector(".xp-wheel-segment")?.getAttribute("fill"),
+    ).toMatch(/^var\(--xp-wheel-/);
+  });
+
+  it("hands the theme's own recordings to the sounds, and takes them back on the classic one", async () => {
+    const { runtimeAudio } = await import("./feedback/audio");
+    const files = vi.spyOn(runtimeAudio, "setSoundFiles");
+    const { config, rerenderWith } = setup();
+    rerenderWith({ config: { ...config, templateId: "comic-burst" } });
+    expect(files).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        win: expect.any(String),
+        tick: expect.any(String),
+      }),
+    );
+    rerenderWith({ config: { ...config, templateId: "eight-slot" } });
+    expect(files).toHaveBeenLastCalledWith({});
+    files.mockRestore();
+  });
+
+  it("keeps the classic wheel and result screens for the classic template", () => {
+    const { container } = setup({ initialScreen: "win" });
+    expect(container.querySelector(".xp-stage")).toBeNull();
+    expect(screen.getByText("Félicitations, vous avez gagné !")).toBeTruthy();
+  });
+});

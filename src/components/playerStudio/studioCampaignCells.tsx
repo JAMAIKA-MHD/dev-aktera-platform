@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { templateLabel } from "../../features/player-experience";
 import { Badge } from "../ui/badge";
 import type { Campaign } from "../../types";
 import type {
@@ -192,6 +193,14 @@ export function DesignCell({
       <span className="text-xs text-muted-foreground" title={row.designSavedAt}>
         {formatSavedAgo(row.designSavedAt, now)}
       </span>
+      {row.designTemplate && (
+        <span className="text-xs text-muted-foreground">
+          {t("playerStudio.design.template", "Template: {name}").replace(
+            "{name}",
+            templateLabel(row.designTemplate),
+          )}
+        </span>
+      )}
     </div>
   );
 }

@@ -1,13 +1,18 @@
+import { TEMPLATE_IDS } from "../domain/templates";
 import type { ThemeTokens } from "../domain/types";
+import { getThemeManifest } from "./themeManifests";
 
 export interface ThemePreset {
   id: string;
   label: string; // Studio label (English)
   tokens: Omit<ThemeTokens, "presetId">;
+  // The palette of one template of the library (presets/templates.ts): applied with that
+  // template, never listed among the styles of the classic layout.
+  template?: true;
 }
 
 // Generic styles only: no preset may carry the name or the exact identity of a real brand.
-export const THEME_PRESETS: readonly ThemePreset[] = [
+const STYLES: readonly ThemePreset[] = [
   {
     // Reference design of the welcome screen (rules.md, D4).
     id: "midnight-gold",
@@ -122,6 +127,46 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
   },
 ];
 
+// The palette of each template of the library, read from its theme.json: what the brand's
+// theme starts from when the template is picked. Surface and text are those of the panel the
+// texts sit on; the stage around it is the theme's own (runtime/shell/GameFrame).
+const TEMPLATE_PALETTES: readonly ThemePreset[] = TEMPLATE_IDS.flatMap(
+  (id): ThemePreset[] => {
+    const manifest = getThemeManifest(id);
+    if (!manifest) return [];
+    const { ink: _ink, ...colors } = manifest.palette;
+    return [
+      {
+        id,
+        label: manifest.label,
+        template: true,
+        tokens: {
+          mode: manifest.mode,
+          colors,
+          background: {
+            kind: "solid",
+            image: null,
+            overlayOpacity: 0.85,
+            focus: { x: 50, y: 50 },
+          },
+          radius: manifest.radius,
+          font: manifest.font,
+        },
+      },
+    ];
+  },
+);
+
+export const THEME_PRESETS: readonly ThemePreset[] = [
+  ...STYLES,
+  ...TEMPLATE_PALETTES,
+];
+
+// The styles offered with the classic layout (the Template panel's preset grid).
+export const STYLE_PRESETS: readonly ThemePreset[] = THEME_PRESETS.filter(
+  (preset) => !preset.template,
+);
+
 export const DEFAULT_PRESET_ID = "midnight-gold";
 
 // Unknown ids fall back to the default preset, so a stale presetId never breaks a theme.
@@ -130,4 +175,9 @@ export function themeFromPreset(presetId: string | undefined): ThemeTokens {
     THEME_PRESETS.find((candidate) => candidate.id === presetId) ??
     THEME_PRESETS.find((candidate) => candidate.id === DEFAULT_PRESET_ID)!;
   return structuredClone({ presetId: preset.id, ...preset.tokens });
+}
+
+// The preset a theme started from, whichever list it belongs to.
+export function findPreset(presetId: string | null): ThemePreset | undefined {
+  return THEME_PRESETS.find((candidate) => candidate.id === presetId);
 }

@@ -1,0 +1,483 @@
+{
+  "version": 1,
+  "id": "comic-burst",
+  "label": "Cartoon Pop",
+  "description": "A comic-book burst: blue rays in a cream frame, red flames, a white cloud panel, yellow outlined buttons and a classic cartoon wheel.",
+  "source": "style1-cartoon-style",
+  "credits": "CREDITS.txt",
+  "mode": "light",
+  "palette": {
+    "primary": "#FFE81F",
+    "secondary": "#D62D2D",
+    "accent": "#2F80D8",
+    "surface": "#FFFFFF",
+    "text": "#1B2A3A",
+    "ink": "#1B2A3A"
+  },
+  "radius": "rounded",
+  "font": "poppins",
+  "fonts": {
+    "display": "Luckiest Guy",
+    "ui": "Fredoka",
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Luckiest+Guy&display=swap"
+  },
+  "tokens": {
+    "radius": {
+      "sm": "0.5rem",
+      "md": "0.85rem",
+      "lg": "1.1rem",
+      "pill": "0.95rem"
+    },
+    "space": {
+      "xs": "0.375rem",
+      "sm": "0.625rem",
+      "md": "1rem",
+      "lg": "1.5rem"
+    },
+    "fontSize": {
+      "display": "clamp(1.8rem, 8cqw, 3.25rem)",
+      "title": "1.25",
+      "body": "0.95rem",
+      "label": "0.75rem"
+    },
+    "shadow": {
+      "panel": "none",
+      "card": "0.3rem 0.35rem 0 #1A62AB",
+      "pop": "0.45rem 0.5rem 0 #1A62AB"
+    }
+  },
+  "panel": {
+    "bg": "#FFFFFF",
+    "text": "@ink",
+    "border": "@ink",
+    "borderWidth": "0.25rem",
+    "frame": null,
+    "shape": {
+      "src": "assets/frames/cloud.svg",
+      "shadow": "clamp(0.5rem, 1.7vw, 1.6rem) clamp(0.5rem, 1.7vw, 1.6rem) 0 #1A62AB",
+      "padInline": "clamp(2.25rem, 13.2vw, 13rem)",
+      "padBlock": "clamp(2rem, 8svh, 6rem)",
+      "stack": {
+        "padInline": "clamp(1rem, 4.5vw, 2.5rem)",
+        "bleed": "16vw"
+      },
+      "columnMax": "29rem",
+      "screens": {
+        "lose": {
+          "src": "assets/frames/cloud-dusk.svg",
+          "shadow": "clamp(0.5rem, 1.7vw, 1.6rem) clamp(0.5rem, 1.7vw, 1.6rem) 0 #2C3750"
+        }
+      },
+      "hiddenOn": ["play", "resolving", "revealing"]
+    }
+  },
+  "card": {
+    "bg": "#EAF4FE",
+    "border": "@ink",
+    "borderWidth": "0.2rem",
+    "frame": null
+  },
+  "hud": {
+    "bg": "#FFFFFF",
+    "text": "@ink",
+    "border": "@ink"
+  },
+  "button": {
+    "primary": {
+      "bg": "@primary",
+      "text": "@ink",
+      "border": "@ink",
+      "borderWidth": "0.2rem",
+      "shadow": "0.3rem 0.35rem 0 @ink",
+      "shadowPressed": "0.08rem 0.1rem 0 @ink"
+    },
+    "secondary": {
+      "bg": "#EAF4FE",
+      "text": "@ink",
+      "border": "@ink",
+      "borderWidth": "0.2rem",
+      "shadow": "0.3rem 0.35rem 0 #1A62AB",
+      "shadowPressed": "0.08rem 0.1rem 0 #1A62AB"
+    }
+  },
+  "field": {
+    "bg": "#EAF4FE",
+    "text": "@ink",
+    "border": "@ink",
+    "borderWidth": "0.2rem",
+    "shadow": "0.3rem 0.35rem 0 @accent",
+    "label": "#1E5FAE",
+    "labelFont": "display"
+  },
+  "title": {
+    "color": "@accent",
+    "stroke": "@ink",
+    "strokeWidth": "0.14em",
+    "shadow": "0.05em 0.07em 0 @ink",
+    "transform": "uppercase",
+    "letterSpacing": "0.01em",
+    "screens": {
+      "win": "@primary",
+      "lose": "@secondary"
+    },
+    "backdrop": {
+      "src": "assets/frames/title-cloud.svg",
+      "screens": ["play", "resolving", "revealing"]
+    }
+  },
+  "layout": {
+    "kind": "spotlight",
+    "welcomeTeaser": false
+  },
+  "stage": {
+    "color": "#2079C7",
+    "overlay": "@ink",
+    "overlayOpacity": 0,
+    "fit": "stretch",
+    "moods": false,
+    "text": "#FFFFFF",
+    "backgrounds": {
+      "default": "assets/backgrounds/bg-burst.png",
+      "games": {},
+      "screens": {
+        "win": "assets/backgrounds/bg-win.png",
+        "lose": "assets/backgrounds/bg-lose.png"
+      }
+    },
+    "decor": [
+      {
+        "src": "assets/decor/puff-left.svg",
+        "left": "calc(10.16% - calc((50vw + 50vh) * 0.068))",
+        "top": "calc(26.32% - calc((50vw + 50vh) * 0.1206))",
+        "width": "calc((50vw + 50vh) * 0.136)",
+        "screens": [
+          "welcome",
+          "register",
+          "duplicate",
+          "closed",
+          "error",
+          "play",
+          "resolving",
+          "revealing",
+          "win"
+        ]
+      },
+      {
+        "src": "assets/decor/puff-right.svg",
+        "left": "calc(89.65% - calc((50vw + 50vh) * 0.0685))",
+        "top": "calc(62.22% - calc((50vw + 50vh) * 0.118))",
+        "width": "calc((50vw + 50vh) * 0.137)",
+        "screens": [
+          "welcome",
+          "register",
+          "duplicate",
+          "closed",
+          "error",
+          "play",
+          "resolving",
+          "revealing",
+          "win"
+        ]
+      },
+      {
+        "src": "assets/decor/flames-top-right.svg",
+        "right": "0",
+        "top": "0",
+        "width": "max(9rem, calc((50vw + 50vh) * 0.42))"
+      },
+      {
+        "src": "assets/decor/puff-left-dusk.svg",
+        "left": "calc(10.16% - calc((50vw + 50vh) * 0.068))",
+        "top": "calc(26.32% - calc((50vw + 50vh) * 0.1206))",
+        "width": "calc((50vw + 50vh) * 0.136)",
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/flames-bottom-left.svg",
+        "left": "0",
+        "bottom": "0",
+        "width": "max(9rem, calc((50vw + 50vh) * 0.42))"
+      },
+      {
+        "src": "assets/decor/puff-right-dusk.svg",
+        "left": "calc(89.65% - calc((50vw + 50vh) * 0.0685))",
+        "top": "calc(62.22% - calc((50vw + 50vh) * 0.118))",
+        "width": "calc((50vw + 50vh) * 0.137)",
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/bolt.svg",
+        "left": "calc(6.31% - calc((50vw + 50vh) * 0.0509))",
+        "top": "calc(31.86% - calc((50vw + 50vh) * 0.0252))",
+        "width": "calc((50vw + 50vh) * 0.1018)",
+        "rotate": -24,
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/bolt.svg",
+        "left": "calc(93.49% - calc((50vw + 50vh) * 0.0491))",
+        "top": "calc(43.55% - calc((50vw + 50vh) * 0.0243))",
+        "width": "calc((50vw + 50vh) * 0.0981)",
+        "rotate": 32,
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/sparkle-red.svg",
+        "left": "calc(18.13% - calc((50vw + 50vh) * 0.0305))",
+        "top": "calc(14.17% - calc((50vw + 50vh) * 0.0305))",
+        "width": "calc((50vw + 50vh) * 0.061)",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(24.87% - calc((50vw + 50vh) * 0.0266))",
+        "top": "calc(10.43% - calc((50vw + 50vh) * 0.0254))",
+        "width": "calc((50vw + 50vh) * 0.0533)",
+        "rotate": 14,
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/sparkle-blue.svg",
+        "left": "calc(17.81% - calc((50vw + 50vh) * 0.0365))",
+        "top": "calc(13.89% - calc((50vw + 50vh) * 0.0365))",
+        "width": "calc((50vw + 50vh) * 0.073)",
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(78.09% - calc((50vw + 50vh) * 0.0328))",
+        "top": "calc(15.33% - calc((50vw + 50vh) * 0.0313))",
+        "width": "calc((50vw + 50vh) * 0.0656)",
+        "rotate": -10,
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/sparkle-yellow.svg",
+        "left": "calc(23.98% - calc((50vw + 50vh) * 0.0335))",
+        "top": "calc(9.31% - calc((50vw + 50vh) * 0.0335))",
+        "width": "calc((50vw + 50vh) * 0.067)",
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/sparkle-blue.svg",
+        "left": "calc(83.59% - calc((50vw + 50vh) * 0.0285))",
+        "top": "calc(25% - calc((50vw + 50vh) * 0.0285))",
+        "width": "calc((50vw + 50vh) * 0.057)",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/sparkle-red.svg",
+        "left": "calc(20.31% - calc((50vw + 50vh) * 0.04))",
+        "top": "calc(21.39% - calc((50vw + 50vh) * 0.04))",
+        "width": "calc((50vw + 50vh) * 0.08)",
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/sparkle-yellow.svg",
+        "left": "calc(22.5% - calc((50vw + 50vh) * 0.0365))",
+        "top": "calc(46.94% - calc((50vw + 50vh) * 0.0365))",
+        "width": "calc((50vw + 50vh) * 0.073)",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(20.92% - calc((50vw + 50vh) * 0.0304))",
+        "top": "calc(47.06% - calc((50vw + 50vh) * 0.029))",
+        "width": "calc((50vw + 50vh) * 0.0608)",
+        "rotate": -12,
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(75.19% - calc((50vw + 50vh) * 0.0235))",
+        "top": "calc(16.87% - calc((50vw + 50vh) * 0.0224))",
+        "width": "calc((50vw + 50vh) * 0.047)",
+        "rotate": 14,
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(25.16% - calc((50vw + 50vh) * 0.0242))",
+        "top": "calc(69.59% - calc((50vw + 50vh) * 0.0231))",
+        "width": "calc((50vw + 50vh) * 0.0485)",
+        "rotate": -12,
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/sparkle-red.svg",
+        "left": "calc(83.2% - calc((50vw + 50vh) * 0.0335))",
+        "top": "calc(50.69% - calc((50vw + 50vh) * 0.0335))",
+        "width": "calc((50vw + 50vh) * 0.067)",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/bolt.svg",
+        "left": "calc(85.83% - calc((50vw + 50vh) * 0.0491))",
+        "top": "calc(21.33% - calc((50vw + 50vh) * 0.0243))",
+        "width": "calc((50vw + 50vh) * 0.0981)",
+        "rotate": 32,
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(24.77% - calc((50vw + 50vh) * 0.0334))",
+        "top": "calc(43.41% - calc((50vw + 50vh) * 0.0318))",
+        "width": "calc((50vw + 50vh) * 0.0667)",
+        "rotate": -12,
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/sparkle-red.svg",
+        "left": "calc(75.39% - calc((50vw + 50vh) * 0.0335))",
+        "top": "calc(39.58% - calc((50vw + 50vh) * 0.0335))",
+        "width": "calc((50vw + 50vh) * 0.067)",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(85.12% - calc((50vw + 50vh) * 0.0328))",
+        "top": "calc(91.71% - calc((50vw + 50vh) * 0.0313))",
+        "width": "calc((50vw + 50vh) * 0.0656)",
+        "rotate": -10,
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(79.77% - calc((50vw + 50vh) * 0.021))",
+        "top": "calc(38.75% - calc((50vw + 50vh) * 0.02))",
+        "width": "calc((50vw + 50vh) * 0.042)",
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(87.5% - calc((50vw + 50vh) * 0.0208))",
+        "top": "calc(45.49% - calc((50vw + 50vh) * 0.0198))",
+        "width": "calc((50vw + 50vh) * 0.0416)",
+        "rotate": 14,
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/sparkle-blue.svg",
+        "left": "calc(28.75% - calc((50vw + 50vh) * 0.0365))",
+        "top": "calc(91.39% - calc((50vw + 50vh) * 0.0365))",
+        "width": "calc((50vw + 50vh) * 0.073)",
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/sparkle-red.svg",
+        "left": "calc(81.02% - calc((50vw + 50vh) * 0.0355))",
+        "top": "calc(86.53% - calc((50vw + 50vh) * 0.0355))",
+        "width": "calc((50vw + 50vh) * 0.071)",
+        "hideWhenLow": true,
+        "front": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/sparkle-blue.svg",
+        "left": "calc(81.25% - calc((50vw + 50vh) * 0.0285))",
+        "top": "calc(86.11% - calc((50vw + 50vh) * 0.0285))",
+        "width": "calc((50vw + 50vh) * 0.057)",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/bolt.svg",
+        "left": "calc(14.76% - calc((50vw + 50vh) * 0.0509))",
+        "top": "calc(62.41% - calc((50vw + 50vh) * 0.0252))",
+        "width": "calc((50vw + 50vh) * 0.1018)",
+        "rotate": -24,
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/star-yellow.svg",
+        "left": "calc(85.75% - calc((50vw + 50vh) * 0.0328))",
+        "top": "calc(92.83% - calc((50vw + 50vh) * 0.0313))",
+        "width": "calc((50vw + 50vh) * 0.0656)",
+        "rotate": -10,
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/bolt.svg",
+        "left": "calc(16.32% - calc((50vw + 50vh) * 0.0509))",
+        "top": "calc(56.86% - calc((50vw + 50vh) * 0.0252))",
+        "width": "calc((50vw + 50vh) * 0.1018)",
+        "rotate": -24,
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/sparkle-blue.svg",
+        "left": "calc(78.13% - calc((50vw + 50vh) * 0.0365))",
+        "top": "calc(92.5% - calc((50vw + 50vh) * 0.0365))",
+        "width": "calc((50vw + 50vh) * 0.073)",
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      }
+    ]
+  },
+  "wheel": {
+    "segments": ["@primary", "#D62D2D", "#2F80D8", "#3A4760"],
+    "blank": "#3A4760",
+    "rim": "#FFF6E0",
+    "rimInk": "@ink",
+    "bulbs": "@primary",
+    "pointer": "#D62D2D",
+    "pointerInk": "@ink",
+    "hub": "@primary",
+    "hubText": "@ink",
+    "bulbsPerSlice": 1,
+    "bulbInk": "@ink",
+    "pointerArt": "assets/wheel/pointer.svg",
+    "hubShine": false,
+    "shadow": "1.6cqmin 1.6cqmin 0 #1A62AB"
+  },
+  "prizes": {
+    "gift": "assets/prizes/gift.svg",
+    "ticket": "assets/prizes/ticket.svg",
+    "coin": "assets/prizes/coin.svg",
+    "star": "assets/prizes/star.svg",
+    "gem": "assets/prizes/gem.svg",
+    "trophy": "assets/prizes/trophy.svg"
+  },
+  "characters": {
+    "happy": "assets/characters/star.png",
+    "sad": "assets/characters/sad-face.png"
+  },
+  "sounds": {
+    "click": "assets/sounds/click.mp3",
+    "tick": "assets/sounds/tick.mp3",
+    "win": "assets/sounds/win.mp3",
+    "lose": "assets/sounds/lose.mp3",
+    "reward": "assets/sounds/reward.mp3"
+  }
+}

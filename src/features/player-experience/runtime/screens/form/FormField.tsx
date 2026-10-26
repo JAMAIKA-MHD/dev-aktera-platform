@@ -141,11 +141,14 @@ export function FormField({
     "aria-describedby": error ? errorId : undefined,
     required: optional === null,
     className:
-      "min-h-[48px] w-full appearance-none rounded-[var(--xp-radius-md)] border border-[color:var(--xp-field-border)] px-11 py-2.5 text-base outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[var(--xp-text-muted)] focus:border-[color:var(--xp-primary)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--xp-primary)_28%,transparent)]",
+      "min-h-[48px] w-full appearance-none rounded-[var(--xp-radius-md)] border-[length:var(--xp-field-border-width,1px)] border-[color:var(--xp-field-edge)] px-11 py-2.5 text-base outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[var(--xp-text-muted)] focus:border-[color:var(--xp-primary)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--xp-primary)_28%,transparent)]",
     style: {
-      "--xp-field-border": error ? "var(--xp-danger)" : tint("--xp-text", 20),
-      backgroundColor: tint("--xp-surface", 88),
-      color: "var(--xp-text)",
+      // The edge in force: the theme's field border, or the danger color on an error.
+      "--xp-field-edge": error
+        ? "var(--xp-danger)"
+        : `var(--xp-field-border, ${tint("--xp-text", 20)})`,
+      backgroundColor: `var(--xp-field-bg, ${tint("--xp-surface", 88)})`,
+      color: "var(--xp-field-text, var(--xp-text))",
     } as CSSProperties,
   };
   const setup = fieldKey === "wilaya" ? null : INPUTS[fieldKey];

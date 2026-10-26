@@ -1,18 +1,21 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CampaignSnapshot } from "../domain/campaign";
 import { outcomeTimingFor, type FlowScreen } from "../domain/flow";
 import type { Locale } from "../domain/locale";
 import type { ExperienceConfig } from "../domain/types";
 import type { ExperienceServices, GatewayMode } from "../services/ports";
 import { useExperienceServices } from "../services/ServicesProvider";
-import { ensureFontStylesheet } from "../theme/fonts";
+import { ensureFontStylesheet, ensureTemplateFonts } from "../theme/fonts";
+import { useGameTheme } from "../theme/GameTheme";
 import { ThemeScope } from "../theme/ThemeScope";
+import { runtimeAudio } from "./feedback/audio";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
 import { LoseScreen } from "./screens/LoseScreen";
 import { RegisterScreen } from "./screens/RegisterScreen";
 import { PlayScreen } from "./screens/PlayScreen";
 import type { FrameChrome, ScreenProps } from "./screens/screenProps";
 import { StatusScreen } from "./screens/StatusScreen";
+import { GameFrame } from "./shell/GameFrame";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { WinScreen } from "./screens/WinScreen";
 import { useExperienceFlow, type DrawSource } from "./useExperienceFlow";
@@ -56,6 +59,13 @@ export function PlayerExperience(props: PlayerExperienceProps) {
   useEffect(() => {
     ensureFontStylesheet(document, config.theme.font);
   }, [config.theme.font]);
+  useEffect(() => {
+    ensureTemplateFonts(document, config.templateId);
+  }, [config.templateId]);
+  // The screen shown, for the stage: its mood and its own background follow the journey.
+  const [screen, setScreen] = useState<FlowScreen>(
+    props.initialScreen ?? "welcome",
+  );
 
   const chrome: FrameChrome = {
     logoUrl,
@@ -75,11 +85,21 @@ export function PlayerExperience(props: PlayerExperienceProps) {
     <ThemeScope
       theme={config.theme}
       locale={locale}
+      templateId={config.templateId}
       imageUrl={imageUrl}
       className="xp-runtime flex flex-col"
     >
+      <ThemeSounds />
+      {/* Outside the journey: a new screen changes the stage's mood, never remounts it. */}
+      <GameFrame gameType={campaign.gameType} screen={screen} />
       {allowedGatewayModes.includes(mode) ? (
-        <Journey key={journey} {...props} services={services} chrome={chrome} />
+        <Journey
+          key={journey}
+          {...props}
+          services={services}
+          chrome={chrome}
+          onScreen={setScreen}
+        />
       ) : (
         <GatewayRefusedScreen
           config={config}
@@ -94,6 +114,15 @@ export function PlayerExperience(props: PlayerExperienceProps) {
   );
 }
 
+// The theme's own recordings, for the whole runtime document (feedback/audio.ts).
+function ThemeSounds() {
+  const { assets } = useGameTheme();
+  useEffect(() => {
+    runtimeAudio.setSoundFiles(assets?.sounds ?? {});
+  }, [assets]);
+  return null;
+}
+
 function Journey({
   config,
   campaign,
@@ -103,9 +132,11 @@ function Journey({
   source,
   services,
   chrome,
+  onScreen,
 }: PlayerExperienceProps & {
   services: ExperienceServices;
   chrome: FrameChrome;
+  onScreen: (screen: FlowScreen) => void;
 }) {
   const flow = useExperienceFlow({
     config,
@@ -116,12 +147,13 @@ function Journey({
     source,
   });
   const screen = flow.state.screen;
-  const report = useRef(onFlowEvent);
+  const report = useRef({ onFlowEvent, onScreen });
   useEffect(() => {
-    report.current = onFlowEvent;
+    report.current = { onFlowEvent, onScreen };
   });
   useEffect(() => {
-    report.current?.(screen);
+    report.current.onFlowEvent?.(screen);
+    report.current.onScreen(screen);
   }, [screen]);
   const props: ScreenProps = { flow, config, campaign, locale, chrome };
   if (screen === "welcome") return <WelcomeScreen {...props} />;

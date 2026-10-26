@@ -1,8 +1,14 @@
 /**
- * What each plan allows. Display only for now: nothing enforces these limits yet, on the
- * server or in the app.
+ * What each plan allows. The active-campaign limit is enforced on the server (trigger
+ * `enforce_active_campaign_limit`); the monthly entries are display only for now.
  */
 export type PlanKey = "free" | "starter" | "pro" | "enterprise";
+
+/**
+ * Most campaigns an organization can have active at once (published and not ended), on
+ * every plan. Must match `c_max_active_campaigns` in `enforce_active_campaign_limit`.
+ */
+export const MAX_ACTIVE_CAMPAIGNS = 5;
 
 export interface PlanAllowance {
   label: string;
@@ -12,12 +18,24 @@ export interface PlanAllowance {
 }
 
 export const PLAN_ALLOWANCES: Record<PlanKey, PlanAllowance> = {
-  free: { label: "Free", entriesPerMonth: 1000, activeCampaigns: 1 },
-  starter: { label: "Starter", entriesPerMonth: 3000, activeCampaigns: 3 },
-  pro: { label: "Pro", entriesPerMonth: 10000, activeCampaigns: 5 },
+  free: {
+    label: "Free",
+    entriesPerMonth: 1000,
+    activeCampaigns: MAX_ACTIVE_CAMPAIGNS,
+  },
+  starter: {
+    label: "Starter",
+    entriesPerMonth: 3000,
+    activeCampaigns: MAX_ACTIVE_CAMPAIGNS,
+  },
+  pro: {
+    label: "Pro",
+    entriesPerMonth: 10000,
+    activeCampaigns: MAX_ACTIVE_CAMPAIGNS,
+  },
   enterprise: {
     label: "Enterprise",
     entriesPerMonth: 100000,
-    activeCampaigns: null,
+    activeCampaigns: MAX_ACTIVE_CAMPAIGNS,
   },
 };

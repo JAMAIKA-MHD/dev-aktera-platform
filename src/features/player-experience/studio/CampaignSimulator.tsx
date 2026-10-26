@@ -29,6 +29,7 @@ export interface CampaignSimulatorProps {
   campaignId: string | null; // null or unknown = the default experience, on the demo campaign
   services?: ExperienceServices; // default: the backend's services, else the local ones
   backend?: StudioBackend;
+  bare?: boolean; // only the phone, to sit on the host's own background
 }
 
 export function CampaignSimulator({
@@ -37,6 +38,7 @@ export function CampaignSimulator({
   campaignId,
   services: injected,
   backend,
+  bare = false,
 }: CampaignSimulatorProps) {
   const campaign = campaigns.find((item) => item.id === campaignId) ?? null;
   const rules = useMemo(
@@ -58,6 +60,7 @@ export function CampaignSimulator({
       key={snapshot?.id ?? "default"}
       snapshot={snapshot}
       services={services}
+      bare={bare}
     />
   );
 }
@@ -65,9 +68,11 @@ export function CampaignSimulator({
 function SimulatorSession({
   snapshot,
   services,
+  bare,
 }: {
   snapshot: CampaignSnapshot | null;
   services: ExperienceServices;
+  bare: boolean;
 }) {
   // The Studio's store, only for what the preview reads: always the same phone, never the
   // device remembered by the Studio, and nothing is ever saved from here.
@@ -108,21 +113,23 @@ function SimulatorSession({
   if (loadFailed) {
     return (
       <div
-        className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+        className="flex flex-1 flex-col items-center justify-center p-6 text-center"
         role="alert"
       >
-        <AlertTriangle className="size-6 text-rose-500" aria-hidden />
-        <p className="text-sm font-bold text-brand-text">
-          Could not load the saved design.
-        </p>
-        <button
-          type="button"
-          onClick={() => setLoadAttempt((attempt) => attempt + 1)}
-          className="flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-500 active:scale-95"
-        >
-          <RotateCcw className="size-3.5" aria-hidden />
-          Retry
-        </button>
+        <div className="flex flex-col items-center gap-3 rounded-2xl bg-card-bg p-6">
+          <AlertTriangle className="size-6 text-rose-500" aria-hidden />
+          <p className="text-sm font-bold text-brand-text">
+            Could not load the saved design.
+          </p>
+          <button
+            type="button"
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+            className="flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-500 active:scale-95"
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -137,7 +144,7 @@ function SimulatorSession({
   return (
     <StudioProvider value={value}>
       <div className="flex min-h-0 flex-1 flex-col" data-xp-simulator>
-        <PreviewViewport restartKey={restartKey} />
+        <PreviewViewport restartKey={restartKey} bare={bare} />
         <button
           type="button"
           onClick={() => setRestartKey((key) => key + 1)}

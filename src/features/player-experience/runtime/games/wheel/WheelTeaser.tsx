@@ -8,6 +8,7 @@ import { WheelFace } from "./WheelFace";
 // labels, same colors as the game that follows — turning slowly, with a nudge now and then.
 // It never slows to a stop and never highlights a segment: a wheel landing on a prize would
 // promise a win nobody has drawn (rule 1). It stands still off screen or with reduced motion.
+// A template's wheel is this same face, in its theme's colors (WheelFace).
 
 const DRIFT_PER_SECOND = 20; // degrees
 const BOOST_PER_SECOND = 130;

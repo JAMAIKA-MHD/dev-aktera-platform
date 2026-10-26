@@ -1,0 +1,32 @@
+Credits and licenses
+
+icons/lucide: Lucide, ISC license, https://lucide.dev
+icons/phosphor, icons/phosphor-fill: Phosphor Icons, MIT license, https://phosphoricons.com
+
+icons/game-icons: game-icons.net, CC BY 3.0 (credit the authors below), https://game-icons.net
+
+  trophy.svg - by Lorc (game-icons.net, CC BY 3.0)
+  trophy-cup.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  two-coins.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  coins.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  ticket.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  present.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  party-popper.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  cut-diamond.svg - by Lorc (game-icons.net, CC BY 3.0)
+  gem-pendant.svg - by Lorc (game-icons.net, CC BY 3.0)
+  dice-six-faces-five.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  perspective-dice-six-faces-random.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  card-random.svg - by Faithtoken (game-icons.net, CC BY 3.0)
+  card-joker.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  stopwatch.svg - by Skoll (game-icons.net, CC BY 3.0)
+  padlock-open.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  firework-rocket.svg - by Lorc (game-icons.net, CC BY 3.0)
+  shiny-purse.svg - by Lorc (game-icons.net, CC BY 3.0)
+  bolt-spell-cast.svg - by Delapouite (game-icons.net, CC BY 3.0)
+  crown.svg - by various (game-icons.net, CC BY 3.0)
+  brain.svg - by Lorc (game-icons.net, CC BY 3.0)
+  magnifying-glass.svg - by Lorc (game-icons.net, CC BY 3.0)
+  heart-plus.svg - by Zeromancer (game-icons.net, CC BY 3.0)
+
+backgrounds, frames, decor: style1-cartoon-style/cartoon-screens.zip, drawn for this project.
+prizes, sounds: generated for this project, no third-party material.

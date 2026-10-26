@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_RULES } from "../../../domain/campaign";
 import { resolveQuizQuestion } from "../../../domain/display";
-import { tint } from "../../../theme/recipes";
+import { OUTLINE } from "../../../theme/recipes";
 import { runtimeAudio } from "../../feedback/audio";
 import type { GameEngineProps } from "../types";
 import { QuizCardFace } from "./QuizCardFace";
@@ -114,9 +114,9 @@ export function QuizEngine({
             disabled={!playing}
             onClick={() => answer(question.id, position)}
             dir="auto"
-            className="min-h-[44px] w-full cursor-pointer rounded-[var(--xp-radius-md)] border px-3 py-2 text-start text-[clamp(0.8rem,3.6cqmin,1rem)] font-bold wrap-anywhere transition-colors duration-150 enabled:hover:border-[color:var(--xp-primary)] disabled:cursor-default disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
+            className="xp-outlined min-h-[44px] w-full cursor-pointer rounded-[var(--xp-radius-md)] border px-3 py-2 text-start text-[clamp(0.8rem,3.6cqmin,1rem)] font-bold wrap-anywhere transition-colors duration-150 enabled:hover:border-[color:var(--xp-primary)] disabled:cursor-default disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
             style={{
-              borderColor: tint("--xp-text", 14),
+              borderColor: OUTLINE,
               transition: reducedMotion ? "none" : undefined,
             }}
           >

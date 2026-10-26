@@ -5,6 +5,7 @@ import {
   canSubmit,
   createInitialFlowState,
   createPreviewFlowState,
+  PREVIEW_PRIZE_ID,
   formErrors,
   flowReducer,
   nextCommand,
@@ -705,12 +706,25 @@ describe("createPreviewFlowState", () => {
     expect(PREVIEW_COUPON_CODE).toMatch(/^DEMO-\w{4}-\w{4}$/);
   });
 
-  it("shows a loss, and a campaign without prizes can only lose", () => {
+  it("shows a loss when the loss is asked for", () => {
     const loss = { isWinner: false, prize: null, couponCode: null };
     expect(at("lose")).toMatchObject({ screen: "lose", outcome: loss });
-    expect(at("win", { ...campaign, prizes: [] })).toMatchObject({
-      screen: "lose",
-      outcome: loss,
+  });
+
+  it("always shows a win when the win is asked for, even before the campaign has prizes", () => {
+    const noPrizes = { ...campaign, prizes: [] };
+    expect(at("win", noPrizes)).toMatchObject({
+      screen: "win",
+      outcome: {
+        isWinner: true,
+        prize: { id: PREVIEW_PRIZE_ID, name: "", winMessage: null },
+        couponCode: PREVIEW_COUPON_CODE, // a DEMO code: never a real one
+      },
+    });
+    // A reveal is a draw seen from the player's side: without a prize there is no win.
+    expect(at("revealing", noPrizes)).toMatchObject({
+      screen: "revealing",
+      outcome: { isWinner: false, prize: null, couponCode: null },
     });
   });
 

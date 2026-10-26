@@ -7,6 +7,7 @@ import { ImageField } from "../fields/ImageField";
 import { LocalizedTextField } from "../fields/LocalizedTextField";
 import { NumberField } from "../fields/NumberField";
 import { SegmentedControl } from "../fields/SegmentedControl";
+import { getTemplate } from "../../presets/templates";
 import { useStudio } from "../StudioContext";
 import {
   PanelBody,
@@ -33,6 +34,11 @@ const BACKGROUNDS = [
 export function BrandPanel() {
   const theme = useStudio((state) => state.config.theme);
   const brand = useStudio((state) => state.config.brand);
+  // A template of the library draws its own page from its theme.json: its background setting
+  // stands aside, and of the colors only primary and accent are the brand's to change (the
+  // panels, frames and stage are the theme's).
+  const template = getTemplate(useStudio((state) => state.config.templateId));
+  const staged = template.presetId !== null;
   const updateTheme = useStudio((state) => state.updateTheme);
   const updateBrand = useStudio((state) => state.updateBrand);
   const textLocale = useTextLocale();
@@ -50,13 +56,15 @@ export function BrandPanel() {
     surface: [theme.colors.text, "Text"],
     text: [theme.colors.surface, "Background"],
   };
-  const COLORS: { key: ColorKey; label: string }[] = [
-    { key: "primary", label: "Primary" },
-    { key: "secondary", label: "Secondary" },
-    { key: "accent", label: "Accent" },
-    { key: "surface", label: "Background" },
-    { key: "text", label: "Text" },
-  ];
+  const COLORS: { key: ColorKey; label: string }[] = (
+    [
+      { key: "primary", label: "Primary" },
+      { key: "secondary", label: "Secondary" },
+      { key: "accent", label: "Accent" },
+      { key: "surface", label: "Background" },
+      { key: "text", label: "Text" },
+    ] as const
+  ).filter(({ key }) => !staged || key === "primary" || key === "accent");
 
   return (
     <>
@@ -109,7 +117,11 @@ export function BrandPanel() {
 
         <PanelSection
           title="Colors"
-          description="Buttons, highlights, the game and the page."
+          description={
+            staged
+              ? `Buttons, highlights and the game. The ${template.label} template keeps its own panels and page.`
+              : "Buttons, highlights, the game and the page."
+          }
         >
           <PanelIssues prefixes={["theme.colors"]} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -129,39 +141,48 @@ export function BrandPanel() {
 
         <PanelSection title="Background">
           <PanelIssues prefixes={["theme.background"]} />
-          <SegmentedControl
-            label="Style"
-            path="theme.background.kind"
-            value={theme.background.kind}
-            onChange={(kind) => setBackground({ kind })}
-            options={BACKGROUNDS}
-          />
-          {theme.background.kind === "image" && (
+          {staged ? (
+            <p className="text-xs text-brand-text-muted">
+              The {template.label} template draws its own background on every
+              screen. Pick the Classic template to use a color or a photo.
+            </p>
+          ) : (
             <>
-              <ImageField
-                label="Photo"
-                path="theme.background.image"
-                purpose="background"
-                value={theme.background.image}
-                onChange={(image) => setBackground({ image })}
-                focus={theme.background.focus}
-                onFocusChange={(focus) => setBackground({ focus })}
-                hint="Without a photo, the page falls back to its color."
+              <SegmentedControl
+                label="Style"
+                path="theme.background.kind"
+                value={theme.background.kind}
+                onChange={(kind) => setBackground({ kind })}
+                options={BACKGROUNDS}
               />
-              <NumberField
-                label="Veil over the photo"
-                path="theme.background.overlayOpacity"
-                value={Math.round(theme.background.overlayOpacity * 100)}
-                onChange={(percent) =>
-                  setBackground({ overlayOpacity: percent / 100 })
-                }
-                min={0}
-                max={100}
-                step={5}
-                unit="%"
-                slider
-                hint="Keeps the texts readable over a busy photo."
-              />
+              {theme.background.kind === "image" && (
+                <>
+                  <ImageField
+                    label="Photo"
+                    path="theme.background.image"
+                    purpose="background"
+                    value={theme.background.image}
+                    onChange={(image) => setBackground({ image })}
+                    focus={theme.background.focus}
+                    onFocusChange={(focus) => setBackground({ focus })}
+                    hint="Without a photo, the page falls back to its color."
+                  />
+                  <NumberField
+                    label="Veil over the photo"
+                    path="theme.background.overlayOpacity"
+                    value={Math.round(theme.background.overlayOpacity * 100)}
+                    onChange={(percent) =>
+                      setBackground({ overlayOpacity: percent / 100 })
+                    }
+                    min={0}
+                    max={100}
+                    step={5}
+                    unit="%"
+                    slider
+                    hint="Keeps the texts readable over a busy photo."
+                  />
+                </>
+              )}
             </>
           )}
         </PanelSection>
@@ -189,6 +210,9 @@ export function BrandPanel() {
             ]}
           />
           <p className="text-xs text-brand-text-muted">
+            {staged && template.fonts
+              ? `Body text uses this font; titles and buttons use the ${template.label} fonts. `
+              : ""}
             Arabic always uses Noto Sans Arabic.
           </p>
         </PanelSection>

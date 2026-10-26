@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "id": "quiz-show",
+  "label": "Quiz Show",
+  "description": "A TV game show at night: spotlights, golden-rimmed panels, glowing pills, a mascot that cheers or sulks.",
+  "source": "style4-quiz-style",
+  "credits": null,
+
+  "mode": "dark",
+  "palette": {
+    "primary": "#FFB020",
+    "secondary": "#7A2FE0",
+    "accent": "#3DDC84",
+    "surface": "#12114A",
+    "text": "#FFFFFF",
+    "ink": "#05061A"
+  },
+  "radius": "pill",
+  "font": "poppins",
+  "fonts": {
+    "display": "Outfit",
+    "ui": "Outfit",
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800;900&display=swap"
+  },
+
+  "tokens": {
+    "radius": {
+      "sm": "0.5rem",
+      "md": "0.875rem",
+      "lg": "1.25rem",
+      "pill": "9999px"
+    },
+    "space": {
+      "xs": "0.375rem",
+      "sm": "0.625rem",
+      "md": "1rem",
+      "lg": "1.5rem"
+    },
+    "fontSize": {
+      "display": "clamp(1.5rem, 7cqw, 2.25rem)",
+      "title": "1",
+      "body": "0.95rem",
+      "label": "0.75rem"
+    },
+    "shadow": {
+      "panel": "none",
+      "card": "0 0 1.5rem -0.5rem #7A2FE099",
+      "pop": "0 0 2rem #FFB02059"
+    }
+  },
+
+  "panel": {
+    "bg": "#12114A",
+    "text": "@text",
+    "border": "@primary",
+    "borderWidth": "0.2rem",
+    "frame": {
+      "src": "assets/frames/panel.svg",
+      "slice": "36",
+      "width": "1.5rem"
+    }
+  },
+  "card": {
+    "bg": "#1A1560",
+    "border": "#4630C4",
+    "borderWidth": "0.15rem",
+    "frame": {
+      "src": "assets/frames/card.svg",
+      "slice": "26",
+      "width": "1.1rem"
+    }
+  },
+  "hud": { "bg": "#0A0B33D9", "text": "@text", "border": "#4630C4" },
+  "button": {
+    "primary": {
+      "bg": "linear-gradient(180deg, @primary-light 0%, @primary 50%, @primary-deep 100%)",
+      "text": "@ink",
+      "border": "#FFE9A8",
+      "borderWidth": "0.125rem",
+      "shadow": "0 0 1.25rem #FFB02066, 0 0.3rem 0 #8A5200",
+      "shadowPressed": "0 0 0.6rem #FFB02066, 0 0.1rem 0 #8A5200"
+    },
+    "secondary": {
+      "bg": "#1A1560",
+      "text": "#FFFFFF",
+      "border": "#4630C4",
+      "borderWidth": "0.125rem",
+      "shadow": "0 0.25rem 0 @ink",
+      "shadowPressed": "0 0.08rem 0 @ink"
+    }
+  },
+  "field": {
+    "bg": "#0A0B33",
+    "text": "#FFFFFF",
+    "border": "#4630C4",
+    "borderWidth": "0.125rem"
+  },
+  "title": {
+    "color": "#FFD54A",
+    "stroke": null,
+    "strokeWidth": "0",
+    "shadow": "0 0 0.6em #FFB02080, 0 0.07em 0 #B86E00",
+    "transform": "uppercase",
+    "letterSpacing": "0.02em",
+    "weight": 800
+  },
+
+  "stage": {
+    "color": "#05061A",
+    "overlay": "@ink",
+    "overlayOpacity": 0.08,
+    "backgrounds": {
+      "default": "assets/backgrounds/bg-stage.svg",
+      "games": {
+        "lucky_wheel": "assets/backgrounds/bg-burst.svg",
+        "quiz": "assets/backgrounds/bg-stage.svg",
+        "scratch_card": "assets/backgrounds/bg-dots.svg",
+        "mystery_box": "assets/backgrounds/bg-dots.svg",
+        "hit_it": "assets/backgrounds/bg-grid.svg"
+      },
+      "screens": { "win": "assets/backgrounds/bg-confetti.svg" }
+    },
+    "decor": []
+  },
+
+  "wheel": {
+    "segments": ["#2A46D8", "#7A2FE0", "#E11D2E", "@primary"],
+    "blank": "#0A0B33",
+    "rim": "#1A1560",
+    "rimInk": "@primary",
+    "bulbs": "#FFD54A",
+    "pointer": "@primary",
+    "pointerInk": "@ink",
+    "hub": "@primary",
+    "hubText": "@ink"
+  },
+
+  "prizes": {
+    "gift": "assets/prizes/gift.svg",
+    "ticket": "assets/prizes/ticket.svg",
+    "coin": "assets/prizes/coin.svg",
+    "star": "assets/prizes/star.svg",
+    "gem": "assets/prizes/gem.svg",
+    "trophy": "assets/prizes/trophy.svg",
+    "crown": "assets/prizes/crown.svg",
+    "medal": "assets/prizes/medal.svg"
+  },
+  "characters": {
+    "happy": "assets/characters/mascot-happy.svg",
+    "sad": "assets/characters/mascot-sad.svg"
+  },
+  "sounds": {
+    "click": "assets/sounds/click.mp3",
+    "tick": "assets/sounds/tick.mp3",
+    "win": "assets/sounds/win.mp3",
+    "lose": "assets/sounds/lose.mp3",
+    "reward": "assets/sounds/reward.mp3"
+  }
+}
