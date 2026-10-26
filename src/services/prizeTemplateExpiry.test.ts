@@ -71,9 +71,9 @@ describe("the expiry date of a reward template", () => {
     expect(sent("insert").expires_at).toBeNull();
   });
 
-  it("is never saved on a physical reward", async () => {
+  it("is saved on a physical reward too, as information only", async () => {
     await addPrizeTemplateService({ ...voucher, category: "physical" }, "org1");
-    expect(sent("insert").expires_at).toBeNull();
+    expect(sent("insert").expires_at).toBe("2026-12-31T22:59:59.000Z");
   });
 
   it("is changed, or cleared, when the reward is edited", async () => {
@@ -85,14 +85,14 @@ describe("the expiry date of a reward template", () => {
     expect(sent("update").expires_at).toBeNull();
   });
 
-  it("is cleared when a reward becomes physical", async () => {
+  it("is kept when a reward becomes physical", async () => {
     await updatePrizeTemplateService("t1", {
       ...voucher,
       category: "physical",
     });
     expect(sent("update")).toMatchObject({
       category: "physical",
-      expires_at: null,
+      expires_at: "2026-12-31T22:59:59.000Z",
     });
   });
 
