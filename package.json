@@ -14,6 +14,10 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "db:seed": "node scripts/seed.cjs",
+    "docker:db:start": "docker compose up -d postgres",
+    "docker:db:stop": "docker compose down",
+    "docker:db:reset": "docker compose down -v && docker compose up -d postgres",
+    "docker:all": "docker compose up -d",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
     "xp:responsive": "node scripts/xp-responsive-check.mjs",
     "prepare": "husky",
@@ -24,7 +28,8 @@
     "studio:seed:clean": "node --env-file=.env.local scripts/studio/seed-studio-campaigns.mjs --clean"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.1",
     "@tailwindcss/vite": "^4.1.14",
     "@tanstack/react-table": "^8.21.3",
     "@types/papaparse": "^5.5.2",
@@ -32,6 +37,7 @@
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "docx": "^9.8.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "i18next": "^26.3.6",

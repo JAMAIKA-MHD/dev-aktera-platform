@@ -1,0 +1,50 @@
+services:
+  # ============================================================
+  # PostgreSQL Database Service (Supabase compatible)
+  # ============================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: aktera-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-54322}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./supabase/FULL_RESET.sql:/docker-entrypoint-initdb.d/02-full-reset.sql:ro
+      - ./supabase/seed.sql:/docker-entrypoint-initdb.d/03-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # pgAdmin 4 - Web UI Database Management (Optional)
+  # Accessible at: http://localhost:5050
+  # ============================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: aktera-pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@aktera.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  postgres_data:
+    name: aktera_postgres_data
+  pgadmin_data:
+    name: aktera_pgadmin_data

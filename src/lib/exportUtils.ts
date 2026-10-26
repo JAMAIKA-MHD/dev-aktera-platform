@@ -8,7 +8,6 @@ export interface CampaignExportRow {
   "Total Winners": number;
   "Win Rate (%)": string;
   "Allocated Prizes": number;
-  "Quiz Pass Rate (%)"?: string;
   "Coupon Confirmation Rate (%)"?: string;
 }
 
@@ -18,7 +17,6 @@ export interface EntryExportRow {
   "Participant Phone": string;
   "Participant Name": string;
   Status: string;
-  "Quiz Status": string;
   "Coupon Code": string;
   "Coupon Confirmed": string;
   "Participation Date": string;
@@ -71,6 +69,23 @@ export function exportToExcel(
     workbook,
     filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`,
   );
+}
+
+/**
+ * Downloads a Word document blob as a .docx file
+ */
+export function downloadDocxFile(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute(
+    "download",
+    filename.endsWith(".docx") ? filename : `${filename}.docx`,
+  );
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /**

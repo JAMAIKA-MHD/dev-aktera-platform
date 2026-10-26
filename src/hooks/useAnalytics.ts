@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { toFriendlyErrorMessage } from "../lib/errorMessages";
@@ -66,7 +66,13 @@ export interface PlayerParticipantEntry {
   redeemed_coupon_value: string | null;
   dwell_time_seconds: number;
   created_at: string;
+  /** Location captured on the entry (wilaya, else city); raw, null when unknown. */
+  wilaya: string | null;
+  /** Read from the user agent, as in the device chart. */
+  os: PlayerDevice;
 }
+
+export type PlayerDevice = "android" | "ios" | "desktop" | "other";
 
 export interface AnalyticsSummary {
   total_impressions: number;
@@ -105,9 +111,13 @@ export function useAnalytics(selectedCampaignId?: string) {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Only the latest request may update the state: after switching campaigns, a slower
+  // answer for the previous selection must not replace the new one.
+  const requestIdRef = useRef(0);
 
   const loadAnalytics = useCallback(
     async (isBackgroundRefresh = false) => {
+      const requestId = ++requestIdRef.current;
       if (!isBackgroundRefresh) {
         setLoading(true);
       }
@@ -119,6 +129,7 @@ export function useAnalytics(selectedCampaignId?: string) {
           selectedCampaignId ?? null,
         );
 
+        if (requestId !== requestIdRef.current) return;
         if (!result || !result.summary) {
           return;
         }
@@ -137,15 +148,25 @@ export function useAnalytics(selectedCampaignId?: string) {
             ? summary.participants
             : [];
 
+        // The RPC names these *_users_count; the older names are kept as aliases.
+        const uniqueUsers = summary.unique_users_count ?? 0;
+        const repeatUsers = summary.repeat_users_count ?? 0;
+        const maxUserPlays = summary.max_user_participations ?? 0;
+
         setAnalytics({
           ...summary,
           by_campaign: byCampaignList,
           campaign_breakdown: byCampaignList,
-          unique_users_count: summary.unique_participants ?? 0,
-          repeat_users_count: summary.repeat_participants ?? 0,
-          max_user_participations:
-            summary.max_participations_by_single_user ?? 0,
-          avg_participations_per_user: summary.avg_participations_per_user ?? 1,
+          active_campaigns: byCampaignList.filter(
+            (campaign) => campaign.status === "active",
+          ).length,
+          unique_users_count: uniqueUsers,
+          unique_participants: uniqueUsers,
+          repeat_users_count: repeatUsers,
+          repeat_participants: repeatUsers,
+          max_user_participations: maxUserPlays,
+          max_participations_by_single_user: maxUserPlays,
+          avg_participations_per_user: summary.avg_participations_per_user ?? 0,
           os_distribution: summary.os_distribution ?? {
             android: 0,
             ios: 0,
@@ -167,6 +188,7 @@ export function useAnalytics(selectedCampaignId?: string) {
           participants: participantsList,
         });
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         if (!isBackgroundRefresh) {
           setError(
             toFriendlyErrorMessage(
@@ -176,7 +198,7 @@ export function useAnalytics(selectedCampaignId?: string) {
           );
         }
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     },
     [organization?.id, selectedCampaignId],

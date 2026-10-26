@@ -17,6 +17,7 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { useBilling, BillingRecord } from "../hooks/useBilling";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { PLAN_ALLOWANCES } from "../lib/planAllowances";
 
 const PLAN_LABELS: Record<BillingRecord["plan"], string> = {
   free: "Free Plan",
@@ -32,7 +33,7 @@ const PLAN_PRICES: Record<
   free: {
     price: "Free",
     period: "For small businesses",
-    quota: 1000,
+    quota: PLAN_ALLOWANCES.free.entriesPerMonth,
     features: [
       "1 Active Promo Portal",
       "Up to 1,000 Consumer Leads",
@@ -44,7 +45,7 @@ const PLAN_PRICES: Record<
   starter: {
     price: "2,500 DA",
     period: "per month",
-    quota: 3000,
+    quota: PLAN_ALLOWANCES.starter.entriesPerMonth,
     features: [
       "3 Concurrent Portals",
       "Up to 3,000 Consumer Leads",
@@ -56,7 +57,7 @@ const PLAN_PRICES: Record<
   pro: {
     price: "4,500 DA",
     period: "per month",
-    quota: 10000,
+    quota: PLAN_ALLOWANCES.pro.entriesPerMonth,
     features: [
       "5 Concurrent Portals",
       "Up to 10,000 Consumer Leads",
@@ -68,7 +69,7 @@ const PLAN_PRICES: Record<
   enterprise: {
     price: "Custom",
     period: "for major telecoms & FMCG",
-    quota: 100000,
+    quota: PLAN_ALLOWANCES.enterprise.entriesPerMonth,
     features: [
       "Unlimited Live Portals",
       "Over 100,000 lead streams",
