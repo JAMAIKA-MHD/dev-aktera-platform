@@ -77,7 +77,76 @@ describe("TemplatePanel", () => {
   });
 });
 
+describe("TemplatePanel · template library", () => {
+  it("lists every template of the library, the classic one selected", () => {
+    renderPanel(TemplatePanel);
+    const library = screen.getByRole("radiogroup", {
+      name: "Template library",
+    });
+    const names = within(library)
+      .getAllByRole("radio")
+      .map((radio) => radio.textContent);
+    expect(names).toHaveLength(5);
+    expect(
+      within(library).getByRole("radio", { name: /Classic/ }),
+    ).toHaveProperty("ariaChecked", "true");
+  });
+
+  it("applies a template with its palette, keeps the texts, and hides the classic presets", () => {
+    const store = renderPanel(TemplatePanel);
+    const title = store.getState().config.screens.welcome.title;
+    fireEvent.click(screen.getByRole("radio", { name: /Cartoon Pop/ }));
+    const { config } = store.getState();
+    expect(config.templateId).toBe("comic-burst");
+    expect(config.theme).toEqual(themeFromPreset("comic-burst"));
+    expect(config.screens.welcome.title).toEqual(title);
+    expect(
+      screen.queryByRole("radiogroup", { name: "Style presets" }),
+    ).toBeNull();
+
+    // Undo brings the classic template and its style back in one step.
+    act(() => store.temporal.getState().undo());
+    expect(store.getState().config.templateId).toBe("eight-slot");
+    expect(store.getState().config.theme.presetId).toBe("midnight-gold");
+  });
+
+  it("asks before a template replaces style changes", () => {
+    const store = renderPanel(TemplatePanel);
+    act(() => store.getState().updateTheme({ radius: "sharp" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Pixel Quest/ }));
+    expect(store.getState().config.templateId).toBe("eight-slot");
+    fireEvent.click(screen.getByRole("button", { name: "Apply Pixel Quest" }));
+    expect(store.getState().config.templateId).toBe("pixel-quest");
+    expect(store.getState().config.theme.presetId).toBe("pixel-quest");
+  });
+
+  it("goes back to the classic template with the classic style the brand had", () => {
+    const store = renderPanel(TemplatePanel);
+    fireEvent.click(screen.getByRole("radio", { name: /Retail Blue/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Quiz Show/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Classic/ }));
+    expect(store.getState().config.templateId).toBe("eight-slot");
+    expect(store.getState().config.theme.presetId).toBe("midnight-gold");
+  });
+});
+
 describe("BrandPanel", () => {
+  it("leaves the background to a template that draws its own", () => {
+    const store = renderPanel(BrandPanel);
+    expect(screen.getByRole("radiogroup", { name: "Style" })).toBeTruthy();
+    act(() => store.getState().applyTemplate("arcade-night"));
+    expect(
+      screen.getByText(/Arcade Night template draws its own background/),
+    ).toBeTruthy();
+    // Only primary and accent are the brand's: the panels and the page are the theme's.
+    expect(screen.getByLabelText("Primary")).toBeTruthy();
+    expect(screen.getByLabelText("Accent")).toBeTruthy();
+    expect(screen.queryByLabelText("Secondary")).toBeNull();
+    expect(screen.queryByLabelText("Background")).toBeNull();
+    expect(screen.queryByLabelText("Text")).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Style" })).toBeNull();
+  });
+
   it("edits the name, the tagline in the preview's language, and the colors", () => {
     const store = renderPanel(BrandPanel);
     fireEvent.change(screen.getByLabelText("Brand name"), {

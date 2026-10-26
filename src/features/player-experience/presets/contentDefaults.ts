@@ -486,6 +486,8 @@ export const SCRATCH_COVER_TEXT = localized(
 // Texts of the win and loss screens that brands do not edit (tasks.md T4.4). Placeholders:
 // {prize}, {brand}.
 export const RESULT_TEXT = {
+  // A prize without a name of its own (a placeholder in the Studio's preview).
+  prizeFallback: localized("Votre lot", "جائزتك", "Your prize"),
   codeLabel: localized("Votre code", "رمزك", "Your code"),
   copy: localized("Copier", "نسخ", "Copy"),
   copied: localized("Copié !", "تم النسخ!", "Copied!"),

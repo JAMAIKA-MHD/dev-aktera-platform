@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" role="img" aria-label="Quiz Challenge campaign cover">
+<defs><radialGradient id="glow-quiz" cx="82%" cy="50%" r="45%"><stop offset="0" stop-color="#c08bf0" stop-opacity=".35"/><stop offset="1" stop-color="#c08bf0" stop-opacity="0"/></radialGradient><linearGradient id="fade-quiz" x1="0" x2="1"><stop offset="0" stop-color="#2a1745"/><stop offset=".45" stop-color="#2a1745" stop-opacity="0"/></linearGradient></defs>
+<rect width="1200" height="400" fill="#2a1745"/>
+<pattern id="p-quiz" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="3" height="30" fill="#5b2a92"/></pattern><rect width="1200" height="400" fill="url(#p-quiz)"/>
+<rect width="1200" height="400" fill="url(#fade-quiz)"/>
+<rect width="1200" height="400" fill="url(#glow-quiz)"/>
+<g transform="translate(760 20) scale(7.5)"><rect x="6" y="8" width="36" height="27" rx="8" fill="#c295ff"/><path d="M14 33l-1.5 8.5L23 34z" fill="#c295ff"/><path d="M19.2 19.6a4.9 4.9 0 1 1 6.9 4.3c-1.4.7-2.1 1.5-2.1 3" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/><circle cx="24" cy="30.2" r="2" fill="#ffffff"/><circle cx="38.5" cy="9.5" r="7" fill="#c08bf0" stroke="#2a1745" stroke-width="2"/><path d="M35.3 9.6l2.3 2.3 4.2-4.4" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>
+</svg>

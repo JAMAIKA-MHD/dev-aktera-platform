@@ -79,34 +79,17 @@ export const GAME_TYPES: GameMeta[] = [
 export const gameMeta = (gameType: GameType): GameMeta =>
   GAME_TYPES.find((game) => game.id === gameType) ?? GAME_TYPES[0];
 
+/** Colour pair of a status badge; the word and the dot are always there too. */
+export type BadgeTone = "success" | "warning" | "brand" | "neutral" | "outline";
+
 export const STATUS_META: Record<
   CampaignStatus,
-  { key: string; label: string; badge: string }
+  { key: string; label: string; tone: BadgeTone }
 > = {
-  active: {
-    key: "campaigns.active",
-    label: "Active",
-    badge:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-950/70 dark:text-emerald-300",
-  },
-  paused: {
-    key: "campaigns.paused",
-    label: "Paused",
-    badge:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-950/70 dark:text-amber-300",
-  },
-  draft: {
-    key: "campaigns.draft",
-    label: "Draft",
-    badge:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/40 dark:bg-blue-950/70 dark:text-blue-300",
-  },
-  archived: {
-    key: "campaigns.archived",
-    label: "Archived",
-    badge:
-      "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-600/40 dark:bg-slate-900/70 dark:text-slate-400",
-  },
+  active: { key: "campaigns.active", label: "Active", tone: "success" },
+  paused: { key: "campaigns.paused", label: "Paused", tone: "warning" },
+  draft: { key: "campaigns.draft", label: "Draft", tone: "outline" },
+  archived: { key: "campaigns.archived", label: "Archived", tone: "neutral" },
 };
 
 export const STATUS_ORDER: CampaignStatus[] = [
@@ -126,6 +109,17 @@ export function campaignDurationDays(startDate: string, endDate: string) {
   const end = dayStart(endDate);
   if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
   return Math.round((end - start) / DAY_MS) + 1;
+}
+
+/** A published campaign whose first day has not come yet: shown as Scheduled, not Active. */
+export function isScheduled(
+  campaign: Pick<Campaign, "status" | "startDate">,
+  now: Date = new Date(),
+) {
+  if (campaign.status !== "active") return false;
+  const start = dayStart(campaign.startDate);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return !Number.isNaN(start) && start > today.getTime();
 }
 
 export interface CampaignTimeline {

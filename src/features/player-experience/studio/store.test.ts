@@ -158,6 +158,27 @@ describe("studio store", () => {
     expect(config.screens.welcome.title).toEqual({ fr: "Mon titre" });
   });
 
+  it("applies a template with its palette, and keeps it through a reset", () => {
+    const store = newStore();
+    store.getState().updateScreen("welcome", { title: { fr: "Mon titre" } });
+    store.getState().applyTemplate("arcade-night");
+    let { config } = store.getState();
+    expect(config.templateId).toBe("arcade-night");
+    expect(config.theme.presetId).toBe("arcade-night");
+    expect(config.screens.welcome.title).toEqual({ fr: "Mon titre" });
+
+    store.getState().resetToDefaults();
+    ({ config } = store.getState());
+    expect(config.templateId).toBe("arcade-night");
+    expect(config.theme.presetId).toBe("arcade-night");
+
+    // Back to the classic layout: the template palette gives way to a classic style.
+    store.getState().applyTemplate("eight-slot");
+    ({ config } = store.getState());
+    expect(config.templateId).toBe("eight-slot");
+    expect(config.theme.presetId).toBe("midnight-gold");
+  });
+
   it("replaces and resets the configuration without changing its identity", () => {
     const store = newStore();
     const { id, campaignId } = store.getState().config;

@@ -1,4 +1,6 @@
+import type { TemplateId } from "../domain/templates";
 import type { ThemeTokens } from "../domain/types";
+import { getThemeManifest } from "../presets/themeManifests";
 
 // Font stacks of the player screens. Noto Sans Arabic is always in the stack (N5): Latin
 // fonts have no Arabic glyphs, so Arabic text falls back to it, letter by letter.
@@ -18,6 +20,11 @@ export function fontStack(font: FontId): string {
   return `${LATIN_FAMILY[font]}, ${ARABIC_FAMILY}, system-ui, sans-serif`;
 }
 
+// A theme's display or ui family (its theme.json), with the same Arabic fallback.
+export function templateFontStack(family: string): string {
+  return `${family}, ${ARABIC_FAMILY}, system-ui, sans-serif`;
+}
+
 const STYLESHEETS: Readonly<Partial<Record<FontId, string>>> = {
   "plus-jakarta":
     "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
@@ -27,8 +34,19 @@ const STYLESHEETS: Readonly<Partial<Record<FontId, string>>> = {
 // Called by the runtime host, never by ThemeScope, which must not touch the document.
 export function ensureFontStylesheet(doc: Document, font: FontId): void {
   const href = STYLESHEETS[font];
-  if (!href) return;
-  const id = `xp-font-${font}`;
+  if (href) addStylesheet(doc, `xp-font-${font}`, href);
+}
+
+// The fonts of a template's theme.json, under the same rules as ensureFontStylesheet.
+export function ensureTemplateFonts(
+  doc: Document,
+  templateId: TemplateId,
+): void {
+  const fonts = getThemeManifest(templateId)?.fonts;
+  if (fonts) addStylesheet(doc, `xp-template-${templateId}`, fonts.stylesheet);
+}
+
+function addStylesheet(doc: Document, id: string, href: string): void {
   if (doc.getElementById(id)) return;
   const link = doc.createElement("link");
   link.id = id;

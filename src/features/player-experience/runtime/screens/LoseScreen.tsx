@@ -2,20 +2,26 @@ import { HandHeart, MessageCircle } from "lucide-react";
 import { useEffect } from "react";
 import { resolveText } from "../../domain/locale";
 import { RESULT_TEXT } from "../../presets/contentDefaults";
-import { tint } from "../../theme/recipes";
+import { useGameTheme } from "../../theme/GameTheme";
 import { runtimeAudio } from "../feedback/audio";
 import { ExperienceFrame } from "../frame/ExperienceFrame";
+import { GameButton } from "../shell/GameButton";
+import { ResultScreen } from "../shell/ResultScreen";
+import { useResultHeroArt } from "../shell/useResultHeroArt";
 import { ScreenMedallion } from "./ScreenMedallion";
 import { press, type ScreenProps } from "./screenProps";
 
 // The end of a losing journey (plan §6.3, tasks.md T4.4), from LoseConsolation.tsx: a warm
-// message with a light illustration, and a single, simple share button. No "+1 try for a
-// share" (features.shareBonus is locked to false, N4): sharing here is purely optional and
-// never unlocks anything, unlike the prototype's onShareBonus.
+// message with the theme's sad character (or a light medallion), and a single, simple share
+// button. No "+1 try for a share" (features.shareBonus is locked to false, N4): sharing here
+// is purely optional and never unlocks anything, unlike the prototype's onShareBonus.
 export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
   const fallback = config.locales.default;
   const text = (value: Parameters<typeof resolveText>[0]) =>
     resolveText(value, locale, fallback);
+  const character = useGameTheme().assets?.characters.sad ?? null;
+  // Drawn over the title by a spotlight template (slot 2): the body keeps the button alone.
+  const heroArt = useResultHeroArt("lose", config.screens.lose.hero);
 
   useEffect(() => {
     runtimeAudio.play("lose");
@@ -34,6 +40,16 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
     );
   };
 
+  const shareButton = (
+    <GameButton
+      variant="secondary"
+      label={text(RESULT_TEXT.share)}
+      icon={<MessageCircle className="size-4 shrink-0" />}
+      onClick={share}
+      className="mt-2 min-h-[44px] px-4 text-sm font-bold"
+    />
+  );
+
   return (
     <ExperienceFrame
       config={config}
@@ -45,17 +61,18 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
       live={chrome.live}
       cta={{ onPrimary: press(flow, flow.restart, "primary") }}
     >
-      <ScreenMedallion icon={HandHeart}>
-        <button
-          type="button"
-          onClick={share}
-          className="mt-2 inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-[var(--xp-radius-pill)] border px-4 text-sm font-bold transition-colors duration-200 hover:border-[color:var(--xp-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
-          style={{ borderColor: tint("--xp-text", 14) }}
+      {character ? (
+        <ResultScreen
+          tone="lose"
+          art={
+            heroArt ? null : <img src={character} alt="" draggable={false} />
+          }
         >
-          <MessageCircle className="size-4 shrink-0" />
-          {text(RESULT_TEXT.share)}
-        </button>
-      </ScreenMedallion>
+          {shareButton}
+        </ResultScreen>
+      ) : (
+        <ScreenMedallion icon={HandHeart}>{shareButton}</ScreenMedallion>
+      )}
     </ExperienceFrame>
   );
 }

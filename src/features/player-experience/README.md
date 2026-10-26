@@ -19,7 +19,8 @@ The rest of the app imports **only** from `index.ts`. ESLint enforces this rule.
 | -------------------- | ----------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
 | `domain/`            | Types, schema, rules, flow state machine              | `zod`, pure-data `presets/`, `src/types.ts`            | React, `services`, `runtime`, `studio`, Supabase |
 | `services/`          | Ports and adapters (`local/` now, `supabase/` later)  | `domain` (+ pure-data presets in the composition root) | `runtime`, `studio`                              |
-| `theme/`, `presets/` | Design tokens, style presets, default content         | `domain`                                               | `services`, `studio`                             |
+| `theme/`, `presets/` | Design tokens, style presets, default content         | `domain`, `themes/`                                    | `services`, `studio`                             |
+| `themes/`            | One folder per theme: `theme.json` and its assets     | nothing (data only)                                    | everything                                       |
 | `runtime/`           | What players see: layout, host, frame, screens, games | `domain`, `theme`, `presets`, `services/ports`         | `studio`, concrete adapters (`services/local`)   |
 | `studio/`            | The editor                                            | the whole module                                       | concrete adapters (injected by the provider)     |
 
@@ -50,6 +51,89 @@ ESLint blocks three of these rules: deep imports from outside the module, `servi
   own layout audit (run it on `npm run build` + `vite preview` for long sweeps: the dev server reloads
   on any file change). The audit is exposed by `/xp-frame` only, not by `/play/:slug`, which renders
   the same runtime. `npm run xp:resize` resizes each game mid-play.
+
+## Template library
+
+A brand picks the look of its player screens from a closed library, in the Studio's
+Template panel and nowhere else: `templateId` accepts only the ids of `domain/templates.ts`
+(the schema repairs any other one to `eight-slot`), and the database refuses them too
+(`save_experience_config` answers `INVALID`, and a CHECK guards `campaign_experiences.template_id`,
+migration `20261020120000_experience_templates.sql`).
+
+| Id             | Label        | Theme                            | Assets from (`src/templates/`)                |
+| -------------- | ------------ | -------------------------------- | --------------------------------------------- |
+| `eight-slot`   | Classic      | — (the brand's theme presets)    | —                                             |
+| `comic-burst`  | Cartoon Pop  | `themes/comic-burst/theme.json`  | `style1-cartoon-style/cartoon-screens.zip`    |
+| `quiz-show`    | Quiz Show    | `themes/quiz-show/theme.json`    | `style4-quiz-style/aktera-asset-pack.zip`     |
+| `arcade-night` | Arcade Night | `themes/arcade-night/theme.json` | `style3-nightgaming-style/game-night-svg.zip` |
+| `pixel-quest`  | Pixel Quest  | `themes/pixel-quest/theme.json`  | — (drawn for the theme)                       |
+
+### A theme is data: `themes/<id>/theme.json`
+
+Every template but the classic one is a folder: `theme.json` and its `assets/` (backgrounds,
+9-slice frames, decor, prize art, characters, sounds). Its contract is
+`domain/themeManifest.ts` (zod): palette, fonts, radii, spacing, font sizes, shadows, the panel,
+card, HUD, button and field styles, the title, the stage (a background per game and per screen,
+decorations), the wheel, prize art, characters and sounds. A color may name a role (`@primary`,
+`@ink`, `@primary-light`…) instead of repeating it; values are plain CSS, never `url()`, and images
+only come in through `assets/` paths. `presets/themeManifests.ts` loads and checks every manifest;
+`presets/themes.test.ts` fails on a broken one, a missing file, or unreadable text.
+
+- **Tokens → CSS variables.** `ThemeScope` is the theme provider: it reads the template's
+  `theme.json` and sets the shell variables on the runtime root (`theme/shellVars.ts`):
+  `--xp-panel-*`, `--xp-card-*`, `--xp-hud-*`, `--xp-btn-*` / `--xp-btn2-*`, `--xp-field-*`,
+  `--xp-title-*`, `--xp-font-display` / `--xp-font-ui`, `--xp-fs-*`, `--xp-space-*`, `--xp-radius-*`,
+  `--xp-stage-*`, `--xp-wheel-*`, with the palette as `--xp-primary`… It also hands the resolved
+  files to the shell (`useGameTheme()`). The classic template sets none: each component falls
+  back to the classic look, in the brand's colors.
+- **The brand's colors.** On a template, the brand may change **primary and accent** only (the
+  Brand panel shows just those two); panels, frames and the stage are the theme's. A theme still
+  on the template's own palette follows today's `theme.json` (`themedTokens`).
+- **The shell** (`runtime/shell/`, styled by `shell.css` from the variables only, no rule per
+  theme): `GameFrame` (the stage: background for the game and screen, veil, decorations, mood),
+  `Hud` / `HudChip`, `Panel` (a card, flat or in the theme's 9-slice card frame), `GameButton`,
+  `Modal` (scrim, focus trap; the legal sheet uses it), `ResultScreen` (the prize popping over
+  rays, or the theme's sad character) and `RewardPopup` (the prize card with its code). The big
+  panel behind the 8 slots is `.xp-frame::before`, drawn from the panel frame.
+- **9-slice frames.** A frame is one small SVG stretched to any size with CSS `border-image`
+  (`slice` in the image's pixels, `width` the drawn thickness). A framed popup's shadow is a
+  `drop-shadow`, so it follows the frame's own corners.
+- **Same layout, every screen.** A template never moves a slot: the 8-slot frame stays the layout
+  of the welcome, form, game, result and status screens, at every size.
+- **Per-screen dressing, still data.** A theme may dress each screen its own way: decorations
+  limited to some screens (`stage.decor[].screens`), some drawn over the panel (`front`,
+  landscape only), a title color per screen (`title.screens`), a backdrop behind the title
+  (`title.backdrop`), a stage image kept whole (`stage.fit: "stretch"`) and no win/lose mood
+  (`stage.moods: false`).
+- **Panel shapes.** `panel.shape` replaces the rectangle or the 9-slice frame with one picture
+  stretched behind the slots (Cartoon Pop's cloud), with the room it needs around the texts
+  (`padInline`, `padBlock`, `columnMax`), another picture per screen (the dimmer cloud of a
+  loss), screens without it (`hiddenOn`: the game, on the stage) and, in one column, a bleed past
+  the screen's sides and top (`stack`) so that its narrow corners never pinch the texts.
+- **Layouts.** `layout.kind` is `panes` (texts beside the game in landscape, the default) or
+  `spotlight` (one column in the middle at every size; on the game screen, the CTA becomes a
+  round button beside the game). `layout.welcomeTeaser: false` opens the welcome screen on its
+  texts alone: the game is first seen on its own screen (Cartoon Pop: the template's login).
+- **Game 1, the wheel.** `WheelFace` reads `--xp-wheel-*` (slice palette and their text colors,
+  blank slice, rim, lights blinking while it turns, pointer, hub) and shows the theme's prize art
+  on prize slices. It still lands only where the gateway's outcome says (`useWheelSpin`).
+  A theme may also give it its own pointer art drawn above the rim (`wheel.pointerArt`), one
+  outlined light per slice line (`bulbsPerSlice`, `bulbInk`), a flat hub (`hubShine: false`) and
+  a hard shadow under the still wheel (`wheel.shadow`). In the spotlight layout the game screen
+  packs its slots tight so the wheel takes the middle; on a landscape screen its CTA (round) and
+  the line under the title sit beside it. The win and lose screens follow the template's own:
+  the theme's character (`characters.happy`, a star; `characters.sad`) in slot 2 over the title
+  instead of the medallion (`useResultHeroArt`), the prize and its code flat on the cloud, the
+  coupon confirmation as the light button under the CTA, and the cloud growing with the content
+  rather than scrolling the code inside it.
+- **Sounds.** A theme's recordings (click, tick, win, lose, reward) replace the synthesized
+  sounds of `feedback/audio.ts`; a sound it lacks, or one the browser refuses, is synthesized.
+- **Arabic.** Display fonts have no Arabic letters: an Arabic text (`data-xp-script="arabic"`)
+  keeps the body font, its own size and spacing, never capitals.
+- **A new theme** is a new folder and an id in `domain/templates.ts` (plus the database CHECK):
+  no component, no CSS. `theme/themeLoader.test.tsx` renders the whole shell on a made-up theme.
+- **Checks.** `/xp-frame?fixture=<name>&template=<id>` dresses any fixture in a template, for the
+  responsive sweep.
 
 ## Responsive rules (plan §8.3)
 

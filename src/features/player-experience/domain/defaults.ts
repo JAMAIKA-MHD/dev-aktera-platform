@@ -15,6 +15,7 @@ import { createDemoCampaign } from "../presets/demoCampaign";
 import { themeFromPreset } from "../presets/themePresets";
 import type { CampaignSnapshot } from "./campaign";
 import type { GameType } from "./gameTypes";
+import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
   ExperienceConfig,
   FormField,
@@ -132,7 +133,7 @@ export function createDefaultExperience(
     schemaVersion: 1,
     id: createUuid(),
     campaignId: input.campaign?.id ?? null,
-    templateId: "eight-slot",
+    templateId: DEFAULT_TEMPLATE_ID,
     updatedAt: new Date().toISOString(),
     locales: { default: "fr", enabled: ["fr", "ar", "en"] },
     theme: themeFromPreset(input.presetId),

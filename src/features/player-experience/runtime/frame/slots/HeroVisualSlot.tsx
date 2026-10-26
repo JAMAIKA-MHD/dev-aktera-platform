@@ -16,11 +16,31 @@ const HERO_ICONS: Readonly<Record<HeroKind, LucideIcon>> = {
 
 export function HeroVisualSlot({
   hero,
+  art = null,
   editPath,
 }: {
   hero: HeroKind;
+  art?: string | null; // the theme's own character, in place of the medallion
   editPath: string | null;
 }) {
+  if (art) {
+    return (
+      <div
+        data-xp-slot="hero"
+        data-xp-edit={editPath ? `${editPath}.hero` : undefined}
+        data-xp-hero="art"
+        className="flex justify-center"
+      >
+        <img
+          src={art}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="xp-pop xp-hero-art"
+        />
+      </div>
+    );
+  }
   const Icon = HERO_ICONS[hero];
   return (
     <div
@@ -30,11 +50,12 @@ export function HeroVisualSlot({
       className="flex justify-center split:justify-start"
     >
       <div
-        className="xp-pop relative grid size-[clamp(4.5rem,min(22vw,11svh),6rem)] place-items-center rounded-full border"
+        className="xp-pop xp-medallion relative grid size-[clamp(4.5rem,min(22vw,11svh),6rem)] place-items-center rounded-full border"
         style={{
-          background: `radial-gradient(circle at 50% 30%, ${tint("--xp-primary", 30)}, ${tint("--xp-primary", 8)} 72%)`,
-          borderColor: tint("--xp-primary", 40),
-          boxShadow: `inset 0 0.3rem 0.8rem ${tint("--xp-surface", 45)}, 0 0 2.5rem ${tint("--xp-primary", 32)}`,
+          background: `var(--xp-medallion-bg, radial-gradient(circle at 50% 30%, ${tint("--xp-primary", 30)}, ${tint("--xp-primary", 8)} 72%))`,
+          borderColor: `var(--xp-card-border, ${tint("--xp-primary", 40)})`,
+          borderWidth: "var(--xp-card-border-width, 1px)",
+          boxShadow: `var(--xp-card-shadow, inset 0 0.3rem 0.8rem ${tint("--xp-surface", 45)}, 0 0 2.5rem ${tint("--xp-primary", 32)})`,
         }}
       >
         {hero === "timer" && (

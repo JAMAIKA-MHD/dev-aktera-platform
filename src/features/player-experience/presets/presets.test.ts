@@ -21,6 +21,7 @@ import {
 import { ICON_COMPONENTS, ICON_NAMES } from "./icons";
 import {
   DEFAULT_PRESET_ID,
+  STYLE_PRESETS,
   THEME_PRESETS,
   themeFromPreset,
 } from "./themePresets";
@@ -57,14 +58,19 @@ const ALL_COPY = JSON.stringify({
 });
 
 describe("THEME_PRESETS", () => {
-  it("offers the five generic styles, Midnight Gold first", () => {
-    expect(THEME_PRESETS.map((preset) => preset.id)).toEqual([
+  it("offers the five generic styles, Midnight Gold first, then the template palettes", () => {
+    expect(STYLE_PRESETS.map((preset) => preset.id)).toEqual([
       "midnight-gold",
       "obsidian-violet",
       "clean-light",
       "telecom-red",
       "retail-blue",
     ]);
+    expect(
+      THEME_PRESETS.filter((preset) => preset.template).map(
+        (preset) => preset.id,
+      ),
+    ).toEqual(["comic-burst", "pixel-quest", "arcade-night", "quiz-show"]);
     expect(DEFAULT_PRESET_ID).toBe("midnight-gold");
   });
 

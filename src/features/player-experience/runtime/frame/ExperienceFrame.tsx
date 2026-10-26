@@ -2,6 +2,10 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { getDirection, resolveText, type Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenContent } from "../../domain/types";
 import { FRAME_TEXT } from "../../presets/contentDefaults";
+import type { ThemeScreen } from "../../domain/themeManifest";
+import { useGameTheme } from "../../theme/GameTheme";
+import { screenDress } from "../../theme/shellVars";
+import { useResultHeroArt } from "../shell/useResultHeroArt";
 import { runtimeAudio, unlockOnFirstGesture } from "../feedback/audio";
 import { useLayoutMode } from "../layout/useLayoutMode";
 import { TermsSheet } from "../legal/TermsSheet";
@@ -34,6 +38,10 @@ import { StatusBadge } from "./StatusBadge";
 export interface CtaActions {
   onPrimary: () => void;
   onSecondary?: () => void;
+  // A secondary action of the screen itself (confirming a coupon), in place of the
+  // configured secondary label: a template may put it under the main button.
+  secondaryLabel?: string;
+  secondaryDisabled?: boolean;
   disabled?: boolean;
   loading?: boolean;
 }
@@ -54,8 +62,19 @@ export interface ExperienceFrameProps {
   live?: boolean; // pulsing dot of the header: the campaign is running
   showSections?: boolean; // welcome screen: jackpot card and prize chips (plan §8.4)
   children?: ReactNode; // slot 5: screen body or game engine
+  // false: no slot 5 at all (a template's welcome without the teaser); the texts and the
+  // CTA then gather in the middle.
+  interaction?: boolean;
   reinforcement?: ReinforcementLive; // slot 6
   cta?: CtaActions | null; // slot 7: none while the screen waits (resolving)
+}
+
+// The screen this frame draws ("screens.win" → "win"): the template's stage reacts to it
+// (templates.css), a brighter burst on a win, a dimmer hall on a loss.
+function screenOf(editPath: string | null): ThemeScreen | undefined {
+  return editPath?.startsWith("screens.")
+    ? (editPath.slice("screens.".length) as ThemeScreen)
+    : undefined;
 }
 
 export function ExperienceFrame({
@@ -68,10 +87,16 @@ export function ExperienceFrame({
   live = true,
   showSections = false,
   children,
+  interaction = true,
   reinforcement,
   cta = null,
 }: ExperienceFrameProps) {
   const mode = useLayoutMode();
+  const { manifest, assets } = useGameTheme();
+  const screen = screenOf(editPath);
+  // What this screen changes of the template: its title color, its panel's shape or none.
+  const dress = screenDress(manifest, assets, screen);
+  const heroArt = useResultHeroArt(screen, screenContent.hero);
   // Sounds wait for the player's first gesture (autoplay rules), then follow features.sound.
   useEffect(() => unlockOnFirstGesture(document, runtimeAudio), []);
   useEffect(() => {
@@ -101,6 +126,13 @@ export function ExperienceFrame({
     <LegalSheetContext.Provider value={setSheetTrigger}>
       <div
         className="xp-frame"
+        data-xp-screen={screen}
+        data-xp-shape={
+          assets?.panelShape ? (dress.shape ? "on" : "off") : undefined
+        }
+        data-xp-title-backdrop={dress.titleBackdrop ? "" : undefined}
+        data-xp-empty={interaction ? undefined : ""}
+        style={dress.vars as CSSProperties}
         data-xp-arrangement={mode.arrangement}
         data-xp-density={mode.density}
         data-xp-motion={config.features.animations ? undefined : "off"}
@@ -122,7 +154,15 @@ export function ExperienceFrame({
             </div>
           )
         )}
-        {hero && <HeroVisualSlot hero={hero} editPath={editPath} />}
+        {heroArt ? (
+          <HeroVisualSlot
+            hero={hero ?? "badge"}
+            art={heroArt}
+            editPath={editPath}
+          />
+        ) : (
+          hero && <HeroVisualSlot hero={hero} editPath={editPath} />
+        )}
         {title && (
           <TitleSlot text={title} direction={direction} editPath={editPath} />
         )}
@@ -133,7 +173,11 @@ export function ExperienceFrame({
             editPath={editPath}
           />
         )}
-        <PrimaryInteractionSlot>{children}</PrimaryInteractionSlot>
+        {/* A screen with nothing to play or show here (a template's welcome without the
+            teaser) leaves the zone out: its texts and CTA gather in the middle instead. */}
+        {interaction && (
+          <PrimaryInteractionSlot>{children}</PrimaryInteractionSlot>
+        )}
         {/* Under the game in stack; in split, under the copy: the end pane is the game's. */}
         {showSections && (jackpot.enabled || prizeChips.enabled) && (
           <div
@@ -159,7 +203,10 @@ export function ExperienceFrame({
         {cta && primaryLabel && (
           <CtaSlot
             primaryLabel={primaryLabel}
-            secondaryLabel={text(screenContent.secondaryCta) || null}
+            secondaryLabel={
+              cta.secondaryLabel ?? (text(screenContent.secondaryCta) || null)
+            }
+            secondaryDisabled={cta.secondaryDisabled ?? false}
             onPrimary={() => {
               runtimeAudio.play("click");
               cta.onPrimary();

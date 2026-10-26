@@ -15,7 +15,7 @@ import { press, type ScreenProps } from "./screenProps";
 // moment for the player: the engine stays mounted across all three and keeps whatever it was
 // doing (a wheel goes on turning while the server answers, rather than being swapped out for
 // a spinner). Which moment it is, is read from the journey, never kept by the engine.
-function enginePhase(state: FlowState): GamePhase {
+export function enginePhase(state: FlowState): GamePhase {
   if (state.screen === "resolving") return "awaiting-outcome";
   if (state.screen === "revealing") return "revealing";
   // The play screen itself: a game drawn before its animation waits for a tap, one played

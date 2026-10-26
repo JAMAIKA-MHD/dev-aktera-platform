@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "id": "arcade-night",
+  "label": "Arcade Night",
+  "description": "A neon game night: starry city skyline, floating dice, an arcade cabinet and cream-edged pixel panels.",
+  "source": "style3-nightgaming-style",
+  "credits": null,
+
+  "mode": "dark",
+  "palette": {
+    "primary": "#FFD23F",
+    "secondary": "#FF4FA3",
+    "accent": "#3BE6FF",
+    "surface": "#1B1250",
+    "text": "#FFFFFF",
+    "ink": "#0D0630"
+  },
+  "radius": "sharp",
+  "font": "poppins",
+  "fonts": {
+    "display": "Press Start 2P",
+    "ui": "Silkscreen",
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap"
+  },
+
+  "tokens": {
+    "radius": { "sm": "0", "md": "0", "lg": "0", "pill": "0" },
+    "space": {
+      "xs": "0.375rem",
+      "sm": "0.625rem",
+      "md": "1rem",
+      "lg": "1.5rem"
+    },
+    "fontSize": {
+      "display": "clamp(0.95rem, 4.2cqw, 1.35rem)",
+      "title": "0.7",
+      "body": "0.95rem",
+      "label": "0.75rem"
+    },
+    "shadow": {
+      "panel": "none",
+      "card": "none",
+      "pop": "0.5rem 0.5rem 0 #5A2BD0"
+    }
+  },
+
+  "panel": {
+    "bg": "#1B1250",
+    "text": "@text",
+    "border": "#EFE9D0",
+    "borderWidth": "0.25rem",
+    "frame": {
+      "src": "assets/frames/panel.svg",
+      "slice": "24 24 30 24",
+      "width": "1.25rem 1.25rem 1.55rem 1.25rem"
+    }
+  },
+  "card": {
+    "bg": "#21126B",
+    "border": "#8F86D1",
+    "borderWidth": "0.2rem",
+    "frame": { "src": "assets/frames/card.svg", "slice": "18", "width": "1rem" }
+  },
+  "hud": { "bg": "#0D0630D9", "text": "@text", "border": "#8F86D1" },
+  "button": {
+    "primary": {
+      "bg": "@primary",
+      "text": "@ink",
+      "border": "#EFE9D0",
+      "borderWidth": "0.1875rem",
+      "shadow": "0.3rem 0.3rem 0 #5A2BD0",
+      "shadowPressed": "0.08rem 0.08rem 0 #5A2BD0"
+    },
+    "secondary": {
+      "bg": "#21126B",
+      "text": "#FFFFFF",
+      "border": "#8F86D1",
+      "borderWidth": "0.1875rem",
+      "shadow": "0.25rem 0.25rem 0 @ink",
+      "shadowPressed": "0.08rem 0.08rem 0 @ink"
+    }
+  },
+  "field": {
+    "bg": "#0D0630",
+    "text": "#FFFFFF",
+    "border": "#8F86D1",
+    "borderWidth": "0.1875rem"
+  },
+  "title": {
+    "color": "#FFFFFF",
+    "stroke": null,
+    "strokeWidth": "0",
+    "shadow": "0.12em 0.12em 0 #5A2BD0",
+    "transform": "uppercase",
+    "letterSpacing": "0.02em"
+  },
+
+  "stage": {
+    "color": "#0D0630",
+    "overlay": "@ink",
+    "overlayOpacity": 0,
+    "backgrounds": {
+      "default": "assets/backgrounds/bg-night.svg",
+      "games": {},
+      "screens": {}
+    },
+    "decor": [
+      {
+        "src": "assets/decor/skyline.svg",
+        "left": "0",
+        "bottom": "0",
+        "width": "100%",
+        "opacity": 0.9
+      },
+      {
+        "src": "assets/decor/star-4.svg",
+        "left": "18%",
+        "top": "7%",
+        "width": "clamp(0.75rem, 3vmin, 1.5rem)",
+        "tint": "#FFFFFF",
+        "motion": "twinkle"
+      },
+      {
+        "src": "assets/decor/star-4.svg",
+        "right": "22%",
+        "top": "12%",
+        "width": "clamp(0.6rem, 2.4vmin, 1.25rem)",
+        "tint": "@accent",
+        "motion": "twinkle"
+      },
+      {
+        "src": "assets/decor/star-4.svg",
+        "right": "8%",
+        "top": "42%",
+        "width": "clamp(0.6rem, 2.4vmin, 1.25rem)",
+        "tint": "@secondary",
+        "motion": "twinkle"
+      },
+      {
+        "src": "assets/decor/die-red-6.svg",
+        "left": "5%",
+        "top": "13%",
+        "width": "clamp(2.25rem, 9vmin, 5.5rem)",
+        "rotate": -14,
+        "motion": "float",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/die-blue-3.svg",
+        "right": "6%",
+        "top": "20%",
+        "width": "clamp(2rem, 8vmin, 5rem)",
+        "rotate": 12,
+        "motion": "float",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/die-red-5.svg",
+        "left": "9%",
+        "bottom": "26%",
+        "width": "clamp(1.75rem, 7vmin, 4.25rem)",
+        "rotate": 20,
+        "motion": "float",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/arcade-cabinet.svg",
+        "right": "3%",
+        "bottom": "4%",
+        "width": "clamp(3.5rem, 15vmin, 9rem)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/joystick.svg",
+        "left": "3%",
+        "bottom": "5%",
+        "width": "clamp(2.75rem, 11vmin, 6.5rem)",
+        "hideWhenLow": true
+      }
+    ]
+  },
+
+  "wheel": {
+    "segments": ["#2F5FD0", "#D7263D", "#8A66E0", "@primary"],
+    "blank": "#21126B",
+    "rim": "#EFE9D0",
+    "rimInk": "#5A2BD0",
+    "bulbs": "@accent",
+    "pointer": "@secondary",
+    "pointerInk": "@ink",
+    "hub": "#8A66E0",
+    "hubText": "#FFFFFF"
+  },
+
+  "prizes": {},
+  "characters": {},
+  "sounds": {}
+}

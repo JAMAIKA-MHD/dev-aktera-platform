@@ -4,6 +4,7 @@ import type { CampaignSnapshot } from "../domain/campaign";
 import { createDefaultExperience, DEFAULT_GAME_TYPE } from "../domain/defaults";
 import type { GameType } from "../domain/gameTypes";
 import type { Locale } from "../domain/locale";
+import type { TemplateId } from "../domain/templates";
 import type {
   ExperienceConfig,
   FormConfig,
@@ -16,7 +17,8 @@ import type {
 import { validateExperience, type DesignIssue } from "../domain/validation";
 import { defaultScreens } from "../presets/contentDefaults";
 import { createDemoCampaign } from "../presets/demoCampaign";
-import { themeFromPreset } from "../presets/themePresets";
+import { getTemplate } from "../presets/templates";
+import { findPreset, themeFromPreset } from "../presets/themePresets";
 import type { LayoutIssue } from "../runtime/layout/layoutAudit";
 import type { ScriptedScenario } from "../services/createLocalServices";
 import { screenForPath } from "./screenForPath";
@@ -106,6 +108,8 @@ export interface StudioState {
   updateLegal(patch: Partial<LegalConfig>): void;
   updateConfig(patch: Partial<ExperienceConfig>): void; // locales, prizeDisplay, features
   applyPreset(presetId: string): void;
+  // A template of the library, with its own palette: the only way to change templateId.
+  applyTemplate(templateId: TemplateId): void;
   // The game presentation rebuilt from the campaign (after its game changed in the Wizard).
   resetGame(): void;
   // Without a campaign only: another game for the demo campaign.
@@ -244,6 +248,26 @@ export function createStudioStore(
               ...current,
               theme: themeFromPreset(presetId),
             })),
+          // Like a preset, a template changes the look only: texts, form, legal block and
+          // game stay. Back to the classic layout, the classic style the brand had, or the
+          // default one.
+          applyTemplate: (templateId) =>
+            edit((current) => {
+              const { presetId } = getTemplate(templateId);
+              const classic = findPreset(current.theme.presetId)?.template
+                ? undefined
+                : (current.theme.presetId ?? undefined);
+              return {
+                ...current,
+                templateId,
+                theme:
+                  presetId !== null
+                    ? themeFromPreset(presetId)
+                    : current.templateId === templateId
+                      ? current.theme
+                      : themeFromPreset(classic),
+              };
+            }),
           resetGame: () =>
             edit((current) => ({
               ...current,
@@ -285,6 +309,8 @@ export function createStudioStore(
                 presetId: current.theme.presetId ?? undefined,
                 brandName: current.legal.organizerName || undefined,
               }),
+              // The template is the brand's choice from the library, like its preset.
+              templateId: current.templateId,
               id: current.id,
               campaignId: current.campaignId,
             })),

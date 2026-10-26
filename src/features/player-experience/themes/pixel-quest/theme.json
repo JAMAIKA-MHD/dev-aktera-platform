@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "id": "pixel-quest",
+  "label": "Pixel Quest",
+  "description": "An 8-bit adventure: pale sky, blocky clouds, a grassy ground, trees and chunky golden buttons.",
+  "source": "style2-pixel-style",
+  "credits": null,
+
+  "mode": "light",
+  "palette": {
+    "primary": "#FFC61A",
+    "secondary": "#1747A8",
+    "accent": "#3F9A22",
+    "surface": "#F4FBFF",
+    "text": "#0F2A66",
+    "ink": "#1747A8"
+  },
+  "radius": "sharp",
+  "font": "poppins",
+  "fonts": {
+    "display": "Press Start 2P",
+    "ui": "VT323",
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+  },
+
+  "tokens": {
+    "radius": { "sm": "0", "md": "0", "lg": "0", "pill": "0" },
+    "space": {
+      "xs": "0.375rem",
+      "sm": "0.625rem",
+      "md": "1rem",
+      "lg": "1.5rem"
+    },
+    "fontSize": {
+      "display": "clamp(0.95rem, 4.2cqw, 1.35rem)",
+      "title": "0.7",
+      "body": "0.95rem",
+      "label": "0.8rem"
+    },
+    "shadow": {
+      "panel": "none",
+      "card": "none",
+      "pop": "0.5rem 0.5rem 0 #8FD0EE"
+    }
+  },
+
+  "panel": {
+    "bg": "#F4FBFF",
+    "text": "@text",
+    "border": "@ink",
+    "borderWidth": "0.25rem",
+    "frame": {
+      "src": "assets/frames/panel.svg",
+      "slice": "24 30 30 24",
+      "width": "1.25rem 1.55rem 1.55rem 1.25rem"
+    }
+  },
+  "card": {
+    "bg": "#FFF4C2",
+    "border": "@ink",
+    "borderWidth": "0.2rem",
+    "frame": { "src": "assets/frames/card.svg", "slice": "18", "width": "1rem" }
+  },
+  "hud": { "bg": "#FFFFFFE6", "text": "@text", "border": "@ink" },
+  "button": {
+    "primary": {
+      "bg": "@primary",
+      "text": "#0F2A66",
+      "border": "@ink",
+      "borderWidth": "0.1875rem",
+      "shadow": "0.3rem 0.3rem 0 #E59A00",
+      "shadowPressed": "0.08rem 0.08rem 0 #E59A00"
+    },
+    "secondary": {
+      "bg": "#FFFFFF",
+      "text": "@ink",
+      "border": "@ink",
+      "borderWidth": "0.1875rem",
+      "shadow": "0.25rem 0.25rem 0 #8FD0EE",
+      "shadowPressed": "0.08rem 0.08rem 0 #8FD0EE"
+    }
+  },
+  "field": {
+    "bg": "#FFFFFF",
+    "text": "#0F2A66",
+    "border": "@ink",
+    "borderWidth": "0.1875rem"
+  },
+  "title": {
+    "color": "@ink",
+    "stroke": null,
+    "strokeWidth": "0",
+    "shadow": "0.12em 0.12em 0 #8FD0EE",
+    "transform": "uppercase",
+    "letterSpacing": "0.02em"
+  },
+
+  "stage": {
+    "color": "#E6FAF9",
+    "overlay": "@ink",
+    "overlayOpacity": 0,
+    "backgrounds": {
+      "default": "assets/backgrounds/bg-sky.svg",
+      "games": {},
+      "screens": {}
+    },
+    "decor": [
+      {
+        "src": "assets/decor/ground.svg",
+        "left": "0",
+        "bottom": "0",
+        "width": "100%",
+        "height": "clamp(2.5rem, 9vmin, 4.5rem)",
+        "repeatX": true
+      },
+      {
+        "src": "assets/decor/tree.svg",
+        "left": "3%",
+        "bottom": "clamp(2.25rem, 8.5vmin, 4.25rem)",
+        "width": "clamp(3rem, 12vmin, 7rem)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/bush.svg",
+        "right": "4%",
+        "bottom": "clamp(2.25rem, 8.5vmin, 4.25rem)",
+        "width": "clamp(3.5rem, 13vmin, 7.5rem)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/tree.svg",
+        "right": "14%",
+        "bottom": "clamp(2.25rem, 8.5vmin, 4.25rem)",
+        "width": "clamp(2.5rem, 9vmin, 5rem)",
+        "hideWhenLow": true
+      }
+    ]
+  },
+
+  "wheel": {
+    "segments": ["#1747A8", "#E5462A", "#3F9A22", "@primary"],
+    "blank": "#D5E4F0",
+    "rim": "#1747A8",
+    "rimInk": "#0F2A66",
+    "bulbs": "#FFFFFF",
+    "pointer": "#E5462A",
+    "pointerInk": "#0F2A66",
+    "hub": "@primary",
+    "hubText": "#0F2A66"
+  },
+
+  "prizes": {},
+  "characters": {},
+  "sounds": {}
+}

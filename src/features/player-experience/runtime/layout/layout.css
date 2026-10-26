@@ -9,6 +9,8 @@
 
 /* The 8-slot frame's grid: imported here so that it can use the variants below. */
 @import "../frame/frame.css";
+/* The shell (stage, panel, buttons, cards, modal, result), painted from the theme tokens. */
+@import "../shell/shell.css";
 
 @custom-variant compact (@media (max-width: 359px));
 @custom-variant wide (@media (min-width: 600px));

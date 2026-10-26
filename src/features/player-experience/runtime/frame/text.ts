@@ -14,6 +14,12 @@ export function isArabicScript(text: string): boolean {
   return ARABIC_SCRIPT.test(text);
 }
 
+// data-xp-script of a text: templates.css keeps an Arabic text at its own size and spacing
+// where a template sets a wide Latin display font (a pixel font, a comic one).
+export function scriptOf(text: string): "arabic" | undefined {
+  return isArabicScript(text) ? "arabic" : undefined;
+}
+
 // Tracking and capitals for Latin labels only.
 export function spacedCaps(text: string, latinClasses: string): string {
   return isArabicScript(text) ? "" : latinClasses;

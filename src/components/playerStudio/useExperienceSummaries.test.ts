@@ -17,8 +17,16 @@ describe("useExperienceSummaries", () => {
   it("maps each campaign to the date of its last saved design", async () => {
     const { client, from, select } = fakeClient({
       data: [
-        { campaign_id: "c1", updated_at: "2026-09-30T10:00:00Z" },
-        { campaign_id: "c2", updated_at: "2026-09-01T08:00:00Z" },
+        {
+          campaign_id: "c1",
+          updated_at: "2026-09-30T10:00:00Z",
+          template: "comic-burst",
+        },
+        {
+          campaign_id: "c2",
+          updated_at: "2026-09-01T08:00:00Z",
+          template: null,
+        },
       ],
       error: null,
     });
@@ -28,9 +36,14 @@ describe("useExperienceSummaries", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(from).toHaveBeenCalledWith("campaign_experiences");
-    expect(select).toHaveBeenCalledWith("campaign_id, updated_at");
+    expect(select).toHaveBeenCalledWith(
+      "campaign_id, updated_at, template:config->>templateId",
+    );
     expect(result.current.savedAt.get("c1")).toBe("2026-09-30T10:00:00Z");
     expect(result.current.savedAt.get("c2")).toBe("2026-09-01T08:00:00Z");
+    // The template of each saved design; a design without one reads as the classic layout.
+    expect(result.current.templates.get("c1")).toBe("comic-burst");
+    expect(result.current.templates.has("c2")).toBe(false);
     expect(result.current.failed).toBe(false);
   });
 
