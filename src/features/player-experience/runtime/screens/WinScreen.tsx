@@ -13,7 +13,7 @@ import { GameButton } from "../shell/GameButton";
 import { PrizeArt } from "../shell/PrizeArt";
 import { ResultScreen } from "../shell/ResultScreen";
 import { RewardPopup } from "../shell/RewardPopup";
-import { useResultHeroArt } from "../shell/useResultHeroArt";
+import { useThemeHeroArt } from "../shell/useThemeHeroArt";
 import { useGameTheme } from "../../theme/GameTheme";
 import { press, type ScreenProps } from "./screenProps";
 
@@ -53,7 +53,7 @@ export function WinScreen({
   };
   const couponCode = outcome?.couponCode ?? null;
   const couponStatus = flow.couponStatus;
-  const heroArt = useResultHeroArt("win", config.screens.win.hero);
+  const heroArt = useThemeHeroArt("win");
   const confirmUnderCta = useGameTheme().manifest?.layout.kind === "spotlight";
   const canConfirm =
     couponCode !== null &&

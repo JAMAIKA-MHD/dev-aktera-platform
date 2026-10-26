@@ -398,13 +398,18 @@ describe("PlayerExperience · the shell with every theme", () => {
         ?.style.getPropertyValue("--xp-stage-image") ?? "";
     expect(stage()?.dataset.xpMood).toBe("lose");
     const onLose = image();
-    // quiz-show has a background of its own for a win (bg-confetti).
+    expect(onLose).toContain("url(");
+    // arcade-night has a background of its own for each result (gold rays, a red night).
     rerenderWith({
-      config: { ...config, templateId: "quiz-show" },
+      config: { ...config, templateId: "arcade-night" },
+      initialScreen: "lose",
+    });
+    const nightLose = image();
+    rerenderWith({
+      config: { ...config, templateId: "arcade-night" },
       initialScreen: "win",
     });
-    expect(stage()?.dataset.xpMood).toBe("win");
-    expect(image()).not.toBe(onLose);
+    expect(image()).not.toBe(nightLose);
   });
 
   it("draws the theme's wheel: its lights, and the prize art on the prize slices", () => {

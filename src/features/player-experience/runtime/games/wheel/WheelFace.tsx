@@ -28,11 +28,11 @@ const ICON_SIZE = 19;
 const ART_SIZE = 24;
 const HUB = 40;
 const BULB = 3.2;
+const RIM_STRIPES = 24; // blocks of a striped rim, all round
 const INKED_BULB = 4.4; // an outlined light reads bigger, like a rivet
-// A theme's own pointer stands above the rim: the viewBox grows by this much all round, so
-// the wheel stays square and centred.
-const POINTER_ROOM = 18;
-const POINTER_ART = { width: 35, height: 42.7 }; // the art's tip is at its bottom
+// A theme's own pointer stands above the rim (its tip at the bottom of the picture, its size
+// from theme.json): the viewBox grows by what stands out, all round, so the wheel stays
+// square and centred.
 // Prize names are held to 14 characters by the design check (T1.11); a longer label, typed
 // straight into a segment, is cut here rather than left to spill over its neighbours.
 const MAX_LABEL = 14;
@@ -137,8 +137,17 @@ export function WheelFace({
   const bulbOffset = perSlice === 1 ? segmentAngle / 2 : 0;
   const inkedBulbs = Boolean(manifest?.wheel.bulbInk);
   const pointerArt = assets?.wheelPointer ?? null;
-  const view = RIM + (pointerArt ? POINTER_ROOM : 0);
+  const pointerSize = manifest?.wheel.pointerSize;
+  const view =
+    RIM +
+    (pointerArt && pointerSize
+      ? Math.max(0, pointerSize.height - pointerSize.overlap)
+      : 0);
   const flatHub = themed && manifest?.wheel.hubShine === false;
+  const stripes = Boolean(manifest?.wheel.rimStripes);
+  const stripe = (2 * Math.PI * ((DISC + RIM) / 2)) / (2 * RIM_STRIPES);
+  const squareBulbs = manifest?.wheel.bulbShape === "square";
+  const squareHub = manifest?.wheel.hubShape === "square";
   const rimMiddle = (DISC + RIM) / 2;
 
   return (
@@ -177,6 +186,17 @@ export function WheelFace({
         stroke={`var(--xp-wheel-rim, ${tint("--xp-text", 12)})`}
         strokeWidth={RIM - DISC}
       />
+      {stripes && (
+        // Blocks of the second color all round the rim, the rim's own color between them.
+        <circle
+          className="xp-wheel-rim-stripes"
+          r={rimMiddle}
+          fill="none"
+          stroke="var(--xp-wheel-rim-stripes)"
+          strokeWidth={RIM - DISC}
+          strokeDasharray={`${stripe.toFixed(3)} ${stripe.toFixed(3)}`}
+        />
+      )}
       <circle
         className="xp-wheel-rim-edge"
         r={RIM - 1}
@@ -187,19 +207,35 @@ export function WheelFace({
       {Array.from({ length: bulbs }, (_, index) => {
         const radians =
           ((index * 360) / bulbs - 90 + bulbOffset) * (Math.PI / 180);
-        return (
+        const x = Math.cos(radians) * rimMiddle;
+        const y = Math.sin(radians) * rimMiddle;
+        const size = inkedBulbs ? INKED_BULB : BULB;
+        const light = {
+          className: "xp-wheel-bulb",
+          stroke: inkedBulbs ? "var(--xp-wheel-bulb-ink)" : undefined,
+          strokeWidth: inkedBulbs ? 1.6 : undefined,
+          // Every other light blinks on the other beat: a chase around the rim.
+          style: {
+            "--xp-bulb-delay": index % 2 ? "0.25s" : "0s",
+          } as CSSProperties,
+        };
+        // A pixel theme's lights are square, upright whatever their place on the rim.
+        return squareBulbs ? (
+          <rect
+            key={index}
+            {...light}
+            x={(x - size).toFixed(2)}
+            y={(y - size).toFixed(2)}
+            width={size * 2}
+            height={size * 2}
+          />
+        ) : (
           <circle
             key={index}
-            className="xp-wheel-bulb"
-            cx={(Math.cos(radians) * rimMiddle).toFixed(2)}
-            cy={(Math.sin(radians) * rimMiddle).toFixed(2)}
-            r={inkedBulbs ? INKED_BULB : BULB}
-            stroke={inkedBulbs ? "var(--xp-wheel-bulb-ink)" : undefined}
-            strokeWidth={inkedBulbs ? 1.6 : undefined}
-            // Every other light blinks on the other beat: a chase around the rim.
-            style={
-              { "--xp-bulb-delay": index % 2 ? "0.25s" : "0s" } as CSSProperties
-            }
+            {...light}
+            cx={x.toFixed(2)}
+            cy={y.toFixed(2)}
+            r={size}
           />
         );
       })}
@@ -293,13 +329,26 @@ export function WheelFace({
       )}
 
       {/* Hub and pointer, both inside the viewBox: they scale with the wheel. */}
-      <circle
-        className="xp-wheel-hub"
-        r={HUB}
-        fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
-        stroke={themed ? "var(--xp-wheel-rim-ink)" : tint("--xp-surface", 70)}
-        strokeWidth={themed ? 4 : 3}
-      />
+      {squareHub ? (
+        <rect
+          className="xp-wheel-hub"
+          x={-HUB}
+          y={-HUB}
+          width={HUB * 2}
+          height={HUB * 2}
+          fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
+          stroke="var(--xp-wheel-rim-ink)"
+          strokeWidth={4}
+        />
+      ) : (
+        <circle
+          className="xp-wheel-hub"
+          r={HUB}
+          fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
+          stroke={themed ? "var(--xp-wheel-rim-ink)" : tint("--xp-surface", 70)}
+          strokeWidth={themed ? 4 : 3}
+        />
+      )}
       <text
         className="xp-wheel-hub-label"
         textAnchor="middle"
@@ -311,14 +360,14 @@ export function WheelFace({
       >
         {hubLabel}
       </text>
-      {pointerArt ? (
+      {pointerArt && pointerSize ? (
         <image
           className="xp-wheel-pointer"
           href={pointerArt}
-          x={-POINTER_ART.width / 2}
+          x={-pointerSize.width / 2}
           y={-view}
-          width={POINTER_ART.width}
-          height={POINTER_ART.height}
+          width={pointerSize.width}
+          height={pointerSize.height}
         />
       ) : (
         <path

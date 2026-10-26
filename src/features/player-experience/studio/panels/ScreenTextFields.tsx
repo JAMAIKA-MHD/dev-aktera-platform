@@ -1,6 +1,8 @@
 import type { ScreenContent, ScreenKey } from "../../domain/types";
 import { TITLE_MAX_CHARS } from "../../domain/validation";
 import { getThemeManifest } from "../../presets/themeManifests";
+import { themeHeroArt } from "../../runtime/shell/useThemeHeroArt";
+import { resolveThemeAssets } from "../../theme/themeAssets";
 import { LocalizedTextField } from "../fields/LocalizedTextField";
 import { SegmentedControl } from "../fields/SegmentedControl";
 import { SelectField } from "../fields/SelectField";
@@ -37,13 +39,17 @@ export function ScreenTextFields({ screenKey: key }: { screenKey: ScreenKey }) {
   const screen = screens[key];
   const update = (patch: Partial<ScreenContent>) => updateScreen(key, patch);
   const path = (field: string) => `screens.${key}.${field}`;
-  // A spotlight template draws its own character above a result's title (useResultHeroArt).
+  // A spotlight template draws its own picture above the title of some screens (a trophy, a
+  // star, a sad face: useThemeHeroArt): there the choice would change nothing.
   const templateId = useStudio((state) => state.config.templateId);
   const manifest = getThemeManifest(templateId);
-  const character =
+  const templateHero =
     manifest?.layout.kind === "spotlight" &&
-    ((key === "win" && manifest.characters.happy) ||
-      (key === "lose" && manifest.characters.sad));
+    themeHeroArt(
+      resolveThemeAssets(manifest),
+      key,
+      manifest.layout.characters === "hero",
+    ) !== null;
 
   return (
     <>
@@ -85,17 +91,23 @@ export function ScreenTextFields({ screenKey: key }: { screenKey: ScreenKey }) {
           onChange={(showHeader) => update({ showHeader })}
           path={path("showHeader")}
         />
-        <SegmentedControl
-          label="Visual above the title"
-          path={path("hero")}
-          value={screen.hero}
-          onChange={(hero) => update({ hero })}
-          options={HEROES}
-        />
-        {character && (
-          <p className="-mt-1 text-xs text-brand-text-muted">
-            {manifest.label} draws its own picture here; choose None to hide it.
+        {templateHero ? (
+          <p className="text-xs text-brand-text-muted">
+            <span className="font-bold text-brand-text">
+              Visual above the title
+            </span>
+            <br />
+            The {manifest.label} template draws its own picture above the title
+            of this screen.
           </p>
+        ) : (
+          <SegmentedControl
+            label="Visual above the title"
+            path={path("hero")}
+            value={screen.hero}
+            onChange={(hero) => update({ hero })}
+            options={HEROES}
+          />
         )}
         <SelectField
           label="Encouragement"

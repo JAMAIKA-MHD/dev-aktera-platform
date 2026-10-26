@@ -7,7 +7,7 @@ import { runtimeAudio } from "../feedback/audio";
 import { ExperienceFrame } from "../frame/ExperienceFrame";
 import { GameButton } from "../shell/GameButton";
 import { ResultScreen } from "../shell/ResultScreen";
-import { useResultHeroArt } from "../shell/useResultHeroArt";
+import { useThemeHeroArt } from "../shell/useThemeHeroArt";
 import { ScreenMedallion } from "./ScreenMedallion";
 import { press, type ScreenProps } from "./screenProps";
 
@@ -21,7 +21,7 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
     resolveText(value, locale, fallback);
   const character = useGameTheme().assets?.characters.sad ?? null;
   // Drawn over the title by a spotlight template (slot 2): the body keeps the button alone.
-  const heroArt = useResultHeroArt("lose", config.screens.lose.hero);
+  const heroArt = useThemeHeroArt("lose");
 
   useEffect(() => {
     runtimeAudio.play("lose");
@@ -61,11 +61,14 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
       live={chrome.live}
       cta={{ onPrimary: press(flow, flow.restart, "primary") }}
     >
-      {character ? (
+      {/* The template draws its own picture over the title: the body keeps the button. */}
+      {character || heroArt ? (
         <ResultScreen
           tone="lose"
           art={
-            heroArt ? null : <img src={character} alt="" draggable={false} />
+            heroArt || !character ? null : (
+              <img src={character} alt="" draggable={false} />
+            )
           }
         >
           {shareButton}

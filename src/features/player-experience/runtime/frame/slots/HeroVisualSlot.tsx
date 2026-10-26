@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react";
 import { Gift, Sparkles, Timer, Trophy, type LucideIcon } from "lucide-react";
 import type { ScreenContent } from "../../../domain/types";
 import { tint } from "../../../theme/recipes";
+import type { ThemeHeroArt } from "../../shell/useThemeHeroArt";
 
 // Slot 2 (prototype Slot2HeroVisual): one dominant visual, a glowing medallion in the brand
 // color. Never a text: the prototype's timer read "Chrono Express • 15s", in French only.
@@ -20,7 +22,7 @@ export function HeroVisualSlot({
   editPath,
 }: {
   hero: HeroKind;
-  art?: string | null; // the theme's own character, in place of the medallion
+  art?: ThemeHeroArt | null; // the template's own picture, in place of the medallion
   editPath: string | null;
 }) {
   if (art) {
@@ -32,7 +34,12 @@ export function HeroVisualSlot({
         className="flex justify-center"
       >
         <img
-          src={art}
+          src={art.url}
+          style={
+            art.width
+              ? ({ "--xp-hero-art-width": art.width } as CSSProperties)
+              : undefined
+          }
           alt=""
           aria-hidden
           draggable={false}

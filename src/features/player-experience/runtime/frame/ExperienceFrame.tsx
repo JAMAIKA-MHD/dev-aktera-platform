@@ -5,7 +5,7 @@ import { FRAME_TEXT } from "../../presets/contentDefaults";
 import type { ThemeScreen } from "../../domain/themeManifest";
 import { useGameTheme } from "../../theme/GameTheme";
 import { screenDress } from "../../theme/shellVars";
-import { useResultHeroArt } from "../shell/useResultHeroArt";
+import { useThemeHeroArt } from "../shell/useThemeHeroArt";
 import { runtimeAudio, unlockOnFirstGesture } from "../feedback/audio";
 import { useLayoutMode } from "../layout/useLayoutMode";
 import { TermsSheet } from "../legal/TermsSheet";
@@ -96,7 +96,7 @@ export function ExperienceFrame({
   const screen = screenOf(editPath);
   // What this screen changes of the template: its title color, its panel's shape or none.
   const dress = screenDress(manifest, assets, screen);
-  const heroArt = useResultHeroArt(screen, screenContent.hero);
+  const heroArt = useThemeHeroArt(screen);
   // Sounds wait for the player's first gesture (autoplay rules), then follow features.sound.
   useEffect(() => unlockOnFirstGesture(document, runtimeAudio), []);
   useEffect(() => {

@@ -2,16 +2,15 @@
   "version": 1,
   "id": "arcade-night",
   "label": "Arcade Night",
-  "description": "A neon game night: starry city skyline, floating dice, an arcade cabinet and cream-edged pixel panels.",
+  "description": "A neon game night: a starry city at night, floating dice, an arcade cabinet, cream-edged pixel buttons and a striped arcade wheel.",
   "source": "style3-nightgaming-style",
   "credits": null,
-
   "mode": "dark",
   "palette": {
     "primary": "#FFD23F",
     "secondary": "#FF4FA3",
-    "accent": "#3BE6FF",
-    "surface": "#1B1250",
+    "accent": "#7DF3FF",
+    "surface": "#1B0B57",
     "text": "#FFFFFF",
     "ink": "#0D0630"
   },
@@ -22,9 +21,13 @@
     "ui": "Silkscreen",
     "stylesheet": "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap"
   },
-
   "tokens": {
-    "radius": { "sm": "0", "md": "0", "lg": "0", "pill": "0" },
+    "radius": {
+      "sm": "0",
+      "md": "0",
+      "lg": "0",
+      "pill": "0"
+    },
     "space": {
       "xs": "0.375rem",
       "sm": "0.625rem",
@@ -32,167 +35,329 @@
       "lg": "1.5rem"
     },
     "fontSize": {
-      "display": "clamp(0.95rem, 4.2cqw, 1.35rem)",
-      "title": "0.7",
+      "display": "clamp(1.1rem, 5cqw, 2.25rem)",
+      "title": "0.82",
       "body": "0.95rem",
-      "label": "0.75rem"
+      "label": "0.8rem"
     },
     "shadow": {
       "panel": "none",
-      "card": "none",
-      "pop": "0.5rem 0.5rem 0 #5A2BD0"
+      "card": "inset 0 -0.6rem 0 #0000004D",
+      "pop": "0 0 2rem #7DF3FF40"
     }
   },
-
   "panel": {
-    "bg": "#1B1250",
+    "bg": "transparent",
     "text": "@text",
-    "border": "#EFE9D0",
-    "borderWidth": "0.25rem",
-    "frame": {
-      "src": "assets/frames/panel.svg",
-      "slice": "24 24 30 24",
-      "width": "1.25rem 1.25rem 1.55rem 1.25rem"
-    }
+    "border": "@ink",
+    "borderWidth": "0",
+    "frame": null,
+    "shape": null,
+    "frameScreens": {}
   },
   "card": {
-    "bg": "#21126B",
-    "border": "#8F86D1",
-    "borderWidth": "0.2rem",
-    "frame": { "src": "assets/frames/card.svg", "slice": "18", "width": "1rem" }
+    "bg": "#2A1A6B",
+    "border": "#EFE9D0",
+    "borderWidth": "0.35rem",
+    "frame": null
   },
-  "hud": { "bg": "#0D0630D9", "text": "@text", "border": "#8F86D1" },
+  "hud": {
+    "bg": "#1B1447",
+    "text": "#C9FBFF",
+    "border": "#8F86D1"
+  },
   "button": {
     "primary": {
-      "bg": "@primary",
-      "text": "@ink",
+      "bg": "#3B3A5C",
+      "text": "#C9FBFF",
       "border": "#EFE9D0",
-      "borderWidth": "0.1875rem",
-      "shadow": "0.3rem 0.3rem 0 #5A2BD0",
-      "shadowPressed": "0.08rem 0.08rem 0 #5A2BD0"
+      "borderWidth": "0.3rem",
+      "shadow": "inset 0 -0.5rem 0 #00000059, inset 0 0.25rem 0 #FFFFFF1A",
+      "shadowPressed": "inset 0 -0.12rem 0 #00000059, inset 0 0.38rem 0 #00000040",
+      "textShadow": "0 0.25rem 0 #0D5368"
     },
     "secondary": {
-      "bg": "#21126B",
-      "text": "#FFFFFF",
+      "bg": "#26204A",
+      "text": "#BDB4EE",
       "border": "#8F86D1",
-      "borderWidth": "0.1875rem",
-      "shadow": "0.25rem 0.25rem 0 @ink",
-      "shadowPressed": "0.08rem 0.08rem 0 @ink"
-    }
+      "borderWidth": "0.25rem",
+      "shadow": "inset 0 -0.4rem 0 #00000059",
+      "shadowPressed": "inset 0 0.2rem 0 #00000059"
+    },
+    "screens": {
+      "win": {
+        "bg": "#5A4412",
+        "text": "#FFF3B0",
+        "border": "#FFE27A",
+        "borderWidth": "0.3rem",
+        "shadow": "inset 0 -0.5rem 0 #00000059, inset 0 0.25rem 0 #FFFFFF1A",
+        "shadowPressed": "inset 0 -0.12rem 0 #00000059, inset 0 0.38rem 0 #00000040",
+        "textShadow": "0 0.25rem 0 #7A5200"
+      },
+      "lose": {
+        "bg": "#5A1230",
+        "text": "#FFD6E0",
+        "border": "#FF9FB8",
+        "borderWidth": "0.3rem",
+        "shadow": "inset 0 -0.5rem 0 #00000059, inset 0 0.25rem 0 #FFFFFF1A",
+        "shadowPressed": "inset 0 -0.12rem 0 #00000059, inset 0 0.38rem 0 #00000040",
+        "textShadow": "0 0.25rem 0 #7A0F2E"
+      },
+      "play": {
+        "bg": "radial-gradient(circle at 50% 35%, #FF6B7F 0%, #E2223B 55%, #A50F28 100%)",
+        "text": "#FFFFFF",
+        "border": "#EFE9D0",
+        "borderWidth": "0.45rem",
+        "shadow": "0 0 0 0.35rem #1B0B57, 0 0.5rem 0 0.35rem #0B0525",
+        "shadowPressed": "0 0 0 0.35rem #1B0B57, 0 0.15rem 0 0.35rem #0B0525",
+        "textShadow": "0 0.2rem 0 #7A0F2E"
+      }
+    },
+    "notch": "0.6rem"
   },
   "field": {
-    "bg": "#0D0630",
-    "text": "#FFFFFF",
-    "border": "#8F86D1",
-    "borderWidth": "0.1875rem"
+    "bg": "#15123D",
+    "text": "#C9C3F2",
+    "border": "#C9C3E6",
+    "borderWidth": "0.25rem",
+    "shadow": "inset 0 -0.35rem 0 #0000004D",
+    "label": "#B9A8FF",
+    "labelFont": "ui",
+    "labelCase": "uppercase",
+    "labelTracking": "0.2em"
   },
   "title": {
-    "color": "#FFFFFF",
+    "color": "#F4EEDC",
     "stroke": null,
     "strokeWidth": "0",
-    "shadow": "0.12em 0.12em 0 #5A2BD0",
+    "shadow": "0.07em 0.07em 0 #5A2BD0, 0 0 0.6em #B9A8FF59",
     "transform": "uppercase",
-    "letterSpacing": "0.02em"
+    "letterSpacing": "0.02em",
+    "screens": {
+      "win": "#FFE27A",
+      "lose": "#FF4D6D"
+    },
+    "shadows": {
+      "win": "0.07em 0.07em 0 #B45309, 0 0 0.6em #FFD23FCC",
+      "lose": "0.07em 0.07em 0 #6E0F2E, 0 0 0.6em #FF3C64B3"
+    },
+    "backdrop": null
   },
-
+  "layout": {
+    "kind": "spotlight",
+    "welcomeTeaser": false,
+    "playCta": "round-below",
+    "rewardCard": "card",
+    "characters": "body"
+  },
   "stage": {
     "color": "#0D0630",
     "overlay": "@ink",
     "overlayOpacity": 0,
+    "fit": "cover",
+    "moods": false,
     "backgrounds": {
-      "default": "assets/backgrounds/bg-night.svg",
-      "games": {},
-      "screens": {}
+      "default": "assets/backgrounds/night-login.svg",
+      "games": {
+        "lucky_wheel": "assets/backgrounds/night-wheel.svg"
+      },
+      "screens": {
+        "win": "assets/backgrounds/night-win.svg",
+        "lose": "assets/backgrounds/night-lost.svg"
+      }
     },
     "decor": [
       {
-        "src": "assets/decor/skyline.svg",
-        "left": "0",
-        "bottom": "0",
-        "width": "100%",
-        "opacity": 0.9
+        "src": "assets/decor/rays.svg",
+        "left": "calc(50% - 75vmax)",
+        "top": "calc(48% - 75vmax)",
+        "width": "150vmax",
+        "opacity": 0.9,
+        "screens": ["win"]
       },
       {
-        "src": "assets/decor/star-4.svg",
-        "left": "18%",
-        "top": "7%",
-        "width": "clamp(0.75rem, 3vmin, 1.5rem)",
-        "tint": "#FFFFFF",
-        "motion": "twinkle"
-      },
-      {
-        "src": "assets/decor/star-4.svg",
-        "right": "22%",
-        "top": "12%",
-        "width": "clamp(0.6rem, 2.4vmin, 1.25rem)",
-        "tint": "@accent",
-        "motion": "twinkle"
-      },
-      {
-        "src": "assets/decor/star-4.svg",
-        "right": "8%",
-        "top": "42%",
-        "width": "clamp(0.6rem, 2.4vmin, 1.25rem)",
-        "tint": "@secondary",
-        "motion": "twinkle"
-      },
-      {
-        "src": "assets/decor/die-red-6.svg",
-        "left": "5%",
-        "top": "13%",
-        "width": "clamp(2.25rem, 9vmin, 5.5rem)",
-        "rotate": -14,
+        "src": "assets/decor/die-blue-6.svg",
+        "left": "calc(23.438% + 0px)",
+        "top": "15.278%",
+        "width": "calc((50vw + 50vh) * 0.092)",
         "motion": "float",
-        "hideWhenLow": true
-      },
-      {
-        "src": "assets/decor/die-blue-3.svg",
-        "right": "6%",
-        "top": "20%",
-        "width": "clamp(2rem, 8vmin, 5rem)",
-        "rotate": 12,
-        "motion": "float",
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
       },
       {
         "src": "assets/decor/die-red-5.svg",
-        "left": "9%",
-        "bottom": "26%",
-        "width": "clamp(1.75rem, 7vmin, 4.25rem)",
-        "rotate": 20,
+        "left": "calc(75% + 0px)",
+        "top": "0.833%",
+        "width": "calc((50vw + 50vh) * 0.104)",
         "motion": "float",
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/die-blue-3.svg",
+        "left": "calc(74.219% + 0px)",
+        "top": "51.389%",
+        "width": "calc((50vw + 50vh) * 0.084)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/die-red-6.svg",
+        "left": "calc(25% + 0px)",
+        "top": "69.444%",
+        "width": "calc((50vw + 50vh) * 0.1)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/die-blue-6.svg",
+        "left": "calc(18.75% + 0px)",
+        "top": "18.056%",
+        "width": "calc((50vw + 50vh) * 0.092)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/die-red-5.svg",
+        "left": "calc(75% + 0px)",
+        "top": "0.833%",
+        "width": "calc((50vw + 50vh) * 0.104)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/die-blue-3.svg",
+        "left": "calc(79.688% + 0px)",
+        "top": "50%",
+        "width": "calc((50vw + 50vh) * 0.084)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/die-red-6.svg",
+        "left": "calc(25% + 0px)",
+        "top": "69.444%",
+        "width": "calc((50vw + 50vh) * 0.1)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["play", "resolving", "revealing"]
+      },
+      {
+        "src": "assets/decor/die-blue-6.svg",
+        "left": "calc(24.141% + 0px)",
+        "top": "16.528%",
+        "width": "calc((50vw + 50vh) * 0.074)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/die-red-5.svg",
+        "left": "calc(75.781% + 0px)",
+        "top": "2.222%",
+        "width": "calc((50vw + 50vh) * 0.083)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/die-blue-3.svg",
+        "left": "calc(74.844% + 0px)",
+        "top": "52.5%",
+        "width": "calc((50vw + 50vh) * 0.067)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/die-red-6.svg",
+        "left": "calc(25.781% + 0px)",
+        "top": "70.833%",
+        "width": "calc((50vw + 50vh) * 0.08)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": ["win", "lose"]
       },
       {
         "src": "assets/decor/arcade-cabinet.svg",
-        "right": "3%",
-        "bottom": "4%",
-        "width": "clamp(3.5rem, 15vmin, 9rem)",
+        "right": "calc((50vw + 50vh) * -0.006)",
+        "bottom": "calc((50vw + 50vh) * -0.014)",
+        "width": "calc((50vw + 50vh) * 0.3)",
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/joystick.svg",
+        "left": "calc((50vw + 50vh) * -0.026)",
+        "bottom": "calc((50vw + 50vh) * -0.024)",
+        "width": "calc((50vw + 50vh) * 0.27)",
+        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+      },
+      {
+        "src": "assets/decor/arcade-cabinet.svg",
+        "right": "calc((50vw + 50vh) * -0.15)",
+        "bottom": "calc((50vw + 50vh) * -0.03)",
+        "width": "calc((50vw + 50vh) * 0.27)",
+        "screens": ["play", "resolving", "revealing"],
         "hideWhenLow": true
       },
       {
         "src": "assets/decor/joystick.svg",
-        "left": "3%",
-        "bottom": "5%",
-        "width": "clamp(2.75rem, 11vmin, 6.5rem)",
+        "left": "calc((50vw + 50vh) * -0.17)",
+        "bottom": "calc((50vw + 50vh) * -0.04)",
+        "width": "calc((50vw + 50vh) * 0.243)",
+        "screens": ["play", "resolving", "revealing"],
         "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/arcade-cabinet.svg",
+        "right": "calc((50vw + 50vh) * -0.006)",
+        "bottom": "calc((50vw + 50vh) * -0.154)",
+        "width": "calc((50vw + 50vh) * 0.3)",
+        "opacity": 0.5,
+        "screens": ["win", "lose"]
+      },
+      {
+        "src": "assets/decor/joystick.svg",
+        "left": "calc((50vw + 50vh) * -0.026)",
+        "bottom": "calc((50vw + 50vh) * -0.164)",
+        "width": "calc((50vw + 50vh) * 0.27)",
+        "opacity": 0.5,
+        "screens": ["win", "lose"]
       }
     ]
   },
-
   "wheel": {
-    "segments": ["#2F5FD0", "#D7263D", "#8A66E0", "@primary"],
-    "blank": "#21126B",
+    "segments": ["#FFD23F", "#7DF3FF", "#FF4FA3", "#8CFF5A"],
+    "blank": "#1B0B57",
     "rim": "#EFE9D0",
-    "rimInk": "#5A2BD0",
-    "bulbs": "@accent",
-    "pointer": "@secondary",
-    "pointerInk": "@ink",
-    "hub": "#8A66E0",
-    "hubText": "#FFFFFF"
+    "rimInk": "#1B0B57",
+    "bulbs": null,
+    "rimStripes": "#FF4FA3",
+    "pointer": "#FFD23F",
+    "pointerInk": "#1B0B57",
+    "hub": "#6B55DD",
+    "hubText": "#FFD23F",
+    "shadow": "0 1.2cqmin 0 #2A1A6B"
   },
-
   "prizes": {},
-  "characters": {},
+  "characters": {
+    "sad": "assets/characters/die-cracked.svg"
+  },
+  "heroes": {},
+  "copy": {
+    "color": "#B9A8FF",
+    "font": "ui",
+    "transform": "uppercase",
+    "letterSpacing": "0.18em",
+    "screens": {
+      "lose": "#FFC2CF",
+      "win": "#FFE9A8"
+    }
+  },
   "sounds": {}
 }

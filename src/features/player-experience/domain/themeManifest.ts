@@ -74,6 +74,9 @@ const frameSchema = z.object({
   slice: z.string().regex(/^\d+(?: \d+){0,3}$/),
   width: cssSchema,
   outset: cssSchema.default("0"),
+  // stretch: edges stretched. round: edges tiled whole (a ring of bulbs keeps its spacing).
+  repeat: z.enum(["stretch", "round"]).default("stretch"),
+  pixelated: z.boolean().default(false), // pixel art: scaled without smoothing
 });
 
 const buttonSchema = z.object({
@@ -83,6 +86,10 @@ const buttonSchema = z.object({
   borderWidth: cssSchema,
   shadow: cssSchema,
   shadowPressed: cssSchema,
+  textShadow: cssSchema.optional(), // a pixel font's hard shadow under the label
+  // The button drawn from a picture (a pixel sprite), stretched as a 9-slice: its `width` is
+  // how thick the picture's edges are drawn. It replaces bg, border and shadow.
+  frame: frameSchema.optional(),
 });
 
 const partialRecord = <K extends string, V extends z.ZodTypeAny>(
@@ -249,6 +256,15 @@ export const themeManifestSchema = z
       borderWidth: cssSchema,
       frame: frameSchema.nullable(),
       shape: panelShapeSchema.nullable().default(null), // wins over the frame
+      // The frame's own picture on some screens (red bulbs on a loss): same slice and width.
+      frameScreens: partialRecord(FLOW_SCREENS, assetSchema),
+      glow: cssSchema.optional(), // a drop-shadow around the framed panel
+      // The room from the texts to the panel's edge, and the text column, when the panel is
+      // much wider than its texts (a marquee board).
+      room: z
+        .object({ inline: cssSchema, block: cssSchema, columnMax: cssSchema })
+        .strict()
+        .optional(),
     }),
     card: z.object({
       bg: cssSchema,
@@ -257,7 +273,14 @@ export const themeManifestSchema = z
       frame: frameSchema.nullable(),
     }),
     hud: z.object({ bg: cssSchema, text: colorSchema, border: colorSchema }),
-    button: z.object({ primary: buttonSchema, secondary: buttonSchema }),
+    button: z.object({
+      primary: buttonSchema,
+      secondary: buttonSchema,
+      // The main button's own look on some screens (a gold one on a win).
+      screens: partialRecord(FLOW_SCREENS, buttonSchema.partial()),
+      // Pixel corners cut off buttons, fields and the prize card ("0.5rem").
+      notch: cssSchema.optional(),
+    }),
     field: z.object({
       bg: cssSchema,
       text: colorSchema,
@@ -266,6 +289,9 @@ export const themeManifestSchema = z
       shadow: cssSchema.default("none"), // a hard offset under the field
       label: colorSchema.optional(), // the label above it, else the panel's text
       labelFont: z.enum(["ui", "display"]).default("ui"),
+      // Small capitals over the field; a display label is in the title's case already.
+      labelCase: z.enum(["none", "uppercase"]).optional(),
+      labelTracking: cssSchema.optional(),
     }),
     title: z.object({
       color: colorSchema,
@@ -280,6 +306,8 @@ export const themeManifestSchema = z
       screens: partialRecord(FLOW_SCREENS, colorSchema),
       // A shape behind the title on the screens where the panel is gone (a title cloud over
       // the game).
+      // Its own glow or shadow on some screens (a gold glow on a win, a red one on a loss).
+      shadows: partialRecord(FLOW_SCREENS, cssSchema),
       backdrop: z
         .object({
           src: assetSchema,
@@ -297,6 +325,17 @@ export const themeManifestSchema = z
         kind: z.enum(["panes", "spotlight"]).default("panes"),
         // The welcome screen shows the game's teaser; a template may open on its texts alone.
         welcomeTeaser: z.boolean().default(true),
+        // The game screen's CTA beside the game on a landscape screen: a round button, or the
+        // theme's own block button.
+        // round-below: the round button stays under the game, whatever the screen's shape.
+        playCta: z.enum(["round", "block", "round-below"]).default("round"),
+        // The prize's card on a win: flat on the panel, or the theme's card.
+        rewardCard: z.enum(["flat", "card"]).default("flat"),
+        // The characters of a result: over the title (slot 2), or in the screen's body.
+        characters: z.enum(["hero", "body"]).default("hero"),
+        // Room kept above the footer for the stage's ground, where the footer sits on a
+        // landscape that has one ("calc(clamp(6rem, 23svh, 13rem) * 0.6)").
+        footerGap: cssSchema.optional(),
       })
       .strict()
       .prefault({}),
@@ -313,6 +352,8 @@ export const themeManifestSchema = z
       moods: z.boolean().default(true),
       // The text written straight on the stage, where a screen has no panel.
       text: colorSchema.optional(),
+      // The footer's text, written on the stage's own ground (the dark soil of a landscape).
+      footerText: colorSchema.optional(),
       backgrounds: z.object({
         default: assetSchema,
         games: partialRecord(GAME_KEYS, assetSchema),
@@ -328,15 +369,29 @@ export const themeManifestSchema = z
       rimInk: colorSchema,
       bulbs: colorSchema.nullable(), // lights around the rim
       bulbsPerSlice: z.number().int().min(1).max(3).default(2),
+      // A rim in two colors, blocks in turn all round (an arcade wheel), over the rim color.
+      rimStripes: colorSchema.nullable().default(null),
       bulbInk: colorSchema.nullable().default(null), // an outline around each light
       pointer: colorSchema,
       pointerInk: colorSchema,
       // The theme's own pointer, drawn above the rim and pointing down into the wheel (its
       // tip at the bottom of the picture), instead of the drawn triangle.
       pointerArt: assetSchema.nullable().default(null),
+      // Its size in the wheel's own units (the disc's radius is 128), and how far its tip
+      // reaches into the rim.
+      pointerSize: z
+        .object({
+          width: z.number().positive().max(120),
+          height: z.number().positive().max(120),
+          overlap: z.number().min(0).max(60),
+        })
+        .strict()
+        .default({ width: 35, height: 42.7, overlap: 24.7 }),
       hub: colorSchema,
       hubText: colorSchema,
       hubShine: z.boolean().default(true), // a lit gradient, or a flat cartoon fill
+      bulbShape: z.enum(["round", "square"]).default("round"),
+      hubShape: z.enum(["round", "square"]).default("round"),
       // A hard shadow under the whole wheel ("1.5cqmin 1.5cqmin 0 #1A62AB"), still while the
       // disc turns.
       shadow: cssSchema.default("none"),
@@ -344,6 +399,27 @@ export const themeManifestSchema = z
 
     prizes: partialRecord(PRIZE_ART_NAMES, assetSchema),
     characters: partialRecord(["happy", "sad"], assetSchema),
+    // The template's own picture above the title of a screen (a trophy over the login, a
+    // sad face over a loss), drawn in slot 2 by a spotlight template: part of its design,
+    // shown whatever the brand set there. Win and lose fall back on the characters.
+    heroes: partialRecord(
+      FLOW_SCREENS,
+      z.object({ src: assetSchema, width: cssSchema }).strict(),
+    ),
+    // The line under the title (slot 4): its color, font, size and case, per screen if need
+    // be, and a short rule under it.
+    copy: z
+      .object({
+        color: colorSchema.optional(),
+        font: z.enum(["body", "ui", "display"]).default("body"),
+        size: cssSchema.optional(),
+        transform: z.enum(["none", "uppercase"]).default("none"),
+        rule: colorSchema.nullable().default(null),
+        letterSpacing: cssSchema.optional(),
+        screens: partialRecord(FLOW_SCREENS, colorSchema),
+      })
+      .strict()
+      .prefault({}),
     sounds: partialRecord(THEME_SOUND_NAMES, assetSchema),
   })
   .strict();
@@ -363,11 +439,15 @@ export function manifestAssetPaths(manifest: ThemeManifest): string[] {
     ...Object.values(stage.backgrounds.screens),
     ...stage.decor.map((decor) => decor.src),
     panel.frame?.src,
+    ...Object.values(panel.frameScreens),
     panel.shape?.src,
     ...Object.values(panel.shape?.screens ?? {}).map((shape) => shape?.src),
     card.frame?.src,
+    manifest.button.primary.frame?.src,
+    manifest.button.secondary.frame?.src,
     manifest.title.backdrop?.src,
     manifest.wheel.pointerArt,
+    ...Object.values(manifest.heroes).map((hero) => hero?.src),
     ...Object.values(prizes),
     ...Object.values(characters),
     ...Object.values(sounds),

@@ -33,12 +33,18 @@ export interface ResolvedDecor extends Omit<ThemeDecor, "src"> {
 export interface ThemeAssets {
   background: (gameType: GameType, screen: string | undefined) => string | null;
   panelFrame: string | null;
+  panelFrames: Readonly<Partial<Record<ThemeScreen, string>>>; // its picture per screen
   // The panel's shape (a cloud) and its picture on the screens that take another one.
   panelShape: string | null;
   panelShapes: Readonly<Partial<Record<ThemeScreen, string>>>;
   titleBackdrop: string | null;
   wheelPointer: string | null;
+  // The template's own picture above the title of a screen, and how wide it is drawn.
+  heroes: Readonly<
+    Partial<Record<ThemeScreen, { url: string; width: string }>>
+  >;
   cardFrame: string | null;
+  buttonFrames: Readonly<{ primary: string | null; secondary: string | null }>;
   decor: readonly ResolvedDecor[];
   prizes: Readonly<Partial<Record<PrizeArtName, string>>>;
   characters: Readonly<{ happy?: string; sad?: string }>;
@@ -76,6 +82,7 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
           backgrounds.default,
       ),
     panelFrame: url(manifest.panel.frame?.src),
+    panelFrames: urls(manifest, manifest.panel.frameScreens),
     panelShape: url(manifest.panel.shape?.src),
     panelShapes: urls(
       manifest,
@@ -87,7 +94,19 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
     ),
     titleBackdrop: url(manifest.title.backdrop?.src),
     wheelPointer: url(manifest.wheel.pointerArt ?? undefined),
+    heroes: Object.fromEntries(
+      Object.entries(manifest.heroes).flatMap(([screen, hero]) => {
+        const resolved = hero ? url(hero.src) : null;
+        return resolved
+          ? [[screen, { url: resolved, width: hero!.width }]]
+          : [];
+      }),
+    ),
     cardFrame: url(manifest.card.frame?.src),
+    buttonFrames: {
+      primary: url(manifest.button.primary.frame?.src),
+      secondary: url(manifest.button.secondary.frame?.src),
+    },
     decor: manifest.stage.decor.flatMap(({ src, ...decor }) => {
       const resolved = url(src);
       return resolved ? [{ ...decor, url: resolved }] : [];

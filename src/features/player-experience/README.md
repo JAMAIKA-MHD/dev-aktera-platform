@@ -60,13 +60,13 @@ Template panel and nowhere else: `templateId` accepts only the ids of `domain/te
 (`save_experience_config` answers `INVALID`, and a CHECK guards `campaign_experiences.template_id`,
 migration `20261020120000_experience_templates.sql`).
 
-| Id             | Label        | Theme                            | Assets from (`src/templates/`)                |
-| -------------- | ------------ | -------------------------------- | --------------------------------------------- |
-| `eight-slot`   | Classic      | — (the brand's theme presets)    | —                                             |
-| `comic-burst`  | Cartoon Pop  | `themes/comic-burst/theme.json`  | `style1-cartoon-style/cartoon-screens.zip`    |
-| `quiz-show`    | Quiz Show    | `themes/quiz-show/theme.json`    | `style4-quiz-style/aktera-asset-pack.zip`     |
-| `arcade-night` | Arcade Night | `themes/arcade-night/theme.json` | `style3-nightgaming-style/game-night-svg.zip` |
-| `pixel-quest`  | Pixel Quest  | `themes/pixel-quest/theme.json`  | — (drawn for the theme)                       |
+| Id             | Label        | Theme                            | Assets from (`src/templates/`)              |
+| -------------- | ------------ | -------------------------------- | ------------------------------------------- |
+| `eight-slot`   | Classic      | — (the brand's theme presets)    | —                                           |
+| `comic-burst`  | Cartoon Pop  | `themes/comic-burst/theme.json`  | `style1-cartoon-style/cartoon-screens.zip`  |
+| `quiz-show`    | Quiz Show    | `themes/quiz-show/theme.json`    | `style4-quiz-style/trivia-quiz-screens.zip` |
+| `arcade-night` | Arcade Night | `themes/arcade-night/theme.json` | `style3-nightgaming-style/game-night.zip`   |
+| `pixel-quest`  | Pixel Quest  | `themes/pixel-quest/theme.json`  | `style2-pixel-style/pixel-screens.zip`      |
 
 ### A theme is data: `themes/<id>/theme.json`
 
@@ -100,6 +100,28 @@ only come in through `assets/` paths. `presets/themeManifests.ts` loads and chec
   `drop-shadow`, so it follows the frame's own corners.
 - **Same layout, every screen.** A template never moves a slot: the 8-slot frame stays the layout
   of the welcome, form, game, result and status screens, at every size.
+- **All four themed templates are spotlights.** Each opens on its texts alone and lays its
+  screens out like its own template pack: the cloud (Cartoon Pop), the open sky over a pixel
+  landscape (Pixel Quest), the marquee board between LED walls and podiums (Quiz Show), the
+  night city with its dice and arcade cabinet (Arcade Night). The parts a pack drew as SVG are
+  kept as they are; the parts it drew in CSS (Quiz Show's walls, podiums and bulb frame) are
+  redrawn once as SVG in the theme folder.
+- **Template pictures and lines.** `heroes` is the template's own picture above a screen's
+  title (a trophy, a sad face), shown whatever the brand set there (the Studio says so in place
+  of that choice); `layout.characters: "body"` keeps a result's character in its body instead.
+  `copy` styles the line under the title (color, font, case, size, a rule under it).
+  `button.screens` and `title.shadows` restyle the main button and the title per screen (a gold
+  button on a win), `panel.frameScreens` swaps the frame per screen (red bulbs on a loss),
+  `panel.room` gives a wide board its own room around the texts, `button.notch` cuts pixel
+  corners, `stage.footerText` writes the footer on the stage's ground. On the wheel:
+  `rimStripes`, `bulbShape`, `hubShape` and `pointerSize`; `layout.playCta` puts the game's
+  button beside the wheel (round or block) or under it (`round-below`).
+- **Sprite buttons.** `button.primary.frame` / `button.secondary.frame` draw a button from a
+  picture as a 9-slice (its bevel, gloss and base in place of bg, border and shadow; `pixelated`
+  keeps pixel art sharp). The button's `borderWidth` then only places the label on the
+  picture's face. Pixel Quest uses two tiles of `style2-pixel-style/Pixel Buttom.png` (gold and
+  silver, column 4 of its wide buttons); Quiz Show uses `b_3` and `b_5` of
+  `style4-quiz-style/cga_ui_gold.zip`, at half size.
 - **Per-screen dressing, still data.** A theme may dress each screen its own way: decorations
   limited to some screens (`stage.decor[].screens`), some drawn over the panel (`front`,
   landscape only), a title color per screen (`title.screens`), a backdrop behind the title

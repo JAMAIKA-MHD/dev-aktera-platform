@@ -48,17 +48,15 @@ describe("template library", () => {
   });
 
   it("turns a theme.json into the shell's CSS variables, roles written out", () => {
-    const manifest = getThemeManifest("pixel-quest")!;
+    const manifest = getThemeManifest("quiz-show")!;
     const vars = manifestToCssVars(manifest, null);
-    expect(vars["--xp-font-display"]).toMatch(
-      /^"Press Start 2P", "Noto Sans Arabic"/,
-    );
+    expect(vars["--xp-font-display"]).toMatch(/^"Outfit", "Noto Sans Arabic"/);
     // The bundled file, inlined as a data URL when it is small.
     expect(vars["--xp-panel-frame"]).toMatch(
       /^url\("(?:data:image\/svg\+xml,|\/).+"\)$/,
     );
-    expect(vars["--xp-panel-frame-slice"]).toBe("24 30 30 24 fill");
-    expect(vars["--xp-btn-bg"]).toBe(manifest.palette.primary);
+    expect(vars["--xp-panel-frame-slice"]).toBe("100 fill");
+    expect(vars["--xp-panel-frame-repeat"]).toBe("round"); // the bulbs keep their spacing
     // No "@role" is ever left for the browser to read.
     for (const [name, value] of Object.entries(vars)) {
       expect(value, name).not.toMatch(/@[a-z]/);

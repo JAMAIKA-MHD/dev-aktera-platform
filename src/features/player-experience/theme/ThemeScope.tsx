@@ -72,6 +72,20 @@ export function ThemeScope({
         data-xp-template={templateId}
         data-xp-themed={manifest ? manifest.id : undefined}
         data-xp-layout={manifest?.layout.kind}
+        data-xp-play-cta={manifest?.layout.playCta}
+        data-xp-footer-on-stage={manifest?.stage.footerText ? "" : undefined}
+        data-xp-panel-room={manifest?.panel.room ? "" : undefined}
+        data-xp-btn-frame={
+          gameTheme.assets?.buttonFrames.primary ? "" : undefined
+        }
+        data-xp-btn2-frame={
+          gameTheme.assets?.buttonFrames.secondary ? "" : undefined
+        }
+        data-xp-notch={manifest?.button.notch ? "" : undefined}
+        data-xp-reward-card={manifest?.layout.rewardCard}
+        data-xp-copy={manifest && copyStyled(manifest) ? "" : undefined}
+        data-xp-copy-size={manifest?.copy.size ? "" : undefined}
+        data-xp-copy-rule={manifest?.copy.rule ? "" : undefined}
         data-xp-panel-frame={gameTheme.assets?.panelFrame ? "" : undefined}
         data-xp-panel-shape={gameTheme.assets?.panelShape ? "" : undefined}
         data-xp-card-frame={gameTheme.assets?.cardFrame ? "" : undefined}
@@ -79,5 +93,16 @@ export function ThemeScope({
         {children}
       </div>
     </GameThemeContext.Provider>
+  );
+}
+
+// The theme styles the line under the title (copy in theme.json).
+function copyStyled(manifest: ThemeManifest): boolean {
+  const { copy } = manifest;
+  return (
+    copy.color !== undefined ||
+    copy.font !== "body" ||
+    copy.transform !== "none" ||
+    Object.keys(copy.screens).length > 0
   );
 }

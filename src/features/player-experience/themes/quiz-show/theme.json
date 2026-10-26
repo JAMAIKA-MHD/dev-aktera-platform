@@ -2,16 +2,15 @@
   "version": 1,
   "id": "quiz-show",
   "label": "Quiz Show",
-  "description": "A TV game show at night: spotlights, golden-rimmed panels, glowing pills, a mascot that cheers or sulks.",
+  "description": "A TV quiz show: spotlights over the stage, glowing LED walls, question-mark podiums and a marquee board lit with bulbs.",
   "source": "style4-quiz-style",
   "credits": null,
-
   "mode": "dark",
   "palette": {
     "primary": "#FFB020",
     "secondary": "#7A2FE0",
     "accent": "#3DDC84",
-    "surface": "#12114A",
+    "surface": "#050508",
     "text": "#FFFFFF",
     "ink": "#05061A"
   },
@@ -22,7 +21,6 @@
     "ui": "Outfit",
     "stylesheet": "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800;900&display=swap"
   },
-
   "tokens": {
     "radius": {
       "sm": "0.5rem",
@@ -37,92 +35,202 @@
       "lg": "1.5rem"
     },
     "fontSize": {
-      "display": "clamp(1.5rem, 7cqw, 2.25rem)",
-      "title": "1",
+      "display": "clamp(1.5rem, 7cqw, 2.5rem)",
+      "title": "1.05",
       "body": "0.95rem",
       "label": "0.75rem"
     },
     "shadow": {
       "panel": "none",
-      "card": "0 0 1.5rem -0.5rem #7A2FE099",
+      "card": "none",
       "pop": "0 0 2rem #FFB02059"
     }
   },
-
   "panel": {
-    "bg": "#12114A",
+    "bg": "#050508",
     "text": "@text",
     "border": "@primary",
-    "borderWidth": "0.2rem",
+    "borderWidth": "0",
     "frame": {
-      "src": "assets/frames/panel.svg",
-      "slice": "36",
-      "width": "1.5rem"
+      "src": "assets/frames/marquee.svg",
+      "slice": "100",
+      "width": "clamp(1.75rem, 5.2vw, 4.75rem)",
+      "outset": "0",
+      "repeat": "round"
+    },
+    "shape": null,
+    "frameScreens": {
+      "win": "assets/frames/marquee-win.svg",
+      "lose": "assets/frames/marquee-lose.svg"
+    },
+    "glow": "0 0 1.75rem #6E5AFF73",
+    "room": {
+      "inline": "clamp(2rem, 15.6vw, 13rem)",
+      "block": "clamp(1.75rem, 8svh, 5.5rem)",
+      "columnMax": "25rem"
     }
   },
   "card": {
-    "bg": "#1A1560",
-    "border": "#4630C4",
-    "borderWidth": "0.15rem",
-    "frame": {
-      "src": "assets/frames/card.svg",
-      "slice": "26",
-      "width": "1.1rem"
-    }
+    "bg": "#0E1030",
+    "border": "#2E2F7A",
+    "borderWidth": "0.125rem",
+    "frame": null
   },
-  "hud": { "bg": "#0A0B33D9", "text": "@text", "border": "#4630C4" },
+  "hud": {
+    "bg": "#0A0B33D9",
+    "text": "@text",
+    "border": "#4630C4"
+  },
   "button": {
     "primary": {
-      "bg": "linear-gradient(180deg, @primary-light 0%, @primary 50%, @primary-deep 100%)",
-      "text": "@ink",
-      "border": "#FFE9A8",
-      "borderWidth": "0.125rem",
-      "shadow": "0 0 1.25rem #FFB02066, 0 0.3rem 0 #8A5200",
-      "shadowPressed": "0 0 0.6rem #FFB02066, 0 0.1rem 0 #8A5200"
+      "bg": "@primary",
+      "text": "#9A3D06",
+      "border": "#FF7A00",
+      "borderWidth": "0.5rem",
+      "shadow": "none",
+      "shadowPressed": "none",
+      "textShadow": "0 0.06em 0 #FFE9A8",
+      "frame": {
+        "src": "assets/buttons/button-gold.png",
+        "slice": "56 70",
+        "width": "calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 56) calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 70)",
+        "outset": "0",
+        "repeat": "stretch",
+        "pixelated": false
+      }
     },
     "secondary": {
-      "bg": "#1A1560",
+      "bg": "#FF9A1F",
       "text": "#FFFFFF",
-      "border": "#4630C4",
-      "borderWidth": "0.125rem",
-      "shadow": "0 0.25rem 0 @ink",
-      "shadowPressed": "0 0.08rem 0 @ink"
-    }
+      "border": "#FF7A00",
+      "borderWidth": "0.5rem",
+      "shadow": "none",
+      "shadowPressed": "none",
+      "textShadow": "0 0.06em 0 #C2561A",
+      "frame": {
+        "src": "assets/buttons/button-gold-inset.png",
+        "slice": "56 70",
+        "width": "calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 56) calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 70)",
+        "outset": "0",
+        "repeat": "stretch",
+        "pixelated": false
+      }
+    },
+    "screens": {}
   },
   "field": {
-    "bg": "#0A0B33",
+    "bg": "#0E1030",
     "text": "#FFFFFF",
-    "border": "#4630C4",
-    "borderWidth": "0.125rem"
+    "border": "#2E2F7A",
+    "borderWidth": "0.125rem",
+    "shadow": "none",
+    "label": "#B8B2E6",
+    "labelFont": "ui",
+    "labelCase": "uppercase",
+    "labelTracking": "0.16em"
   },
   "title": {
-    "color": "#FFD54A",
+    "color": "#FFFFFF",
     "stroke": null,
     "strokeWidth": "0",
-    "shadow": "0 0 0.6em #FFB02080, 0 0.07em 0 #B86E00",
+    "shadow": "0 0.05em 0 #00000080",
     "transform": "uppercase",
-    "letterSpacing": "0.02em",
-    "weight": 800
+    "letterSpacing": "0",
+    "weight": 900,
+    "screens": {
+      "win": "#FFC93A"
+    },
+    "shadows": {
+      "win": "0 0.05em 0 #B86E00, 0 0 0.45em #FFB020CC",
+      "lose": "0 0 0.45em #FF3B4ACC"
+    },
+    "backdrop": null
   },
-
   "stage": {
     "color": "#05061A",
     "overlay": "@ink",
-    "overlayOpacity": 0.08,
+    "overlayOpacity": 0,
     "backgrounds": {
       "default": "assets/backgrounds/bg-stage.svg",
       "games": {
-        "lucky_wheel": "assets/backgrounds/bg-burst.svg",
-        "quiz": "assets/backgrounds/bg-stage.svg",
-        "scratch_card": "assets/backgrounds/bg-dots.svg",
-        "mystery_box": "assets/backgrounds/bg-dots.svg",
-        "hit_it": "assets/backgrounds/bg-grid.svg"
+        "quiz": "assets/backgrounds/bg-grid.svg"
       },
-      "screens": { "win": "assets/backgrounds/bg-confetti.svg" }
+      "screens": {}
     },
-    "decor": []
+    "decor": [
+      {
+        "src": "assets/decor/led-left.svg",
+        "left": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/led-right.svg",
+        "right": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/pedestal-left.svg",
+        "left": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "duplicate",
+          "closed",
+          "error",
+          "play",
+          "resolving",
+          "revealing",
+          "win"
+        ]
+      },
+      {
+        "src": "assets/decor/pedestal-right.svg",
+        "right": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "duplicate",
+          "closed",
+          "error",
+          "play",
+          "resolving",
+          "revealing",
+          "win"
+        ]
+      },
+      {
+        "src": "assets/decor/pedestal-left.svg",
+        "left": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "opacity": 0.45,
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/pedestal-right.svg",
+        "right": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "opacity": 0.45,
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      }
+    ],
+    "moods": true
   },
-
   "wheel": {
     "segments": ["#2A46D8", "#7A2FE0", "#E11D2E", "@primary"],
     "blank": "#0A0B33",
@@ -134,7 +242,6 @@
     "hub": "@primary",
     "hubText": "@ink"
   },
-
   "prizes": {
     "gift": "assets/prizes/gift.svg",
     "ticket": "assets/prizes/ticket.svg",
@@ -155,5 +262,27 @@
     "win": "assets/sounds/win.mp3",
     "lose": "assets/sounds/lose.mp3",
     "reward": "assets/sounds/reward.mp3"
+  },
+  "layout": {
+    "kind": "spotlight",
+    "welcomeTeaser": false,
+    "playCta": "round-below",
+    "rewardCard": "flat",
+    "characters": "hero"
+  },
+  "heroes": {
+    "win": {
+      "src": "assets/heroes/trophy.svg",
+      "width": "clamp(3.5rem, min(7.5vw, 13svh), 6rem)"
+    },
+    "lose": {
+      "src": "assets/heroes/cross.svg",
+      "width": "clamp(3.25rem, min(9.5vw, 17svh), 7.5rem)"
+    }
+  },
+  "copy": {
+    "color": "#C9C3F2",
+    "font": "ui",
+    "transform": "none"
   }
 }

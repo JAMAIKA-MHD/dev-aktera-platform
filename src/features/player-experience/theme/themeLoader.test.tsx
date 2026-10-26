@@ -116,12 +116,8 @@ describe("ThemeScope · the theme loader", () => {
       const root = container.querySelector<HTMLElement>(".xp-root")!;
       expect(root.dataset.xpThemed, id).toBe(id);
       expect(root.getAttribute("dir"), id).toBe("rtl");
-      // A panel drawn from the theme's files: a 9-slice frame or a shape (the cloud).
-      expect(
-        root.hasAttribute("data-xp-panel-frame") ||
-          root.hasAttribute("data-xp-panel-shape"),
-        id,
-      ).toBe(true);
+      // Every theme lays its screens out like its own pack (the spotlight).
+      expect(root.getAttribute("data-xp-layout"), id).toBe("spotlight");
       expect(
         container
           .querySelector<HTMLElement>(".xp-stage-image")

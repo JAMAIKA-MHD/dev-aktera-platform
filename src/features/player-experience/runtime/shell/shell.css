@@ -17,6 +17,9 @@
 
 :where(.xp-root) {
   --xp-ink: var(--xp-surface);
+  /* The brand bar and HUD chips share the secondary button's border, unless that button is a
+     picture (its border then only places the label). */
+  --xp-hud-border-width: var(--xp-btn2-border-width);
   --xp-font-display: var(--xp-font);
   --xp-font-ui: var(--xp-font);
   --xp-fs-display: clamp(1.35rem, 5cqw, 1.85rem);
@@ -75,7 +78,7 @@
 .xp-stage[data-xp-mood="lose"] .xp-stage-veil {
   opacity: calc(var(--xp-stage-overlay-opacity) + 0.32);
 }
-.xp-stage[data-xp-mood="lose"] .xp-stage-image {
+.xp-stage[data-xp-mood="lose"] :is(.xp-stage-image, .xp-decor) {
   filter: saturate(0.6);
 }
 
@@ -206,7 +209,44 @@
   border-image-slice: var(--xp-panel-frame-slice);
   border-image-width: var(--xp-panel-frame-width);
   border-image-outset: var(--xp-panel-frame-outset);
-  border-image-repeat: stretch;
+  /* round: a ring of bulbs keeps its spacing whatever the panel's size. */
+  border-image-repeat: var(--xp-panel-frame-repeat, stretch);
+  filter: var(--xp-panel-filter, none);
+}
+/* A marquee board much wider than its texts: the theme's own room, on a landscape screen. */
+.xp-root[data-xp-panel-room] .xp-frame {
+  /* One column (a phone): just clear of the frame, whose ring is drawn inside the panel. */
+  --xp-panel-pad: calc(var(--xp-panel-frame-width) + 0.35rem);
+  --xp-panel-block: calc(var(--xp-panel-frame-width) * 0.7);
+  @variant split {
+    --xp-panel-pad: var(--xp-panel-room-inline);
+    --xp-panel-block: var(--xp-panel-room-block);
+    --xp-column-max: var(--xp-panel-room-column);
+  }
+}
+/* In the spotlight, on a landscape screen, the brand's bar and the legal footer sit on the
+   stage, above and under the framed panel: the board keeps its room for the screen. */
+.xp-root[data-xp-layout="spotlight"][data-xp-panel-frame] .xp-frame {
+  @variant split {
+    padding-top: calc(var(--xp-safe-top) + var(--xp-panel-gap-block));
+    padding-bottom: calc(var(--xp-safe-bottom) + var(--xp-panel-gap-block));
+    &::before {
+      grid-row: 2 / -2;
+    }
+    > :is([data-xp-slot="header"], [data-xp-slot="status"]) {
+      margin-bottom: calc(var(--xp-panel-block) + 0.5rem);
+    }
+    > [data-xp-slot="footer"] {
+      --xp-text: var(--xp-stage-text, var(--xp-panel-text));
+      --xp-text-muted: var(--xp-stage-text-muted, var(--xp-text-muted));
+      margin-top: calc(var(--xp-panel-block) + 0.25rem);
+      color: var(--xp-text);
+      /* Under the board, not in its narrow text column. */
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: min(44rem, 100%);
+    }
+  }
 }
 
 /* ── The panel's shape: one picture stretched behind the slots (a cloud) ──────── */
@@ -261,9 +301,9 @@
     }
   }
 }
-/* On the shape, the form needs no card of its own: its fields sit on the cloud. */
-.xp-root[data-xp-panel-shape]
-  .xp-frame[data-xp-shape="on"][data-xp-screen="register"] {
+/* In the spotlight, the form needs no card of its own: its fields sit on the cloud, or
+   straight on the sky. */
+.xp-root[data-xp-layout="spotlight"] .xp-frame[data-xp-screen="register"] {
   --xp-card-bg: transparent;
   --xp-card-border: transparent;
   --xp-card-shadow: none;
@@ -298,8 +338,41 @@
 /* The theme's own character in slot 2 (a star over a win, a sad face over a loss). */
 .xp-hero-art {
   display: block;
-  width: clamp(3.25rem, min(16vw, 11svh), 7rem);
+  width: var(--xp-hero-art-width, clamp(3.25rem, min(16vw, 11svh), 7rem));
   height: auto;
+  image-rendering: var(--xp-hero-art-rendering, auto);
+}
+
+/* The line under the title, when the theme styles it (copy in theme.json): its color, font,
+   case and size, and a short rule under it. An Arabic line keeps its own font and case. */
+.xp-root[data-xp-copy] .xp-frame > [data-xp-slot="copy"] {
+  color: var(--xp-copy-color, var(--xp-text-muted));
+  &:not([data-xp-script="arabic"]) {
+    font-family: var(--xp-copy-font, var(--xp-font-ui));
+    text-transform: var(--xp-copy-case, none);
+    letter-spacing: var(--xp-copy-tracking, normal);
+  }
+}
+.xp-root[data-xp-copy-size] .xp-frame > [data-xp-slot="copy"] {
+  font-size: var(--xp-copy-size);
+  line-height: 1.7;
+}
+.xp-root[data-xp-copy-rule] .xp-frame > [data-xp-slot="copy"]::after {
+  content: "";
+  display: block;
+  width: clamp(4rem, 15%, 7.5rem);
+  height: 0.25rem;
+  margin: 0.75em auto 0;
+  background: var(--xp-copy-rule);
+}
+
+/* The footer on the stage's own ground (the dark soil under a landscape): its color, and the
+   room above it for the grass between the screen and the ground. */
+.xp-root[data-xp-footer-on-stage] .xp-frame > [data-xp-slot="footer"] {
+  --xp-text: var(--xp-stage-footer);
+  --xp-text-muted: var(--xp-stage-footer);
+  margin-top: var(--xp-footer-gap, var(--xp-space));
+  color: var(--xp-text);
 }
 
 /* ── Spotlight: one column in the middle of the stage, whatever the screen's shape ── */
@@ -374,6 +447,15 @@
       overflow: visible;
     }
   }
+}
+/* The prize flat on the panel, unless the theme keeps its card (layout.rewardCard). */
+.xp-root[data-xp-layout="spotlight"]:not([data-xp-reward-card="card"]) {
+  /* Specific on purpose: it wins over the theme's card frame too. */
+  .xp-reward-popup.xp-card[data-xp-framed] {
+    border-image: none;
+    border-color: transparent;
+    filter: none;
+  }
   .xp-reward-popup {
     padding-inline: 0;
     padding-block: 0.25rem;
@@ -389,6 +471,8 @@
       margin-top: var(--xp-space-sm);
     }
   }
+}
+.xp-root[data-xp-layout="spotlight"] {
   [data-xp-share-row] {
     flex-direction: row;
     > * {
@@ -410,6 +494,10 @@
   > :is([data-xp-slot="interaction"], [data-xp-slot="footer"]) {
     margin-top: calc(var(--xp-space) * 0.4);
   }
+}
+/* With a button (a game started by it, not a quiz): the button and the hint beside the game. */
+.xp-root[data-xp-layout="spotlight"]
+  .xp-frame[data-xp-screen="play"]:has(> [data-xp-slot="cta"]) {
   @variant split {
     grid-template-rows: auto auto auto 1fr auto auto auto auto auto;
     grid-template-areas:
@@ -454,6 +542,124 @@
   }
 }
 
+/* A theme's own block button beside the game, instead of the round one (layout.playCta). */
+.xp-root[data-xp-layout="spotlight"][data-xp-play-cta="block"]
+  .xp-frame[data-xp-screen="play"] {
+  @variant split {
+    > [data-xp-slot="cta"] [data-xp-cta="primary"] {
+      width: clamp(9rem, 18vw, 15rem);
+      min-height: clamp(4rem, 7.8vw, 6.5rem);
+      aspect-ratio: auto;
+      border-radius: var(--xp-btn-radius);
+      padding-inline: 0.75rem;
+      font-size: clamp(0.7rem, 0.3rem + 0.8vw, 1.2rem);
+      line-height: 1.35;
+    }
+  }
+}
+
+/* The round button under the game, whatever the screen's shape (layout.playCta). */
+.xp-root[data-xp-layout="spotlight"][data-xp-play-cta="round-below"]
+  .xp-frame[data-xp-screen="play"] {
+  > [data-xp-slot="cta"] {
+    align-items: center;
+  }
+  > [data-xp-slot="cta"] [data-xp-cta="primary"] {
+    width: clamp(5.5rem, min(11vw, 17svh), 9.5rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    padding: 0.75rem;
+    font-size: clamp(0.6rem, 0.3rem + 0.6vw, 1rem);
+    line-height: 1.35;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+  @variant split {
+    grid-template-rows: auto auto auto auto 1fr auto auto auto auto;
+    grid-template-areas:
+      "header header header"
+      ". hero ."
+      ". title ."
+      ". copy ."
+      ". interaction ."
+      ". sections ."
+      ". reinforcement ."
+      ". cta ."
+      ". footer .";
+    > [data-xp-slot="copy"] {
+      max-width: none;
+      margin-top: calc(var(--xp-space) * 0.5);
+      padding-inline: 0;
+    }
+    > [data-xp-slot="cta"] {
+      position: sticky;
+      align-self: auto;
+      margin-top: calc(var(--xp-space) * 0.5);
+      padding-inline: 0;
+    }
+  }
+}
+
+/* Pixel corners (button.notch): buttons, fields, chips and the prize card, cut like the
+   theme's own. A control in focus shows its whole outline. */
+.xp-root[data-xp-notch]
+  :is(
+    .xp-btn:not([data-xp-variant="ghost"]),
+    .xp-field :is(input, select),
+    [data-xp-reward],
+    .xp-hud-chip
+  ):not(:focus-visible) {
+  clip-path: polygon(
+    var(--xp-notch) 0,
+    calc(100% - var(--xp-notch)) 0,
+    100% var(--xp-notch),
+    100% calc(100% - var(--xp-notch)),
+    calc(100% - var(--xp-notch)) 100%,
+    var(--xp-notch) 100%,
+    0 calc(100% - var(--xp-notch)),
+    0 var(--xp-notch)
+  );
+}
+/* A button drawn from the theme's picture (a sprite, button.*.frame): stretched as a 9-slice,
+   its own bevel, gloss and base in place of the border and shadow (pixel art kept sharp). */
+.xp-root[data-xp-btn-frame] .xp-btn[data-xp-variant="primary"],
+.xp-root[data-xp-btn2-frame] .xp-btn[data-xp-variant="secondary"] {
+  background: none;
+  border-color: transparent;
+  border-style: solid;
+  border-radius: 0;
+  box-shadow: none;
+  border-image-repeat: stretch;
+  &:active:not(:disabled, [aria-busy="true"]) {
+    box-shadow: none;
+  }
+  .xp-shimmer {
+    display: none;
+  }
+}
+.xp-root[data-xp-btn-frame] .xp-btn[data-xp-variant="primary"] {
+  border-image-source: var(--xp-btn-frame);
+  border-image-slice: var(--xp-btn-frame-slice);
+  border-image-width: var(--xp-btn-frame-width);
+  image-rendering: var(--xp-btn-frame-rendering, auto);
+}
+.xp-root[data-xp-btn2-frame] {
+  --xp-hud-border-width: 0.2rem;
+}
+.xp-root[data-xp-btn2-frame] .xp-btn[data-xp-variant="secondary"] {
+  border-image-source: var(--xp-btn2-frame);
+  border-image-slice: var(--xp-btn2-frame-slice);
+  border-image-width: var(--xp-btn2-frame-width);
+  image-rendering: var(--xp-btn2-frame-rendering, auto);
+}
+/* A pixel font's hard shadow under a button's label. */
+.xp-root[data-xp-themed] .xp-btn[data-xp-variant="primary"] {
+  text-shadow: var(--xp-btn-text-shadow, none);
+}
+.xp-root[data-xp-themed] .xp-btn[data-xp-variant="secondary"] {
+  text-shadow: var(--xp-btn2-text-shadow, none);
+}
+
 /* ── Type: titles, results and buttons in the display font; labels in the ui font ── */
 
 :where(.xp-root[data-xp-themed]) {
@@ -479,7 +685,7 @@
   }
   [data-xp-slot="header"] {
     color: var(--xp-hud-text);
-    border: var(--xp-btn2-border-width) solid var(--xp-hud-border);
+    border: var(--xp-hud-border-width) solid var(--xp-hud-border);
   }
 }
 /* An Arabic text keeps its own font, size and spacing: display fonts have no Arabic
@@ -591,7 +797,7 @@
     gap: var(--xp-space-xs);
     min-height: 2rem;
     padding: 0.2rem 0.7rem;
-    border: var(--xp-btn2-border-width) solid
+    border: var(--xp-hud-border-width) solid
       var(--xp-hud-border, color-mix(in srgb, var(--xp-text) 10%, transparent));
     border-radius: var(--xp-radius-pill);
     background: var(
@@ -640,7 +846,7 @@
   border-image-slice: var(--xp-card-frame-slice);
   border-image-width: var(--xp-card-frame-width);
   border-image-outset: var(--xp-card-frame-outset);
-  border-image-repeat: stretch;
+  border-image-repeat: var(--xp-card-frame-repeat, stretch);
 }
 
 /* ── Fields ─────────────────────────────────────────────────────────────────── */

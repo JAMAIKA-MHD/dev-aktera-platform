@@ -65,6 +65,7 @@ const frameVars = (
         [`--xp-${part}-frame-slice`]: `${frame.slice} fill`,
         [`--xp-${part}-frame-width`]: frame.width,
         [`--xp-${part}-frame-outset`]: frame.outset,
+        [`--xp-${part}-frame-repeat`]: frame.repeat,
       }
     : {};
 
@@ -84,6 +85,45 @@ function shapeVars(
     "--xp-panel-shape-column": shape.columnMax,
     "--xp-panel-shape-pad-stack": shape.stack?.padInline ?? shape.padInline,
     "--xp-panel-shape-bleed": shape.stack?.bleed ?? "0px",
+  };
+}
+
+// A button drawn from the theme's picture (a 9-slice sprite).
+function buttonFrameVars(
+  part: "btn" | "btn2",
+  url: string | null,
+  frame: ThemeManifest["button"]["primary"]["frame"],
+): CssVars {
+  return url && frame
+    ? {
+        [`--xp-${part}-frame`]: `url("${url}")`,
+        [`--xp-${part}-frame-slice`]: `${frame.slice} fill`,
+        [`--xp-${part}-frame-width`]: frame.width,
+        [`--xp-${part}-frame-rendering`]: frame.pixelated
+          ? "pixelated"
+          : "auto",
+      }
+    : {};
+}
+
+// The line under the title (slot 4), when the theme styles it: none of these is set otherwise,
+// and the slot keeps its own look.
+function copyVars(
+  copy: ThemeManifest["copy"],
+  css: (value: string) => string,
+): CssVars {
+  const fonts = {
+    body: "var(--xp-font)",
+    ui: "var(--xp-font-ui)",
+    display: "var(--xp-font-display)",
+  };
+  return {
+    ...(copy.color ? { "--xp-copy-color": css(copy.color) } : {}),
+    ...(copy.font !== "body" ? { "--xp-copy-font": fonts[copy.font] } : {}),
+    ...(copy.size ? { "--xp-copy-size": copy.size } : {}),
+    ...(copy.transform !== "none" ? { "--xp-copy-case": copy.transform } : {}),
+    ...(copy.rule ? { "--xp-copy-rule": css(copy.rule) } : {}),
+    ...(copy.letterSpacing ? { "--xp-copy-tracking": copy.letterSpacing } : {}),
   };
 }
 
@@ -113,6 +153,32 @@ export function screenDress(
   const vars: CssVars = {};
   const titleColor = manifest.title.screens[screen];
   if (titleColor) vars["--xp-title-color"] = roleVar(titleColor);
+  const copyColor = manifest.copy.screens[screen];
+  if (copyColor) vars["--xp-copy-color"] = roleVar(copyColor);
+  const titleShadow = manifest.title.shadows[screen];
+  if (titleShadow) vars["--xp-title-shadow"] = roleVar(titleShadow);
+  const frameUrl = assets.panelFrames[screen];
+  if (frameUrl) vars["--xp-panel-frame"] = `url("${frameUrl}")`;
+  // The main button's own look on this screen.
+  const button = manifest.button.screens[screen];
+  if (button) {
+    const names = {
+      bg: "--xp-btn-bg",
+      text: "--xp-btn-text",
+      border: "--xp-btn-border",
+      borderWidth: "--xp-btn-border-width",
+      shadow: "--xp-btn-shadow",
+      shadowPressed: "--xp-btn-shadow-pressed",
+      textShadow: "--xp-btn-text-shadow",
+    } as const;
+    for (const [key, name] of Object.entries(names) as [
+      keyof typeof names,
+      string,
+    ][]) {
+      const value = button[key];
+      if (value) vars[name] = roleVar(value);
+    }
+  }
   const own = shape?.screens[screen];
   const ownUrl = assets.panelShapes[screen];
   if (ownUrl) vars["--xp-panel-shape"] = `url("${ownUrl}")`;
@@ -170,6 +236,16 @@ export function manifestToCssVars(
     "--xp-panel-border": css(panel.border),
     "--xp-panel-border-width": panel.borderWidth,
     "--xp-panel-shadow": css(tokens.shadow.panel),
+    ...(panel.glow
+      ? { "--xp-panel-filter": `drop-shadow(${css(panel.glow)})` }
+      : {}),
+    ...(panel.room
+      ? {
+          "--xp-panel-room-inline": panel.room.inline,
+          "--xp-panel-room-block": panel.room.block,
+          "--xp-panel-room-column": panel.room.columnMax,
+        }
+      : {}),
     ...frameVars("panel", assets.panelFrame, panel.frame),
 
     "--xp-card-bg": css(card.bg),
@@ -189,6 +265,23 @@ export function manifestToCssVars(
     "--xp-btn-border-width": button.primary.borderWidth,
     "--xp-btn-shadow": css(button.primary.shadow),
     "--xp-btn-shadow-pressed": css(button.primary.shadowPressed),
+    "--xp-btn-text-shadow": button.primary.textShadow
+      ? css(button.primary.textShadow)
+      : "none",
+    "--xp-btn2-text-shadow": button.secondary.textShadow
+      ? css(button.secondary.textShadow)
+      : "none",
+    ...(button.notch ? { "--xp-notch": button.notch } : {}),
+    ...buttonFrameVars(
+      "btn",
+      assets.buttonFrames.primary,
+      button.primary.frame,
+    ),
+    ...buttonFrameVars(
+      "btn2",
+      assets.buttonFrames.secondary,
+      button.secondary.frame,
+    ),
     "--xp-btn-radius": tokens.radius.pill,
     "--xp-btn2-bg": css(button.secondary.bg),
     "--xp-btn2-text": css(button.secondary.text),
@@ -210,9 +303,11 @@ export function manifestToCssVars(
         ? "var(--xp-font-display)"
         : "var(--xp-font-ui)",
     "--xp-field-label-case":
-      field.labelFont === "display" ? title.transform : "none",
+      field.labelCase ??
+      (field.labelFont === "display" ? title.transform : "none"),
     "--xp-field-label-tracking":
-      field.labelFont === "display" ? "0.04em" : "normal",
+      field.labelTracking ??
+      (field.labelFont === "display" ? "0.04em" : "normal"),
 
     "--xp-title-color": css(title.color),
     "--xp-title-stroke": title.stroke ? css(title.stroke) : "transparent",
@@ -228,6 +323,11 @@ export function manifestToCssVars(
     "--xp-stage-overlay": css(stage.overlay),
     "--xp-stage-overlay-opacity": String(stage.overlayOpacity),
     "--xp-stage-fit": stage.fit === "stretch" ? "100% 100%" : "cover",
+    ...(stage.footerText ? { "--xp-stage-footer": css(stage.footerText) } : {}),
+    ...(manifest.layout.footerGap
+      ? { "--xp-footer-gap": manifest.layout.footerGap }
+      : {}),
+    ...copyVars(manifest.copy, css),
     ...(stage.text
       ? {
           "--xp-stage-text": css(stage.text),
@@ -248,6 +348,9 @@ export function manifestToCssVars(
     "--xp-wheel-pointer-ink": css(wheel.pointerInk),
     "--xp-wheel-hub": css(wheel.hub),
     "--xp-wheel-hub-text": css(wheel.hubText),
+    ...(wheel.rimStripes
+      ? { "--xp-wheel-rim-stripes": css(wheel.rimStripes) }
+      : {}),
     "--xp-wheel-bulb-ink": wheel.bulbInk ? css(wheel.bulbInk) : "transparent",
     "--xp-wheel-filter":
       wheel.shadow === "none"
