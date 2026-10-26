@@ -122,7 +122,6 @@ const baseItems = (): Item[] => [
   },
 ];
 
-const onUpdatePrize = vi.fn().mockResolvedValue(undefined);
 const onRefreshPrizes = vi.fn();
 
 const view = (reward: PrizeTemplate, canEdit = true) => (
@@ -131,7 +130,6 @@ const view = (reward: PrizeTemplate, canEdit = true) => (
       reward={reward}
       organizationId="org1"
       canEdit={canEdit}
-      onUpdatePrize={onUpdatePrize}
       onRefreshPrizes={onRefreshPrizes}
     />
   </MemoryRouter>
@@ -160,7 +158,6 @@ beforeEach(() => {
   state.fn.updateSingleItemValue.mockResolvedValue(true);
   state.fn.updateItemExpiry.mockResolvedValue(true);
   state.fn.setExpiryForAll.mockResolvedValue(2);
-  onUpdatePrize.mockClear();
   onRefreshPrizes.mockClear();
   exporter.exportToCSV.mockClear();
   exporter.parseCSVFile.mockReset();
@@ -392,7 +389,9 @@ describe("reward codes page, the data table", () => {
 });
 
 describe("reward codes page, the toolbar", () => {
-  it("opens the bulk paste, sends the lines and closes when they are applied", async () => {
+  // Paste Bulk, Replace All and Auto-Fill Empty are hidden (commented out) in RewardCodesView
+  // for now: their tests are skipped until the buttons come back.
+  it.skip("opens the bulk paste, sends the lines and closes when they are applied", async () => {
     state.fn.validateImport.mockReturnValue({
       success: true,
       overflow: false,
@@ -418,7 +417,7 @@ describe("reward codes page, the toolbar", () => {
     expect(screen.queryByPlaceholderText(/COUPON-DZ-101/)).toBeNull();
   });
 
-  it("switches to Replace All before importing", async () => {
+  it.skip("switches to Replace All before importing", async () => {
     state.fn.validateImport.mockReturnValue({
       success: true,
       overflow: false,
@@ -444,7 +443,7 @@ describe("reward codes page, the toolbar", () => {
     );
   });
 
-  it("asks what to do about duplicate codes before importing", async () => {
+  it.skip("asks what to do about duplicate codes before importing", async () => {
     state.fn.validateImport.mockReturnValue({
       success: false,
       overflow: false,
@@ -596,7 +595,7 @@ describe("reward codes page, the toolbar", () => {
     expect(exporter.parseCSVFile).not.toHaveBeenCalled();
   });
 
-  it("fills the empty slots with generated codes", async () => {
+  it.skip("fills the empty slots with generated codes", async () => {
     await open();
     fireEvent.click(screen.getByRole("button", { name: /Auto-Fill Empty/ }));
     await waitFor(() =>
@@ -708,85 +707,8 @@ describe("reward codes page, expiry of the codes", () => {
     ).toBe(true);
   });
 
-  it("applies one date to all codes of the reward", async () => {
-    await open();
-    fireEvent.change(screen.getByLabelText("Expiry for all codes"), {
-      target: { value: "2099-01-01" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Apply to all codes" }));
-    await waitFor(() =>
-      expect(state.fn.setExpiryForAll).toHaveBeenCalledWith(
-        voucher,
-        "2099-01-01T22:59:59.000Z",
-        true,
-      ),
-    );
-  });
-
-  it("says at the top how the codes of the reward expire", async () => {
-    await open({ ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" });
-    expect(
-      screen.getByRole("region", { name: "Reward expiry" }).textContent,
-    ).toContain("until 2099-06-30");
-  });
-
-  it("says it for a period, and for no expiry", async () => {
-    const { unmount } = await open({ ...voucher, expiryDays: 30 });
-    expect(
-      screen.getByRole("region", { name: "Reward expiry" }).textContent,
-    ).toContain("1 month after delivery");
-    unmount();
-    await open(voucher);
-    expect(
-      screen.getByRole("region", { name: "Reward expiry" }).textContent,
-    ).toContain("no expiry");
-  });
-
-  it("changes the expiry from the page, keeping the rest of the reward", async () => {
-    await open({ ...voucher, expiresAt: "2099-06-30T22:59:59.000Z" });
-    fireEvent.click(screen.getByRole("button", { name: "Change expiry" }));
-    expect(
-      (screen.getByLabelText(/On a fixed date/) as HTMLInputElement).checked,
-    ).toBe(true);
-    fireEvent.click(screen.getByLabelText(/After delivery/));
-    fireEvent.change(screen.getByLabelText("Validity period"), {
-      target: { value: "10" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save expiry" }));
-
-    await waitFor(() => expect(onUpdatePrize).toHaveBeenCalled());
-    expect(onUpdatePrize.mock.calls[0][0]).toBe("t1");
-    expect(onUpdatePrize.mock.calls[0][1]).toMatchObject({
-      name: "Ooredoo 500 DA",
-      category: "voucher",
-      totalStock: 3,
-      expiresAt: null,
-      expiryDays: 10,
-    });
-    expect(
-      await within(
-        screen.getByRole("region", { name: "Reward expiry" }),
-      ).findByRole("status"),
-    ).toBeTruthy();
-  });
-
-  it("keeps the editor open and says why when the expiry cannot be saved", async () => {
-    onUpdatePrize.mockRejectedValueOnce(
-      new Error("Reward template could not be found."),
-    );
-    await open(voucher);
-    fireEvent.click(screen.getByRole("button", { name: "Change expiry" }));
-    fireEvent.click(screen.getByLabelText(/On a fixed date/));
-    fireEvent.change(screen.getByLabelText("Expiry date"), {
-      target: { value: "2099-12-31" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save expiry" }));
-    expect(
-      await screen.findByText("Reward template could not be found."),
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Save expiry" })).toBeTruthy();
-  });
-
+  // The expiry of the reward, and one date for all its codes, are changed from the reward form
+  // (Edit) since 214d6f6: see PrizesManager and CodesExpiryFields.test.tsx.
   it("follows the reward as soon as it changes, without leaving the page", async () => {
     // Code 1 has no date of its own: it shows the reward's.
     state.items = baseItems().map((item) =>
@@ -799,25 +721,16 @@ describe("reward codes page, expiry of the codes", () => {
     const date = () =>
       screen.getByLabelText<HTMLInputElement>("Expiry date of code 1").value;
     expect(date()).toBe("2099-06-30");
-    expect(
-      screen.getByRole("region", { name: "Reward expiry" }).textContent,
-    ).toContain("until 2099-06-30");
 
     rerender(view({ ...voucher, expiresAt: "2099-09-15T22:59:59.000Z" }));
     expect(date()).toBe("2099-09-15");
-    expect(
-      screen.getByRole("region", { name: "Reward expiry" }).textContent,
-    ).toContain("until 2099-09-15");
 
     // The reward switches to a period: the date is gone, the period is shown.
     rerender(view({ ...voucher, expiresAt: null, expiryDays: 14 }));
     expect(date()).toBe("");
     expect(
-      screen.getByRole("region", { name: "Reward expiry" }).textContent,
-    ).toContain("2 weeks after delivery");
-    expect(
       screen.getAllByText("2 weeks after delivery").length,
-    ).toBeGreaterThan(1);
+    ).toBeGreaterThan(0);
   });
 
   it("shows the deadline fixed when a code was given, and the period of a code not given yet", async () => {
@@ -849,7 +762,7 @@ describe("reward codes page, expiry of the codes", () => {
     ).toBe("");
     expect(
       screen.getAllByText("1 month after delivery").length,
-    ).toBeGreaterThan(1);
+    ).toBeGreaterThan(0);
     const given = screen.getByLabelText<HTMLInputElement>(
       "Expiry date of code 2",
     );
