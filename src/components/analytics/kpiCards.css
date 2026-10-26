@@ -1,0 +1,619 @@
+/* Analytics KPI cards, section headings, the billing day ruler and the stock bars.
+   .kx-tokens gives the colour tokens only; .kx adds the text colour and font.
+   Fonts (Manrope, IBM Plex Mono) load in index.html. Dark follows data-theme on <html>. */
+.kx,
+.kx-tokens {
+  --kx-surf: #fff;
+  --kx-tx: #0d1626;
+  --kx-mu: #586377;
+  --kx-ln: #dfe5ee;
+  --kx-dash: #c3ccda;
+  --kx-track: #e1e6ee;
+  --kx-pill: #1d6fe0;
+  --kx-blue: #1d6fe0;
+  --kx-blue-ink: #1650b0;
+  --kx-blue-soft: #e3eefd;
+  --kx-amber: #e39200;
+  --kx-amber-ink: #8f5400;
+  --kx-amber-soft: #fdf0d6;
+  --kx-teal: #0f9f93;
+  --kx-teal-ink: #0a6b64;
+  --kx-teal-soft: #d9f2ef;
+  --kx-vio: #7a5af0;
+  --kx-vio-ink: #5a3bc2;
+  --kx-vio-soft: #ece8fc;
+  --kx-rose: #e11d48;
+  --kx-rose-ink: #9f1239;
+  --kx-rose-soft: #ffe4e6;
+  --kx-surf2: #f4f6fa;
+  --kx-grn: #0e9f6e;
+  --kx-gray: #9aa5b8;
+  --kx-shadow:
+    0 1px 0 rgba(15, 25, 45, 0.03), 0 16px 32px -20px rgba(15, 25, 45, 0.22);
+}
+.kx {
+  color: var(--kx-tx);
+  font-family: "Manrope", system-ui, sans-serif;
+}
+[data-theme="dark"] .kx,
+[data-theme="dark"] .kx-tokens {
+  --kx-surf: #0f1624;
+  --kx-tx: #e9eef7;
+  --kx-mu: #98a5bb;
+  --kx-ln: #1c2740;
+  --kx-dash: #2b3955;
+  --kx-track: #1e2a42;
+  --kx-pill: #2a63d6;
+  --kx-blue: #4b92ff;
+  --kx-blue-ink: #8bb8ff;
+  --kx-blue-soft: #13274a;
+  --kx-amber: #f5a524;
+  --kx-amber-ink: #f6bd5c;
+  --kx-amber-soft: #3a2a0d;
+  --kx-teal: #2cc9b5;
+  --kx-teal-ink: #63dccb;
+  --kx-teal-soft: #0e3430;
+  --kx-vio: #9a85fa;
+  --kx-vio-ink: #b9a9ff;
+  --kx-vio-soft: #251f4d;
+  --kx-rose: #fb7185;
+  --kx-rose-ink: #fda4af;
+  --kx-rose-soft: #4c0519;
+  --kx-surf2: #141d2f;
+  --kx-grn: #34d399;
+  --kx-gray: #4d5b75;
+  --kx-shadow: none;
+}
+.kx-tone-blue {
+  --kx-ink: var(--kx-blue-ink);
+  --kx-soft: var(--kx-blue-soft);
+  --kx-fill: var(--kx-blue);
+}
+.kx-tone-amber {
+  --kx-ink: var(--kx-amber-ink);
+  --kx-soft: var(--kx-amber-soft);
+  --kx-fill: var(--kx-amber);
+}
+.kx-tone-teal {
+  --kx-ink: var(--kx-teal-ink);
+  --kx-soft: var(--kx-teal-soft);
+  --kx-fill: var(--kx-teal);
+}
+.kx-tone-vio {
+  --kx-ink: var(--kx-vio-ink);
+  --kx-soft: var(--kx-vio-soft);
+  --kx-fill: var(--kx-vio);
+}
+.kx-tone-rose {
+  --kx-ink: var(--kx-rose-ink);
+  --kx-soft: var(--kx-rose-soft);
+  --kx-fill: var(--kx-rose);
+}
+
+/* section heading */
+.kx-sec {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 18px;
+}
+.kx-sec-ix {
+  font:
+    500 11px/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.1em;
+  color: var(--kx-blue-ink);
+}
+.kx-sec-title {
+  margin: 0;
+  font:
+    600 12px/1.3 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--kx-tx);
+}
+.kx-sec-rule {
+  flex: 1;
+  min-width: 16px;
+  border-top: 1.5px dotted var(--kx-dash);
+}
+.kx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 15px;
+  border-radius: 12px;
+  border: 1px solid var(--kx-pill);
+  background: var(--kx-pill);
+  color: #fff;
+  font:
+    600 13.5px "Manrope",
+    sans-serif;
+  white-space: nowrap;
+}
+.kx-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* card grid + card. 10% larger than the overview's first row (18px radius, 18px padding,
+   25px figures); always 4 columns from 1024px, 2 below so a row of 4 fits one screen. */
+.kx-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (min-width: 1024px) {
+  .kx-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.kx-card {
+  background: var(--kx-surf);
+  border: 1px solid var(--kx-ln);
+  border-radius: 18px;
+  box-shadow: var(--kx-shadow);
+  overflow: hidden;
+}
+.kx-kpi {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+}
+.kx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 18px 9px;
+}
+.kx-chip {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--kx-soft);
+  color: var(--kx-ink);
+}
+.kx-label {
+  margin: 0;
+  min-width: 0;
+  font:
+    600 11.5px/1.2 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--kx-tx);
+}
+.kx-kind {
+  margin-left: auto;
+  flex: none;
+  font:
+    500 10px/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kx-ink);
+}
+.kx-dots {
+  border-top: 1.5px dotted var(--kx-dash);
+  margin: 0 18px;
+}
+.kx-body {
+  padding: 9px 18px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.kx-val {
+  font:
+    800 25px/1.05 "Manrope",
+    sans-serif;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.kx-suf {
+  font:
+    600 14.3px "Manrope",
+    sans-serif;
+  color: var(--kx-mu);
+  margin-left: 5px;
+  letter-spacing: -0.01em;
+}
+.kx-desc {
+  margin: 0;
+  font:
+    500 12.6px/1.3 "Manrope",
+    sans-serif;
+  color: var(--kx-mu);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kx-meter {
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kx-mcap {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font:
+    500 11px/1.3 "IBM Plex Mono",
+    monospace;
+  color: var(--kx-mu);
+}
+.kx-mcap span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kx-mcap b {
+  color: var(--kx-tx);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Narrow cards (phones, 1024px desktops): drop the kind tag, smaller figure. */
+@container (max-width: 220px) {
+  .kx-kind {
+    display: none;
+  }
+  .kx-val {
+    font-size: 20px;
+  }
+}
+
+/* segmented meter */
+.kx-seg {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  background: var(--kx-track);
+  -webkit-mask: repeating-linear-gradient(
+    90deg,
+    #000 0 4px,
+    transparent 4px 6px
+  );
+  mask: repeating-linear-gradient(90deg, #000 0 4px, transparent 4px 6px);
+}
+.kx-seg i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--kx-fill);
+}
+
+/* block meter */
+.kx-blocks {
+  display: flex;
+  gap: 3px;
+}
+.kx-blocks b {
+  flex: 1;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--kx-track);
+}
+.kx-blocks b.on {
+  background: var(--kx-fill);
+}
+
+/* billing day ruler */
+.kx-ruler-body {
+  padding: 20px 22px 18px;
+}
+.kx-ruler {
+  display: flex;
+  gap: 4px;
+}
+.kx-ruler b {
+  flex: 1;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--kx-track);
+}
+.kx-ruler b.done {
+  background: var(--kx-blue);
+}
+.kx-ruler b.now {
+  background: var(--kx-amber);
+  transform: scaleY(1.5);
+}
+.kx-ruler-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  font:
+    500 11.5px "IBM Plex Mono",
+    monospace;
+  color: var(--kx-mu);
+}
+
+/* Stock bars: won is solid, reserved hatched, unallocated dotted, so the three read
+   without colour. The parts sit flush; only the bar's two ends are rounded. */
+.kx-stack {
+  display: flex;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.kx-stack.is-slim {
+  height: 12px;
+  border-radius: 3px;
+}
+.kx-stack > i {
+  font-style: normal;
+  min-width: 36px;
+  display: grid;
+  place-items: center;
+}
+.kx-stack.is-slim > i {
+  min-width: 6px;
+}
+.kx-stack > i > span {
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  background: var(--kx-surf);
+  color: var(--kx-tx);
+}
+.kx-stack > .kx-pat-won > span {
+  background: none;
+  color: #fff;
+}
+.kx-stack.is-empty {
+  border-radius: 6px;
+  background: var(--kx-track);
+}
+.kx-pat-won {
+  background: var(--kx-blue);
+}
+.kx-pat-won-before {
+  background: color-mix(in srgb, var(--kx-blue) 38%, var(--kx-surf));
+}
+.kx-pat-reserved {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--kx-amber) 0 3px,
+    transparent 3px 7px
+  );
+  box-shadow: inset 0 0 0 2px var(--kx-amber);
+}
+.kx-pat-unallocated {
+  background:
+    radial-gradient(circle, var(--kx-mu) 1.2px, transparent 1.7px) 0 0 / 7px 7px,
+    var(--kx-track);
+  box-shadow: inset 0 0 0 1px var(--kx-dash);
+}
+.kx-sw {
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+}
+.kx-stock-chip {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--kx-amber-ink);
+  background: var(--kx-amber-soft);
+}
+.kx-stock-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kx-stock-cols li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 12px;
+}
+.kx-stock-cols li:first-child {
+  padding-left: 0;
+}
+.kx-stock-cols li + li {
+  border-left: 2px dotted var(--kx-dash);
+}
+
+/* card header with icon chip, title and subtitle (campaign leaderboard) */
+.kx-ch {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px 16px;
+}
+.kx-ch .kx-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+}
+.kx-ch h3 {
+  margin: 0;
+  font:
+    700 17px/1.2 "Manrope",
+    sans-serif;
+  letter-spacing: -0.01em;
+}
+.kx-ch p {
+  margin: 3px 0 0;
+  font:
+    500 13px/1.45 "Manrope",
+    sans-serif;
+  color: var(--kx-mu);
+}
+
+/* campaign leaderboard: a grid of row buttons; scrolls sideways when narrow and
+   down past eight rows */
+.kx-lb-scroll {
+  overflow: auto;
+  max-height: calc(42px + 74px * 8);
+}
+.kx-lb-table {
+  min-width: 780px;
+}
+.kx-lb-head,
+.kx-lb-row {
+  display: grid;
+  grid-template-columns:
+    44px minmax(220px, 1.3fr) minmax(200px, 2fr)
+    100px 100px;
+  gap: 16px;
+  align-items: center;
+  padding: 0 22px;
+}
+.kx-lb-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 42px;
+  background: var(--kx-surf);
+  font:
+    500 10.5px/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kx-mu);
+}
+.kx-lb-row {
+  width: 100%;
+  height: 74px;
+  border: 0;
+  border-top: 1px dashed var(--kx-dash);
+  background: transparent;
+  color: var(--kx-tx);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.kx-lb-row:hover {
+  background: var(--kx-surf2);
+}
+.kx-lb-row:focus-visible {
+  outline: 2px solid var(--kx-blue);
+  outline-offset: -2px;
+}
+.kx-lb-chev {
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-left: 6px;
+  color: var(--kx-mu);
+}
+.kx-lb-row:hover .kx-lb-chev,
+.kx-lb-row:focus-visible .kx-lb-chev {
+  opacity: 1;
+}
+.kx-lb-r {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: right;
+}
+.kx-lb-mu {
+  color: var(--kx-mu);
+  font:
+    500 14px "Manrope",
+    sans-serif;
+}
+.kx-lb-num {
+  font:
+    700 15px "Manrope",
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.kx-lb-rank {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font:
+    600 13px "IBM Plex Mono",
+    monospace;
+  background: var(--kx-surf2);
+  color: var(--kx-mu);
+  border: 1px solid var(--kx-ln);
+}
+.kx-lb-rank.is-top {
+  background: var(--kx-blue-soft);
+  color: var(--kx-blue-ink);
+  border-color: transparent;
+}
+.kx-lb-cn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.kx-lb-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    700 14.5px "Manrope",
+    "Noto Sans Arabic",
+    sans-serif;
+}
+.kx-lb-sub {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font:
+    500 12.5px "Manrope",
+    sans-serif;
+  color: var(--kx-mu);
+}
+.kx-lb-sub > svg {
+  color: var(--kx-ink);
+  flex: none;
+}
+.kx-lb-dot {
+  width: 9px;
+  height: 9px;
+  margin-left: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+  background: var(--kx-gray);
+}
+.kx-lb-dot.is-active {
+  background: var(--kx-grn);
+}
+.kx-lb-dot.is-paused {
+  background: var(--kx-amber);
+}
+.kx-lb-dot.is-draft {
+  background: var(--kx-blue);
+}
+.kx-lb-en {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.kx-lb-en .kx-seg {
+  flex: 1;
+  height: 8px;
+}
+.kx-lb-en .kx-lb-num {
+  min-width: 34px;
+  text-align: right;
+}
