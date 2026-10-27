@@ -242,6 +242,71 @@
     "hub": "@primary",
     "hubText": "@ink"
   },
+  "games": {
+    "quiz": {
+      "question": "#FFFFFF",
+      "questionFont": "display",
+      "option": {
+        "bg": "#1A1C5C",
+        "text": "#FFFFFF",
+        "border": "@primary",
+        "borderWidth": "0.15rem",
+        "radius": "9999px",
+        "shadow": "0 0 0.9rem #FFB02040",
+        "font": "ui"
+      },
+      "optionHover": "#7A2FE0",
+      "counter": {
+        "bg": "@primary",
+        "text": "#05061A",
+        "border": "#FFD84A",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#2E2F7A",
+        "low": "#FF3B4A"
+      }
+    },
+    "scratch": {
+      "foil": ["#FFD84A", "#FF9A1F", "#FFD84A"],
+      "coverText": "#7A2A04",
+      "border": "#FFB020",
+      "borderWidth": "0.2rem",
+      "radius": "1.25rem",
+      "shadow": "0 0 1.75rem #FFB02059"
+    },
+    "boxes": {
+      "body": "#7A2FE0",
+      "lid": "#9B59F0",
+      "ribbon": "@primary",
+      "icon": "#FFFFFF",
+      "border": "#FFD84A",
+      "borderWidth": "0.15rem",
+      "radius": "0.5rem",
+      "shadow": "0 0 1rem #7A2FE080",
+      "glow": "@primary"
+    },
+    "hitIt": {
+      "art": "assets/prizes/star.svg",
+      "glow": "@primary",
+      "field": "#0E1030",
+      "fieldEdge": "#4630C4",
+      "fieldEdgeStyle": "solid",
+      "score": {
+        "bg": "#0E1030",
+        "text": "#FFFFFF",
+        "border": "@primary",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@primary",
+        "track": "#2E2F7A",
+        "low": "#FF3B4A"
+      },
+      "burst": "@primary"
+    }
+  },
   "prizes": {
     "gift": "assets/prizes/gift.svg",
     "ticket": "assets/prizes/ticket.svg",

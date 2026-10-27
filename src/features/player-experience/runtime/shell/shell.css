@@ -117,6 +117,13 @@
   mask: var(--xp-decor-src) center / contain no-repeat;
   -webkit-mask: var(--xp-decor-src) center / contain no-repeat;
 }
+/* Placed for a wide stage: only where the screen splits into two panes. */
+.xp-decor[data-xp-wide-only] {
+  display: none;
+  @variant split {
+    display: block;
+  }
+}
 .xp-decor[data-xp-repeat] {
   background-image: var(--xp-decor-src);
   background-repeat: repeat-x;

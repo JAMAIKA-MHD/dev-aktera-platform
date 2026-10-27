@@ -1,9 +1,10 @@
-import type {
-  PrizeArtName,
-  ThemeDecor,
-  ThemeManifest,
-  ThemeScreen,
-  ThemeSoundName,
+import {
+  themeFilePath,
+  type PrizeArtName,
+  type ThemeDecor,
+  type ThemeManifest,
+  type ThemeScreen,
+  type ThemeSoundName,
 } from "../domain/themeManifest";
 import type { GameType } from "../domain/gameTypes";
 import type { IconName } from "../domain/icons";
@@ -22,7 +23,7 @@ export function themeAssetUrl(
   manifest: Pick<ThemeManifest, "id">,
   path: string,
 ): string | null {
-  return URLS[`../themes/${manifest.id}/${path}`] ?? null;
+  return URLS[`../themes/${themeFilePath(manifest.id, path)}`] ?? null;
 }
 
 export interface ResolvedDecor extends Omit<ThemeDecor, "src"> {
@@ -42,6 +43,7 @@ export interface ThemeAssets {
   panelShapeStacks: Readonly<Partial<Record<ThemeScreen, string>>>;
   titleBackdrop: string | null;
   wheelPointer: string | null;
+  hitArt: string | null; // the theme's own Hit It target
   // The template's own picture above the title of a screen, and how wide it is drawn.
   heroes: Readonly<
     Partial<Record<ThemeScreen, { url: string; width: string }>>
@@ -102,6 +104,7 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
     ),
     titleBackdrop: url(manifest.title.backdrop?.src),
     wheelPointer: url(manifest.wheel.pointerArt ?? undefined),
+    hitArt: url(manifest.games.hitIt.art),
     heroes: Object.fromEntries(
       Object.entries(manifest.heroes).flatMap(([screen, hero]) => {
         const resolved = hero ? url(hero.src) : null;

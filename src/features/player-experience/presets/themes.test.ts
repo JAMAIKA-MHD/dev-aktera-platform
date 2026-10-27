@@ -6,6 +6,7 @@ import { MIN_TEXT_CONTRAST, contrastRatio } from "../domain/contrast";
 import {
   THEMED_TEMPLATE_IDS,
   manifestAssetPaths,
+  themeFilePath,
   themeManifestSchema,
 } from "../domain/themeManifest";
 import { THEME_MANIFESTS, THEME_MANIFEST_ERRORS } from "./themeManifests";
@@ -23,10 +24,12 @@ describe("theme manifests (themes/<id>/theme.json)", () => {
     );
   });
 
-  it("name only files that exist in their own folder", () => {
+  it("name only files that exist in their own folder or the shared one", () => {
     const missing = Object.values(THEME_MANIFESTS).flatMap((manifest) =>
       manifestAssetPaths(manifest)
-        .filter((path) => !existsSync(join(THEMES, manifest.id, path)))
+        .filter(
+          (path) => !existsSync(join(THEMES, themeFilePath(manifest.id, path))),
+        )
         .map((path) => `${manifest.id}/${path}`),
     );
     expect(missing).toEqual([]);
@@ -39,6 +42,38 @@ describe("theme manifests (themes/<id>/theme.json)", () => {
         contrastRatio(text, surface),
         `${manifest.id}: text on surface`,
       ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST);
+    }
+  });
+
+  it("keep the play screen of every game readable (score, timer counter, answers, cover)", () => {
+    for (const manifest of Object.values(THEME_MANIFESTS)) {
+      const palette = manifest.palette as Record<string, string>;
+      const color = (value: string | undefined) =>
+        value?.startsWith("@") ? palette[value.slice(1)] : value;
+      const { quiz, scratch, hitIt } = manifest.games;
+      const pairs: [string, string | undefined, string | undefined][] = [
+        ["quiz answer", quiz.option?.text, quiz.option?.bg],
+        ["quiz counter", quiz.counter?.text, quiz.counter?.bg],
+        ["quiz question", quiz.question, manifest.card.bg],
+        ["hit score", hitIt.score?.text, hitIt.score?.bg],
+        ...(scratch.foil ?? []).map(
+          (stop, index) =>
+            [`scratch cover ${index + 1}`, scratch.coverText, stop] as [
+              string,
+              string,
+              string,
+            ],
+        ),
+      ];
+      for (const [part, text, ground] of pairs) {
+        const fg = color(text);
+        const bg = color(ground);
+        if (!fg || !bg) continue;
+        expect(
+          contrastRatio(fg, bg),
+          `${manifest.id}: ${part}`,
+        ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST);
+      }
     }
   });
 

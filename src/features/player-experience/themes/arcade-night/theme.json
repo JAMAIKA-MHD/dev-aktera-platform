@@ -182,7 +182,8 @@
         "width": "calc((50vw + 50vh) * 0.092)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+        "screens": ["welcome", "register", "duplicate", "closed", "error"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-5.svg",
@@ -191,7 +192,8 @@
         "width": "calc((50vw + 50vh) * 0.104)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+        "screens": ["welcome", "register", "duplicate", "closed", "error"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-3.svg",
@@ -200,7 +202,8 @@
         "width": "calc((50vw + 50vh) * 0.084)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+        "screens": ["welcome", "register", "duplicate", "closed", "error"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-6.svg",
@@ -209,7 +212,8 @@
         "width": "calc((50vw + 50vh) * 0.1)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+        "screens": ["welcome", "register", "duplicate", "closed", "error"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-6.svg",
@@ -218,7 +222,8 @@
         "width": "calc((50vw + 50vh) * 0.092)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["play", "resolving", "revealing"]
+        "screens": ["play", "resolving", "revealing"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-5.svg",
@@ -227,7 +232,8 @@
         "width": "calc((50vw + 50vh) * 0.104)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["play", "resolving", "revealing"]
+        "screens": ["play", "resolving", "revealing"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-3.svg",
@@ -236,7 +242,8 @@
         "width": "calc((50vw + 50vh) * 0.084)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["play", "resolving", "revealing"]
+        "screens": ["play", "resolving", "revealing"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-6.svg",
@@ -245,7 +252,8 @@
         "width": "calc((50vw + 50vh) * 0.1)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["play", "resolving", "revealing"]
+        "screens": ["play", "resolving", "revealing"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-6.svg",
@@ -254,7 +262,8 @@
         "width": "calc((50vw + 50vh) * 0.074)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["win", "lose"]
+        "screens": ["win", "lose"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-5.svg",
@@ -263,7 +272,8 @@
         "width": "calc((50vw + 50vh) * 0.083)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["win", "lose"]
+        "screens": ["win", "lose"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-3.svg",
@@ -272,7 +282,8 @@
         "width": "calc((50vw + 50vh) * 0.067)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["win", "lose"]
+        "screens": ["win", "lose"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-6.svg",
@@ -281,7 +292,8 @@
         "width": "calc((50vw + 50vh) * 0.08)",
         "motion": "float",
         "hideWhenLow": true,
-        "screens": ["win", "lose"]
+        "screens": ["win", "lose"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/arcade-cabinet.svg",
@@ -343,6 +355,70 @@
     "hub": "#6B55DD",
     "hubText": "#FFD23F",
     "shadow": "0 1.2cqmin 0 #2A1A6B"
+  },
+  "games": {
+    "quiz": {
+      "question": "#F4EEDC",
+      "questionFont": "ui",
+      "option": {
+        "bg": "#26204A",
+        "text": "#C9FBFF",
+        "border": "@accent",
+        "borderWidth": "0.2rem",
+        "radius": "0",
+        "shadow": "0 0 0.75rem #7DF3FF59",
+        "font": "ui"
+      },
+      "optionHover": "#3B3A5C",
+      "counter": {
+        "bg": "@secondary",
+        "text": "#0D0630",
+        "border": "#EFE9D0",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#3B3A5C",
+        "low": "@secondary"
+      }
+    },
+    "scratch": {
+      "foil": ["#C2186B", "#5A1FB0", "#1F6E9A"],
+      "coverText": "#FFFFFF",
+      "border": "#EFE9D0",
+      "borderWidth": "0.35rem",
+      "radius": "0",
+      "shadow": "0 0 1.5rem #FF4FA366"
+    },
+    "boxes": {
+      "body": "#5B45C9",
+      "lid": "#7A63E8",
+      "ribbon": "@accent",
+      "icon": "@primary",
+      "border": "#EFE9D0",
+      "borderWidth": "0.25rem",
+      "radius": "0",
+      "shadow": "0 0 1rem #7DF3FF66",
+      "glow": "@accent"
+    },
+    "hitIt": {
+      "art": "assets/decor/die-red-5.svg",
+      "glow": "@secondary",
+      "fieldEdge": "@accent",
+      "fieldEdgeStyle": "dashed",
+      "score": {
+        "bg": "#1B1447",
+        "text": "#C9FBFF",
+        "border": "#8F86D1",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@primary",
+        "track": "#3B3A5C",
+        "low": "@secondary"
+      },
+      "burst": "@accent"
+    }
   },
   "prizes": {},
   "characters": {

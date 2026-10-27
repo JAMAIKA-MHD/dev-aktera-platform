@@ -373,6 +373,70 @@
     "hubShape": "square",
     "shadow": "1.6cqmin 1.6cqmin 0 #8FD0EE"
   },
+  "games": {
+    "quiz": {
+      "question": "@text",
+      "questionFont": "ui",
+      "option": {
+        "bg": "#FFFFFF",
+        "text": "#0F2A66",
+        "border": "@ink",
+        "borderWidth": "0.2rem",
+        "radius": "0",
+        "shadow": "0.25rem 0.25rem 0 #8FD0EE",
+        "font": "ui"
+      },
+      "optionHover": "#FFF4C2",
+      "counter": {
+        "bg": "@primary",
+        "text": "#5A2410",
+        "border": "#5A2410",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#C7CFDD",
+        "low": "#D9412B"
+      }
+    },
+    "scratch": {
+      "foil": ["#DDE3EE", "#9AA6BD", "#DDE3EE"],
+      "coverText": "#0F2A66",
+      "border": "@ink",
+      "borderWidth": "0.25rem",
+      "radius": "0",
+      "shadow": "0.4rem 0.4rem 0 #8FD0EE"
+    },
+    "boxes": {
+      "body": "#A0522D",
+      "lid": "#C0703A",
+      "ribbon": "@primary",
+      "icon": "@primary",
+      "border": "#5A2410",
+      "borderWidth": "0.2rem",
+      "radius": "0",
+      "shadow": "0.3rem 0.3rem 0 #8FD0EE",
+      "glow": "@primary"
+    },
+    "hitIt": {
+      "art": "assets/heroes/trophy-small.svg",
+      "glow": "@primary",
+      "fieldEdge": "@ink",
+      "fieldEdgeStyle": "solid",
+      "score": {
+        "bg": "#FFFFFF",
+        "text": "#0F2A66",
+        "border": "@ink",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#FFFFFF",
+        "low": "#D9412B"
+      },
+      "burst": "@primary"
+    }
+  },
   "prizes": {},
   "characters": {},
   "heroes": {

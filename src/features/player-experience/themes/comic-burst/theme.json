@@ -159,11 +159,16 @@
           "duplicate",
           "closed",
           "error",
-          "play",
-          "resolving",
-          "revealing",
           "win"
         ]
+      },
+      {
+        "src": "assets/decor/puff-left.svg",
+        "left": "calc(10.16% - calc((50vw + 50vh) * 0.068))",
+        "top": "calc(26.32% - calc((50vw + 50vh) * 0.1206))",
+        "width": "calc((50vw + 50vh) * 0.136)",
+        "screens": ["play", "resolving", "revealing"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/puff-right.svg",
@@ -176,11 +181,16 @@
           "duplicate",
           "closed",
           "error",
-          "play",
-          "resolving",
-          "revealing",
           "win"
         ]
+      },
+      {
+        "src": "assets/decor/puff-right.svg",
+        "left": "calc(89.65% - calc((50vw + 50vh) * 0.0685))",
+        "top": "calc(62.22% - calc((50vw + 50vh) * 0.118))",
+        "width": "calc((50vw + 50vh) * 0.137)",
+        "screens": ["play", "resolving", "revealing"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/flames-top-right.svg",
@@ -463,6 +473,70 @@
     "pointerArt": "assets/wheel/pointer.svg",
     "hubShine": false,
     "shadow": "1.6cqmin 1.6cqmin 0 #1A62AB"
+  },
+  "games": {
+    "quiz": {
+      "question": "@ink",
+      "questionFont": "display",
+      "option": {
+        "bg": "#FFFFFF",
+        "text": "@ink",
+        "border": "@ink",
+        "borderWidth": "0.2rem",
+        "radius": "0.85rem",
+        "shadow": "0.25rem 0.3rem 0 #1A62AB",
+        "font": "ui"
+      },
+      "optionHover": "@primary",
+      "counter": {
+        "bg": "@primary",
+        "text": "@ink",
+        "border": "@ink",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#C9DDF2",
+        "low": "@secondary"
+      }
+    },
+    "scratch": {
+      "foil": ["#FFE81F", "#FFB81F", "#FFE81F"],
+      "coverText": "@ink",
+      "border": "@ink",
+      "borderWidth": "0.25rem",
+      "radius": "1.1rem",
+      "shadow": "0.45rem 0.5rem 0 #1A62AB"
+    },
+    "boxes": {
+      "body": "#D62D2D",
+      "lid": "#E84545",
+      "ribbon": "@primary",
+      "icon": "#FFFFFF",
+      "border": "@ink",
+      "borderWidth": "0.2rem",
+      "radius": "0.5rem",
+      "shadow": "0.3rem 0.35rem 0 #1A62AB",
+      "glow": "@primary"
+    },
+    "hitIt": {
+      "art": "assets/prizes/star.svg",
+      "glow": "@primary",
+      "fieldEdge": "#FFFFFF",
+      "fieldEdgeStyle": "dashed",
+      "score": {
+        "bg": "@primary",
+        "text": "@ink",
+        "border": "@ink",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@primary",
+        "track": "#FFFFFF",
+        "low": "@secondary"
+      },
+      "burst": "@primary"
+    }
   },
   "prizes": {
     "gift": "assets/prizes/gift.svg",

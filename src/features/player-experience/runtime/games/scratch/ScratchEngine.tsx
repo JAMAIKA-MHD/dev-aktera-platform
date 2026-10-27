@@ -12,9 +12,9 @@ import { runtimeAudio } from "../../feedback/audio";
 import { useElementSize } from "../../layout/useElementSize";
 import type { GameEngineProps } from "../types";
 import {
-  SCRATCH_COVER_INK,
+  SCRATCH_COVER_TEXT,
   ScratchCardFace,
-  scratchCoverStyle,
+  scratchCanvasInks,
 } from "./ScratchCardFace";
 import {
   createScratchMask,
@@ -70,7 +70,12 @@ export function ScratchEngine({
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.globalCompositeOperation = "source-over";
     context.clearRect(0, 0, size.width, size.height);
-    context.fillStyle = getComputedStyle(element).getPropertyValue("color");
+    const inks = getComputedStyle(element);
+    const foil = context.createLinearGradient(0, 0, size.width, size.height);
+    foil.addColorStop(0, inks.borderTopColor);
+    foil.addColorStop(0.45, inks.borderRightColor);
+    foil.addColorStop(1, inks.borderBottomColor);
+    context.fillStyle = foil;
     context.fillRect(0, 0, size.width, size.height);
     context.globalCompositeOperation = "destination-out";
     context.lineCap = "round";
@@ -154,8 +159,7 @@ export function ScratchEngine({
               // The cover's colour is read off this element, so it follows the theme like
               // everything else rather than being written into the canvas calls (C5).
               style={{
-                ...scratchCoverStyle,
-                color: SCRATCH_COVER_INK,
+                ...scratchCanvasInks,
                 opacity: uncovered ? 0 : 1,
               }}
               onPointerDown={(event) => {
@@ -171,7 +175,7 @@ export function ScratchEngine({
               <p
                 dir="auto"
                 className="pointer-events-none absolute inset-0 grid place-items-center p-4 text-center text-[clamp(0.9rem,4.5cqmin,1.25rem)] font-extrabold uppercase tracking-[0.12em]"
-                style={{ color: "var(--xp-on-primary)" }}
+                style={{ color: SCRATCH_COVER_TEXT }}
               >
                 {coverText}
               </p>

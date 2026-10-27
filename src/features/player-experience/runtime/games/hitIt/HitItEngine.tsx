@@ -12,6 +12,7 @@ import { HitTarget } from "./HitTarget";
 
 const TICK_MS = 100;
 const EDGE = 12; // keeps a target away from the field's edge, in percent
+const HIT_LOW_TIME = 0.25; // of the time: the bar turns to the theme's warning color
 
 export function HitItEngine({
   settings,
@@ -28,6 +29,8 @@ export function HitItEngine({
   const [hits, setHits] = useState(0);
   const [left, setLeft] = useState(total);
   const [spot, setSpot] = useState({ x: 50, y: 50 });
+  // Where the last hit landed: a burst is drawn there as the target jumps away.
+  const [burst, setBurst] = useState<{ x: number; y: number } | null>(null);
   const sent = useRef(false);
   const playing = phase === "interacting";
 
@@ -72,6 +75,7 @@ export function HitItEngine({
     setHits((scored) => scored + 1);
     runtimeAudio.play("tick");
     vibrate("tap");
+    setBurst(spot);
     // Somewhere else on the field, never against an edge where it could be half off.
     setSpot({
       x: EDGE + Math.random() * (100 - 2 * EDGE),
@@ -91,7 +95,12 @@ export function HitItEngine({
         <span
           data-xp-hit-score
           className="rounded-full border px-3 py-1 text-sm font-extrabold tabular-nums"
-          style={{ borderColor: tint("--xp-primary", 40) }}
+          style={{
+            backgroundColor: "var(--xp-hit-score-bg, transparent)",
+            color: "var(--xp-hit-score-text, inherit)",
+            borderColor: `var(--xp-hit-score-border, ${tint("--xp-primary", 40)})`,
+            fontFamily: "var(--xp-hit-score-font, inherit)",
+          }}
         >
           {hits} / {rules.winThreshold}
         </span>
@@ -99,14 +108,17 @@ export function HitItEngine({
         <span
           aria-hidden
           data-xp-hit-time
-          className="h-2 flex-1 overflow-hidden rounded-full"
-          style={{ backgroundColor: tint("--xp-text", 12) }}
+          data-xp-low={left / total <= HIT_LOW_TIME ? "" : undefined}
+          className="xp-hit-time h-2 flex-1 overflow-hidden rounded-full"
+          style={{
+            backgroundColor: `var(--xp-hit-timer-track, ${tint("--xp-text", 12)})`,
+          }}
         >
           <span
             className="block h-full rounded-full"
             style={{
               width: `${((left / total) * 100).toFixed(1)}%`,
-              backgroundColor: "var(--xp-primary)",
+              backgroundColor: "var(--xp-hit-timer-now)",
               transition: reducedMotion ? "none" : "width 120ms linear",
             }}
           />
@@ -130,14 +142,27 @@ export function HitItEngine({
           }
         }}
         aria-label={resolveLabel(config, locale)}
-        className="relative size-full min-h-0 cursor-pointer rounded-[var(--xp-radius-lg)] border border-dashed disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
-        style={{ borderColor: tint("--xp-primary", 25) }}
+        className="relative size-full min-h-0 cursor-pointer overflow-hidden rounded-[var(--xp-radius-lg)] border disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
+        style={{
+          backgroundColor: "var(--xp-hit-field, transparent)",
+          borderColor: `var(--xp-hit-field-edge, ${tint("--xp-primary", 25)})`,
+          borderStyle: "var(--xp-hit-field-edge-style, dashed)",
+        }}
       >
+        {burst && !reducedMotion && (
+          <span
+            key={hits}
+            aria-hidden
+            className="xp-hit-burst pointer-events-none absolute"
+            style={{ insetInlineStart: `${burst.x}%`, top: `${burst.y}%` }}
+          />
+        )}
         <HitTarget
           icon={settings.hitIt?.targetIcon ?? "target"}
           image={settings.hitIt?.targetImage ?? null}
           x={spot.x}
           y={spot.y}
+          beat={hits}
           style={{
             transition: reducedMotion
               ? "none"

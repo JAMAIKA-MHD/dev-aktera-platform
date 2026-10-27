@@ -13,6 +13,8 @@ export type LayoutIssueKind =
   | "cta-unreachable"
   | "game-below-floor"
   | "wheel-not-square"
+  // A decoration drawn over the frame covers the game being played (its safe region).
+  | "game-covered"
   // Not a defect of the layout: a text cut on purpose (data-xp-clamp) that is actually cut
   // at this size. Only in the report's `truncated` list, for the Studio (T6.10).
   | "text-truncated";
@@ -231,6 +233,28 @@ export function layoutAudit(root: HTMLElement): LayoutIssue[] {
         wheel,
         `${Math.round(box.width)} x ${Math.round(box.height)} px`,
       );
+    }
+  }
+
+  // 8. The game's own area is a safe region: no decoration drawn over the frame may cover
+  // it (those behind the frame never do). A part of a pixel's width is rounding.
+  const game = root.querySelector("[data-xp-game]");
+  if (game) {
+    const area = game.getBoundingClientRect();
+    for (const decor of root.querySelectorAll(".xp-stage-front .xp-decor")) {
+      if (view.getComputedStyle(decor).display === "none") continue;
+      const box = decor.getBoundingClientRect();
+      const width =
+        Math.min(box.right, area.right) - Math.max(box.left, area.left);
+      const height =
+        Math.min(box.bottom, area.bottom) - Math.max(box.top, area.top);
+      if (width > 1 && height > 1) {
+        add(
+          "game-covered",
+          decor,
+          `covers ${Math.round(width)} x ${Math.round(height)} px of the game`,
+        );
+      }
     }
   }
 

@@ -11,6 +11,8 @@
 @import "../frame/frame.css";
 /* The shell (stage, panel, buttons, cards, modal, result), painted from the theme tokens. */
 @import "../shell/shell.css";
+/* The play screen of each game, in the template's look (games.* of a theme.json). */
+@import "../games/games.css";
 
 @custom-variant compact (@media (max-width: 359px));
 @custom-variant wide (@media (min-width: 600px));

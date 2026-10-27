@@ -365,7 +365,56 @@ export function manifestToCssVars(
     vars[`--xp-wheel-seg-${index + 1}`] = color;
     vars[`--xp-wheel-seg-text-${index + 1}`] = textOn(color, palette.ink);
   });
+  Object.assign(vars, gameVars(manifest, css));
   return vars;
+}
+
+// The play screen of each game in the template's look (manifest.games): one variable per
+// part the theme sets, named after it (games.quiz.option.bg → --xp-quiz-option-bg). An unset
+// part sets nothing, and the game keeps its classic look there.
+const GAME_PREFIX = {
+  quiz: "quiz",
+  scratch: "scratch",
+  boxes: "box",
+  hitIt: "hit",
+} as const;
+const FONT_VARS = {
+  body: "var(--xp-font)",
+  ui: "var(--xp-font-ui)",
+  display: "var(--xp-font-display)",
+} as const;
+const FONT_KEYS = new Set(["font", "questionFont"]);
+const kebab = (key: string) =>
+  key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+
+function gameVars(
+  manifest: ThemeManifest,
+  css: (value: string) => string,
+): CssVars {
+  const vars: Record<string, string> = {};
+  const write = (name: string, key: string, value: unknown): void => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => write(`${name}-${index + 1}`, key, item));
+    } else if (typeof value === "object") {
+      for (const [inner, innerValue] of Object.entries(value))
+        write(`${name}-${kebab(inner)}`, inner, innerValue);
+    } else if (key === "art") {
+      return; // a picture, drawn by the game itself (ThemeAssets)
+    } else if (FONT_KEYS.has(key)) {
+      vars[name] = FONT_VARS[value as keyof typeof FONT_VARS];
+    } else {
+      vars[name] = css(String(value));
+    }
+  };
+  for (const [game, prefix] of Object.entries(GAME_PREFIX) as [
+    keyof typeof GAME_PREFIX,
+    string,
+  ][]) {
+    for (const [key, value] of Object.entries(manifest.games[game]))
+      write(`--xp-${prefix}-${kebab(key)}`, key, value);
+  }
+  return vars as CssVars;
 }
 
 // The brand-level theme a templated page renders with (tokensToCssVars, the design checks):

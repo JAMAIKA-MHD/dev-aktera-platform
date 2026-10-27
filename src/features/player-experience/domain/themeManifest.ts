@@ -66,6 +66,50 @@ const assetSchema = z
     "Expected a path under assets/",
   )
   .refine((value) => !value.includes(".."), { message: "No .. in a path" });
+// The theme's own file, or one of the parts every template shares (themes/_shared/assets/,
+// named "shared/…"): a part drawn once, never copied into each theme's folder.
+const assetPathSchema = z
+  .string()
+  .regex(
+    /^(?:assets|shared)\/[a-z0-9/_.-]+\.(?:svg|png|webp|jpg|mp3)$/,
+    "Expected a path under assets/ or shared/",
+  )
+  .refine((value) => !value.includes(".."), { message: "No .. in a path" });
+
+const fontRoleSchema = z.enum(["body", "ui", "display"]);
+
+// A small capsule (a counter, a score): its ground, text and edge.
+const chipSkinSchema = z
+  .object({
+    bg: colorSchema.optional(),
+    text: colorSchema.optional(),
+    border: colorSchema.optional(),
+    font: fontRoleSchema.optional(),
+  })
+  .strict();
+
+// Time running out (a ring, a bar): what is left, the track under it, and its color once
+// little is left.
+const meterSkinSchema = z
+  .object({
+    fill: colorSchema.optional(),
+    track: colorSchema.optional(),
+    low: colorSchema.optional(),
+  })
+  .strict();
+
+// A game's own buttons (the quiz's answers).
+const buttonSkinSchema = z
+  .object({
+    bg: colorSchema.optional(),
+    text: colorSchema.optional(),
+    border: colorSchema.optional(),
+    borderWidth: cssSchema.optional(),
+    radius: cssSchema.optional(),
+    shadow: cssSchema.optional(),
+    font: fontRoleSchema.optional(),
+  })
+  .strict();
 
 // A 9-slice frame: one small image stretched to any size (CSS border-image). `slice` is in
 // the image's own pixels ("36", or "24 24 30 24"), `width` how thick the border is drawn.
@@ -135,6 +179,9 @@ const decorSchema = z.object({
   motion: z.enum(["none", "float", "twinkle", "drift"]).default("none"),
   repeatX: z.boolean().default(false), // a strip (the ground) tiled across the width
   hideWhenLow: z.boolean().default(false), // dropped on low screens, where it would cover text
+  // Only where the screen splits into two panes (landscape): placed for a wide stage, it
+  // would land on the texts of one column (a phone).
+  wideOnly: z.boolean().default(false),
   // The screens it shows on (all when left out): a template may dress each screen its own way.
   screens: z.array(z.enum(FLOW_SCREENS)).min(1).optional(),
   // Drawn over the panel instead of behind it (a star overlapping the cloud's edge). Still
@@ -404,6 +451,69 @@ export const themeManifestSchema = z
       shadow: cssSchema.default("none"),
     }),
 
+    // The play screen of every other game, in the template's own look (the wheel has its
+    // own section above). Each part is optional: an unset one keeps the classic look, in
+    // the brand's colors. Pure look — nothing here changes how a game plays or who wins.
+    games: z
+      .object({
+        quiz: z
+          .object({
+            question: colorSchema.optional(),
+            questionFont: fontRoleSchema.optional(),
+            option: buttonSkinSchema.optional(),
+            optionHover: colorSchema.optional(), // the option's background under the pointer
+            counter: chipSkinSchema.optional(), // "2 / 3"
+            timer: meterSkinSchema.optional(), // the ring that empties
+          })
+          .strict()
+          .prefault({}),
+        scratch: z
+          .object({
+            // The foil, corner to corner (three stops), painted on the canvas that gets
+            // scratched away: opaque colors, so the prize never shows through before.
+            foil: z.tuple([colorSchema, colorSchema, colorSchema]).optional(),
+            coverText: colorSchema.optional(),
+            border: colorSchema.optional(),
+            borderWidth: cssSchema.optional(),
+            radius: cssSchema.optional(),
+            shadow: cssSchema.optional(),
+          })
+          .strict()
+          .prefault({}),
+        boxes: z
+          .object({
+            body: colorSchema.optional(), // under the brand's own box color, if it set one
+            lid: colorSchema.optional(),
+            ribbon: colorSchema.optional(), // a ribbon across the lid and down the body
+            icon: colorSchema.optional(),
+            border: colorSchema.optional(),
+            borderWidth: cssSchema.optional(),
+            radius: cssSchema.optional(),
+            shadow: cssSchema.optional(), // a drop-shadow, following the box
+            glow: colorSchema.optional(), // what escapes once the lid is up
+          })
+          .strict()
+          .prefault({}),
+        hitIt: z
+          .object({
+            target: colorSchema.optional(),
+            targetEdge: colorSchema.optional(),
+            targetIcon: colorSchema.optional(),
+            glow: colorSchema.optional(),
+            art: assetPathSchema.optional(), // the theme's own target, instead of the icon
+            field: colorSchema.optional(), // the playing field's ground
+            fieldEdge: colorSchema.optional(),
+            fieldEdgeStyle: z.enum(["dashed", "solid"]).optional(),
+            score: chipSkinSchema.optional(),
+            timer: meterSkinSchema.optional(), // the bar that empties
+            burst: colorSchema.optional(), // the pop on each hit
+          })
+          .strict()
+          .prefault({}),
+      })
+      .strict()
+      .prefault({}),
+
     prizes: partialRecord(PRIZE_ART_NAMES, assetSchema),
     characters: partialRecord(["happy", "sad"], assetSchema),
     // The template's own picture above the title of a screen (a trophy over the login, a
@@ -437,6 +547,13 @@ export type ThemeDecor = z.infer<typeof decorSchema>;
 export type ThemePanelShape = z.infer<typeof panelShapeSchema>;
 export type ThemeScreen = (typeof FLOW_SCREENS)[number];
 
+// Where a path of a manifest lives under themes/: its own folder, or the shared parts.
+export function themeFilePath(themeId: string, path: string): string {
+  return path.startsWith("shared/")
+    ? `_shared/assets/${path.slice("shared/".length)}`
+    : `${themeId}/${path}`;
+}
+
 // Every assets/ path a manifest names, to check each one exists (themes.test.ts).
 export function manifestAssetPaths(manifest: ThemeManifest): string[] {
   const { stage, panel, card, prizes, characters, sounds } = manifest;
@@ -454,6 +571,7 @@ export function manifestAssetPaths(manifest: ThemeManifest): string[] {
     manifest.button.secondary.frame?.src,
     manifest.title.backdrop?.src,
     manifest.wheel.pointerArt,
+    manifest.games.hitIt.art,
     ...Object.values(manifest.heroes).map((hero) => hero?.src),
     ...Object.values(prizes),
     ...Object.values(characters),

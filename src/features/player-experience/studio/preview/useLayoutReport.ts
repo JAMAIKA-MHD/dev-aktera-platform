@@ -51,6 +51,7 @@ const PHRASES: Record<LayoutIssueKind, (target: string) => string> = {
   "cta-unreachable": () => "the main button cannot be reached",
   "game-below-floor": () => "the game is squeezed below its minimum size",
   "wheel-not-square": () => "the wheel is not round",
+  "game-covered": () => "a decoration of the template covers the game",
 };
 
 export function describeLayoutIssue(

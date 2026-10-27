@@ -94,6 +94,7 @@ function Decor({ decor, index }: { decor: ResolvedDecor; index: number }) {
         data-xp-tint={decor.tint ? "" : undefined}
         data-xp-repeat={decor.repeatX ? "" : undefined}
         data-xp-motion={decor.motion}
+        data-xp-wide-only={decor.wideOnly ? "" : undefined}
         style={style}
       />
     );
@@ -105,6 +106,7 @@ function Decor({ decor, index }: { decor: ResolvedDecor; index: number }) {
       draggable={false}
       className="xp-decor"
       data-xp-motion={decor.motion}
+      data-xp-wide-only={decor.wideOnly ? "" : undefined}
       style={style}
     />
   );
