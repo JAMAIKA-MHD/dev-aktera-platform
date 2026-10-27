@@ -150,10 +150,17 @@ const panelShapeSchema = z.object({
   shadow: cssSchema.default("none"), // a drop-shadow, following the shape ("1rem 1rem 0 #1A62AB")
   padInline: cssSchema, // from the texts to the shape's edge, sized on the screen
   padBlock: cssSchema,
-  // In one column (a phone): a shape stretched that tall would pinch the texts at its top
-  // corners, so it runs past the screen's sides instead (bleed), closer to the texts.
+  // In one column (a phone): a shape drawn for a wide screen, stretched that tall, would
+  // pinch the texts at its top corners. The theme gives it a tall picture of its own (src,
+  // and per screen), whole in the middle of the stage, or runs it past the screen's sides
+  // (bleed), closer to the texts.
   stack: z
-    .object({ padInline: cssSchema, bleed: cssSchema })
+    .object({
+      padInline: cssSchema,
+      bleed: cssSchema.default("0px"),
+      src: assetSchema.optional(),
+      screens: partialRecord(FLOW_SCREENS, assetSchema),
+    })
     .strict()
     .optional(),
   columnMax: cssSchema.default("30rem"), // the text column inside the shape

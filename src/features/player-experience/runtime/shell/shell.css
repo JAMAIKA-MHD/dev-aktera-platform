@@ -200,8 +200,11 @@
 }
 /* One small image, stretched to any size: corners kept, edges and centre stretched. */
 .xp-root[data-xp-panel-frame] .xp-frame::before {
-  background: none;
-  border-radius: 0;
+  /* The panel's own color under the whole frame: tiled edges and centre (round) leave
+     hairline seams between their tiles, and the stage would show through them as stray
+     lines. Rounded so that it stays behind the frame's own rounded corners. */
+  background: var(--xp-panel-bg);
+  border-radius: calc(var(--xp-panel-frame-width) * 0.7);
   border-style: solid;
   border-color: transparent;
   border-width: var(--xp-panel-frame-width);
@@ -255,7 +258,7 @@
    the column narrows to the theme's. The shape's shadow is a drop-shadow: it follows the
    picture, not the box. */
 .xp-root[data-xp-panel-shape] .xp-frame {
-  --xp-panel-gap: clamp(0.25rem, 2vw, 2rem);
+  --xp-panel-gap: clamp(0.75rem, 3vw, 2rem);
   --xp-panel-pad: var(--xp-panel-shape-pad-stack);
   --xp-panel-bleed: var(--xp-panel-shape-bleed);
   --xp-panel-block: var(--xp-panel-shape-pad-block);
@@ -266,39 +269,41 @@
   }
 }
 .xp-root[data-xp-panel-shape] .xp-frame[data-xp-shape="on"]::before {
-  /* Past the screen's sides and top on a phone (the runtime clips it): its narrow top
-     corners stay off the screen, away from the header. */
+  /* A theme may still run it past the screen's sides on a phone (stack.bleed). */
   margin-inline: calc((var(--xp-panel-pad) + var(--xp-panel-bleed)) * -1);
   margin-top: calc((var(--xp-panel-block) + var(--xp-panel-bleed)) * -1);
-  background: var(--xp-panel-shape) center / 100% 100% no-repeat;
+  /* Its tall picture on a phone, when the theme draws one. */
+  background: var(--xp-panel-shape-stack, var(--xp-panel-shape)) center / 100%
+    100% no-repeat;
+  @variant split {
+    background-image: var(--xp-panel-shape);
+  }
   border: 0;
   border-radius: 0;
   box-shadow: none;
   filter: drop-shadow(var(--xp-panel-shape-shadow));
 }
-/* On a landscape screen the brand's bar and the legal footer sit on the stage, above and
-   under the shape: the shape keeps its room for the screen's own texts, and its narrow top
-   corners never meet the bar. */
+/* On every screen, phone or desktop, the brand's bar and the legal footer sit on the stage,
+   above and under the shape: the shape stays whole in the middle, with the stage around it,
+   keeps its room for the screen's own texts, and its narrow top corners never meet the bar. */
 .xp-root[data-xp-panel-shape] .xp-frame[data-xp-shape="on"] {
-  @variant split {
-    padding-top: calc(var(--xp-safe-top) + var(--xp-panel-gap-block));
-    padding-bottom: calc(var(--xp-safe-bottom) + var(--xp-panel-gap-block));
-    /* Its top bump is high in the middle, where the centred title starts: less room above
-       than below, where the full-width CTA meets the lower bumps. */
-    &::before {
-      grid-row: 2 / -2;
-      margin-top: calc(var(--xp-panel-block) * -0.6);
-      margin-bottom: calc(var(--xp-panel-block) * -0.8);
-    }
-    > :is([data-xp-slot="header"], [data-xp-slot="status"]) {
-      margin-bottom: calc(var(--xp-panel-block) * 0.6 + 0.5rem);
-    }
-    > [data-xp-slot="footer"] {
-      --xp-text: var(--xp-stage-text, var(--xp-panel-text));
-      --xp-text-muted: var(--xp-stage-text-muted, var(--xp-text-muted));
-      margin-top: calc(var(--xp-panel-block) * 0.8 + 0.25rem);
-      color: var(--xp-text);
-    }
+  padding-top: calc(var(--xp-safe-top) + var(--xp-panel-gap-block));
+  padding-bottom: calc(var(--xp-safe-bottom) + var(--xp-panel-gap-block));
+  /* Its top bump is high in the middle, where the centred title starts: less room above
+     than below, where the full-width CTA meets the lower bumps. */
+  &::before {
+    grid-row: 2 / -2;
+    margin-top: calc(var(--xp-panel-block) * -0.6);
+    margin-bottom: calc(var(--xp-panel-block) * -0.8);
+  }
+  > :is([data-xp-slot="header"], [data-xp-slot="status"]) {
+    margin-bottom: calc(var(--xp-panel-block) * 0.6 + 0.5rem);
+  }
+  > [data-xp-slot="footer"] {
+    --xp-text: var(--xp-stage-text, var(--xp-panel-text));
+    --xp-text-muted: var(--xp-stage-text-muted, var(--xp-text-muted));
+    margin-top: calc(var(--xp-panel-block) * 0.8 + 0.25rem);
+    color: var(--xp-text);
   }
 }
 /* In the spotlight, the form needs no card of its own: its fields sit on the cloud, or

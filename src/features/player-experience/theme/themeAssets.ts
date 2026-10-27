@@ -37,6 +37,9 @@ export interface ThemeAssets {
   // The panel's shape (a cloud) and its picture on the screens that take another one.
   panelShape: string | null;
   panelShapes: Readonly<Partial<Record<ThemeScreen, string>>>;
+  // Its tall picture on a phone, and per screen.
+  panelShapeStack: string | null;
+  panelShapeStacks: Readonly<Partial<Record<ThemeScreen, string>>>;
   titleBackdrop: string | null;
   wheelPointer: string | null;
   // The template's own picture above the title of a screen, and how wide it is drawn.
@@ -91,6 +94,11 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
           ([screen, shape]) => (shape?.src ? [[screen, shape.src]] : []),
         ),
       ) as Partial<Record<ThemeScreen, string>>,
+    ),
+    panelShapeStack: url(manifest.panel.shape?.stack?.src),
+    panelShapeStacks: urls(
+      manifest,
+      manifest.panel.shape?.stack?.screens ?? {},
     ),
     titleBackdrop: url(manifest.title.backdrop?.src),
     wheelPointer: url(manifest.wheel.pointerArt ?? undefined),

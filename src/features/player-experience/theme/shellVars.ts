@@ -74,11 +74,13 @@ const frameVars = (
 function shapeVars(
   shape: ThemeManifest["panel"]["shape"],
   url: string | null,
+  stackUrl: string | null,
   css: (value: string) => string,
 ): CssVars {
   if (!shape || !url) return {};
   return {
     "--xp-panel-shape": `url("${url}")`,
+    ...(stackUrl ? { "--xp-panel-shape-stack": `url("${stackUrl}")` } : {}),
     "--xp-panel-shape-shadow": css(shape.shadow),
     "--xp-panel-shape-pad-inline": shape.padInline,
     "--xp-panel-shape-pad-block": shape.padBlock,
@@ -173,7 +175,7 @@ export function screenDress(
     } as const;
     for (const [key, name] of Object.entries(names) as [
       keyof typeof names,
-      string,
+      (typeof names)[keyof typeof names],
     ][]) {
       const value = button[key];
       if (value) vars[name] = roleVar(value);
@@ -182,6 +184,8 @@ export function screenDress(
   const own = shape?.screens[screen];
   const ownUrl = assets.panelShapes[screen];
   if (ownUrl) vars["--xp-panel-shape"] = `url("${ownUrl}")`;
+  const ownStackUrl = assets.panelShapeStacks[screen];
+  if (ownStackUrl) vars["--xp-panel-shape-stack"] = `url("${ownStackUrl}")`;
   if (own?.shadow) vars["--xp-panel-shape-shadow"] = roleVar(own.shadow);
   return {
     vars,
@@ -334,7 +338,7 @@ export function manifestToCssVars(
           "--xp-stage-text-muted": mixHex(css(stage.text), stage.color, 0.25),
         }
       : {}),
-    ...shapeVars(panel.shape, assets.panelShape, css),
+    ...shapeVars(panel.shape, assets.panelShape, assets.panelShapeStack, css),
     ...(assets.titleBackdrop
       ? { "--xp-title-backdrop": `url("${assets.titleBackdrop}")` }
       : {}),

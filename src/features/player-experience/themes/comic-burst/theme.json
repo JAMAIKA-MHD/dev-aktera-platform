@@ -58,8 +58,11 @@
       "padInline": "clamp(2.25rem, 13.2vw, 13rem)",
       "padBlock": "clamp(2rem, 8svh, 6rem)",
       "stack": {
-        "padInline": "clamp(1rem, 4.5vw, 2.5rem)",
-        "bleed": "16vw"
+        "padInline": "clamp(1.75rem, 12.5vw, 3rem)",
+        "src": "assets/frames/cloud-tall.svg",
+        "screens": {
+          "lose": "assets/frames/cloud-tall-dusk.svg"
+        }
       },
       "columnMax": "29rem",
       "screens": {
