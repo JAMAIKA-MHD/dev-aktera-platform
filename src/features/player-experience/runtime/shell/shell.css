@@ -641,10 +641,13 @@
   }
 }
 .xp-root[data-xp-layout="spotlight"] {
+  /* Side by side while each label has room, each on its own row once it would not (a wide
+     pixel font on a phone). */
   [data-xp-share-row] {
     flex-direction: row;
+    flex-wrap: wrap;
     > * {
-      flex: 1 1 0;
+      flex: 1 1 12rem;
     }
   }
 }

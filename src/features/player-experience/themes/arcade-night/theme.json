@@ -146,7 +146,7 @@
   "layout": {
     "kind": "spotlight",
     "welcomeTeaser": false,
-    "playCta": "round-below",
+    "playCta": "round",
     "rewardCard": "card",
     "characters": "body"
   },
@@ -168,129 +168,193 @@
     },
     "decor": [
       {
+        "src": "assets/fx/nebula-violet.svg",
+        "left": "10%",
+        "top": "4%",
+        "width": "70vmax",
+        "motion": "wind",
+        "seconds": 140,
+        "opacity": 0.9
+      },
+      {
+        "src": "assets/fx/nebula-pink.svg",
+        "left": "60%",
+        "top": "26%",
+        "width": "55vmax",
+        "motion": "wind",
+        "seconds": 110,
+        "reverse": true,
+        "opacity": 0.8
+      },
+      {
+        "src": "assets/fx/glow.svg",
+        "left": "calc(50% - 28vmax)",
+        "top": "-14vmax",
+        "width": "56vmax",
+        "motion": "breathe",
+        "opacity": 0.45,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error",
+          "lose"
+        ]
+      },
+      {
+        "src": "assets/decor/star-4.svg",
+        "left": "17%",
+        "top": "8%",
+        "width": "calc((50vw + 50vh) * 0.022)",
+        "motion": "sparkle",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/star-4.svg",
+        "left": "68%",
+        "top": "18%",
+        "width": "calc((50vw + 50vh) * 0.016)",
+        "motion": "sparkle",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/star-4.svg",
+        "left": "92%",
+        "top": "48%",
+        "width": "calc((50vw + 50vh) * 0.018)",
+        "motion": "sparkle",
+        "hideWhenLow": true
+      },
+      {
         "src": "assets/decor/rays.svg",
         "left": "calc(50% - 75vmax)",
         "top": "calc(48% - 75vmax)",
         "width": "150vmax",
         "opacity": 0.9,
-        "screens": ["win"]
+        "screens": ["win"],
+        "motion": "spin",
+        "seconds": 40
       },
       {
         "src": "assets/decor/die-blue-6.svg",
-        "left": "calc(23.438% + 0px)",
-        "top": "15.278%",
+        "left": "6%",
+        "top": "13%",
         "width": "calc((50vw + 50vh) * 0.092)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["welcome", "register", "duplicate", "closed", "error"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-5.svg",
-        "left": "calc(75% + 0px)",
-        "top": "0.833%",
+        "left": "86%",
+        "top": "6%",
         "width": "calc((50vw + 50vh) * 0.104)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["welcome", "register", "duplicate", "closed", "error"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-3.svg",
-        "left": "calc(74.219% + 0px)",
-        "top": "51.389%",
+        "left": "84%",
+        "top": "27%",
         "width": "calc((50vw + 50vh) * 0.084)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["welcome", "register", "duplicate", "closed", "error"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-6.svg",
-        "left": "calc(25% + 0px)",
-        "top": "69.444%",
+        "left": "8%",
+        "top": "38%",
         "width": "calc((50vw + 50vh) * 0.1)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["welcome", "register", "duplicate", "closed", "error"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-6.svg",
-        "left": "calc(18.75% + 0px)",
-        "top": "18.056%",
+        "left": "6%",
+        "top": "13%",
         "width": "calc((50vw + 50vh) * 0.092)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["play", "resolving", "revealing"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-5.svg",
-        "left": "calc(75% + 0px)",
-        "top": "0.833%",
+        "left": "86%",
+        "top": "6%",
         "width": "calc((50vw + 50vh) * 0.104)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["play", "resolving", "revealing"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-3.svg",
-        "left": "calc(79.688% + 0px)",
-        "top": "50%",
+        "left": "84%",
+        "top": "27%",
         "width": "calc((50vw + 50vh) * 0.084)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["play", "resolving", "revealing"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-6.svg",
-        "left": "calc(25% + 0px)",
-        "top": "69.444%",
+        "left": "8%",
+        "top": "38%",
         "width": "calc((50vw + 50vh) * 0.1)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["play", "resolving", "revealing"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-6.svg",
-        "left": "calc(24.141% + 0px)",
-        "top": "16.528%",
+        "left": "6%",
+        "top": "13%",
         "width": "calc((50vw + 50vh) * 0.074)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["win", "lose"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-5.svg",
-        "left": "calc(75.781% + 0px)",
-        "top": "2.222%",
+        "left": "86%",
+        "top": "6%",
         "width": "calc((50vw + 50vh) * 0.083)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["win", "lose"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-blue-3.svg",
-        "left": "calc(74.844% + 0px)",
-        "top": "52.5%",
+        "left": "84%",
+        "top": "27%",
         "width": "calc((50vw + 50vh) * 0.067)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["win", "lose"],
         "wideOnly": true
       },
       {
         "src": "assets/decor/die-red-6.svg",
-        "left": "calc(25.781% + 0px)",
-        "top": "70.833%",
+        "left": "8%",
+        "top": "38%",
         "width": "calc((50vw + 50vh) * 0.08)",
-        "motion": "float",
+        "motion": "tumble",
         "hideWhenLow": true,
         "screens": ["win", "lose"],
         "wideOnly": true
@@ -300,22 +364,33 @@
         "right": "calc((50vw + 50vh) * -0.006)",
         "bottom": "calc((50vw + 50vh) * -0.014)",
         "width": "calc((50vw + 50vh) * 0.3)",
-        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+        "screens": ["welcome", "register", "error"],
+        "wideOnly": true
+      },
+      {
+        "src": "assets/decor/arcade-cabinet-soon.svg",
+        "right": "calc((50vw + 50vh) * -0.006)",
+        "bottom": "calc((50vw + 50vh) * -0.014)",
+        "width": "calc((50vw + 50vh) * 0.3)",
+        "screens": ["duplicate", "closed"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/joystick.svg",
         "left": "calc((50vw + 50vh) * -0.026)",
         "bottom": "calc((50vw + 50vh) * -0.024)",
         "width": "calc((50vw + 50vh) * 0.27)",
-        "screens": ["welcome", "register", "duplicate", "closed", "error"]
+        "screens": ["welcome", "register", "duplicate", "closed", "error"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/arcade-cabinet.svg",
         "right": "calc((50vw + 50vh) * -0.15)",
-        "bottom": "calc((50vw + 50vh) * -0.03)",
+        "bottom": "calc((50vw + 50vh) * -0.12)",
         "width": "calc((50vw + 50vh) * 0.27)",
         "screens": ["play", "resolving", "revealing"],
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "wideOnly": true
       },
       {
         "src": "assets/decor/joystick.svg",
@@ -323,7 +398,8 @@
         "bottom": "calc((50vw + 50vh) * -0.04)",
         "width": "calc((50vw + 50vh) * 0.243)",
         "screens": ["play", "resolving", "revealing"],
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "wideOnly": true
       },
       {
         "src": "assets/decor/arcade-cabinet.svg",
@@ -331,7 +407,17 @@
         "bottom": "calc((50vw + 50vh) * -0.154)",
         "width": "calc((50vw + 50vh) * 0.3)",
         "opacity": 0.5,
-        "screens": ["win", "lose"]
+        "screens": ["win"],
+        "wideOnly": true
+      },
+      {
+        "src": "assets/decor/arcade-cabinet-over.svg",
+        "right": "calc((50vw + 50vh) * -0.006)",
+        "bottom": "calc((50vw + 50vh) * -0.154)",
+        "width": "calc((50vw + 50vh) * 0.3)",
+        "opacity": 0.5,
+        "screens": ["lose"],
+        "wideOnly": true
       },
       {
         "src": "assets/decor/joystick.svg",
@@ -339,7 +425,8 @@
         "bottom": "calc((50vw + 50vh) * -0.164)",
         "width": "calc((50vw + 50vh) * 0.27)",
         "opacity": 0.5,
-        "screens": ["win", "lose"]
+        "screens": ["win", "lose"],
+        "wideOnly": true
       }
     ]
   },
@@ -435,5 +522,77 @@
       "win": "#FFE9A8"
     }
   },
-  "sounds": {}
+  "sounds": {},
+  "motion": {
+    "feel": "neon",
+    "chiptune": true,
+    "scanlines": 0.05,
+    "grid": "#ff4fa3",
+    "crt": true,
+    "pressStart": true,
+    "skyFade": true,
+    "flash": "#FFF6D0",
+    "vignette": "@ink",
+    "flyers": [
+      {
+        "src": "assets/fx/invader.svg",
+        "frames": 2,
+        "fps": 3,
+        "aspect": 1.25,
+        "width": "clamp(1.75rem, 4vmin, 2.75rem)",
+        "lane": "sky",
+        "band": [6, 36],
+        "every": [8, 20],
+        "cross": [12, 25],
+        "path": "zigzag",
+        "flock": 2,
+        "max": 4,
+        "onWin": true
+      },
+      {
+        "src": "assets/fx/shooting-star.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 13.3,
+        "width": "clamp(6rem, 16vmin, 10rem)",
+        "lane": "sky",
+        "band": [3, 22],
+        "every": [8, 20],
+        "cross": [0.6, 0.9],
+        "path": "shoot",
+        "flock": 1,
+        "max": 1,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      }
+    ],
+    "countdown": true,
+    "entrance": "pop",
+    "buttons": "squish",
+    "fields": "lively",
+    "wipe": {
+      "kind": "scanline",
+      "color": "@accent",
+      "ink": "@ink"
+    },
+    "impact": true,
+    "confetti": "neon",
+    "games": "lively",
+    "words": {
+      "start": "GO!",
+      "hit": "COMBO!",
+      "open": "BONUS!",
+      "win": "YOU WIN",
+      "lose": "GAME OVER"
+    }
+  }
 }

@@ -18,7 +18,7 @@ interface Crossing {
   scatter: boolean;
 }
 
-const PHONE_MAX = 3;
+const PHONE_MAX = 2;
 const between = (bounds: readonly unknown[]) => {
   const low = Number(bounds[0] ?? 0);
   const high = Number(bounds[1] ?? low);
@@ -125,6 +125,7 @@ export function Flyers({
           key={id}
           className="xp-flyer"
           data-xp-lane={flyer.lane}
+          data-xp-path={flyer.path}
           data-xp-scatter={scatter ? "" : undefined}
           // From the right: the sprite faces left (flipped), the same picture both ways.
           data-xp-flip={style["--xp-flyer-flip"] === 1 ? "" : undefined}

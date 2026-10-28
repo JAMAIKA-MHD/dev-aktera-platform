@@ -399,6 +399,11 @@ function motionVars(
       : {}),
     ...(motion.vignette ? { "--xp-fx-vignette": css(motion.vignette) } : {}),
     ...(motion.rain ? { "--xp-fx-rain": css(motion.rain) } : {}),
+    ...(motion.flash ? { "--xp-fx-flash": css(motion.flash) } : {}),
+    ...(motion.grid ? { "--xp-fx-grid": css(motion.grid) } : {}),
+    ...(motion.scanlines !== null
+      ? { "--xp-fx-scanlines": String(motion.scanlines) }
+      : {}),
     ...(motion.wipe
       ? {
           "--xp-fx-wipe": css(motion.wipe.color),

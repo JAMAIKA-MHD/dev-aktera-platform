@@ -71,7 +71,10 @@ export function StatusScreen({ flow, config, locale, chrome }: ScreenProps) {
           : { onPrimary: restart }
       }
     >
-      <ScreenMedallion icon={variant.icon} />
+      {/* Which status it is, for a theme's own motion of it (motion.css). */}
+      <div data-xp-status={status} className="contents">
+        <ScreenMedallion icon={variant.icon} />
+      </div>
     </ExperienceFrame>
   );
 }

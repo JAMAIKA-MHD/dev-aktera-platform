@@ -157,6 +157,38 @@ function pixelBurst(
   }
 }
 
+// A neon win (motion.confetti "neon"): fireworks bursting over the stage, one after the
+// other at different places, in the palette's accents, small round sparks falling back.
+const FIREWORKS = 5;
+const FIREWORK_EVERY_MS = 420;
+
+function neonFireworks(
+  fire: confetti.CreateTypes,
+  colors: string[] | undefined,
+  budget: number,
+): void {
+  const perBurst = Math.max(8, Math.floor(budget / FIREWORKS));
+  for (let burst = 0; burst < FIREWORKS; burst++) {
+    setTimeout(() => {
+      void fire({
+        particleCount: perBurst,
+        spread: 360,
+        startVelocity: 22 + Math.random() * 8,
+        gravity: 0.55,
+        decay: 0.92,
+        ticks: 160,
+        scalar: 0.8,
+        shapes: ["circle", "square"] as confetti.Shape[],
+        origin: {
+          x: 0.15 + Math.random() * 0.7,
+          y: 0.18 + Math.random() * 0.22,
+        },
+        ...(colors ? { colors } : {}),
+      });
+    }, burst * FIREWORK_EVERY_MS);
+  }
+}
+
 // The pieces a screen can take without dropping frames: about 60 on a phone, 150 on a large
 // screen.
 function particleBudget(doc: Document): number {
@@ -170,7 +202,10 @@ export function celebrate(
   {
     reducedMotion,
     style = "classic",
-  }: { reducedMotion: boolean; style?: "classic" | "cartoon" | "pixel" },
+  }: {
+    reducedMotion: boolean;
+    style?: "classic" | "cartoon" | "pixel" | "neon";
+  },
 ): boolean {
   if (reducedMotion) return false;
   try {
@@ -183,6 +218,10 @@ export function celebrate(
     }
     if (style === "pixel") {
       pixelBurst(fire, colors, budget);
+      return true;
+    }
+    if (style === "neon") {
+      neonFireworks(fire, colors, budget);
       return true;
     }
     for (const { share, ...burst } of BURSTS) {

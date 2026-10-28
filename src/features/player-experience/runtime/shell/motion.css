@@ -196,7 +196,7 @@
   inset: 0;
   z-index: 70;
   pointer-events: none;
-  background-color: var(--xp-surface);
+  background-color: var(--xp-fx-flash, var(--xp-surface));
   opacity: 0;
   animation: xp-fx-flash 220ms var(--xp-fx-soft) both;
 }
@@ -1454,7 +1454,7 @@
     xp-fx-btn-bob 1.6s steps(1, end) 1s infinite;
 }
 /* "Press start": a blinking arrow before the main CTA's label (never read out). */
-.xp-root[data-xp-fx-feel="stepped"]
+.xp-root[data-xp-fx-press]
   .xp-frame
   > [data-xp-slot="cta"]
   [data-xp-cta="primary"]:enabled
@@ -1464,7 +1464,7 @@
   margin-inline-end: 0.6em;
   animation: xp-fx-blink 0.8s steps(1, end) infinite;
 }
-.xp-root[data-xp-fx-feel="stepped"]
+.xp-root[data-xp-fx-press]
   .xp-frame
   > [data-xp-slot="cta"]
   [data-xp-cta="primary"]:enabled
@@ -1877,4 +1877,582 @@
 }
 .xp-stage[data-xp-lite] :is(.xp-flyer, .xp-stage-rain) {
   display: none;
+}
+
+/* ── A night scene: nebula, tumbling dice, rays, grid, scanlines, flyers ─────────── */
+
+/* A wind from the right, the other way across the screen. */
+.xp-decor[data-xp-motion="wind"][data-xp-reverse] {
+  animation-name: xp-fx-wind-back;
+}
+/* A die in the air: a slow float with a slow roll, each on its own beat. */
+.xp-decor[data-xp-motion="tumble"] {
+  animation: xp-fx-tumble calc(5s * var(--xp-decor-speed, 1)) ease-in-out
+    var(--xp-decor-delay, 0s) infinite;
+}
+/* A glow behind the title: its light pulses, opacity only. */
+.xp-decor[data-xp-motion="breathe"] {
+  animation: xp-fx-glow calc(7s * var(--xp-decor-speed, 1)) ease-in-out
+    var(--xp-decor-delay, 0s) infinite;
+}
+/* Rays turning round. */
+.xp-decor[data-xp-motion="spin"] {
+  will-change: rotate;
+  animation: xp-fx-spin var(--xp-decor-seconds, 40s) linear infinite;
+}
+
+/* The old stage picture, fading out over the new one (motion.skyFade). */
+.xp-stage-image-old {
+  position: absolute;
+  inset: 0;
+  background-size: var(--xp-stage-fit, cover);
+  background-position: center;
+  animation: xp-fx-fade-out 500ms ease-out forwards;
+}
+
+/* The synthwave floor: lines in perspective, scrolling toward the player. */
+.xp-stage-grid {
+  position: absolute;
+  left: -25%;
+  right: -25%;
+  bottom: 0;
+  height: 20%;
+  overflow: hidden;
+  perspective: 18vh;
+  perspective-origin: 50% 0;
+  /* Faded in from the horizon: no bright line across the footer. */
+  mask: linear-gradient(transparent, currentColor 70%);
+  -webkit-mask: linear-gradient(transparent, currentColor 70%);
+  > span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 200%;
+    transform-origin: 50% 0;
+    rotate: x 62deg;
+    background:
+      linear-gradient(var(--xp-fx-grid) 2px, transparent 2px) 0 0 / 100% 2.4rem,
+      linear-gradient(90deg, var(--xp-fx-grid) 2px, transparent 2px) 0 0 /
+        3.2rem 100%;
+    opacity: 0.32;
+    will-change: translate;
+    animation: xp-fx-grid 3s linear infinite;
+  }
+}
+/* While a game is played, the floor runs faster. */
+.xp-stage:is(
+    [data-xp-screen="play"],
+    [data-xp-screen="resolving"],
+    [data-xp-screen="revealing"]
+  )
+  .xp-stage-grid
+  > span {
+  animation-duration: 2s;
+}
+/* A loss: the floor slows down and dims. */
+.xp-stage[data-xp-screen="lose"] .xp-stage-grid > span {
+  animation-duration: 6s;
+  opacity: 0.3;
+}
+
+/* Faint CRT scanlines over the stage, under the panel and its texts. */
+.xp-stage-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--xp-fx-scanlines, 0.05);
+  background: repeating-linear-gradient(
+    currentColor 0 1px,
+    transparent 1px 3px
+  );
+  color: var(--xp-ink);
+}
+
+/* Flyers on other paths: weaving up and down, or a shooting star's quick slant. */
+.xp-flyer[data-xp-path="zigzag"] .xp-flyer-sprite {
+  animation:
+    xp-fx-sprite var(--xp-sprite-seconds, 0.4s)
+      steps(var(--xp-sprite-frames, 1), jump-none) infinite,
+    xp-fx-zigzag 2.4s ease-in-out infinite;
+}
+.xp-flyer[data-xp-path="shoot"] {
+  animation-name: xp-fx-shoot;
+  animation-timing-function: ease-in;
+  .xp-flyer-sprite {
+    rotate: 16deg;
+    animation: none;
+  }
+  &[data-xp-flip] {
+    animation-name: xp-fx-shoot-back;
+    .xp-flyer-sprite {
+      rotate: -16deg;
+    }
+  }
+}
+
+/* ── The neon feel ───────────────────────────────────────────────────────────── */
+
+:where(.xp-root[data-xp-fx-feel="neon"]) {
+  --xp-fx-pop: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --xp-fx-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --xp-fx-jolt: steps(2, end);
+  --xp-fx-soft: ease-out;
+}
+
+/* The welcome screen powers on like a CRT: a thin line opening up, then a flicker. */
+.xp-root[data-xp-fx-crt] .xp-transition > .xp-frame[data-xp-screen="welcome"] {
+  animation: xp-fx-crt 450ms ease-out both;
+}
+
+.xp-root[data-xp-fx-feel="neon"] .xp-frame {
+  /* The title flickers on like a neon sign, then, rarely, flickers again. */
+  > [data-xp-slot="title"] {
+    animation:
+      xp-fx-neon-on 380ms steps(1, end) 80ms both,
+      xp-fx-neon-rare 10s steps(1, end) 2s infinite;
+  }
+  /* The line under it types itself in. */
+  > [data-xp-slot="copy"] {
+    animation: xp-fx-type 640ms steps(18, end) 320ms both;
+    &:dir(rtl) {
+      animation-name: xp-fx-type-rtl;
+    }
+  }
+  /* The fields slide in from the side, one after the other. */
+  .xp-field {
+    animation: xp-fx-slide-side 320ms var(--xp-fx-out) both;
+    animation-delay: calc(250ms + var(--xp-field-order, 0) * 60ms);
+  }
+  /* The button lights up last. */
+  > [data-xp-slot="cta"] {
+    animation: xp-fx-neon-on 320ms steps(1, end) 480ms both;
+  }
+}
+/* The live dot blinks. */
+.xp-root[data-xp-fx-feel="neon"] [data-xp-slot="header"] .xp-ping {
+  animation: xp-fx-blink 1.2s steps(1, end) infinite;
+}
+
+/* Buttons: a neon glow inside the border that pulses (opacity only), the light sweep. */
+.xp-root[data-xp-fx-feel="neon"]
+  .xp-btn:not([data-xp-variant="ghost"])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0.9rem
+    color-mix(in srgb, var(--xp-accent) 75%, transparent);
+  opacity: 0.35;
+  animation: xp-fx-glow 2.6s ease-in-out infinite;
+}
+.xp-root[data-xp-fx-feel="neon"] .xp-btn:disabled::before {
+  display: none;
+}
+.xp-root[data-xp-fx-feel="neon"] .xp-btn .xp-shimmer {
+  animation-duration: 4s;
+}
+/* The game's round button: a heartbeat. */
+.xp-root[data-xp-fx-feel="neon"]
+  .xp-frame[data-xp-screen="play"]
+  > [data-xp-slot="cta"]
+  [data-xp-cta="primary"]:enabled:not(:active) {
+  animation: xp-fx-heartbeat 1.3s ease-in-out infinite;
+}
+
+/* Fields: a cyan glow in focus; an error jitters with a red/cyan split. */
+.xp-root[data-xp-fx-feel="neon"][data-xp-fx-fields]
+  .xp-field
+  :is(input, select) {
+  &:focus {
+    box-shadow:
+      var(--xp-field-shadow, 0 0 0 transparent),
+      0 0 0 3px color-mix(in srgb, var(--xp-accent) 55%, transparent);
+  }
+  &[aria-invalid="true"] {
+    animation: xp-fx-split-x 300ms steps(1, end);
+  }
+}
+
+/* Impacts glitch: two or three frames of slices pushed sideways, a red/cyan split. */
+.xp-root[data-xp-fx-feel="neon"][data-xp-fx-impact]
+  .xp-transition:is([data-xp-change="impact"], [data-xp-change="shake"])
+  > .xp-frame {
+  animation: xp-fx-neon-glitch 260ms steps(1, end) 40ms both;
+}
+
+/* A win: the title surges on; the prize floats. */
+.xp-root[data-xp-fx-feel="neon"][data-xp-fx-impact]
+  .xp-frame[data-xp-screen="win"] {
+  > [data-xp-slot="title"] {
+    animation:
+      xp-fx-neon-on 420ms steps(1, end) 160ms both,
+      xp-fx-neon-rare 10s steps(1, end) 3s infinite;
+  }
+  .xp-result-art > :is(img, svg) {
+    animation:
+      xp-reward-pop 600ms cubic-bezier(0.2, 0.9, 0.25, 1.35) both,
+      xp-fx-float 3.2s ease-in-out 700ms infinite;
+  }
+}
+/* A loss: the cracked die falls, bounces once, then flickers slowly. */
+.xp-root[data-xp-fx-feel="neon"] .xp-result-art[data-xp-tone="lose"] > img {
+  animation:
+    xp-fx-die-fall 700ms cubic-bezier(0.3, 0, 0.6, 1) both,
+    xp-fx-neon-rare 4s steps(1, end) 1.2s infinite;
+}
+/* Already played: a calm pulse of the medallion, and a check stamped on it. */
+.xp-root[data-xp-fx-feel="neon"] [data-xp-status="duplicate"] .xp-medallion {
+  animation: xp-fx-glow-scale 2.8s ease-in-out infinite;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    right: 6%;
+    bottom: 6%;
+    width: 30%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    animation: xp-fx-pop-in 420ms var(--xp-fx-pop) 400ms both;
+  }
+  &::before {
+    background: var(--xp-primary);
+  }
+  /* The check, drawn by a mask in the ink's color. */
+  &::after {
+    background: var(--xp-ink);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E")
+      center / 60% no-repeat;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E")
+      center / 60% no-repeat;
+  }
+}
+/* An error: its icon flickers between two frames. */
+.xp-root[data-xp-fx-feel="neon"] [data-xp-status="error"] .xp-medallion svg {
+  animation: xp-fx-flicker 1.6s steps(1) infinite;
+}
+
+/* ── The scanline wipe ───────────────────────────────────────────────────────── */
+
+/* A bright line sweeping down, the next screen behind it. */
+.xp-root[data-xp-fx-wipe="scanline"] .xp-fx-wipe {
+  > span {
+    display: none;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--xp-fx-wipe-ink, var(--xp-ink));
+    border-block: 3px solid var(--xp-fx-wipe, var(--xp-accent));
+    box-sizing: border-box;
+  }
+  &[data-xp-phase="cover"]::before {
+    animation: xp-fx-sweep-in 230ms ease-in both;
+  }
+  &[data-xp-phase="reveal"]::before {
+    animation: xp-fx-sweep-out 250ms ease-out both;
+  }
+}
+
+/* ── Keyframes of the night ──────────────────────────────────────────────────── */
+
+@keyframes xp-fx-wind-back {
+  from {
+    translate: calc(100vw - var(--xp-wind-from, 0vw)) 0;
+  }
+  to {
+    translate: calc(-100% - var(--xp-wind-from, 0vw)) 0;
+  }
+}
+@keyframes xp-fx-tumble {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: calc(var(--xp-decor-rotate, 0deg) - 8deg);
+  }
+  50% {
+    translate: 0 -0.75rem;
+    rotate: calc(var(--xp-decor-rotate, 0deg) + 8deg);
+  }
+}
+@keyframes xp-fx-glow {
+  0%,
+  100% {
+    opacity: var(--xp-decor-opacity, 0.35);
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes xp-fx-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes xp-fx-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-grid {
+  to {
+    translate: 0 2.4rem;
+  }
+}
+@keyframes xp-fx-zigzag {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 0 -0.9rem;
+  }
+  75% {
+    translate: 0 0.9rem;
+  }
+}
+@keyframes xp-fx-shoot {
+  from {
+    translate: -20vw 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    translate: 70vw 22vh;
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-shoot-back {
+  from {
+    translate: 110vw 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    translate: 20vw 22vh;
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-crt {
+  0% {
+    scale: 1 0.004;
+    opacity: 1;
+  }
+  45% {
+    scale: 1 1;
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.55;
+  }
+  75% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    scale: 1 1;
+    opacity: 1;
+  }
+}
+@keyframes xp-fx-neon-on {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.2;
+  }
+  65% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes xp-fx-neon-rare {
+  0%,
+  96%,
+  100% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0.35;
+  }
+  98% {
+    opacity: 1;
+  }
+  99% {
+    opacity: 0.6;
+  }
+}
+@keyframes xp-fx-slide-side {
+  from {
+    opacity: 0;
+    translate: -1.5rem 0;
+  }
+}
+@keyframes xp-fx-heartbeat {
+  0%,
+  40%,
+  100% {
+    scale: 1;
+  }
+  15% {
+    scale: 1.05;
+  }
+  25% {
+    scale: 1.01;
+  }
+}
+@keyframes xp-fx-split-x {
+  0% {
+    translate: -0.3rem 0;
+    filter: drop-shadow(2px 0 var(--xp-secondary))
+      drop-shadow(-2px 0 var(--xp-accent));
+  }
+  33% {
+    translate: 0.25rem 0;
+  }
+  66% {
+    translate: -0.1rem 0;
+  }
+  100% {
+    translate: 0 0;
+    filter: none;
+  }
+}
+@keyframes xp-fx-neon-glitch {
+  0% {
+    translate: 0.5rem 0;
+    clip-path: inset(10% 0 55% 0);
+    filter: drop-shadow(3px 0 var(--xp-secondary))
+      drop-shadow(-3px 0 var(--xp-accent));
+  }
+  33% {
+    translate: -0.4rem 0;
+    clip-path: inset(45% 0 18% 0);
+  }
+  66% {
+    translate: 0.2rem 0;
+    clip-path: inset(0 0 0 0);
+    filter: drop-shadow(1px 0 var(--xp-secondary))
+      drop-shadow(-1px 0 var(--xp-accent));
+  }
+  100% {
+    translate: 0 0;
+    clip-path: none;
+    filter: none;
+  }
+}
+@keyframes xp-fx-die-fall {
+  0% {
+    opacity: 0;
+    translate: 0 -3rem;
+    rotate: -20deg;
+  }
+  60% {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 6deg;
+  }
+  75% {
+    translate: 0 -0.5rem;
+  }
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+}
+@keyframes xp-fx-glow-scale {
+  0%,
+  100% {
+    scale: 1;
+    opacity: 0.85;
+  }
+  50% {
+    scale: 1.04;
+    opacity: 1;
+  }
+}
+@keyframes xp-fx-sweep-in {
+  from {
+    translate: 0 -100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes xp-fx-sweep-out {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 100%;
+  }
+}
+
+/* ── The night, still ─────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-stage-grid > span,
+  .xp-stage-image-old,
+  .xp-root .xp-btn::before,
+  .xp-root .xp-medallion,
+  .xp-root .xp-medallion::after,
+  .xp-root .xp-medallion svg {
+    animation: none !important;
+  }
+}
+.xp-root:has([data-xp-motion="off"]) {
+  .xp-stage-grid > span,
+  .xp-btn::before,
+  .xp-medallion,
+  .xp-medallion::after,
+  .xp-medallion svg {
+    animation: none !important;
+  }
+}
+.xp-stage[data-xp-lite] .xp-stage-grid > span {
+  animation: none !important;
+}
+
+/* A round button's label breaks between its words, never inside one ("TOURNE R"); a wide
+   pixel font takes a size that lets its longest word fit. */
+.xp-root[data-xp-layout="spotlight"]
+  .xp-frame[data-xp-screen="play"]
+  > [data-xp-slot="cta"]
+  [data-xp-cta="primary"]
+  span {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.xp-root[data-xp-fx-feel="neon"][data-xp-play-cta^="round"]
+  .xp-frame[data-xp-screen="play"]
+  > [data-xp-slot="cta"]
+  [data-xp-cta="primary"] {
+  font-size: clamp(0.7rem, 0.25rem + 1vw, 1.45rem);
+}
+/* A round game button keeps its heartbeat, not the "press start" arrow: it would push its
+   first line off centre. */
+.xp-root[data-xp-fx-press][data-xp-play-cta^="round"]
+  .xp-frame[data-xp-screen="play"]
+  > [data-xp-slot="cta"]
+  [data-xp-cta="primary"]
+  > span:last-child::before {
+  content: none;
 }

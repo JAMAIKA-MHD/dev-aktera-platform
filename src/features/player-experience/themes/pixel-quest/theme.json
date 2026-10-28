@@ -645,6 +645,7 @@
       "open": "BONUS!",
       "win": "LEVEL CLEAR!",
       "lose": "GAME OVER"
-    }
+    },
+    "pressStart": true
   }
 }

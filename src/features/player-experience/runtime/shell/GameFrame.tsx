@@ -77,6 +77,7 @@ export function GameFrame({ gameType, screen }: GameFrameProps) {
         aria-hidden
         className="xp-stage"
         data-xp-mood={mood}
+        data-xp-screen={screen}
         data-xp-lite={lite ? "" : undefined}
         style={
           manifest && manifest.stage.decorScale !== 1
@@ -89,6 +90,9 @@ export function GameFrame({ gameType, screen }: GameFrameProps) {
           data-xp-painted={paint ? "" : undefined}
           style={imageStyle}
         >
+          {!paint && background && manifest?.motion.skyFade && (
+            <FadingSky url={background} />
+          )}
           {paint && turning && (
             <TurningRays
               paint={raysGradient(
@@ -103,6 +107,14 @@ export function GameFrame({ gameType, screen }: GameFrameProps) {
         )}
         <div className="xp-stage-veil" />
         {manifest?.motion.vignette && <div className="xp-stage-vignette" />}
+        {manifest?.motion.grid && (
+          <div className="xp-stage-grid">
+            <span />
+          </div>
+        )}
+        {manifest?.motion.scanlines != null && (
+          <div className="xp-stage-scanlines" />
+        )}
         {manifest?.motion.rain && screen === "lose" && (
           <div className="xp-stage-rain" />
         )}
@@ -259,6 +271,7 @@ function Decor({ decor, index }: { decor: ResolvedDecor; index: number }) {
         className="xp-decor"
         data-xp-sprite
         data-xp-motion={decor.motion}
+        data-xp-reverse={decor.reverse ? "" : undefined}
         data-xp-wide-only={decor.wideOnly ? "" : undefined}
         style={style}
       />
@@ -274,6 +287,7 @@ function Decor({ decor, index }: { decor: ResolvedDecor; index: number }) {
         data-xp-tint={decor.tint ? "" : undefined}
         data-xp-repeat={decor.repeatX ? "" : undefined}
         data-xp-motion={decor.motion}
+        data-xp-reverse={decor.reverse ? "" : undefined}
         data-xp-wide-only={decor.wideOnly ? "" : undefined}
         style={style}
       />
@@ -286,6 +300,7 @@ function Decor({ decor, index }: { decor: ResolvedDecor; index: number }) {
       draggable={false}
       className="xp-decor"
       data-xp-motion={decor.motion}
+      data-xp-reverse={decor.reverse ? "" : undefined}
       data-xp-wide-only={decor.wideOnly ? "" : undefined}
       style={style}
     />
@@ -341,6 +356,30 @@ function TurningRays({ paint }: { paint: string }) {
         style={{ background: layers.current }}
       />
     </>
+  );
+}
+
+// A stage picture changing (the night dimming on a loss): the old one stays over the new for
+// a moment and fades away, rather than the scene cutting at once (motion.skyFade).
+function FadingSky({ url }: { url: string }) {
+  const [layers, setLayers] = useState<{ current: string; old: string | null }>(
+    { current: url, old: null },
+  );
+  if (layers.current !== url) setLayers({ current: url, old: layers.current });
+  useEffect(() => {
+    if (layers.old === null) return;
+    const timer = setTimeout(
+      () => setLayers((now) => ({ ...now, old: null })),
+      SKY_FADE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [layers.old]);
+  return layers.old === null ? null : (
+    <span
+      key={layers.old}
+      className="xp-stage-image-old"
+      style={{ backgroundImage: `url("${layers.old}")` }}
+    />
   );
 }
 

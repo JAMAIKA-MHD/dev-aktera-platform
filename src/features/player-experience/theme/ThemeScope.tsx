@@ -115,6 +115,8 @@ function motionAttributes(
     "data-xp-fx-games": set(motion.games !== "classic", motion.games),
     "data-xp-fx-feel": set(motion.feel !== "smooth", motion.feel),
     "data-xp-fx-wipe": motion.wipe?.kind,
+    "data-xp-fx-crt": set(motion.crt),
+    "data-xp-fx-press": set(motion.pressStart),
   };
 }
 

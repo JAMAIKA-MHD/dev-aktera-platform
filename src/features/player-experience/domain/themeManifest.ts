@@ -192,9 +192,16 @@ const decorSchema = z.object({
       "wind",
       "sway",
       "hover",
+      "tumble",
+      "breathe",
+      "spin",
     ])
     .default("none"),
+  // tumble: a slow float with a slow roll (a die in the air). breathe: its light pulses
+  // slowly, opacity only (a glow behind the title). spin: it turns round, once in `seconds`
+  // (rays).
   seconds: z.number().min(2).max(600).optional(), // a wind crossing, a sway's beat
+  reverse: z.boolean().default(false), // a wind from the right, the other way
   // A sprite sheet: `frames` pictures side by side, played at `fps` (a coin turning, a sun
   // pulsing), one frame `aspect` times as wide as it is high.
   sprite: z
@@ -354,7 +361,7 @@ const flyerSchema = z
     src: assetSchema, // the sprite sheet, its frames side by side, facing right
     frames: z.number().int().min(1).max(12),
     fps: z.number().min(1).max(24).default(7),
-    aspect: z.number().positive().max(8).default(1), // one frame's width over its height
+    aspect: z.number().positive().max(16).default(1), // one frame's width over its height (a streak)
     width: cssSchema, // one frame's drawn width ("clamp(1.25rem, 3vmin, 2rem)")
     lane: z.enum(["sky", "ground"]).default("sky"),
     // sky: the upper part of the screen, in percent of its height. ground: the ground's own
@@ -364,7 +371,12 @@ const flyerSchema = z
       .default([4, 40]),
     ground: cssSchema.optional(),
     every: z.tuple([z.number().min(1), z.number().min(1)]).default([6, 15]), // seconds
-    cross: z.tuple([z.number().min(2), z.number().min(2)]).default([15, 30]), // seconds
+    cross: z
+      .tuple([z.number().min(0.3), z.number().min(0.3)])
+      .default([15, 30]), // seconds
+    // straight: level across. zigzag: weaving up and down (a space invader). shoot: a quick
+    // streak slanting down across the upper sky (a shooting star).
+    path: z.enum(["straight", "zigzag", "shoot"]).default("straight"),
     flock: z.number().int().min(1).max(5).default(1), // up to this many together
     max: z.number().int().min(1).max(8).default(5),
     both: z.boolean().default(true), // from either side (flipped), or left to right only
@@ -377,8 +389,22 @@ const flyerSchema = z
 const motionSchema = z
   .object({
     // smooth: overshoot and ease. stepped: every effect frame by frame (steps()), hard
-    // color swaps for its flashes — pixel art's own way of moving.
-    feel: z.enum(["smooth", "stepped"]).default("smooth"),
+    // color swaps for its flashes — pixel art's own way of moving. neon: light first — things
+    // glow, pulse and flicker on like a sign; impacts glitch with a red/cyan split.
+    feel: z.enum(["smooth", "stepped", "neon"]).default("smooth"),
+    // A faint scanline layer over the stage (a CRT), at this opacity; never over the panel.
+    scanlines: z.number().min(0).max(0.12).nullable().default(null),
+    // A synthwave floor grid at the bottom of the stage, its lines in this color, scrolling
+    // toward the player (faster while a game is played).
+    grid: colorSchema.nullable().default(null),
+    // The welcome screen powers on like a CRT: a thin line that opens up, then a flicker.
+    crt: z.boolean().default(false),
+    // A blinking "press start" arrow before the main button's label.
+    pressStart: z.boolean().default(false),
+    // A new stage picture fades in over the old one (the night dimming on a loss).
+    skyFade: z.boolean().default(false),
+    // The color of the flash into a win (white by default).
+    flash: colorSchema.nullable().default(null),
     // The synthesized sounds in square waves (chiptune), when the theme has no recordings.
     chiptune: z.boolean().default(false),
     flyers: z.array(flyerSchema).max(4).default([]),
@@ -409,7 +435,8 @@ const motionSchema = z
     // or an iris, a circle of the ink closing on the screen and opening on the next.
     wipe: z
       .object({
-        kind: z.enum(["burst", "iris"]).default("burst"),
+        // scanline: a bright line sweeping down the screen, the next one behind it.
+        kind: z.enum(["burst", "iris", "scanline"]).default("burst"),
         color: colorSchema,
         ink: colorSchema,
       })
@@ -420,7 +447,10 @@ const motionSchema = z
     impact: z.boolean().default(false),
     // cartoon: stars and circles from two cannons in the bottom corners, then a short shower.
     // pixel: flat squares in the palette, falling at their own speeds, and a coin shower.
-    confetti: z.enum(["classic", "cartoon", "pixel"]).default("classic"),
+    // neon: fireworks bursting over the stage in the palette's accents.
+    confetti: z
+      .enum(["classic", "cartoon", "pixel", "neon"])
+      .default("classic"),
     // lively: each game's own effects (anticipation and a flicking pointer on the wheel,
     // flakes on the scratch card, a stamp on a quiz answer, a burst out of a box, "POW!"…).
     games: z.enum(["classic", "lively"]).default("classic"),
