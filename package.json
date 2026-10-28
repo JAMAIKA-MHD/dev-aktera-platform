@@ -26,7 +26,8 @@
     "backend:smoke": "node --env-file=.env.local scripts/backend/select-prize-smoke.mjs",
     "backend:rewards": "node --env-file=.env.local scripts/backend/rewards-probe.mjs",
     "studio:seed": "node --env-file=.env.local scripts/studio/seed-studio-campaigns.mjs",
-    "studio:seed:clean": "node --env-file=.env.local scripts/studio/seed-studio-campaigns.mjs --clean"
+    "studio:seed:clean": "node --env-file=.env.local scripts/studio/seed-studio-campaigns.mjs --clean",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

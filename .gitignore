@@ -71,3 +71,6 @@ service-account*.json
 .gitlab-ci-local/
 coverage/
 
+
+# End-to-end runs (npm run test:e2e)
+/test-results/
