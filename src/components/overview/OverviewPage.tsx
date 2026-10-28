@@ -66,7 +66,7 @@ const ATTENTION_ITEMS = [
   {
     tone: "info",
     icon: ShieldCheck,
-    title: "Verify your NIF · Tax ID",
+    title: "Verify your Company ID",
     badge: { tone: "info", label: "Due 1 Nov" },
     description: "Needed on your next invoice. It takes about 2 minutes.",
     when: "Due Sun 1 Nov, 09:00",
