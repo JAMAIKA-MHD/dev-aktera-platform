@@ -1,10 +1,17 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { getDirection, resolveText, type Locale } from "../../domain/locale";
 import type { ExperienceConfig, ScreenContent } from "../../domain/types";
 import { FRAME_TEXT } from "../../presets/contentDefaults";
 import type { ThemeScreen } from "../../domain/themeManifest";
 import { useGameTheme } from "../../theme/GameTheme";
 import { screenDress } from "../../theme/shellVars";
+import { usePanelCloud } from "../shell/usePanelCloud";
 import { useThemeHeroArt } from "../shell/useThemeHeroArt";
 import { runtimeAudio, unlockOnFirstGesture } from "../feedback/audio";
 import { useLayoutMode } from "../layout/useLayoutMode";
@@ -23,6 +30,7 @@ import {
 } from "./slots/ReinforcementSlot";
 import { SupportingCopySlot } from "./slots/SupportingCopySlot";
 import { TitleSlot } from "./slots/TitleSlot";
+import { SoundToggle } from "./SoundToggle";
 import { StatusBadge } from "./StatusBadge";
 
 // The 8-slot frame of every player screen (plan §8.3, prototype SlotContainer). It receives
@@ -97,6 +105,14 @@ export function ExperienceFrame({
   // What this screen changes of the template: its title color, its panel's shape or none.
   const dress = screenDress(manifest, assets, screen);
   const heroArt = useThemeHeroArt(screen);
+  // On one column, or a phone held sideways (low), the theme's cloud is drawn at the
+  // panel's size rather than stretched; a desktop keeps its picture.
+  const frameRef = useRef<HTMLDivElement>(null);
+  const cloud =
+    dress.shape &&
+    Boolean(manifest?.panel.shape?.draw) &&
+    (mode.arrangement === "stack" || mode.density === "tight");
+  usePanelCloud(frameRef, cloud, screen);
   // Sounds wait for the player's first gesture (autoplay rules), then follow features.sound.
   useEffect(() => unlockOnFirstGesture(document, runtimeAudio), []);
   useEffect(() => {
@@ -121,12 +137,21 @@ export function ExperienceFrame({
   const primaryLabel = text(screenContent.primaryCta);
   const { jackpot, prizeChips } = config.sections;
   const organizer = config.legal.organizerName.trim();
+  // The player's sound button, wherever there is sound to turn off (music included).
+  const soundToggle = config.features.sound ? (
+    <SoundToggle
+      onLabel={text(FRAME_TEXT.soundOn)}
+      offLabel={text(FRAME_TEXT.soundOff)}
+    />
+  ) : null;
 
   return (
     <LegalSheetContext.Provider value={setSheetTrigger}>
       <div
+        ref={frameRef}
         className="xp-frame"
         data-xp-screen={screen}
+        data-xp-cloud={cloud ? "" : undefined}
         data-xp-shape={
           assets?.panelShape ? (dress.shape ? "on" : "off") : undefined
         }
@@ -145,12 +170,18 @@ export function ExperienceFrame({
             logoUrl={logoUrl}
             live={live}
             badge={statusBadge}
+            soundToggle={soundToggle}
           />
         ) : (
-          // Without the header, the badge keeps a row of its own: it never covers the title.
-          statusBadge && (
-            <div data-xp-slot="status" className="flex justify-end">
-              <StatusBadge label={statusBadge} />
+          // Without the header, the badge and the sound button keep a row of their own: they
+          // never cover the title.
+          (statusBadge || soundToggle) && (
+            <div
+              data-xp-slot="status"
+              className="flex items-center justify-end gap-2"
+            >
+              {statusBadge && <StatusBadge label={statusBadge} />}
+              {soundToggle}
             </div>
           )
         )}

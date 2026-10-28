@@ -60,15 +60,131 @@ const BURSTS: readonly (confetti.Options & { share: number })[] = [
 ];
 const PARTICLES = 200;
 
+// A cartoon win (motion.confetti "cartoon"): stars, circles and squares from two cannons in
+// the bottom corners, then a light shower from the top for about three seconds. Fewer pieces
+// on a phone than on a large screen, and nothing left running once they have fallen.
+const CANNON_SHARE = 0.55;
+const SHOWER_MS = 3200;
+const SHOWER_EVERY_MS = 320;
+
+function cartoonBurst(
+  fire: confetti.CreateTypes,
+  colors: string[] | undefined,
+  budget: number,
+): void {
+  const look = {
+    shapes: ["star", "circle", "square"] as confetti.Shape[],
+    scalar: 1.15,
+    ...(colors ? { colors } : {}),
+  };
+  const cannon = Math.floor((budget * CANNON_SHARE) / 2);
+  for (const [x, angle] of [
+    [0, 60],
+    [1, 120],
+  ] as const) {
+    void fire({
+      ...look,
+      particleCount: cannon,
+      angle,
+      spread: 55,
+      startVelocity: 62,
+      origin: { x, y: 1 },
+    });
+  }
+  const drops = Math.floor(SHOWER_MS / SHOWER_EVERY_MS);
+  const perDrop = Math.max(
+    1,
+    Math.floor((budget * (1 - CANNON_SHARE)) / drops),
+  );
+  for (let drop = 1; drop <= drops; drop++) {
+    setTimeout(() => {
+      void fire({
+        ...look,
+        particleCount: perDrop,
+        angle: 270,
+        spread: 140,
+        startVelocity: 8,
+        gravity: 0.7,
+        ticks: 260,
+        origin: { x: Math.random(), y: -0.05 },
+      });
+    }, drop * SHOWER_EVERY_MS);
+  }
+}
+
+// A pixel win (motion.confetti "pixel"): flat squares in the palette, chunky like pixels,
+// thrown up once from the bottom, then a shower of squares and gold coins from the top, each
+// falling at its own speed with a slight sway.
+function pixelBurst(
+  fire: confetti.CreateTypes,
+  colors: string[] | undefined,
+  budget: number,
+): void {
+  const look = {
+    shapes: ["square"] as confetti.Shape[],
+    flat: true,
+    scalar: 1.5,
+    ...(colors ? { colors } : {}),
+  };
+  void fire({
+    ...look,
+    particleCount: Math.floor(budget * 0.4),
+    angle: 90,
+    spread: 75,
+    startVelocity: 55,
+    origin: { x: 0.5, y: 1 },
+  });
+  const drops = Math.floor(SHOWER_MS / SHOWER_EVERY_MS);
+  const perDrop = Math.max(1, Math.floor((budget * 0.6) / drops));
+  for (let drop = 1; drop <= drops; drop++) {
+    setTimeout(() => {
+      void fire({
+        ...look,
+        // Every other drop is coins: the first color (the primary, gold) only, bigger.
+        ...(drop % 2 && colors
+          ? { colors: colors.slice(0, 1), scalar: 2 }
+          : {}),
+        particleCount: perDrop,
+        angle: 270,
+        spread: 160,
+        startVelocity: 4 + Math.random() * 6,
+        gravity: 0.5 + Math.random() * 0.5,
+        drift: Math.random() * 0.6 - 0.3,
+        ticks: 320,
+        origin: { x: Math.random(), y: -0.05 },
+      });
+    }, drop * SHOWER_EVERY_MS);
+  }
+}
+
+// The pieces a screen can take without dropping frames: about 60 on a phone, 150 on a large
+// screen.
+function particleBudget(doc: Document): number {
+  const width = doc.defaultView?.innerWidth ?? 0;
+  return width >= 900 ? 150 : 60;
+}
+
 // Returns false when nothing was launched (reduced motion, or the browser refused).
 export function celebrate(
   themeRoot: HTMLElement,
-  { reducedMotion }: { reducedMotion: boolean },
+  {
+    reducedMotion,
+    style = "classic",
+  }: { reducedMotion: boolean; style?: "classic" | "cartoon" | "pixel" },
 ): boolean {
   if (reducedMotion) return false;
   try {
     const { fire } = launcherFor(themeRoot.ownerDocument);
     const colors = brandColors(themeRoot);
+    const budget = particleBudget(themeRoot.ownerDocument);
+    if (style === "cartoon") {
+      cartoonBurst(fire, colors, budget);
+      return true;
+    }
+    if (style === "pixel") {
+      pixelBurst(fire, colors, budget);
+      return true;
+    }
     for (const { share, ...burst } of BURSTS) {
       void fire({
         ...burst,

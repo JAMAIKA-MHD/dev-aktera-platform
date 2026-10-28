@@ -13,6 +13,8 @@
 @import "../shell/shell.css";
 /* The play screen of each game, in the template's look (games.* of a theme.json). */
 @import "../games/games.css";
+/* A theme's motion: ambient stage, entrances, wipes, lively buttons, fields and games. */
+@import "../shell/motion.css";
 
 @custom-variant compact (@media (max-width: 359px));
 @custom-variant wide (@media (min-width: 600px));

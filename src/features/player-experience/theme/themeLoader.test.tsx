@@ -118,12 +118,13 @@ describe("ThemeScope · the theme loader", () => {
       expect(root.getAttribute("dir"), id).toBe("rtl");
       // Every theme lays its screens out like its own pack (the spotlight).
       expect(root.getAttribute("data-xp-layout"), id).toBe("spotlight");
+      // A picture, or a burst painted in CSS (stage.paint).
+      const image = container.querySelector<HTMLElement>(".xp-stage-image");
       expect(
-        container
-          .querySelector<HTMLElement>(".xp-stage-image")
-          ?.style.getPropertyValue("--xp-stage-image"),
+        image?.style.getPropertyValue("--xp-stage-image") ||
+          image?.style.getPropertyValue("--xp-stage-paint"),
         id,
-      ).toContain("url(");
+      ).toMatch(/^(?:url|repeating-conic-gradient)\(/);
       unmount();
     }
   });

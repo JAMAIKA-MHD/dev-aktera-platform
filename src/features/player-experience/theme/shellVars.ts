@@ -87,6 +87,13 @@ function shapeVars(
     "--xp-panel-shape-column": shape.columnMax,
     "--xp-panel-shape-pad-stack": shape.stack?.padInline ?? shape.padInline,
     "--xp-panel-shape-bleed": shape.stack?.bleed ?? "0px",
+    ...(shape.draw
+      ? {
+          "--xp-panel-cloud-fill": css(shape.draw.fill),
+          "--xp-panel-cloud-ink": css(shape.draw.ink),
+          "--xp-panel-cloud-outline": shape.draw.outline,
+        }
+      : {}),
   };
 }
 
@@ -187,6 +194,8 @@ export function screenDress(
   const ownStackUrl = assets.panelShapeStacks[screen];
   if (ownStackUrl) vars["--xp-panel-shape-stack"] = `url("${ownStackUrl}")`;
   if (own?.shadow) vars["--xp-panel-shape-shadow"] = roleVar(own.shadow);
+  const ownFill = shape?.draw?.screens[screen]?.fill;
+  if (ownFill) vars["--xp-panel-cloud-fill"] = roleVar(ownFill);
   return {
     vars,
     shape: Boolean(assets.panelShape) && !shape?.hiddenOn.includes(screen),
@@ -327,6 +336,14 @@ export function manifestToCssVars(
     "--xp-stage-overlay": css(stage.overlay),
     "--xp-stage-overlay-opacity": String(stage.overlayOpacity),
     "--xp-stage-fit": stage.fit === "stretch" ? "100% 100%" : "cover",
+    // A frame drawn around the stage: the room kept clear of it on one column (shell.css).
+    ...(stage.frame
+      ? {
+          "--xp-stage-inset-inline": stage.frame.stackInset.inline,
+          "--xp-stage-inset-top": stage.frame.stackInset.top,
+          "--xp-stage-inset-bottom": stage.frame.stackInset.bottom,
+        }
+      : {}),
     ...(stage.footerText ? { "--xp-stage-footer": css(stage.footerText) } : {}),
     ...(manifest.layout.footerGap
       ? { "--xp-footer-gap": manifest.layout.footerGap }
@@ -366,7 +383,29 @@ export function manifestToCssVars(
     vars[`--xp-wheel-seg-text-${index + 1}`] = textOn(color, palette.ink);
   });
   Object.assign(vars, gameVars(manifest, css));
+  Object.assign(vars, motionVars(manifest.motion, css));
   return vars;
+}
+
+// The theme's motion (motion in theme.json, runtime/shell/motion.css): how fast its rays
+// turn, its vignette, the colors of its wipe. The rest of it is data-xp-fx-* on the root.
+function motionVars(
+  motion: ThemeManifest["motion"],
+  css: (value: string) => string,
+): CssVars {
+  return {
+    ...(motion.rays
+      ? { "--xp-fx-rays-seconds": `${motion.rays.seconds}s` }
+      : {}),
+    ...(motion.vignette ? { "--xp-fx-vignette": css(motion.vignette) } : {}),
+    ...(motion.rain ? { "--xp-fx-rain": css(motion.rain) } : {}),
+    ...(motion.wipe
+      ? {
+          "--xp-fx-wipe": css(motion.wipe.color),
+          "--xp-fx-wipe-ink": css(motion.wipe.ink),
+        }
+      : {}),
+  } as CssVars;
 }
 
 // The play screen of each game in the template's look (manifest.games): one variable per

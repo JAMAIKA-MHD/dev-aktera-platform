@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { DEFAULT_RULES } from "../../../domain/campaign";
 import { tint } from "../../../theme/recipes";
 import { runtimeAudio } from "../../feedback/audio";
 import { vibrate } from "../../feedback/haptics";
+import { useGameTheme } from "../../../theme/GameTheme";
+import { ComicWord, useComicWord } from "../../shell/ComicWord";
 import type { GameEngineProps } from "../types";
 import { HitTarget } from "./HitTarget";
 
@@ -13,6 +15,10 @@ import { HitTarget } from "./HitTarget";
 const TICK_MS = 100;
 const EDGE = 12; // keeps a target away from the field's edge, in percent
 const HIT_LOW_TIME = 0.25; // of the time: the bar turns to the theme's warning color
+// A lively theme (motion.games): every hit lands with a punch — the field jolts, "POW!" and a
+// "+1" pop where it landed, the score bumps — and the field warms up as the hits add up. The
+// last three seconds, its edges pulse red. Only how it looks: the count is the same.
+const LIVELY_LOW_MS = 3000;
 
 export function HitItEngine({
   settings,
@@ -33,6 +39,10 @@ export function HitItEngine({
   const [burst, setBurst] = useState<{ x: number; y: number } | null>(null);
   const sent = useRef(false);
   const playing = phase === "interacting";
+  const lively =
+    useGameTheme().manifest?.motion.games === "lively" && !reducedMotion;
+  const hitWord = useComicWord("hit");
+  const field = useRef<HTMLButtonElement>(null);
 
   const send = useRef(onInteractionComplete);
   useEffect(() => {
@@ -75,6 +85,18 @@ export function HitItEngine({
     setHits((scored) => scored + 1);
     runtimeAudio.play("tick");
     vibrate("tap");
+    const element = field.current;
+    if (lively && element && typeof element.animate === "function") {
+      element.animate(
+        [
+          { translate: "0 0" },
+          { translate: "-0.18rem 0.12rem" },
+          { translate: "0.14rem -0.1rem" },
+          { translate: "0 0" },
+        ],
+        { duration: 160, easing: "ease-out" },
+      );
+    }
     setBurst(spot);
     // Somewhere else on the field, never against an edge where it could be half off.
     setSpot({
@@ -84,6 +106,7 @@ export function HitItEngine({
   };
 
   const goal = `${rules.winThreshold} · ${rules.durationSeconds}s`;
+  const heat = Math.min(1, hits / Math.max(1, rules.winThreshold));
 
   return (
     <div
@@ -93,6 +116,8 @@ export function HitItEngine({
     >
       <div className="flex items-center justify-between gap-3">
         <span
+          // A new hit bumps the score (a lively theme).
+          key={lively ? hits : undefined}
           data-xp-hit-score
           className="rounded-full border px-3 py-1 text-sm font-extrabold tabular-nums"
           style={{
@@ -141,13 +166,21 @@ export function HitItEngine({
             hit();
           }
         }}
+        ref={field}
         aria-label={resolveLabel(config, locale)}
+        data-xp-hit-field
+        data-xp-low={
+          lively && playing && left <= LIVELY_LOW_MS ? "" : undefined
+        }
         className="relative size-full min-h-0 cursor-pointer overflow-hidden rounded-[var(--xp-radius-lg)] border disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
-        style={{
-          backgroundColor: "var(--xp-hit-field, transparent)",
-          borderColor: `var(--xp-hit-field-edge, ${tint("--xp-primary", 25)})`,
-          borderStyle: "var(--xp-hit-field-edge-style, dashed)",
-        }}
+        style={
+          {
+            backgroundColor: "var(--xp-hit-field, transparent)",
+            borderColor: `var(--xp-hit-field-edge, ${tint("--xp-primary", 25)})`,
+            borderStyle: "var(--xp-hit-field-edge-style, dashed)",
+            ...(lively ? { "--xp-hit-heat": heat.toFixed(2) } : null),
+          } as CSSProperties
+        }
       >
         {burst && !reducedMotion && (
           <span
@@ -156,6 +189,24 @@ export function HitItEngine({
             className="xp-hit-burst pointer-events-none absolute"
             style={{ insetInlineStart: `${burst.x}%`, top: `${burst.y}%` }}
           />
+        )}
+        {burst && lively && (
+          <span key={`plus-${hits}`} aria-hidden>
+            <span
+              className="xp-fx-plus"
+              style={{ insetInlineStart: `${burst.x}%`, top: `${burst.y}%` }}
+            >
+              +1
+            </span>
+            {hitWord && (
+              <ComicWord
+                word={hitWord}
+                x={burst.x}
+                y={Math.max(8, burst.y - 14)}
+                tilt={hits % 2 ? 9 : -9}
+              />
+            )}
+          </span>
         )}
         <HitTarget
           icon={settings.hitIt?.targetIcon ?? "target"}

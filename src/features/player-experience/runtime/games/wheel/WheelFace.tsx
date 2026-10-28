@@ -106,6 +106,7 @@ export interface WheelFaceProps {
   // How the wheel turns: the engine drives the angle frame by frame through the ref, the
   // teaser hands a CSS animation instead. Neither of them re-renders the segments to move.
   rotorRef?: Ref<SVGGElement>;
+  pointerRef?: Ref<SVGGraphicsElement>; // flicked on each slice by a lively engine
   rotorClassName?: string;
   rotorStyle?: CSSProperties;
 }
@@ -117,6 +118,7 @@ export function WheelFace({
   config,
   locale,
   rotorRef,
+  pointerRef,
   rotorClassName,
   rotorStyle,
 }: WheelFaceProps) {
@@ -214,9 +216,11 @@ export function WheelFace({
           className: "xp-wheel-bulb",
           stroke: inkedBulbs ? "var(--xp-wheel-bulb-ink)" : undefined,
           strokeWidth: inkedBulbs ? 1.6 : undefined,
-          // Every other light blinks on the other beat: a chase around the rim.
+          // Every other light blinks on the other beat: a chase around the rim. Its place in
+          // the ring, for a theme's slow chase while the wheel waits (motion.css).
           style: {
             "--xp-bulb-delay": index % 2 ? "0.25s" : "0s",
+            "--xp-bulb-at": (index / bulbs).toFixed(3),
           } as CSSProperties,
         };
         // A pixel theme's lights are square, upright whatever their place on the rim.
@@ -240,7 +244,11 @@ export function WheelFace({
         );
       })}
 
-      <g ref={rotorRef} className={rotorClassName} style={rotorStyle}>
+      <g
+        ref={rotorRef}
+        className={`xp-wheel-rotor ${rotorClassName ?? ""}`}
+        style={rotorStyle}
+      >
         {segments.map((segment, index) => {
           const start = index * segmentAngle;
           const middle = start + segmentAngle / 2;
@@ -262,7 +270,7 @@ export function WheelFace({
           const iconX = Math.cos(radians) * ICON_RADIUS;
           const iconY = Math.sin(radians) * ICON_RADIUS;
           return (
-            <g key={segment.id}>
+            <g key={segment.id} data-xp-segment>
               <path
                 className="xp-wheel-segment"
                 d={arcPath(start, start + segmentAngle)}
@@ -329,39 +337,44 @@ export function WheelFace({
       )}
 
       {/* Hub and pointer, both inside the viewBox: they scale with the wheel. */}
-      {squareHub ? (
-        <rect
-          className="xp-wheel-hub"
-          x={-HUB}
-          y={-HUB}
-          width={HUB * 2}
-          height={HUB * 2}
-          fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
-          stroke="var(--xp-wheel-rim-ink)"
-          strokeWidth={4}
-        />
-      ) : (
-        <circle
-          className="xp-wheel-hub"
-          r={HUB}
-          fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
-          stroke={themed ? "var(--xp-wheel-rim-ink)" : tint("--xp-surface", 70)}
-          strokeWidth={themed ? 4 : 3}
-        />
-      )}
-      <text
-        className="xp-wheel-hub-label"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="var(--xp-wheel-hub-text, var(--xp-on-primary))"
-        fontSize="15"
-        fontWeight="900"
-        letterSpacing="1"
-      >
-        {hubLabel}
-      </text>
+      <g className="xp-wheel-hub-group">
+        {squareHub ? (
+          <rect
+            className="xp-wheel-hub"
+            x={-HUB}
+            y={-HUB}
+            width={HUB * 2}
+            height={HUB * 2}
+            fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
+            stroke="var(--xp-wheel-rim-ink)"
+            strokeWidth={4}
+          />
+        ) : (
+          <circle
+            className="xp-wheel-hub"
+            r={HUB}
+            fill={flatHub ? "var(--xp-wheel-hub)" : `url(#${gradientId}-hub)`}
+            stroke={
+              themed ? "var(--xp-wheel-rim-ink)" : tint("--xp-surface", 70)
+            }
+            strokeWidth={themed ? 4 : 3}
+          />
+        )}
+        <text
+          className="xp-wheel-hub-label"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="var(--xp-wheel-hub-text, var(--xp-on-primary))"
+          fontSize="15"
+          fontWeight="900"
+          letterSpacing="1"
+        >
+          {hubLabel}
+        </text>
+      </g>
       {pointerArt && pointerSize ? (
         <image
+          ref={pointerRef as Ref<SVGImageElement>}
           className="xp-wheel-pointer"
           href={pointerArt}
           x={-pointerSize.width / 2}
@@ -371,6 +384,7 @@ export function WheelFace({
         />
       ) : (
         <path
+          ref={pointerRef as Ref<SVGPathElement>}
           className="xp-wheel-pointer"
           d={`M -13 -${RIM} L 13 -${RIM} L 0 -${DISC - 6} Z`}
           fill="var(--xp-wheel-pointer, var(--xp-primary))"

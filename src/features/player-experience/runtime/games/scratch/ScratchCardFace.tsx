@@ -31,7 +31,13 @@ export function ScratchCardFace({
 }: ScratchCardFaceProps) {
   const fallback = config.locales.default;
   const display = outcome?.prize
-    ? resolvePrizeDisplay(outcome.prize.id, config, campaign, locale)
+    ? resolvePrizeDisplay(
+        outcome.prize.id,
+        config,
+        campaign,
+        locale,
+        outcome.prize,
+      )
     : null;
   const Icon = display?.icon ? ICON_COMPONENTS[display.icon] : null;
 
@@ -51,7 +57,7 @@ export function ScratchCardFace({
       }}
     >
       {/* Underneath: what the draw gave. Never read before the cover is scratched off. */}
-      <div className="absolute inset-0 grid place-items-center gap-1 p-4 text-center">
+      <div className="xp-scratch-prize absolute inset-0 grid place-items-center gap-1 p-4 text-center">
         {Icon && (
           <Icon
             aria-hidden

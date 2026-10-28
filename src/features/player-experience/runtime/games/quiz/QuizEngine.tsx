@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_RULES } from "../../../domain/campaign";
 import { resolveQuizQuestion } from "../../../domain/display";
+import { useGameTheme } from "../../../theme/GameTheme";
 import { OUTLINE } from "../../../theme/recipes";
 import { runtimeAudio } from "../../feedback/audio";
 import type { GameEngineProps } from "../types";
@@ -13,6 +14,12 @@ import { QuizCardFace } from "./QuizCardFace";
 // are not even in the campaign snapshot it is given (N1).
 
 const TICK_MS = 100;
+// A lively theme (motion.games): the chosen answer is stamped and stays in view a moment
+// before the next question slides in. It is only "chosen": the engine never knows whether it
+// is right (the correct answers never reach the browser), so it never says so. The last three
+// seconds of a question tick and turn red.
+const CHOSEN_MS = 380;
+const LOW_MS = 3000;
 
 export function QuizEngine({
   campaign,
@@ -33,7 +40,12 @@ export function QuizEngine({
   const [left, setLeft] = useState(seconds * 1000);
   const answers = useRef<Record<string, number>>({});
   const sent = useRef(false);
-  const playing = phase === "interacting";
+  const { manifest, assets } = useGameTheme();
+  const lively = manifest?.motion.games === "lively" && !reducedMotion;
+  const [chosen, setChosen] = useState<number | null>(null);
+  const moving = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(moving.current), []);
+  const playing = phase === "interacting" && chosen === null;
 
   // Sending happens once, whether the player answered everything or ran out of time on the
   // last question: an unanswered question is simply missing from `answers` — the server
@@ -49,6 +61,7 @@ export function QuizEngine({
   };
 
   const next = () => {
+    setChosen(null);
     if (index + 1 >= questions.length) finish();
     else setIndex(index + 1);
   };
@@ -57,7 +70,12 @@ export function QuizEngine({
     if (!playing) return;
     answers.current[questionId] = option;
     runtimeAudio.play("click");
-    next();
+    if (!lively) {
+      next();
+      return;
+    }
+    setChosen(option);
+    moving.current = setTimeout(() => move.current(), CHOSEN_MS);
   };
 
   // The clock of one question. It restarts with each question, and an exhausted clock moves
@@ -69,8 +87,15 @@ export function QuizEngine({
     const total = seconds * 1000;
     const started = Date.now();
     setLeft(total);
+    let ticked = Math.ceil(total / 1000);
     const timer = setInterval(() => {
       const remaining = total - (Date.now() - started);
+      // One tick a second over the last three (a lively theme).
+      const second = Math.ceil(remaining / 1000);
+      if (lively && remaining > 0 && remaining <= LOW_MS && second < ticked) {
+        ticked = second;
+        runtimeAudio.play("countdown");
+      }
       if (remaining > 0) setLeft(remaining);
       else {
         clearInterval(timer);
@@ -78,7 +103,7 @@ export function QuizEngine({
       }
     }, TICK_MS);
     return () => clearInterval(timer);
-  }, [playing, timed, seconds, index]);
+  }, [playing, timed, seconds, index, lively]);
 
   // A quiz has no reveal of its own: the answers are gone, the result belongs to the screens
   // that follow. It hands the journey back as soon as it is asked to show one.
@@ -105,7 +130,16 @@ export function QuizEngine({
         // A new card for each question: it comes in on its own (games.css).
         key={index}
         counter={`${Math.min(index + 1, questions.length)} / ${questions.length}`}
-        timeLeft={timed && playing ? left / (seconds * 1000) : null}
+        timeLeft={
+          timed && (playing || chosen !== null) ? left / (seconds * 1000) : null
+        }
+        low={lively ? left <= LOW_MS : undefined}
+        progress={
+          lively && questions.length > 0
+            ? (index + (chosen !== null ? 1 : 0)) / questions.length
+            : null
+        }
+        progressArt={assets?.prizes.star ?? null}
         question={resolved?.text ?? ""}
         options={(resolved?.options ?? []).map((option, position) => (
           <button
@@ -117,6 +151,7 @@ export function QuizEngine({
             onClick={() => answer(question.id, position)}
             dir="auto"
             data-xp-quiz-option
+            data-xp-chosen={chosen === position ? "" : undefined}
             className="xp-outlined min-h-[44px] w-full cursor-pointer rounded-[var(--xp-radius-md)] border px-3 py-2 text-start text-[clamp(0.8rem,3.6cqmin,1rem)] font-bold wrap-anywhere transition-colors duration-150 enabled:hover:border-[color:var(--xp-primary)] disabled:cursor-default disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
             style={{
               borderColor: `var(--xp-quiz-option-border, ${OUTLINE})`,

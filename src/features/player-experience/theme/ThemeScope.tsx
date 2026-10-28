@@ -89,11 +89,33 @@ export function ThemeScope({
         data-xp-panel-frame={gameTheme.assets?.panelFrame ? "" : undefined}
         data-xp-panel-shape={gameTheme.assets?.panelShape ? "" : undefined}
         data-xp-card-frame={gameTheme.assets?.cardFrame ? "" : undefined}
+        {...motionAttributes(manifest)}
       >
         {children}
       </div>
     </GameThemeContext.Provider>
   );
+}
+
+// The theme's motion as attributes of the root (runtime/shell/motion.css reads them): only
+// what differs from the classic motion is set.
+function motionAttributes(
+  manifest: ThemeManifest | null,
+): Record<`data-xp-fx-${string}`, string | undefined> {
+  const motion = manifest?.motion;
+  if (!motion) return {};
+  const set = (on: boolean, value = "") => (on ? value : undefined);
+  return {
+    "data-xp-fx-rays": set(motion.rays !== null),
+    "data-xp-fx-vignette": set(motion.vignette !== null),
+    "data-xp-fx-entrance": set(motion.entrance !== "rise", motion.entrance),
+    "data-xp-fx-buttons": set(motion.buttons !== "press", motion.buttons),
+    "data-xp-fx-fields": set(motion.fields !== "plain", motion.fields),
+    "data-xp-fx-impact": set(motion.impact),
+    "data-xp-fx-games": set(motion.games !== "classic", motion.games),
+    "data-xp-fx-feel": set(motion.feel !== "smooth", motion.feel),
+    "data-xp-fx-wipe": motion.wipe?.kind,
+  };
 }
 
 // The theme styles the line under the title (copy in theme.json).

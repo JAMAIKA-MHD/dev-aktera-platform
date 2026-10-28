@@ -2,6 +2,7 @@ import {
   themeFilePath,
   type PrizeArtName,
   type ThemeDecor,
+  type ThemeFlyer,
   type ThemeManifest,
   type ThemeScreen,
   type ThemeSoundName,
@@ -30,6 +31,10 @@ export interface ResolvedDecor extends Omit<ThemeDecor, "src"> {
   url: string;
 }
 
+export interface ResolvedFlyer extends Omit<ThemeFlyer, "src"> {
+  url: string;
+}
+
 // Everything the shell shows from a theme, resolved once per theme.
 export interface ThemeAssets {
   background: (gameType: GameType, screen: string | undefined) => string | null;
@@ -51,6 +56,7 @@ export interface ThemeAssets {
   cardFrame: string | null;
   buttonFrames: Readonly<{ primary: string | null; secondary: string | null }>;
   decor: readonly ResolvedDecor[];
+  flyers: readonly ResolvedFlyer[]; // what crosses the stage (motion.flyers)
   prizes: Readonly<Partial<Record<PrizeArtName, string>>>;
   characters: Readonly<{ happy?: string; sad?: string }>;
   sounds: Readonly<Partial<Record<ThemeSoundName, string>>>;
@@ -121,6 +127,10 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
     decor: manifest.stage.decor.flatMap(({ src, ...decor }) => {
       const resolved = url(src);
       return resolved ? [{ ...decor, url: resolved }] : [];
+    }),
+    flyers: manifest.motion.flyers.flatMap(({ src, ...flyer }) => {
+      const resolved = url(src);
+      return resolved ? [{ ...flyer, url: resolved }] : [];
     }),
     prizes: urls(manifest, manifest.prizes),
     characters: urls(manifest, manifest.characters),

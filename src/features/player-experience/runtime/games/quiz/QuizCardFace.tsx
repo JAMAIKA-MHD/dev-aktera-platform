@@ -13,6 +13,10 @@ export interface QuizCardFaceProps {
   counter: string; // "2 / 3"
   // 0 to 1, how much of the question's time is left. Null when the campaign has no timer.
   timeLeft: number | null;
+  low?: boolean; // little time left, when the engine says so (else under QUIZ_LOW_TIME)
+  // 0 to 1, how far into the quiz: a bar with a star riding its end (a lively theme).
+  progress?: number | null;
+  progressArt?: string | null; // the theme's star
   question: ReactNode;
   options: ReactNode;
 }
@@ -20,6 +24,9 @@ export interface QuizCardFaceProps {
 export function QuizCardFace({
   counter,
   timeLeft,
+  low,
+  progress = null,
+  progressArt = null,
   question,
   options,
 }: QuizCardFaceProps) {
@@ -46,7 +53,7 @@ export function QuizCardFace({
           <span
             aria-hidden
             data-xp-quiz-timer
-            data-xp-low={timeLeft <= QUIZ_LOW_TIME ? "" : undefined}
+            data-xp-low={(low ?? timeLeft <= QUIZ_LOW_TIME) ? "" : undefined}
             className="xp-quiz-timer relative grid size-[clamp(2rem,9cqmin,2.75rem)] shrink-0 place-items-center rounded-full"
             style={{
               // The ring empties as the time runs out — a picture of the clock, not a number.
@@ -62,6 +69,34 @@ export function QuizCardFace({
           </span>
         )}
       </div>
+
+      {progress !== null && (
+        <div
+          aria-hidden
+          data-xp-quiz-progress
+          className="relative h-2 rounded-full"
+          style={{
+            backgroundColor: `var(--xp-quiz-timer-track, ${tint("--xp-text", 12)})`,
+          }}
+        >
+          <span
+            className="xp-quiz-progress-fill absolute inset-y-0 start-0 rounded-full"
+            style={{
+              width: `${(progress * 100).toFixed(1)}%`,
+              backgroundColor: "var(--xp-quiz-timer-fill, var(--xp-primary))",
+            }}
+          />
+          {progressArt && (
+            <img
+              src={progressArt}
+              alt=""
+              draggable={false}
+              className="xp-quiz-progress-star absolute top-1/2 size-[clamp(1.1rem,5cqmin,1.6rem)]"
+              style={{ insetInlineStart: `${(progress * 100).toFixed(1)}%` }}
+            />
+          )}
+        </div>
+      )}
 
       <p
         dir="auto"

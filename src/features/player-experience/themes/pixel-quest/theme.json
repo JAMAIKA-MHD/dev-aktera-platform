@@ -157,42 +157,48 @@
         "left": "3.125%",
         "top": "5.5556%",
         "width": "calc((50vw + 50vh) * 0.192)",
-        "motion": "drift"
+        "motion": "wind",
+        "seconds": 55
       },
       {
         "src": "assets/decor/cloud-2.svg",
         "left": "23.4375%",
         "top": "2.7778%",
         "width": "calc((50vw + 50vh) * 0.096)",
-        "motion": "drift"
+        "motion": "wind",
+        "seconds": 120
       },
       {
         "src": "assets/decor/cloud-3.svg",
         "left": "9.375%",
         "top": "19.4444%",
         "width": "calc((50vw + 50vh) * 0.144)",
-        "motion": "drift"
+        "motion": "wind",
+        "seconds": 85
       },
       {
         "src": "assets/decor/cloud-4.svg",
         "right": "3.125%",
         "top": "4.1667%",
         "width": "calc((50vw + 50vh) * 0.24)",
-        "motion": "drift"
+        "motion": "wind",
+        "seconds": 50
       },
       {
         "src": "assets/decor/cloud-5.svg",
         "right": "20.9375%",
         "top": "14.4444%",
         "width": "calc((50vw + 50vh) * 0.112)",
-        "motion": "drift"
+        "motion": "wind",
+        "seconds": 115
       },
       {
         "src": "assets/decor/cloud-6.svg",
         "right": "2.3438%",
         "top": "23.6111%",
         "width": "calc((50vw + 50vh) * 0.12)",
-        "motion": "drift"
+        "motion": "wind",
+        "seconds": 90
       },
       {
         "src": "assets/decor/cloud-7.svg",
@@ -212,51 +218,67 @@
         "src": "assets/decor/bush.svg",
         "left": "1.25%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
-        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)"
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
+        "motion": "sway",
+        "seconds": 3.2
       },
       {
         "src": "assets/decor/bush-2.svg",
         "left": "7.8125%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
-        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)"
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)",
+        "motion": "sway",
+        "seconds": 2.8
       },
       {
         "src": "assets/decor/bush-3.svg",
         "right": "1.25%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
-        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)"
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
+        "motion": "sway",
+        "seconds": 2.8
       },
       {
         "src": "assets/decor/bush-4.svg",
         "right": "7.8125%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
-        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)"
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)",
+        "motion": "sway",
+        "seconds": 2.8
       },
       {
         "src": "assets/decor/tree.svg",
         "left": "23.4375%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8333)",
-        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.381)"
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.381)",
+        "motion": "sway",
+        "seconds": 3.2
       },
       {
         "src": "assets/decor/tree-2.svg",
         "right": "21.0938%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8214)",
-        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.3883)"
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.3883)",
+        "motion": "sway",
+        "seconds": 2.8
       },
       {
         "src": "assets/decor/bush-5.svg",
         "left": "18.75%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8204)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.2381)",
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "motion": "sway",
+        "seconds": 2.8
       },
       {
         "src": "assets/decor/bush-6.svg",
         "right": "18.75%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8204)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.295)",
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "motion": "sway",
+        "seconds": 2.8
       },
       {
         "src": "assets/decor/confetti-red.svg",
@@ -347,6 +369,99 @@
         "motion": "twinkle",
         "hideWhenLow": true,
         "screens": ["win"]
+      },
+      {
+        "src": "assets/sprites/sun.svg",
+        "right": "5%",
+        "top": "7%",
+        "width": "calc((50vw + 50vh) * 0.075)",
+        "sprite": {
+          "frames": 2,
+          "fps": 2,
+          "aspect": 1
+        },
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/sprites/sparkle.svg",
+        "left": "14%",
+        "top": "12%",
+        "width": "calc((50vw + 50vh) * 0.018)",
+        "sprite": {
+          "frames": 3,
+          "fps": 5,
+          "aspect": 1
+        },
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/sprites/sparkle.svg",
+        "right": "22%",
+        "top": "30%",
+        "width": "calc((50vw + 50vh) * 0.014)",
+        "sprite": {
+          "frames": 3,
+          "fps": 4,
+          "aspect": 1
+        },
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/sprites/coin.svg",
+        "left": "13%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 1.2)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.2)",
+        "sprite": {
+          "frames": 4,
+          "fps": 8,
+          "aspect": 1
+        },
+        "motion": "hover",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
       }
     ]
   },
@@ -467,5 +582,69 @@
       "lose": "@ink"
     }
   },
-  "sounds": {}
+  "sounds": {},
+  "motion": {
+    "feel": "stepped",
+    "chiptune": true,
+    "flyers": [
+      {
+        "src": "assets/sprites/bird.svg",
+        "frames": 3,
+        "fps": 7,
+        "aspect": 1.333,
+        "width": "clamp(2rem, 5vmin, 3.25rem)",
+        "lane": "sky",
+        "band": [4, 38],
+        "every": [6, 15],
+        "cross": [15, 30],
+        "flock": 3,
+        "max": 5,
+        "onWin": true
+      },
+      {
+        "src": "assets/sprites/snail.svg",
+        "frames": 2,
+        "fps": 3,
+        "aspect": 1.333,
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.3)",
+        "lane": "ground",
+        "ground": "calc(clamp(4.5rem, 17svh, 11rem) * 0.84)",
+        "every": [20, 40],
+        "cross": [40, 60],
+        "flock": 1,
+        "max": 1,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      }
+    ],
+    "rain": "#E6FAF9",
+    "countdown": true,
+    "pipe": true,
+    "entrance": "pop",
+    "buttons": "squish",
+    "fields": "lively",
+    "wipe": {
+      "kind": "iris",
+      "color": "@primary",
+      "ink": "#0F2A66"
+    },
+    "impact": true,
+    "confetti": "pixel",
+    "games": "lively",
+    "words": {
+      "start": "GO!",
+      "hit": "COMBO!",
+      "open": "BONUS!",
+      "win": "LEVEL CLEAR!",
+      "lose": "GAME OVER"
+    }
+  }
 }

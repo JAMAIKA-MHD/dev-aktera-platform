@@ -331,11 +331,27 @@ describe("PlayerExperience · templates of the library", () => {
     expect(root?.style.backgroundImage).toBe("");
     const stage = container.querySelector<HTMLElement>(".xp-stage");
     expect(stage?.getAttribute("aria-hidden")).toBe("true");
+    // Its stage is painted, not a picture: rays in CSS, a cut-corner frame in vector, its
+    // own polygon on one column.
     expect(
       stage
         ?.querySelector<HTMLElement>(".xp-stage-image")
-        ?.style.getPropertyValue("--xp-stage-image"),
-    ).toContain("url(");
+        ?.style.getPropertyValue("--xp-stage-paint"),
+    ).toContain("repeating-conic-gradient(");
+    const frame = stage?.querySelector<HTMLElement>(".xp-stage-frame");
+    expect(frame?.style.getPropertyValue("--xp-frame-clip")).toMatch(
+      /^polygon\(/,
+    );
+    expect(
+      [...(frame?.querySelectorAll("[data-xp-frame]") ?? [])].map((svg) =>
+        svg.getAttribute("data-xp-frame"),
+      ),
+    ).toEqual(["stack", "wide"]);
+    expect(
+      frame
+        ?.querySelector("[data-xp-frame-part]")
+        ?.getAttribute("vector-effect"),
+    ).toBe("non-scaling-stroke");
     expect(stage?.querySelectorAll(".xp-decor").length).toBeGreaterThan(0);
     expect(document.getElementById("xp-template-comic-burst")).not.toBeNull();
     // The frame says which screen it draws.

@@ -9,6 +9,7 @@ import { ensureFontStylesheet, ensureTemplateFonts } from "../theme/fonts";
 import { useGameTheme } from "../theme/GameTheme";
 import { ThemeScope } from "../theme/ThemeScope";
 import { runtimeAudio } from "./feedback/audio";
+import { MUSIC_URL } from "./feedback/music";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
 import { LoseScreen } from "./screens/LoseScreen";
 import { RegisterScreen } from "./screens/RegisterScreen";
@@ -16,6 +17,8 @@ import { PlayScreen } from "./screens/PlayScreen";
 import type { FrameChrome, ScreenProps } from "./screens/screenProps";
 import { StatusScreen } from "./screens/StatusScreen";
 import { GameFrame } from "./shell/GameFrame";
+import { TransitionLayer, useScreenTransition } from "./shell/ScreenTransition";
+import { useReducedMotion } from "./hooks/useReducedMotion";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { WinScreen } from "./screens/WinScreen";
 import { useExperienceFlow, type DrawSource } from "./useExperienceFlow";
@@ -114,12 +117,27 @@ export function PlayerExperience(props: PlayerExperienceProps) {
   );
 }
 
-// The theme's own recordings, for the whole runtime document (feedback/audio.ts).
+// The theme's own recordings, for the whole runtime document (feedback/audio.ts), and the
+// music every template loops under them: it starts with the player's first gesture, pauses
+// while the page is out of sight, and stops when the page goes.
 function ThemeSounds() {
-  const { assets } = useGameTheme();
+  const { assets, manifest } = useGameTheme();
   useEffect(() => {
     runtimeAudio.setSoundFiles(assets?.sounds ?? {});
   }, [assets]);
+  useEffect(() => {
+    runtimeAudio.setChiptune(manifest?.motion.chiptune ?? false);
+  }, [manifest]);
+  useEffect(() => {
+    const hidden = () => runtimeAudio.setHidden(document.hidden);
+    hidden();
+    runtimeAudio.setMusic(MUSIC_URL);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      document.removeEventListener("visibilitychange", hidden);
+      runtimeAudio.setMusic(null);
+    };
+  }, []);
   return null;
 }
 
@@ -147,15 +165,49 @@ function Journey({
     source,
   });
   const screen = flow.state.screen;
+  const props: ScreenProps = { flow, config, campaign, locale, chrome };
+  // The change from one screen to the next, in the theme's own way (ScreenTransition): the
+  // journey is already on the new screen; what is drawn follows, under the wipe's cover.
+  const motion = useGameTheme().manifest?.motion;
+  const reducedMotion = useReducedMotion(config.features.animations);
+  const { shown, phase, holding } = useScreenTransition({
+    screen,
+    element: screenElement(screen, props),
+    enabled: Boolean(motion) && !reducedMotion,
+    wipe: Boolean(motion?.wipe),
+    pipe: motion?.pipe ?? false,
+  });
   const report = useRef({ onFlowEvent, onScreen });
   useEffect(() => {
     report.current = { onFlowEvent, onScreen };
   });
   useEffect(() => {
     report.current.onFlowEvent?.(screen);
-    report.current.onScreen(screen);
   }, [screen]);
-  const props: ScreenProps = { flow, config, campaign, locale, chrome };
+  // The stage changes with what is drawn, behind the wipe too.
+  useEffect(() => {
+    report.current.onScreen(shown.screen);
+  }, [shown.screen]);
+  return (
+    <>
+      <div
+        className="xp-transition contents"
+        data-xp-change={shown.change ?? undefined}
+        // The old screen, held while it leaves (a pipe slides it down).
+        data-xp-leaving={holding ?? undefined}
+      >
+        {shown.element}
+      </div>
+      <TransitionLayer
+        phase={phase}
+        change={holding ?? shown.change}
+        serial={shown.serial}
+      />
+    </>
+  );
+}
+
+function screenElement(screen: FlowScreen, props: ScreenProps) {
   if (screen === "welcome") return <WelcomeScreen {...props} />;
   if (screen === "register") return <RegisterScreen {...props} />;
   if (screen === "duplicate" || screen === "closed" || screen === "error") {

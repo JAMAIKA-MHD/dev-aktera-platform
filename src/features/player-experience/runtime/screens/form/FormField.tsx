@@ -219,7 +219,7 @@ export function FormField({
         id={errorId}
         aria-live="polite"
         dir="auto"
-        className="flex items-start gap-1.5 text-sm font-medium empty:hidden"
+        className="xp-field-error flex items-start gap-1.5 text-sm font-medium empty:hidden"
         style={{ color: "var(--xp-danger)" }}
       >
         {error && (

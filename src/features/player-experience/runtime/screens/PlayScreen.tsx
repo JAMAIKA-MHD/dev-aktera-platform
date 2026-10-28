@@ -8,6 +8,7 @@ import { registry } from "../games/registry";
 import type { GamePhase } from "../games/types";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { ScreenMedallion } from "./ScreenMedallion";
+import { ComicWord, useComicWord } from "../shell/ComicWord";
 import { press, type ScreenProps } from "./screenProps";
 
 // The game on stage (plan §8.5, tasks.md T5.2). One screen for the three moments a game is
@@ -47,6 +48,8 @@ export function PlayScreen({
   chrome,
 }: ScreenProps) {
   const reducedMotion = useReducedMotion(config.features.animations);
+  // The theme's word as the game opens ("GO!"), once, over the game.
+  const startWord = useComicWord("start");
   const { state } = flow;
   const Engine = registry[campaign.gameType].Engine;
   const onStage =
@@ -74,6 +77,9 @@ export function PlayScreen({
       live={chrome.live}
       cta={cta}
     >
+      {startWord && !reducedMotion && state.screen === "play" && (
+        <ComicWord word={startWord} y={45} tilt={0} />
+      )}
       <Suspense fallback={<WaitingForEngine config={config} locale={locale} />}>
         <Engine
           settings={config.game}

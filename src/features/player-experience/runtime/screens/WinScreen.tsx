@@ -14,6 +14,7 @@ import { PrizeArt } from "../shell/PrizeArt";
 import { ResultScreen } from "../shell/ResultScreen";
 import { RewardPopup } from "../shell/RewardPopup";
 import { useThemeHeroArt } from "../shell/useThemeHeroArt";
+import { ComicWord, useComicWord } from "../shell/ComicWord";
 import { useGameTheme } from "../../theme/GameTheme";
 import { press, type ScreenProps } from "./screenProps";
 
@@ -46,7 +47,13 @@ export function WinScreen({
 
   const outcome = state.outcome;
   const prizeId = outcome?.prize?.id ?? "";
-  const resolved = resolvePrizeDisplay(prizeId, config, campaign, locale);
+  const resolved = resolvePrizeDisplay(
+    prizeId,
+    config,
+    campaign,
+    locale,
+    outcome?.prize,
+  );
   const display = {
     ...resolved,
     label: resolved.label || text(RESULT_TEXT.prizeFallback),
@@ -54,7 +61,10 @@ export function WinScreen({
   const couponCode = outcome?.couponCode ?? null;
   const couponStatus = flow.couponStatus;
   const heroArt = useThemeHeroArt("win");
-  const confirmUnderCta = useGameTheme().manifest?.layout.kind === "spotlight";
+  const { manifest } = useGameTheme();
+  const confirmUnderCta = manifest?.layout.kind === "spotlight";
+  const motion = manifest?.motion;
+  const winWord = useComicWord("win");
   const canConfirm =
     couponCode !== null &&
     couponStatus !== "confirmed" &&
@@ -66,8 +76,15 @@ export function WinScreen({
   // Once, when the win is first shown: never replayed on a re-render (a resize, an edit).
   useEffect(() => {
     runtimeAudio.play("win");
-    vibrate("win");
-    if (card.current) celebrate(card.current, { reducedMotion });
+    vibrate(motion?.games === "lively" ? "bigWin" : "win");
+    if (card.current) {
+      celebrate(card.current, {
+        reducedMotion,
+        style: motion?.confetti ?? "classic",
+      });
+    }
+    // The theme's look of it is read once: a template changed in the Studio mid-win does
+    // not fire the confetti again.
   }, [reducedMotion]);
   // The code is the player's: the reward sound, once it is confirmed.
   useEffect(() => {
@@ -115,6 +132,7 @@ export function WinScreen({
           : null),
       }}
     >
+      {winWord && !reducedMotion && <ComicWord word={winWord} over y={18} />}
       <ResultScreen
         tone="win"
         art={

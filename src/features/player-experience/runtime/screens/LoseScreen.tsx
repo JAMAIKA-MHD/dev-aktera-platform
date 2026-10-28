@@ -1,15 +1,20 @@
 import { HandHeart, MessageCircle } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { resolveText } from "../../domain/locale";
 import { RESULT_TEXT } from "../../presets/contentDefaults";
 import { useGameTheme } from "../../theme/GameTheme";
 import { runtimeAudio } from "../feedback/audio";
+import { vibrate } from "../feedback/haptics";
 import { ExperienceFrame } from "../frame/ExperienceFrame";
 import { GameButton } from "../shell/GameButton";
 import { ResultScreen } from "../shell/ResultScreen";
 import { useThemeHeroArt } from "../shell/useThemeHeroArt";
 import { ScreenMedallion } from "./ScreenMedallion";
+import { ComicWord, useComicWord } from "../shell/ComicWord";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 import { press, type ScreenProps } from "./screenProps";
+
+const COUNTDOWN_FROM = 10; // seconds of an arcade "Continue?"
 
 // The end of a losing journey (plan §6.3, tasks.md T4.4), from LoseConsolation.tsx: a warm
 // message with the theme's sad character (or a light medallion), and a single, simple share
@@ -19,12 +24,31 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
   const fallback = config.locales.default;
   const text = (value: Parameters<typeof resolveText>[0]) =>
     resolveText(value, locale, fallback);
-  const character = useGameTheme().assets?.characters.sad ?? null;
+  const { assets, manifest } = useGameTheme();
+  const character = assets?.characters.sad ?? null;
+  const lively = manifest?.motion.games === "lively";
+  const reducedMotion = useReducedMotion(config.features.animations);
+  const loseWord = useComicWord("lose");
+  // An arcade loss (motion.countdown): "Continue? 10, 9…" down to zero, toward the screen's
+  // own button. It never acts by itself: the player still chooses.
+  const counting = Boolean(manifest?.motion.countdown) && !reducedMotion;
+  const [left, setLeft] = useState(COUNTDOWN_FROM);
+  useEffect(() => {
+    if (!counting || left <= 0) return;
+    const tick = setTimeout(() => {
+      setLeft(left - 1);
+      runtimeAudio.play("countdown");
+    }, 1000);
+    return () => clearTimeout(tick);
+  }, [counting, left]);
   // Drawn over the title by a spotlight template (slot 2): the body keeps the button alone.
   const heroArt = useThemeHeroArt("lose");
 
   useEffect(() => {
     runtimeAudio.play("lose");
+    // A soft double pulse: the loss is told, never rubbed in.
+    if (lively) vibrate("lose");
+    // Once, when the loss is first shown (a template changed in the Studio does not replay it).
   }, []);
 
   const brandName =
@@ -40,14 +64,28 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
     );
   };
 
+  const countdown = counting ? (
+    <p
+      aria-hidden
+      dir="auto"
+      data-xp-countdown={left === 0 ? "done" : ""}
+      className="xp-fx-countdown xp-display text-[clamp(0.8rem,3.6cqmin,1.1rem)]"
+    >
+      {text(RESULT_TEXT.continueCountdown).replace("{n}", String(left))}
+    </p>
+  ) : null;
+
   const shareButton = (
-    <GameButton
-      variant="secondary"
-      label={text(RESULT_TEXT.share)}
-      icon={<MessageCircle className="size-4 shrink-0" />}
-      onClick={share}
-      className="mt-2 min-h-[44px] px-4 text-sm font-bold"
-    />
+    <>
+      {countdown}
+      <GameButton
+        variant="secondary"
+        label={text(RESULT_TEXT.share)}
+        icon={<MessageCircle className="size-4 shrink-0" />}
+        onClick={share}
+        className="mt-2 min-h-[44px] px-4 text-sm font-bold"
+      />
+    </>
   );
 
   return (
@@ -61,6 +99,9 @@ export function LoseScreen({ flow, config, locale, chrome }: ScreenProps) {
       live={chrome.live}
       cta={{ onPrimary: press(flow, flow.restart, "primary") }}
     >
+      {loseWord && !reducedMotion && (
+        <ComicWord word={loseWord} over y={20} tilt={0} />
+      )}
       {/* The template draws its own picture over the title: the body keeps the button. */}
       {character || heroArt ? (
         <ResultScreen

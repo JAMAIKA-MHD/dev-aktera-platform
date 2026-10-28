@@ -72,14 +72,84 @@
   opacity: var(--xp-stage-overlay-opacity);
 }
 /* A win brightens the stage; a loss calms it down. */
-.xp-stage[data-xp-mood="win"] .xp-stage-image {
+.xp-stage[data-xp-mood="win"] :is(.xp-stage-image, .xp-stage-frame) {
   filter: saturate(1.2) brightness(1.08);
 }
 .xp-stage[data-xp-mood="lose"] .xp-stage-veil {
   opacity: calc(var(--xp-stage-overlay-opacity) + 0.32);
 }
-.xp-stage[data-xp-mood="lose"] :is(.xp-stage-image, .xp-decor) {
+.xp-stage[data-xp-mood="lose"]
+  :is(.xp-stage-image, .xp-stage-frame, .xp-decor) {
   filter: saturate(0.6);
+}
+
+/* A painted stage (stage.paint): its rays in CSS, and halftone dots fading out of two
+   opposite corners. Sized on the screen, so as sharp on a phone as on a wall screen. */
+.xp-stage-image[data-xp-painted],
+.xp-stage-frame-sky {
+  background: var(--xp-stage-paint);
+}
+.xp-stage-image[data-xp-painted]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--xp-stage-dots, none) 0 0 / var(--xp-stage-dots-size)
+    var(--xp-stage-dots-size);
+  --xp-stage-dots-size: clamp(0.45rem, 1.1vmax, 1.1rem);
+  mask:
+    radial-gradient(circle at 0 0, currentColor, transparent 32vmax),
+    radial-gradient(circle at 100% 100%, currentColor, transparent 32vmax);
+  -webkit-mask:
+    radial-gradient(circle at 0 0, currentColor, transparent 32vmax),
+    radial-gradient(circle at 100% 100%, currentColor, transparent 32vmax);
+}
+
+/* The stage's frame (stage.frame): the sky inside its polygon, the band and the outline at a
+   constant width. Its own polygon on one column (shallower cuts, the header clear of them),
+   the wide one where the screen splits. */
+.xp-stage-frame {
+  position: absolute;
+  inset: 0;
+  transition: filter 500ms ease;
+}
+.xp-stage-frame-sky {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--xp-frame-clip);
+  @variant split {
+    clip-path: var(--xp-frame-clip-wide);
+  }
+}
+.xp-stage-frame-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke-linejoin: miter;
+  &[data-xp-frame="wide"] {
+    display: none;
+  }
+  @variant split {
+    &[data-xp-frame="wide"] {
+      display: block;
+    }
+    &[data-xp-frame="stack"] {
+      display: none;
+    }
+  }
+}
+/* Each stroke is centred on the polygon's edge and clipped to its inside: half of it shows,
+   the outline on the edge, the band inside it. */
+[data-xp-frame-part="band"] {
+  stroke: var(--xp-frame-band);
+  stroke-width: calc(
+    (var(--xp-frame-band-width) + var(--xp-frame-ink-width)) * 2
+  );
+}
+[data-xp-frame-part="ink"] {
+  stroke: var(--xp-frame-ink);
+  stroke-width: calc(var(--xp-frame-ink-width) * 2);
 }
 
 /* Decorations drawn over the panel (a star on the cloud's edge): above the frame, never in
@@ -103,9 +173,19 @@
   display: none;
 }
 
+/* Its place on one column (its own, or the wide one at the stage's decorScale), and its wide
+   place where the screen splits (GameFrame). */
 .xp-decor {
   position: absolute;
   display: block;
+  inset: var(--xp-decor-top-stack) var(--xp-decor-right-stack)
+    var(--xp-decor-bottom-stack) var(--xp-decor-left-stack);
+  width: var(--xp-decor-width-stack);
+  @variant split {
+    inset: var(--xp-decor-top) var(--xp-decor-right) var(--xp-decor-bottom)
+      var(--xp-decor-left);
+    width: var(--xp-decor-width);
+  }
   height: auto;
   rotate: var(--xp-decor-rotate, 0deg);
   opacity: var(--xp-decor-opacity, 1);
@@ -163,8 +243,18 @@
 :where(.xp-root[data-xp-themed]) .xp-frame {
   /* The stage seen around the panel (more of it on a larger screen), then the panel beyond
      the text column. Narrower panes in split leave the stage its sides. */
-  --xp-panel-gap: clamp(0.6rem, 4vw, 6rem);
+  --xp-panel-gap: max(clamp(0.6rem, 4vw, 6rem), var(--xp-inset-inline));
   --xp-panel-gap-block: clamp(0.5rem, 3svh, 2.5rem);
+  /* A frame drawn around the stage (stage.frame): on one column the texts keep clear of it,
+     and of the corner decorations under the footer. Its wide polygon leaves room enough. */
+  --xp-inset-inline: var(--xp-stage-inset-inline, 0px);
+  --xp-inset-top: var(--xp-stage-inset-top, 0px);
+  --xp-inset-bottom: var(--xp-stage-inset-bottom, 0px);
+  @variant split {
+    --xp-inset-inline: 0px;
+    --xp-inset-top: 0px;
+    --xp-inset-bottom: 0px;
+  }
   --xp-panel-pad: clamp(0.85rem, 3.5vw, 1.5rem);
   --xp-panel-block: clamp(0.5rem, 2svh, 1rem);
   --xp-pane-start-max: 28rem;
@@ -175,10 +265,13 @@
   isolation: isolate;
   color: var(--xp-panel-text);
   padding-top: calc(
-    var(--xp-safe-top) + var(--xp-panel-gap-block) + var(--xp-panel-block)
+    var(--xp-safe-top) + max(var(--xp-panel-gap-block), var(--xp-inset-top)) +
+      var(--xp-panel-block)
   );
   padding-bottom: calc(
-    var(--xp-safe-bottom) + var(--xp-panel-gap-block) + var(--xp-panel-block)
+    var(--xp-safe-bottom) +
+      max(var(--xp-panel-gap-block), var(--xp-inset-bottom)) +
+      var(--xp-panel-block)
   );
 
   /* One panel behind every slot: the column on a phone, both panes in split. */
@@ -238,8 +331,13 @@
    stage, above and under the framed panel: the board keeps its room for the screen. */
 .xp-root[data-xp-layout="spotlight"][data-xp-panel-frame] .xp-frame {
   @variant split {
-    padding-top: calc(var(--xp-safe-top) + var(--xp-panel-gap-block));
-    padding-bottom: calc(var(--xp-safe-bottom) + var(--xp-panel-gap-block));
+    padding-top: calc(
+      var(--xp-safe-top) + max(var(--xp-panel-gap-block), var(--xp-inset-top))
+    );
+    padding-bottom: calc(
+      var(--xp-safe-bottom) +
+        max(var(--xp-panel-gap-block), var(--xp-inset-bottom))
+    );
     &::before {
       grid-row: 2 / -2;
     }
@@ -265,7 +363,7 @@
    the column narrows to the theme's. The shape's shadow is a drop-shadow: it follows the
    picture, not the box. */
 .xp-root[data-xp-panel-shape] .xp-frame {
-  --xp-panel-gap: clamp(0.75rem, 3vw, 2rem);
+  --xp-panel-gap: max(clamp(0.75rem, 3vw, 2rem), var(--xp-inset-inline));
   --xp-panel-pad: var(--xp-panel-shape-pad-stack);
   --xp-panel-bleed: var(--xp-panel-shape-bleed);
   --xp-panel-block: var(--xp-panel-shape-pad-block);
@@ -294,8 +392,13 @@
    above and under the shape: the shape stays whole in the middle, with the stage around it,
    keeps its room for the screen's own texts, and its narrow top corners never meet the bar. */
 .xp-root[data-xp-panel-shape] .xp-frame[data-xp-shape="on"] {
-  padding-top: calc(var(--xp-safe-top) + var(--xp-panel-gap-block));
-  padding-bottom: calc(var(--xp-safe-bottom) + var(--xp-panel-gap-block));
+  padding-top: calc(
+    var(--xp-safe-top) + max(var(--xp-panel-gap-block), var(--xp-inset-top))
+  );
+  padding-bottom: calc(
+    var(--xp-safe-bottom) +
+      max(var(--xp-panel-gap-block), var(--xp-inset-bottom))
+  );
   /* Its top bump is high in the middle, where the centred title starts: less room above
      than below, where the full-width CTA meets the lower bumps. */
   &::before {
@@ -313,6 +416,22 @@
     color: var(--xp-text);
   }
 }
+/* Drawn at its size on one column (panel.shape.draw, usePanelCloud): its bumps are as big as
+   the room around the texts, so that room shrinks to what they need and the texts get most
+   of the screen's width. The picture stays underneath until the cloud is drawn. */
+.xp-root[data-xp-panel-shape] .xp-frame[data-xp-shape="on"][data-xp-cloud] {
+  /* A phone held sideways too: the one-column room, not the wide picture's. */
+  --xp-panel-pad: var(--xp-panel-shape-pad-stack);
+  --xp-panel-block: calc(var(--xp-panel-pad) * 1.25);
+  &::before {
+    background-image: var(
+      --xp-panel-cloud,
+      var(--xp-panel-shape-stack, var(--xp-panel-shape))
+    );
+    /* Read back by usePanelCloud, in pixels: the outline's width. */
+    stroke-width: var(--xp-panel-cloud-outline, 0px);
+  }
+}
 /* In the spotlight, the form needs no card of its own: its fields sit on the cloud, or
    straight on the sky. */
 .xp-root[data-xp-layout="spotlight"] .xp-frame[data-xp-screen="register"] {
@@ -320,9 +439,32 @@
   --xp-card-border: transparent;
   --xp-card-shadow: none;
 }
+/* The screens that only say something (the form, a status) on a drawn cloud (one column, a
+   phone held sideways): nothing to play, no floor to keep. The shape grows with their texts and the page
+   scrolls, rather than cutting a field or the consent inside a box. */
+.xp-root[data-xp-layout="spotlight"][data-xp-panel-shape]
+  .xp-frame[data-xp-shape="on"][data-xp-cloud]:is(
+    [data-xp-screen="register"],
+    [data-xp-screen="duplicate"],
+    [data-xp-screen="closed"],
+    [data-xp-screen="error"]
+  ) {
+  --xp-game-min: 0px;
+  > [data-xp-slot="interaction"] {
+    container-type: inline-size;
+  }
+  > [data-xp-slot="interaction"] > form {
+    max-height: none;
+    overflow: visible;
+  }
+}
 /* A screen without the shape (the game): its texts sit on the stage itself. */
 .xp-root[data-xp-panel-shape] .xp-frame[data-xp-shape="off"] {
-  --xp-panel-pad: clamp(0.85rem, 3.5vw, 1.5rem);
+  /* Inside a stage frame (stack inset), the frame already keeps the game off the edge. */
+  --xp-panel-pad: max(
+    0.35rem,
+    clamp(0.85rem, 3.5vw, 1.5rem) - var(--xp-inset-inline, 0px)
+  );
   --xp-panel-block: 0px;
   --xp-column-max: 36rem;
   &::before {
@@ -337,6 +479,20 @@
     --xp-text: var(--xp-stage-text, var(--xp-panel-text));
     --xp-text-muted: var(--xp-stage-text-muted, var(--xp-text-muted));
     color: var(--xp-text);
+  }
+  /* A game's own small print on the stage (the Hit It goal): the stage's muted color, not
+     the panel's, which the sky would swallow. The games' cards keep their own colors. */
+  > [data-xp-slot="interaction"] {
+    --xp-text-muted: var(--xp-stage-text-muted, var(--xp-text-muted));
+  }
+  /* The game's own small buttons under it (uncover the scratch card): read on the sky. */
+  [data-xp-game-action] {
+    color: var(--xp-stage-text, currentColor);
+    --xp-game-action-edge: color-mix(
+      in srgb,
+      var(--xp-stage-text, currentColor) 55%,
+      transparent
+    );
   }
 }
 /* A title over the game wears its own little shape (a title cloud). */
@@ -511,6 +667,19 @@
 .xp-root[data-xp-layout="spotlight"]
   .xp-frame[data-xp-screen="play"]:has(> [data-xp-slot="cta"]) {
   @variant split {
+    /* The button's column is never narrower than the button: on a phone held sideways the
+       column's gutter alone would leave it a few pixels and push it off the screen. */
+    --xp-play-cta-width: clamp(6.5rem, 17vw, 14rem);
+    grid-template-columns:
+      minmax(var(--xp-gutter), 1fr)
+      minmax(0, var(--xp-column-max))
+      minmax(
+        max(
+          var(--xp-gutter),
+          var(--xp-play-cta-width) + 2 * var(--xp-panel-pad)
+        ),
+        1fr
+      );
     grid-template-rows: auto auto auto 1fr auto auto auto auto auto;
     grid-template-areas:
       "header header header"
@@ -541,7 +710,7 @@
       margin-top: calc(var(--xp-space) * 0.75);
     }
     > [data-xp-slot="cta"] [data-xp-cta="primary"] {
-      width: clamp(6.5rem, 17vw, 14rem);
+      width: var(--xp-play-cta-width);
       aspect-ratio: 1;
       border-radius: 50%;
       padding: 0.9rem;
@@ -558,8 +727,9 @@
 .xp-root[data-xp-layout="spotlight"][data-xp-play-cta="block"]
   .xp-frame[data-xp-screen="play"] {
   @variant split {
+    --xp-play-cta-width: clamp(9rem, 18vw, 15rem);
     > [data-xp-slot="cta"] [data-xp-cta="primary"] {
-      width: clamp(9rem, 18vw, 15rem);
+      width: var(--xp-play-cta-width);
       min-height: clamp(4rem, 7.8vw, 6.5rem);
       aspect-ratio: auto;
       border-radius: var(--xp-btn-radius);
@@ -587,6 +757,11 @@
     word-break: normal;
   }
   @variant split {
+    /* Its button is under the game: the column keeps its even sides. */
+    grid-template-columns:
+      minmax(var(--xp-gutter), 1fr)
+      minmax(0, var(--xp-column-max))
+      minmax(var(--xp-gutter), 1fr);
     grid-template-rows: auto auto auto auto 1fr auto auto auto auto;
     grid-template-areas:
       "header header header"
@@ -883,6 +1058,8 @@
 }
 :where(.xp-root[data-xp-themed]) .xp-field :is(input, select) {
   font-weight: 600;
+  /* A long placeholder or wilaya ends in an ellipsis instead of being cut mid-letter. */
+  text-overflow: ellipsis;
   &::placeholder {
     color: color-mix(in srgb, var(--xp-field-text) 55%, transparent);
   }

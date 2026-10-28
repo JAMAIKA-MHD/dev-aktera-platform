@@ -57,7 +57,7 @@ export function BoxFace({ icon, color, state, children, style }: BoxFaceProps) {
           style={{ backgroundColor: "var(--xp-box-ribbon, transparent)" }}
         />
         {open ? (
-          <span className="grid place-items-center px-1 text-center">
+          <span className="xp-box-content grid place-items-center px-1 text-center">
             {children}
           </span>
         ) : (
@@ -74,7 +74,7 @@ export function BoxFace({ icon, color, state, children, style }: BoxFaceProps) {
         aria-hidden
         // The lid sits on the box, overlapping it: a gap between the two would read as two
         // separate shapes rather than one closed box.
-        className="absolute inset-x-[-5%] top-0 h-[27%] overflow-hidden rounded-t-[var(--xp-box-radius,var(--xp-radius-sm))] border transition-transform duration-500 ease-out"
+        className="xp-box-lid absolute inset-x-[-5%] top-0 h-[27%] overflow-hidden rounded-t-[var(--xp-box-radius,var(--xp-radius-sm))] border transition-transform duration-500 ease-out"
         style={{
           background: `linear-gradient(90deg, transparent 42%, var(--xp-box-ribbon, transparent) 42% 58%, transparent 58%), linear-gradient(160deg, color-mix(in srgb, ${lid} 95%, var(--xp-surface)), color-mix(in srgb, ${lid} 60%, var(--xp-surface)))`,
           borderColor: edge,

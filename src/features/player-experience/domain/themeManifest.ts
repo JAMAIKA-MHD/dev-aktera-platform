@@ -176,7 +176,35 @@ const decorSchema = z.object({
   opacity: z.number().min(0).max(1).default(1),
   // A one-color SVG (drawn in currentColor) painted in this color, through a CSS mask.
   tint: colorSchema.optional(),
-  motion: z.enum(["none", "float", "twinkle", "drift"]).default("none"),
+  // sparkle: a star's twinkle (scale and light). bob: a slow float with a slight sway (a
+  // cloud, a burst). Each one on its own beat, never in step with the others. wind: it
+  // crosses the whole screen in `seconds` and comes back round (a cloud; the bigger and
+  // nearer, the faster). sway: a 1 px lean, frame by frame (a tree, a bush). hover: a stepped
+  // bob of a few pixels (a coin floating over the ground).
+  motion: z
+    .enum([
+      "none",
+      "float",
+      "twinkle",
+      "drift",
+      "sparkle",
+      "bob",
+      "wind",
+      "sway",
+      "hover",
+    ])
+    .default("none"),
+  seconds: z.number().min(2).max(600).optional(), // a wind crossing, a sway's beat
+  // A sprite sheet: `frames` pictures side by side, played at `fps` (a coin turning, a sun
+  // pulsing), one frame `aspect` times as wide as it is high.
+  sprite: z
+    .object({
+      frames: z.number().int().min(2).max(12),
+      fps: z.number().min(1).max(24).default(6),
+      aspect: z.number().positive().max(8).default(1),
+    })
+    .strict()
+    .optional(),
   repeatX: z.boolean().default(false), // a strip (the ground) tiled across the width
   hideWhenLow: z.boolean().default(false), // dropped on low screens, where it would cover text
   // Only where the screen splits into two panes (landscape): placed for a wide stage, it
@@ -187,7 +215,58 @@ const decorSchema = z.object({
   // Drawn over the panel instead of behind it (a star overlapping the cloud's edge). Still
   // never in the way of a pointer.
   front: z.boolean().default(false),
+  // Its own place and size in one column (a phone), where the wide placement would land on
+  // the texts. Left out: the wide one, scaled by the stage's decorScale.
+  stack: z
+    .object({
+      left: cssSchema.optional(),
+      right: cssSchema.optional(),
+      top: cssSchema.optional(),
+      bottom: cssSchema.optional(),
+      width: cssSchema,
+    })
+    .strict()
+    .optional(),
 });
+
+// A burst painted in CSS (repeating-conic-gradient) instead of a picture: sharp at any size,
+// on any screen shape, and free to turn. Its rays take the colors in turn, the first the
+// widest; halftone dots may fill two opposite corners.
+const paintSchema = z
+  .object({
+    rays: z.array(colorSchema).min(2).max(4),
+    count: z.number().int().min(8).max(96).default(40),
+    dots: colorSchema.optional(),
+  })
+  .strict();
+const paintScreensSchema = partialRecord(["win", "lose"], paintSchema);
+
+// A point of a polygon, in percent of the stage (x, y).
+const pointSchema = z.tuple([
+  z.number().min(0).max(100),
+  z.number().min(0).max(100),
+]);
+
+// A border drawn around the stage (a cut-corner frame), in vector: a polygon in percent of
+// the screen, its own on one column, with a band and an outline of constant thickness
+// whatever the screen's shape. Inside it, its own painted sky.
+const stageFrameSchema = z
+  .object({
+    points: z.array(pointSchema).min(3).max(24),
+    stackPoints: z.array(pointSchema).min(3).max(24),
+    band: colorSchema,
+    bandWidth: cssSchema,
+    ink: colorSchema,
+    inkWidth: cssSchema,
+    // The room kept on one column between the screen's edges and the texts, clear of the
+    // frame (and of the corner decorations under the footer).
+    stackInset: z
+      .object({ inline: cssSchema, top: cssSchema, bottom: cssSchema })
+      .strict(),
+    sky: paintSchema,
+    screens: paintScreensSchema,
+  })
+  .strict();
 
 // The panel's own shape (a cloud…): one image stretched behind the slots instead of the
 // rectangle or the 9-slice frame, with the room it needs around the texts. A screen may take
@@ -216,6 +295,19 @@ const panelShapeSchema = z.object({
     z.object({ src: assetSchema.optional(), shadow: cssSchema.optional() }),
   ),
   hiddenOn: z.array(z.enum(FLOW_SCREENS)).default([]),
+  // Drawn by the shell at the panel's exact size instead of stretching the picture: round
+  // bumps of one size all along its edge and an outline of constant width, however tall
+  // the texts make it (src stays the thumbnail and the fallback). The bumps are as big as
+  // the room left around the texts (padInline, padBlock).
+  draw: z
+    .object({
+      fill: colorSchema,
+      ink: colorSchema,
+      outline: cssSchema, // the outline's width
+      screens: partialRecord(FLOW_SCREENS, z.object({ fill: colorSchema })),
+    })
+    .strict()
+    .optional(),
 });
 
 const GAME_KEYS = [
@@ -246,6 +338,97 @@ export const THEME_SOUND_NAMES = [
   "reward",
 ] as const;
 export type ThemeSoundName = (typeof THEME_SOUND_NAMES)[number];
+
+// How a template moves (runtime/shell/motion.css): life on the stage, the entrance of each
+// screen, lively buttons and fields, a wipe between screens, the impact of a win, the games'
+// own effects. Every part is off by default: a theme without it moves like the classic one.
+// Pure look — no effect here changes what a game sends, nor who wins (the wheel still lands
+// only where the gateway's outcome says).
+export const MOTION_WORDS = ["hit", "open", "win", "lose", "start"] as const;
+
+// What crosses the stage now and then (birds in the sky, a snail on the ground): a sprite
+// sheet, spawned at random within these bounds, never more than `max` at once (fewer on a
+// phone). Pure decoration: never in the way of a pointer, gone with reduced motion.
+const flyerSchema = z
+  .object({
+    src: assetSchema, // the sprite sheet, its frames side by side, facing right
+    frames: z.number().int().min(1).max(12),
+    fps: z.number().min(1).max(24).default(7),
+    aspect: z.number().positive().max(8).default(1), // one frame's width over its height
+    width: cssSchema, // one frame's drawn width ("clamp(1.25rem, 3vmin, 2rem)")
+    lane: z.enum(["sky", "ground"]).default("sky"),
+    // sky: the upper part of the screen, in percent of its height. ground: the ground's own
+    // line, from the bottom (a CSS length).
+    band: z
+      .tuple([z.number().min(0).max(100), z.number().min(0).max(100)])
+      .default([4, 40]),
+    ground: cssSchema.optional(),
+    every: z.tuple([z.number().min(1), z.number().min(1)]).default([6, 15]), // seconds
+    cross: z.tuple([z.number().min(2), z.number().min(2)]).default([15, 30]), // seconds
+    flock: z.number().int().min(1).max(5).default(1), // up to this many together
+    max: z.number().int().min(1).max(8).default(5),
+    both: z.boolean().default(true), // from either side (flipped), or left to right only
+    screens: z.array(z.enum(FLOW_SCREENS)).min(1).optional(),
+    // On a win, a flock of them crosses at once (birds scattering).
+    onWin: z.boolean().default(false),
+  })
+  .strict();
+
+const motionSchema = z
+  .object({
+    // smooth: overshoot and ease. stepped: every effect frame by frame (steps()), hard
+    // color swaps for its flashes — pixel art's own way of moving.
+    feel: z.enum(["smooth", "stepped"]).default("smooth"),
+    // The synthesized sounds in square waves (chiptune), when the theme has no recordings.
+    chiptune: z.boolean().default(false),
+    flyers: z.array(flyerSchema).max(4).default([]),
+    // Pixel rain over the stage on a loss, in this color.
+    rain: colorSchema.nullable().default(null),
+    // The loss counts down ("CONTINUE? 10…"), arcade-style, toward its own button.
+    countdown: z.boolean().default(false),
+    // Into the form, the welcome slides down as into a pipe and the form comes up.
+    pipe: z.boolean().default(false),
+    // The painted rays (stage.paint, stage.frame.sky) turn, once in this many seconds.
+    rays: z
+      .object({ seconds: z.number().min(20).max(240).default(75) })
+      .strict()
+      .nullable()
+      .default(null),
+    // The screen's edges darken a little and let go, keeping the eye on the panel.
+    vignette: colorSchema.nullable().default(null),
+    // rise: the slots fade up in turn. pop: the panel pops in with an overshoot, the title
+    // drops in, the texts follow, the CTA comes last; the decorations assemble.
+    entrance: z.enum(["rise", "pop"]).default("rise"),
+    // squish: the main button pulses while it waits, lifts under the mouse, squishes when
+    // pressed, bounces back, and pops once it becomes available.
+    buttons: z.enum(["press", "squish"]).default("press"),
+    // lively: a field lifts in focus, shakes on an error (with a comic "!"), the consent's
+    // check is drawn by hand.
+    fields: z.enum(["plain", "lively"]).default("plain"),
+    // A burst (shared/fx/burst.svg) covering the screen while it changes, in these colors;
+    // or an iris, a circle of the ink closing on the screen and opening on the next.
+    wipe: z
+      .object({
+        kind: z.enum(["burst", "iris"]).default("burst"),
+        color: colorSchema,
+        ink: colorSchema,
+      })
+      .strict()
+      .nullable()
+      .default(null),
+    // A flash and a shake into a win, a shake on an error.
+    impact: z.boolean().default(false),
+    // cartoon: stars and circles from two cannons in the bottom corners, then a short shower.
+    // pixel: flat squares in the palette, falling at their own speeds, and a coin shower.
+    confetti: z.enum(["classic", "cartoon", "pixel"]).default("classic"),
+    // lively: each game's own effects (anticipation and a flicking pointer on the wheel,
+    // flakes on the scratch card, a stamp on a quiz answer, a burst out of a box, "POW!"…).
+    games: z.enum(["classic", "lively"]).default("classic"),
+    // The comic words popping in at those moments (decorative, never read out).
+    words: partialRecord(MOTION_WORDS, z.string().min(1).max(12)),
+  })
+  .strict()
+  .prefault({});
 
 export const themeManifestSchema = z
   .object({
@@ -408,12 +591,22 @@ export const themeManifestSchema = z
       text: colorSchema.optional(),
       // The footer's text, written on the stage's own ground (the dark soil of a landscape).
       footerText: colorSchema.optional(),
-      backgrounds: z.object({
-        default: assetSchema,
-        games: partialRecord(GAME_KEYS, assetSchema),
-        screens: partialRecord(["win", "lose"], assetSchema),
-      }),
+      // A picture, or (paint) a burst painted in CSS, under a vector frame (frame).
+      backgrounds: z
+        .object({
+          default: assetSchema.optional(),
+          games: partialRecord(GAME_KEYS, assetSchema),
+          screens: partialRecord(["win", "lose"], assetSchema),
+        })
+        .prefault({}),
+      paint: z
+        .object({ sky: paintSchema, screens: paintScreensSchema })
+        .strict()
+        .optional(),
+      frame: stageFrameSchema.optional(),
       decor: z.array(decorSchema).max(48).default([]),
+      // The decorations' size on one column (a phone) against their wide size.
+      decorScale: z.number().min(0.2).max(1).default(1),
     }),
 
     wheel: z.object({
@@ -538,14 +731,28 @@ export const themeManifestSchema = z
       .strict()
       .prefault({}),
     sounds: partialRecord(THEME_SOUND_NAMES, assetSchema),
+    motion: motionSchema,
   })
-  .strict();
+  .strict()
+  .refine(
+    (manifest) =>
+      manifest.stage.backgrounds.default !== undefined ||
+      manifest.stage.paint !== undefined,
+    {
+      message: "The stage needs a background picture or a paint",
+      path: ["stage", "backgrounds", "default"],
+    },
+  );
 
 export type ThemeManifest = z.infer<typeof themeManifestSchema>;
 export type ThemeFrame = z.infer<typeof frameSchema>;
 export type ThemeDecor = z.infer<typeof decorSchema>;
+export type ThemeFlyer = z.infer<typeof flyerSchema>;
 export type ThemePanelShape = z.infer<typeof panelShapeSchema>;
+export type ThemePaint = z.infer<typeof paintSchema>;
+export type ThemeStageFrame = z.infer<typeof stageFrameSchema>;
 export type ThemeScreen = (typeof FLOW_SCREENS)[number];
+export type ThemeMotion = z.infer<typeof motionSchema>;
 
 // Where a path of a manifest lives under themes/: its own folder, or the shared parts.
 export function themeFilePath(themeId: string, path: string): string {
@@ -572,6 +779,7 @@ export function manifestAssetPaths(manifest: ThemeManifest): string[] {
     manifest.title.backdrop?.src,
     manifest.wheel.pointerArt,
     manifest.games.hitIt.art,
+    ...manifest.motion.flyers.map((flyer) => flyer.src),
     ...Object.values(manifest.heroes).map((hero) => hero?.src),
     ...Object.values(prizes),
     ...Object.values(characters),

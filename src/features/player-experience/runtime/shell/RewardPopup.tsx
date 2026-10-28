@@ -94,6 +94,9 @@ export function RewardPopup({
             </p>
             <button
               type="button"
+              data-xp-code
+              // A stamp on the ticket once copied (motion.css), with the badge popping in.
+              data-xp-copied={copied ? "" : undefined}
               onClick={() => onCopy(code)}
               className="flex min-h-[44px] w-full items-center justify-between gap-2 rounded-[var(--xp-radius-md)] border-dashed px-3 py-2.5 font-mono text-[clamp(0.62rem,3.4cqw,1rem)] font-extrabold tracking-[0.1em] transition-[border-color] duration-200 hover:border-[color:var(--xp-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
               // The code reads like a field: the theme's, or the classic outlined one.
@@ -115,8 +118,10 @@ export function RewardPopup({
               >
                 {copied ? (
                   <>
-                    <Check className="size-4" strokeWidth={3} />
-                    <span className="xp-code-copy-label">{copiedLabel}</span>
+                    <Check className="xp-pop size-4" strokeWidth={3} />
+                    <span className="xp-code-copy-label xp-pop">
+                      {copiedLabel}
+                    </span>
                   </>
                 ) : (
                   <>

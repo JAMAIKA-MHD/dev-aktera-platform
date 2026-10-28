@@ -75,6 +75,18 @@ describe("resolvePrizeDisplay", () => {
       image: null,
     });
   });
+
+  it("falls back to the prize the draw gave back, when the campaign has none of that id", () => {
+    const config = configWith(() => {});
+    const drawn = { name: "Casque audio", winMessage: "Bravo !" };
+    expect(
+      resolvePrizeDisplay("ghost", config, campaign, "fr", drawn),
+    ).toMatchObject({ label: "Casque audio", winMessage: "Bravo !" });
+    // The campaign's own name still comes first.
+    expect(
+      resolvePrizeDisplay("prize-1", config, campaign, "fr", drawn).label,
+    ).toBe("Bon d'achat");
+  });
 });
 
 describe("quizSourceHash", () => {

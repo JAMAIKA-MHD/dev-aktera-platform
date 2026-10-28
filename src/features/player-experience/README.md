@@ -131,7 +131,20 @@ only come in through `assets/` paths. `presets/themeManifests.ts` loads and chec
   stretched behind the slots (Cartoon Pop's cloud), with the room it needs around the texts
   (`padInline`, `padBlock`, `columnMax`), another picture per screen (the dimmer cloud of a
   loss), screens without it (`hiddenOn`: the game, on the stage) and, in one column, a bleed past
-  the screen's sides and top (`stack`) so that its narrow corners never pinch the texts.
+  the screen's sides and top (`stack`) so that its narrow corners never pinch the texts. With
+  `draw` (fill, ink, outline, a fill per screen) the shell draws the shape itself on one column,
+  at the panel's exact size (`usePanelCloud`, `theme/cloudShape.ts`): round bumps of one size
+  as big as the room around the texts, an outline of one width, however tall the form or the
+  win screen grows. Those screens (register, statuses) then take their content's height and the
+  page scrolls; nothing is cut inside a box. The picture stays the thumbnail and the fallback.
+- **Painted stages.** A stage can be painted instead of a picture, sharp at any size and on any
+  screen shape (no stretched or blurred PNG): `stage.paint` is a burst of rays in CSS
+  (`repeating-conic-gradient`, 2 to 4 colors, the first the widest) with optional halftone dots
+  in two corners, and `stage.frame` a cut-corner frame in vector: a polygon in percent for wide
+  screens and its own for one column (`stackPoints`), a band and an outline of constant width
+  (non-scaling stroke), its own sky inside, a paint per win/lose screen, and `stackInset`, the
+  room kept between the screen's edges and the texts on one column. Decorations take a phone
+  place of their own (`decor[].stack`) or their wide one at `stage.decorScale`.
 - **Layouts.** `layout.kind` is `panes` (texts beside the game in landscape, the default) or
   `spotlight` (one column in the middle at every size; on the game screen, the CTA becomes a
   round button beside the game). `layout.welcomeTeaser: false` opens the welcome screen on its
@@ -150,6 +163,36 @@ only come in through `assets/` paths. `presets/themeManifests.ts` loads and chec
   rather than scrolling the code inside it.
 - **Sounds.** A theme's recordings (click, tick, win, lose, reward) replace the synthesized
   sounds of `feedback/audio.ts`; a sound it lacks, or one the browser refuses, is synthesized.
+- **Music.** Every template, the classic one included, loops `src/sounds/the_mountain-retro-game-593063.mp3`
+  under the sounds (`feedback/music.ts`, `runtimeAudio.setMusic`): it starts with the player's first
+  gesture (autoplay rules), pauses while the page is hidden, and stops with `features.sound`. The
+  sound button in the header (or on the status row without one, `frame/SoundToggle.tsx`) mutes
+  music and sounds together; it shows "off" until that first gesture.
+- **Motion.** `motion` in `theme.json` says how a template moves, each part off by default
+  (`runtime/shell/motion.css`, read through `data-xp-fx-*` on the root and `--xp-fx-*`):
+  `rays` turns the painted rays on a layer of their own (a new sky fades in over the old one),
+  `vignette` lets the edges breathe, `entrance: "pop"` pops the panel, drops the title and
+  assembles the decorations (decor `motion`: `sparkle`, `bob`), `buttons: "squish"`,
+  `fields: "lively"`, `wipe` (a burst over the screen while it changes,
+  `shell/ScreenTransition.tsx`: zoom into the game, flash and shake into a win, soft into a
+  loss), `impact`, `confetti: "cartoon"`, `games: "lively"` (the wheel's pull-back, flicking
+  pointer, crawl, bounce and lit slice — still landing only where the outcome says, a tap
+  skips the landing; flakes on the scratch card; a stamp on the chosen quiz answer, never
+  "right" or "wrong", which the browser cannot know; a box that leans and bursts; "POW!" on
+  Hit It) and `words`. Reduced motion or the brand's animations off stop all of it (a screen
+  only fades in); a device that drops frames loses the ambient part first (`data-xp-lite`).
+  Cartoon Pop turns every part on.
+- **A stepped, living scene.** `motion.feel: "stepped"` plays every effect above frame by frame
+  (steps(), hard flashes) instead of with overshoot; `chiptune` turns the synthesized sounds into
+  square waves with a victory jingle. The stage comes alive from its own layers: decor `motion`
+  `wind` (a cloud crossing the screen in `seconds`, coming back round), `sway` (a 1 px lean),
+  `hover` (a stepped bob), and `sprite` (a sprite sheet: `frames`, `fps`, `aspect`).
+  `motion.flyers` sends sprites across now and then (`shell/Flyers.tsx`: birds in the sky, a
+  snail on the ground; a flock scatters on a win, none on a loss, a few at most). `rain` falls on
+  a loss, `countdown` counts "Continue? 10…" down on it (it never acts by itself), `pipe` slides
+  the welcome down into the form, `wipe.kind: "iris"` closes and reopens a circle between
+  screens, and a stepped error arrives in a glitch. Pixel Quest turns every part on, with its
+  sprites in `themes/pixel-quest/assets/sprites/`.
 - **Arabic.** Display fonts have no Arabic letters: an Arabic text (`data-xp-script="arabic"`)
   keeps the body font, its own size and spacing, never capitals.
 - **A new theme** is a new folder and an id in `domain/templates.ts` (plus the database CHECK):

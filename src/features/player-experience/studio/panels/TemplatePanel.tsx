@@ -15,6 +15,7 @@ import {
 } from "../../presets/themePresets";
 import { getThemeManifest } from "../../presets/themeManifests";
 import { themePalette } from "../../theme/shellVars";
+import { raysGradient } from "../../theme/stagePaint";
 import { resolveThemeAssets } from "../../theme/themeAssets";
 import { useStudio } from "../StudioContext";
 import { PanelBody, PanelHeader, PanelSection } from "./PanelLayout";
@@ -86,6 +87,13 @@ function ThemeThumbnail({ templateId }: { templateId: TemplateId }) {
       /@([a-z-]+)/g,
       (match, name: string) => palette[name] ?? match,
     );
+  // A painted stage: the sky inside its frame (or its own), in the theme's rays.
+  const paint = manifest.stage.frame?.sky ?? manifest.stage.paint?.sky;
+  const stageImage = paint
+    ? raysGradient(paint, role)
+    : background
+      ? `url("${background}")`
+      : undefined;
   const frame = manifest.panel.frame;
   const panel: CSSProperties = assets.panelShape
     ? {
@@ -110,7 +118,7 @@ function ThemeThumbnail({ templateId }: { templateId: TemplateId }) {
       className="relative flex h-24 items-center justify-center overflow-hidden rounded-xl"
       style={{
         backgroundColor: manifest.stage.color,
-        backgroundImage: background ? `url("${background}")` : undefined,
+        backgroundImage: stageImage,
         backgroundSize:
           manifest.stage.fit === "stretch" ? "100% 100%" : "cover",
         backgroundPosition: "center",

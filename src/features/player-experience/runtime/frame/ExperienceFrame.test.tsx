@@ -116,7 +116,7 @@ describe("ExperienceFrame", () => {
     expect(slot(container, "header")?.querySelectorAll("p")).toHaveLength(1);
   });
 
-  it("hides the header when the screen asks, and keeps the badge on its own row", () => {
+  it("hides the header when the screen asks, and keeps the badge and the sound button on their own row", () => {
     const config = zetaConfig();
     config.screens.welcome.showHeader = false;
     const { container, rerender } = renderFrame({
@@ -125,6 +125,9 @@ describe("ExperienceFrame", () => {
     });
     expect(slot(container, "header")).toBeNull();
     expect(slot(container, "status")?.textContent).toBe("Demo");
+    expect(
+      slot(container, "status")?.querySelector("[data-xp-sound-toggle]"),
+    ).not.toBeNull();
     rerender(
       <ExperienceFrame
         config={config}
@@ -132,6 +135,20 @@ describe("ExperienceFrame", () => {
         screenContent={config.screens.welcome}
       />,
     );
+    // No badge: the sound button keeps the row.
+    expect(slot(container, "status")?.textContent).toBe("");
+    const silent = {
+      ...config,
+      features: { ...config.features, sound: false },
+    };
+    rerender(
+      <ExperienceFrame
+        config={silent}
+        locale="fr"
+        screenContent={silent.screens.welcome}
+      />,
+    );
+    // Neither: no row at all.
     expect(slot(container, "status")).toBeNull();
   });
 

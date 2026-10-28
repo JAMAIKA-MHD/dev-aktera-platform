@@ -256,6 +256,8 @@ export const FRAME_TEXT = {
     "تنظيم {name}",
     "Organized by {name}",
   ),
+  soundOn: localized("Activer le son", "تشغيل الصوت", "Turn the sound on"),
+  soundOff: localized("Couper le son", "كتم الصوت", "Turn the sound off"),
 } as const satisfies Record<string, LocalizedText>;
 
 export function defaultJackpot(): JackpotSection {
@@ -526,6 +528,12 @@ export const RESULT_TEXT = {
     "Share on Facebook",
   ),
   share: localized("Partager", "شارك", "Share"),
+  // An arcade loss counts down (motion.countdown): "{n}" is the seconds left.
+  continueCountdown: localized(
+    "Continuer ? {n}",
+    "متابعة؟ {n}",
+    "Continue? {n}",
+  ),
   shareWinText: localized(
     "J'ai gagné {prize} chez {brand} ! Tentez votre chance :",
     "لقد ربحت {prize} من {brand}! جرب حظك:",

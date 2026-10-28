@@ -1,0 +1,1880 @@
+/*
+ * A theme's motion (motion in theme.json → data-xp-fx-* on the root and --xp-fx-* variables:
+ * theme/ThemeScope.tsx, theme/shellVars.ts). Imported by layout.css. Like shell.css, no rule
+ * here names a theme: a template turns a part on in its theme.json, and the classic template
+ * sets none of it. No color is written (noHardcodedColors.test.ts).
+ *
+ * Only transform, opacity and the individual translate / rotate / scale properties move:
+ * nothing that lays the page out again, nothing blurred while it moves. Flashes stay one at
+ * a time, far under three a second. With reduced motion, or the brand's animations off,
+ * every effect here stops and a screen simply fades in; a device that drops frames keeps the
+ * effects that answer the player and loses the ambient ones (data-xp-lite).
+ */
+
+/* ── The feel: smooth (overshoot and ease), or stepped (frame by frame) ────────── */
+
+/* Every effect below takes its timing from these. A stepped theme (motion.feel) swaps them
+   for steps(): the same pop, drop, shake or slide, played in a few hard frames — pixel art's
+   own way of moving. */
+:where(.xp-root) {
+  --xp-fx-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --xp-fx-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --xp-fx-jolt: ease-in-out;
+  --xp-fx-soft: ease-out;
+}
+:where(.xp-root[data-xp-fx-feel="stepped"]) {
+  --xp-fx-pop: steps(2, end);
+  --xp-fx-out: steps(3, end);
+  --xp-fx-jolt: steps(1, end);
+  --xp-fx-soft: steps(3, end);
+}
+
+/* ── Ambient: the stage lives ─────────────────────────────────────────────────── */
+
+/* The painted rays on a layer of their own (GameFrame's TurningRays), turning slowly: a
+   square as wide as the screen's diagonal, so that no corner ever shows. The sky under them
+   gives way to that layer. */
+.xp-root[data-xp-fx-rays]
+  :is(.xp-stage-image[data-xp-painted], .xp-stage-frame-sky) {
+  overflow: hidden;
+  background: none;
+}
+.xp-stage-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150vmax;
+  height: 150vmax;
+  translate: -50% -50%;
+  will-change: rotate;
+  animation: xp-fx-turn var(--xp-fx-rays-seconds, 75s) linear infinite;
+}
+/* A new sky (blue to slate on a loss) fades in over the old one. */
+.xp-stage-rays[data-xp-fresh] {
+  animation:
+    xp-fx-turn var(--xp-fx-rays-seconds, 75s) linear infinite,
+    xp-fx-fade-in 500ms var(--xp-fx-soft) both;
+}
+/* The halftone dots of the corners pulse gently. */
+.xp-root[data-xp-fx-rays] .xp-stage-image[data-xp-painted]::after {
+  animation: xp-fx-dots 5s var(--xp-fx-jolt) infinite;
+}
+
+/* The edges darken a little and let go: the eye stays on the panel. */
+.xp-stage-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 52%,
+    color-mix(in srgb, var(--xp-fx-vignette) 42%, transparent) 100%
+  );
+  opacity: 0.55;
+  animation: xp-fx-breathe 6s var(--xp-fx-jolt) infinite;
+}
+
+/* Stars twinkle, clouds and bursts float with a slight sway: each at its own pace
+   (--xp-decor-speed) and beat (--xp-decor-delay), never in step. */
+.xp-decor[data-xp-motion="sparkle"] {
+  animation: xp-fx-sparkle calc(2.4s * var(--xp-decor-speed, 1))
+    var(--xp-fx-jolt) var(--xp-decor-delay, 0s) infinite;
+}
+.xp-decor[data-xp-motion="bob"] {
+  animation: xp-fx-bob calc(4s * var(--xp-decor-speed, 1)) var(--xp-fx-jolt)
+    var(--xp-decor-delay, 0s) infinite;
+}
+/* The scene assembles itself: each decoration pops in at its own moment, then carries on
+   with its own motion (the pop only holds before and while it plays). */
+.xp-root[data-xp-fx-entrance="pop"]
+  .xp-decor:is([data-xp-motion="none"], :not([data-xp-motion])) {
+  animation: xp-fx-assemble 480ms var(--xp-fx-pop) var(--xp-decor-enter, 0ms)
+    backwards;
+}
+.xp-root[data-xp-fx-entrance="pop"] .xp-decor[data-xp-motion="sparkle"] {
+  animation:
+    xp-fx-sparkle calc(2.4s * var(--xp-decor-speed, 1)) var(--xp-fx-jolt)
+      var(--xp-decor-delay, 0s) infinite,
+    xp-fx-assemble 480ms var(--xp-fx-pop) var(--xp-decor-enter, 0ms) backwards;
+}
+.xp-root[data-xp-fx-entrance="pop"] .xp-decor[data-xp-motion="bob"] {
+  animation:
+    xp-fx-bob calc(4s * var(--xp-decor-speed, 1)) var(--xp-fx-jolt)
+      var(--xp-decor-delay, 0s) infinite,
+    xp-fx-assemble 480ms var(--xp-fx-pop) var(--xp-decor-enter, 0ms) backwards;
+}
+
+/* ── Entrance: each screen pops in ────────────────────────────────────────────── */
+
+/* The panel (the cloud) pops with an overshoot, the title drops in with a little tilt, the
+   texts and fields fade up one after the other, the CTA comes last with a pop. */
+.xp-root[data-xp-fx-entrance="pop"] .xp-frame::before {
+  transform-origin: 50% 50%;
+  animation: xp-fx-card-pop 450ms var(--xp-fx-pop) both;
+}
+.xp-root[data-xp-fx-entrance="pop"] .xp-frame > [data-xp-slot="title"] {
+  animation: xp-fx-title-drop 520ms var(--xp-fx-pop) 100ms both;
+}
+.xp-root[data-xp-fx-entrance="pop"] .xp-frame > [data-xp-slot="cta"] {
+  animation: xp-fx-pop-in 420ms var(--xp-fx-pop) 380ms both;
+}
+.xp-root[data-xp-fx-entrance="pop"]
+  .xp-frame
+  > [data-xp-slot="hero"]
+  .xp-hero-art {
+  animation: xp-fx-pop-in 480ms var(--xp-fx-pop) 60ms both;
+}
+
+/* From one screen to the next (ScreenTransition): into the game, it scales in from the
+   middle; into a status, the card shakes once. */
+.xp-transition[data-xp-change="zoom"]
+  > .xp-frame
+  > [data-xp-slot="interaction"] {
+  animation: xp-fx-zoom-in 420ms var(--xp-fx-out) both;
+}
+.xp-root[data-xp-fx-impact] .xp-transition[data-xp-change="shake"] > .xp-frame {
+  animation: xp-fx-shake 380ms var(--xp-fx-jolt) 120ms both;
+}
+/* Into a win: a short shake once the flash has gone. */
+.xp-root[data-xp-fx-impact]
+  .xp-transition[data-xp-change="impact"]
+  > .xp-frame {
+  animation: xp-fx-shake 300ms var(--xp-fx-jolt) 60ms both;
+}
+
+/* The wipe: a burst grows from the middle until it covers the screen, then shrinks away.
+   Its ink a little ahead of its color, like a comic's outline. While it covers the screen,
+   nothing under it can be tapped. */
+.xp-fx-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 70; /* above the confetti and the legal sheet */
+  pointer-events: auto;
+  overflow: hidden;
+  contain: strict;
+}
+.xp-fx-wipe[data-xp-phase="reveal"] {
+  pointer-events: none;
+}
+.xp-fx-wipe > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260vmax;
+  height: 260vmax;
+  translate: -50% -50%;
+  mask: url("../../themes/_shared/assets/fx/burst.svg") center / contain
+    no-repeat;
+  -webkit-mask: url("../../themes/_shared/assets/fx/burst.svg") center / contain
+    no-repeat;
+  will-change: scale, rotate;
+}
+.xp-fx-wipe-ink {
+  background-color: var(--xp-fx-wipe-ink, var(--xp-ink));
+}
+.xp-fx-wipe > .xp-fx-wipe-fill {
+  background-color: var(--xp-fx-wipe, var(--xp-primary));
+  /* Smaller than the ink: the ink shows as an outline round its spikes. */
+  width: 248vmax;
+  height: 248vmax;
+}
+.xp-fx-wipe[data-xp-phase="cover"] > span {
+  animation: xp-fx-wipe-cover 230ms cubic-bezier(0.55, 0, 0.75, 0.4) both;
+}
+.xp-fx-wipe[data-xp-phase="cover"] > .xp-fx-wipe-fill {
+  animation-delay: 30ms;
+}
+.xp-fx-wipe[data-xp-phase="reveal"] > span {
+  animation: xp-fx-wipe-reveal 250ms cubic-bezier(0.25, 0.6, 0.45, 1) both;
+}
+.xp-fx-wipe[data-xp-phase="reveal"] > .xp-fx-wipe-ink {
+  animation-delay: 30ms;
+}
+
+/* Into a win: one flash, quick and soft (never a strobe). */
+.xp-fx-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  background-color: var(--xp-surface);
+  opacity: 0;
+  animation: xp-fx-flash 220ms var(--xp-fx-soft) both;
+}
+
+/* ── Buttons that squish ──────────────────────────────────────────────────────── */
+
+.xp-root[data-xp-fx-buttons="squish"] .xp-btn:not([data-xp-variant="ghost"]) {
+  transition:
+    translate 200ms var(--xp-fx-pop),
+    scale 200ms var(--xp-fx-pop),
+    box-shadow 160ms ease-out,
+    filter 200ms ease-out;
+  @media (hover: hover) {
+    &:hover:enabled:not([aria-busy="true"]) {
+      translate: 0 -0.125rem;
+      box-shadow: var(--xp-btn-shadow-hover, var(--xp-btn-shadow));
+    }
+  }
+  /* Pressed: squished and pushed into its shadow, fast; let go, it bounces back. */
+  &:active:enabled:not([aria-busy="true"]) {
+    translate: 0 0.12rem;
+    scale: 0.95;
+    transition-duration: 80ms;
+  }
+  /* Unavailable: flat and grey, no pulse. */
+  &:disabled {
+    filter: grayscale(0.65);
+    opacity: 0.6;
+  }
+}
+/* The main button waits with a soft pulse; becoming available, it pops once (an animation
+   starts again whenever the button stops being disabled). */
+.xp-root[data-xp-fx-buttons="squish"]
+  .xp-btn[data-xp-variant="primary"]:enabled:not([aria-busy="true"]) {
+  animation:
+    xp-fx-ready 380ms var(--xp-fx-pop),
+    xp-fx-pulse 3.5s var(--xp-fx-jolt) 1.2s infinite;
+}
+.xp-root[data-xp-fx-buttons="squish"]
+  .xp-btn[data-xp-variant="primary"]:active {
+  animation: none;
+}
+.xp-root[data-xp-fx-buttons="squish"] .xp-btn .xp-shimmer {
+  animation-duration: 3.5s;
+}
+
+/* ── Fields that answer ───────────────────────────────────────────────────────── */
+
+.xp-root[data-xp-fx-fields="lively"] .xp-field :is(input, select) {
+  transition:
+    translate 180ms var(--xp-fx-pop),
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out;
+  &:focus {
+    translate: 0 -0.1rem;
+  }
+  /* An error: a shake, the moment it shows. */
+  &[aria-invalid="true"] {
+    animation: xp-fx-shake-x 300ms var(--xp-fx-jolt);
+  }
+}
+/* The error's "!" in a little comic bubble. */
+.xp-root[data-xp-fx-fields="lively"] .xp-field-error > svg {
+  box-sizing: content-box;
+  padding: 0.1rem;
+  border-radius: 50%;
+  color: var(--xp-surface);
+  background-color: var(--xp-danger);
+  animation: xp-fx-pop-in 320ms var(--xp-fx-pop) both;
+}
+/* The consent's check, drawn by hand. */
+.xp-root[data-xp-fx-fields="lively"] .xp-check-draw :is(path, polyline) {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: xp-fx-draw 280ms var(--xp-fx-soft) 60ms forwards;
+}
+
+/* ── Results ──────────────────────────────────────────────────────────────────── */
+
+/* A win: a big burst behind the character, turning; the character pops, then floats; the
+   title slams in; the code slides up; the share buttons pop in one after the other. */
+.xp-root[data-xp-fx-impact] .xp-frame[data-xp-screen="win"] {
+  > [data-xp-slot="hero"] {
+    position: relative;
+    isolation: isolate;
+    &::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: -1;
+      width: min(26rem, 70vmin);
+      aspect-ratio: 1;
+      translate: -50% -50%;
+      pointer-events: none;
+      background-color: color-mix(in srgb, var(--xp-primary) 70%, transparent);
+      mask: url("../../themes/_shared/assets/fx/burst.svg") center / contain
+        no-repeat;
+      -webkit-mask: url("../../themes/_shared/assets/fx/burst.svg") center /
+        contain no-repeat;
+      animation:
+        xp-fx-pop-in 520ms var(--xp-fx-pop) 120ms both,
+        xp-fx-turn 24s linear infinite;
+    }
+    .xp-hero-art {
+      animation:
+        xp-fx-pop-in 520ms var(--xp-fx-pop) 160ms both,
+        xp-fx-float 3.2s var(--xp-fx-jolt) 700ms infinite;
+    }
+  }
+  > [data-xp-slot="title"] {
+    animation: xp-fx-slam 520ms var(--xp-fx-pop) 220ms both;
+  }
+  .xp-reward-popup {
+    animation: xp-fx-slide-up 520ms var(--xp-fx-pop) 420ms both;
+  }
+  [data-xp-share-row] > * {
+    animation: xp-fx-pop-in 360ms var(--xp-fx-pop) 620ms both;
+    &:nth-child(2) {
+      animation-delay: 700ms;
+    }
+  }
+}
+/* Copied: the ticket takes a stamp. */
+.xp-root[data-xp-fx-impact] [data-xp-code][data-xp-copied] {
+  animation: xp-fx-stamp 360ms var(--xp-fx-pop);
+}
+
+/* A loss, kept light: the sad face drops in and wobbles, a drop of sweat runs down it, the
+   title shakes softly once. No confetti, no flash. */
+.xp-root[data-xp-fx-impact] .xp-frame[data-xp-screen="lose"] {
+  > [data-xp-slot="hero"] {
+    position: relative;
+    .xp-hero-art {
+      animation: xp-fx-sulk 1.1s var(--xp-fx-pop) 80ms both;
+    }
+    &::after {
+      content: "";
+      position: absolute;
+      left: calc(50% + var(--xp-hero-art-width, 5rem) * 0.26);
+      top: 18%;
+      width: calc(var(--xp-hero-art-width, 5rem) * 0.13);
+      aspect-ratio: 1;
+      border-radius: 0 50% 50% 50%;
+      rotate: 45deg;
+      background-color: color-mix(
+        in srgb,
+        var(--xp-accent) 70%,
+        var(--xp-surface)
+      );
+      border: 0.12rem solid var(--xp-ink);
+      pointer-events: none;
+      opacity: 0;
+      animation: xp-fx-sweat 2.6s ease-in 1s infinite;
+    }
+  }
+  > [data-xp-slot="title"] {
+    animation: xp-fx-shake-soft 600ms var(--xp-fx-jolt) 300ms both;
+  }
+}
+
+/* An error: its icon flickers like a lost signal. */
+.xp-root[data-xp-fx-impact] .xp-frame[data-xp-screen="error"] .xp-medallion svg,
+.xp-root[data-xp-fx-impact] .xp-frame:not([data-xp-screen]) .xp-medallion svg {
+  animation: xp-fx-flicker 2.4s steps(1) 400ms infinite;
+}
+.xp-root[data-xp-fx-impact] .xp-frame:not([data-xp-screen]) .xp-medallion {
+  animation: xp-fx-wobble 900ms var(--xp-fx-jolt) both;
+}
+
+/* The comic words ("POW!", "WOW!"): pop in with a twist, then fade away. */
+.xp-fx-word {
+  position: absolute;
+  z-index: 5;
+  translate: -50% -50%;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--xp-font-display);
+  font-weight: var(--xp-title-weight, 900);
+  font-size: clamp(1.4rem, 9cqmin, 3rem);
+  line-height: 1;
+  color: var(--xp-primary);
+  -webkit-text-stroke: 0.14em var(--xp-ink);
+  paint-order: stroke fill;
+  text-shadow: 0.06em 0.08em 0 var(--xp-ink);
+  animation: xp-fx-word 900ms var(--xp-fx-pop) both;
+}
+.xp-fx-word[data-xp-over] {
+  position: fixed;
+  z-index: 3;
+  font-size: clamp(2rem, 9vmin, 4.5rem);
+}
+/* "+1" floating up from a hit. */
+.xp-fx-plus {
+  position: absolute;
+  z-index: 4;
+  translate: -50% -50%;
+  pointer-events: none;
+  font-family: var(--xp-font-display);
+  font-size: clamp(1rem, 6cqmin, 1.75rem);
+  color: var(--xp-surface);
+  -webkit-text-stroke: 0.12em var(--xp-ink);
+  paint-order: stroke fill;
+  animation: xp-fx-plus 700ms var(--xp-fx-soft) both;
+}
+
+/* ── The games, lively (motion.games) ─────────────────────────────────────────── */
+
+/* The wheel waits: it sways a little, its hub pulses, its lights chase round the rim. */
+.xp-root[data-xp-fx-games="lively"] {
+  [data-xp-game="lucky_wheel"][data-xp-phase="idle"] {
+    .xp-wheel-rotor {
+      animation: xp-fx-sway 2.6s var(--xp-fx-jolt) infinite;
+    }
+    .xp-wheel-hub-group {
+      transform-box: view-box;
+      transform-origin: 50% 50%;
+      animation: xp-fx-pulse 1.6s var(--xp-fx-jolt) infinite;
+    }
+    .xp-wheel-bulb {
+      animation: xp-wheel-bulb 1.4s steps(1) infinite;
+      animation-delay: calc(var(--xp-bulb-at, 0) * -1.4s);
+    }
+  }
+  /* Turning: the lights run faster. */
+  [data-xp-game="lucky_wheel"]:is(
+      [data-xp-phase="awaiting-outcome"],
+      [data-xp-phase="revealing"]
+    )
+    .xp-wheel-bulb {
+    animation-duration: 0.3s;
+  }
+  .xp-wheel-pointer {
+    transform-box: fill-box;
+    transform-origin: 50% 0;
+  }
+  /* The last slices: a slight zoom on the pointer. */
+  [data-xp-game="lucky_wheel"] [data-xp-wheel] {
+    transform-origin: 50% 8%;
+    transition: scale 600ms var(--xp-fx-out);
+  }
+  [data-xp-game="lucky_wheel"][data-xp-suspense] [data-xp-wheel] {
+    scale: 1.06;
+  }
+  /* Stopped: the slice it landed on glows and grows, the others dim, the lights blink a win. */
+  [data-xp-game="lucky_wheel"][data-xp-landed] {
+    [data-xp-segment] {
+      transition: opacity 300ms ease-out;
+      transform-box: view-box;
+      transform-origin: 50% 50%;
+    }
+    [data-xp-segment]:not([data-xp-hit]) {
+      opacity: 0.45;
+    }
+    [data-xp-segment][data-xp-hit] {
+      animation: xp-fx-slice 420ms var(--xp-fx-pop) both;
+    }
+    .xp-wheel-bulb {
+      animation: xp-wheel-bulb 0.24s steps(1) infinite;
+      animation-delay: 0s;
+    }
+  }
+
+  /* The scratch card: its "?" shimmers; flakes fly off under the finger; uncovered, the
+     rest of the foil pops away and the prize glows over slow rays. */
+  [data-xp-game="scratch_card"][data-xp-phase="idle"] [data-xp-scratch] p {
+    animation: xp-fx-pulse 2.2s var(--xp-fx-jolt) infinite;
+  }
+  .xp-scratch-flake {
+    position: absolute;
+    width: 0.45rem;
+    height: 0.3rem;
+    border-radius: 0.08rem;
+    translate: -50% -50%;
+    background-color: var(--xp-scratch-foil-2, var(--xp-primary));
+    border: 0.06rem solid color-mix(in srgb, var(--xp-ink) 40%, transparent);
+    animation: xp-fx-flake 560ms cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+  }
+  [data-xp-game="scratch_card"][data-xp-uncovered] {
+    [data-xp-scratch-cover] {
+      scale: 1.12;
+      transition:
+        opacity 260ms ease-out,
+        scale 260ms ease-out;
+    }
+    .xp-scratch-card {
+      animation: xp-fx-ready 420ms var(--xp-fx-pop);
+    }
+    .xp-scratch-prize {
+      isolation: isolate;
+      &::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        z-index: -1;
+        width: 160%;
+        aspect-ratio: 1;
+        translate: -50% -50%;
+        background: repeating-conic-gradient(
+          color-mix(in srgb, var(--xp-primary) 30%, transparent) 0deg 12deg,
+          transparent 12deg 30deg
+        );
+        mask: radial-gradient(closest-side, currentColor 30%, transparent);
+        -webkit-mask: radial-gradient(
+          closest-side,
+          currentColor 30%,
+          transparent
+        );
+        animation:
+          xp-fx-fade-in 400ms var(--xp-fx-soft) both,
+          xp-fx-turn 18s linear infinite;
+      }
+      > * {
+        animation: xp-fx-pop-in 460ms var(--xp-fx-pop) 80ms both;
+      }
+    }
+  }
+
+  /* The quiz: a question slides in from the reading side's end, its answers pop in one
+     after the other; the chosen one is stamped. */
+  .xp-quiz-card {
+    animation: xp-fx-slide-in 340ms var(--xp-fx-out) both;
+  }
+  .xp-quiz-options > [data-xp-quiz-option] {
+    animation-name: xp-fx-pop-in;
+    animation-duration: 320ms;
+    animation-timing-function: var(--xp-fx-pop);
+    &:nth-child(2) {
+      animation-delay: 50ms;
+    }
+    &:nth-child(3) {
+      animation-delay: 100ms;
+    }
+    &:nth-child(n + 4) {
+      animation-delay: 150ms;
+    }
+  }
+  [data-xp-quiz-option][data-xp-chosen] {
+    opacity: 1;
+    background: var(--xp-primary);
+    color: var(--xp-on-primary);
+    animation: xp-fx-stamp 340ms var(--xp-fx-pop) both;
+  }
+  .xp-quiz-progress-fill {
+    transition: width 360ms var(--xp-fx-out);
+  }
+  .xp-quiz-progress-star {
+    translate: -50% -50%;
+    transition: inset-inline-start 360ms var(--xp-fx-out);
+    animation: xp-fx-sparkle 2.2s var(--xp-fx-jolt) infinite;
+  }
+
+  /* The boxes: sparkles come and go on them, their lids rattle now and then, a box leans
+     toward the mouse; the picked one jumps and shakes, then pops open; its prize rises out
+     of it. A losing box goes "boing" in a puff of smoke. */
+  [data-xp-game="mystery_box"] button {
+    rotate: var(--xp-box-lean, 0deg);
+    transition: rotate 200ms ease-out;
+  }
+  [data-xp-game="mystery_box"][data-xp-phase="interacting"]
+    button:enabled
+    .xp-box-lid {
+    animation: xp-fx-rattle 5s var(--xp-fx-jolt) infinite;
+  }
+  [data-xp-game="mystery_box"] button:nth-child(2) .xp-box-lid {
+    animation-delay: -1.7s;
+  }
+  [data-xp-game="mystery_box"] button:nth-child(3) .xp-box-lid {
+    animation-delay: -3.3s;
+  }
+  [data-xp-game="mystery_box"][data-xp-phase="interacting"]
+    button:enabled::after {
+    content: "";
+    position: absolute;
+    top: 8%;
+    right: 10%;
+    width: 22%;
+    aspect-ratio: 1;
+    pointer-events: none;
+    background-color: var(--xp-surface);
+    mask: url("../../themes/_shared/assets/fx/burst.svg") center / contain
+      no-repeat;
+    -webkit-mask: url("../../themes/_shared/assets/fx/burst.svg") center /
+      contain no-repeat;
+    animation: xp-fx-glint 3.6s var(--xp-fx-jolt) infinite;
+  }
+  [data-xp-game="mystery_box"] button:nth-child(2)::after {
+    animation-delay: -1.2s;
+    left: 12%;
+    right: auto;
+  }
+  [data-xp-game="mystery_box"] button:nth-child(3)::after {
+    animation-delay: -2.4s;
+  }
+  .xp-box[data-xp-box-state="shaking"] {
+    animation: xp-fx-jump-shake 420ms var(--xp-fx-jolt) infinite !important;
+  }
+  .xp-box[data-xp-box-state="open"] .xp-box-content {
+    animation: xp-fx-rise-spin 640ms var(--xp-fx-pop) 120ms both;
+  }
+  [data-xp-box-outcome="lose"] .xp-box[data-xp-box-state="open"] {
+    animation: xp-fx-boing 700ms var(--xp-fx-pop) both;
+    &::before {
+      background-color: color-mix(
+        in srgb,
+        var(--xp-text) 35%,
+        var(--xp-surface)
+      );
+      animation-duration: 1.1s;
+    }
+  }
+
+  /* Hit It: the target's zone pulses; the score bumps with each hit; the field warms up
+     as the hits add up; in the last seconds its edges pulse red. */
+  [data-xp-game="hit_it"][data-xp-phase="interacting"]
+    [data-xp-hit-target]::after {
+    content: "";
+    position: absolute;
+    inset: -18%;
+    border-radius: 50%;
+    border: 0.18rem solid var(--xp-hit-burst, var(--xp-primary));
+    pointer-events: none;
+    animation: xp-game-ring 1.2s var(--xp-fx-soft) infinite;
+  }
+  [data-xp-hit-score] {
+    animation: xp-fx-ready 300ms var(--xp-fx-pop);
+  }
+  [data-xp-hit-field] {
+    isolation: isolate;
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background: radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--xp-primary) 45%, transparent),
+        transparent 70%
+      );
+      opacity: calc(var(--xp-hit-heat, 0) * 0.9);
+      transition: opacity 300ms ease-out;
+    }
+    &[data-xp-low]::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      box-shadow: inset 0 0 1.5rem 0.4rem
+        color-mix(in srgb, var(--xp-danger) 70%, transparent);
+      animation: xp-fx-breathe 0.6s var(--xp-fx-jolt) infinite;
+    }
+  }
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────────── */
+
+@keyframes xp-fx-turn {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes xp-fx-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-dots {
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes xp-fx-breathe {
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes xp-fx-sparkle {
+  0%,
+  100% {
+    scale: 0.9;
+    opacity: calc(var(--xp-decor-opacity, 1) * 0.75);
+  }
+  50% {
+    scale: 1.1;
+    opacity: var(--xp-decor-opacity, 1);
+  }
+}
+@keyframes xp-fx-bob {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: calc(var(--xp-decor-rotate, 0deg) - 3deg);
+  }
+  50% {
+    translate: 0 -0.5rem;
+    rotate: calc(var(--xp-decor-rotate, 0deg) + 3deg);
+  }
+}
+@keyframes xp-fx-assemble {
+  0% {
+    scale: 0;
+  }
+  70% {
+    scale: 1.2;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes xp-fx-card-pop {
+  0% {
+    opacity: 0;
+    scale: 0.8;
+  }
+  60% {
+    opacity: 1;
+    scale: 1.05;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes xp-fx-title-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -1.5rem;
+    rotate: -2deg;
+  }
+  70% {
+    opacity: 1;
+    translate: 0 0.2rem;
+    rotate: 1deg;
+  }
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+}
+@keyframes xp-fx-pop-in {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  70% {
+    opacity: 1;
+    scale: 1.08;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes xp-fx-zoom-in {
+  from {
+    opacity: 0;
+    scale: 0.82;
+  }
+}
+@keyframes xp-fx-shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  20% {
+    translate: -0.4rem 0.15rem;
+  }
+  40% {
+    translate: 0.35rem -0.15rem;
+  }
+  60% {
+    translate: -0.25rem 0.1rem;
+  }
+  80% {
+    translate: 0.15rem 0;
+  }
+}
+@keyframes xp-fx-shake-x {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -0.35rem 0;
+  }
+  50% {
+    translate: 0.3rem 0;
+  }
+  75% {
+    translate: -0.15rem 0;
+  }
+}
+@keyframes xp-fx-shake-soft {
+  25% {
+    rotate: -1.5deg;
+  }
+  75% {
+    rotate: 1.5deg;
+  }
+}
+@keyframes xp-fx-wipe-cover {
+  from {
+    scale: 0;
+    rotate: -30deg;
+  }
+  to {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+@keyframes xp-fx-wipe-reveal {
+  from {
+    scale: 1;
+    rotate: 0deg;
+  }
+  to {
+    scale: 0;
+    rotate: 30deg;
+  }
+}
+@keyframes xp-fx-flash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-ready {
+  40% {
+    scale: 1.08;
+  }
+}
+@keyframes xp-fx-pulse {
+  0%,
+  86%,
+  100% {
+    scale: 1;
+  }
+  93% {
+    scale: 1.05;
+  }
+}
+@keyframes xp-fx-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes xp-fx-float {
+  50% {
+    translate: 0 -0.4rem;
+  }
+}
+@keyframes xp-fx-slam {
+  0% {
+    opacity: 0;
+    scale: 2.2;
+  }
+  60% {
+    opacity: 1;
+    scale: 0.92;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes xp-fx-slide-up {
+  0% {
+    opacity: 0;
+    translate: 0 2rem;
+  }
+  70% {
+    opacity: 1;
+    translate: 0 -0.25rem;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+@keyframes xp-fx-stamp {
+  0% {
+    scale: 1;
+  }
+  40% {
+    scale: 1.08;
+    rotate: -2deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+@keyframes xp-fx-sulk {
+  0% {
+    opacity: 0;
+    translate: 0 -1.5rem;
+  }
+  35% {
+    opacity: 1;
+    translate: 0 0.2rem;
+    rotate: 0deg;
+  }
+  55% {
+    rotate: -6deg;
+  }
+  75% {
+    rotate: 4deg;
+  }
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+}
+@keyframes xp-fx-sweat {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+    translate: 0 1.2rem;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 1.6rem;
+  }
+}
+@keyframes xp-fx-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 0.35;
+  }
+  16% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0.45;
+  }
+}
+@keyframes xp-fx-wobble {
+  25% {
+    rotate: -6deg;
+  }
+  50% {
+    rotate: 5deg;
+  }
+  75% {
+    rotate: -2deg;
+  }
+}
+@keyframes xp-fx-word {
+  0% {
+    opacity: 0;
+    scale: 0.3;
+    rotate: calc(var(--xp-fx-word-tilt, -8deg) - 14deg);
+  }
+  30% {
+    opacity: 1;
+    scale: 1.15;
+    rotate: var(--xp-fx-word-tilt, -8deg);
+  }
+  70% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.05;
+    rotate: var(--xp-fx-word-tilt, -8deg);
+  }
+}
+@keyframes xp-fx-plus {
+  from {
+    opacity: 1;
+    translate: -50% -50%;
+  }
+  to {
+    opacity: 0;
+    translate: -50% -220%;
+  }
+}
+@keyframes xp-fx-sway {
+  0%,
+  100% {
+    rotate: -2deg;
+  }
+  50% {
+    rotate: 2deg;
+  }
+}
+@keyframes xp-fx-slice {
+  50% {
+    scale: 1.07;
+  }
+  100% {
+    scale: 1.04;
+  }
+}
+@keyframes xp-fx-flake {
+  to {
+    opacity: 0;
+    translate: calc(-50% + var(--xp-flake-x, 0))
+      calc(-50% + var(--xp-flake-y, -1rem) + 2.4rem);
+    rotate: var(--xp-flake-turn, 180deg);
+  }
+}
+@keyframes xp-fx-slide-in {
+  from {
+    opacity: 0;
+    translate: 2.5rem 0;
+  }
+}
+@keyframes xp-fx-rattle {
+  0%,
+  88%,
+  100% {
+    rotate: 0deg;
+  }
+  91% {
+    rotate: -4deg;
+  }
+  94% {
+    rotate: 4deg;
+  }
+  97% {
+    rotate: -2deg;
+  }
+}
+@keyframes xp-fx-glint {
+  0%,
+  60%,
+  100% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  75% {
+    opacity: 0.95;
+    scale: 1;
+    rotate: 30deg;
+  }
+}
+@keyframes xp-fx-jump-shake {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  25% {
+    translate: 0 -8%;
+    rotate: -6deg;
+  }
+  50% {
+    translate: 0 -4%;
+    rotate: 6deg;
+  }
+  75% {
+    translate: 0 -6%;
+    rotate: -3deg;
+  }
+}
+@keyframes xp-fx-rise-spin {
+  0% {
+    opacity: 0;
+    translate: 0 40%;
+    scale: 0.4;
+    rotate: -180deg;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+@keyframes xp-fx-boing {
+  0% {
+    scale: 1 1;
+  }
+  30% {
+    scale: 1.15 0.8;
+  }
+  55% {
+    scale: 0.92 1.1;
+  }
+  75% {
+    scale: 1.04 0.97;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* ── Reduced motion, animations off, a struggling device ─────────────────────── */
+
+/* A device that drops frames: the ambient motion goes first; what answers the player stays. */
+.xp-stage[data-xp-lite] :is(.xp-stage-rays, .xp-stage-vignette, .xp-decor),
+.xp-stage[data-xp-lite] .xp-stage-image::after,
+.xp-stage-front[data-xp-lite] .xp-decor {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-root .xp-stage-image::after,
+  .xp-root .xp-frame::before,
+  .xp-root
+    :is(
+      .xp-stage-rays,
+      .xp-stage-vignette,
+      .xp-frame > *,
+      .xp-hero-art,
+      .xp-fx-word,
+      .xp-fx-plus,
+      .xp-fx-flash,
+      .xp-fx-wipe > span,
+      .xp-btn,
+      .xp-field :is(input, select),
+      .xp-field-error > svg,
+      .xp-medallion,
+      .xp-medallion svg,
+      [data-xp-code],
+      [data-xp-share-row] > *,
+      .xp-reward-popup
+    ),
+  .xp-root .xp-frame > [data-xp-slot="hero"]::before,
+  .xp-root .xp-frame > [data-xp-slot="hero"]::after {
+    animation: none !important;
+  }
+  .xp-root .xp-check-draw :is(path, polyline) {
+    stroke-dashoffset: 0;
+  }
+  .xp-fx-word,
+  .xp-fx-plus,
+  .xp-fx-flash,
+  .xp-fx-wipe {
+    display: none;
+  }
+  /* A screen only fades in. */
+  .xp-root[data-xp-fx-entrance] .xp-transition > .xp-frame {
+    animation: xp-fx-fade-in 200ms var(--xp-fx-soft) both !important;
+  }
+}
+.xp-root:has([data-xp-motion="off"]) {
+  .xp-stage-image::after,
+  .xp-frame::before,
+  :is(
+    .xp-stage-rays,
+    .xp-stage-vignette,
+    .xp-frame > *,
+    .xp-hero-art,
+    .xp-btn,
+    .xp-field :is(input, select),
+    .xp-field-error > svg,
+    .xp-medallion,
+    .xp-medallion svg,
+    [data-xp-code],
+    [data-xp-share-row] > *,
+    .xp-reward-popup
+  ),
+  .xp-frame > [data-xp-slot="hero"]::before,
+  .xp-frame > [data-xp-slot="hero"]::after {
+    animation: none !important;
+  }
+  .xp-check-draw :is(path, polyline) {
+    stroke-dashoffset: 0;
+  }
+  :is(.xp-fx-word, .xp-fx-plus, .xp-fx-flash, .xp-fx-wipe) {
+    display: none;
+  }
+}
+
+/* ── A living pixel scene: wind, sway, sprites, things crossing, rain ────────────── */
+
+/* A cloud on the wind: it crosses the whole screen and comes back round, from the place it
+   was given (--xp-wind-from); the nearer (bigger) the faster, set by its own seconds. */
+.xp-decor[data-xp-motion="wind"] {
+  animation: xp-fx-wind var(--xp-decor-seconds, 80s) linear
+    var(--xp-decor-delay, 0s) infinite;
+  will-change: translate;
+}
+/* A tree, a bush: a 1 px lean, two frames, each on its own beat. */
+.xp-decor[data-xp-motion="sway"] {
+  transform-origin: 50% 100%;
+  animation: xp-fx-lean
+    calc(var(--xp-decor-seconds, 2.6s) * var(--xp-decor-speed, 1)) steps(1, end)
+    var(--xp-decor-delay, 0s) infinite;
+}
+/* A coin over the ground: a stepped bob of a few pixels. */
+.xp-decor[data-xp-motion="hover"] {
+  animation: xp-fx-hover calc(1.6s * var(--xp-decor-speed, 1)) steps(2, end)
+    var(--xp-decor-delay, 0s) infinite;
+}
+/* A sprite sheet, played frame by frame: its frames side by side, one shown at a time. */
+.xp-decor[data-xp-sprite],
+.xp-flyer-sprite {
+  background: var(--xp-decor-src) 0 0 / calc(var(--xp-sprite-frames, 1) * 100%)
+    100% no-repeat;
+  image-rendering: pixelated;
+}
+.xp-decor[data-xp-sprite] {
+  height: auto;
+  animation: xp-fx-sprite var(--xp-sprite-seconds, 0.5s)
+    steps(var(--xp-sprite-frames, 1), jump-none) infinite;
+}
+.xp-decor[data-xp-sprite][data-xp-motion="hover"] {
+  animation:
+    xp-fx-sprite var(--xp-sprite-seconds, 0.5s)
+      steps(var(--xp-sprite-frames, 1), jump-none) infinite,
+    xp-fx-hover calc(1.6s * var(--xp-decor-speed, 1)) steps(2, end)
+      var(--xp-decor-delay, 0s) infinite;
+}
+
+/* Birds, a snail (Flyers): across the screen, wings flapping, a little bob in the sky. */
+.xp-flyer {
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+  animation: xp-fx-fly-right var(--xp-flyer-seconds, 20s) linear
+    var(--xp-flyer-delay, 0s) both;
+  &[data-xp-flip] {
+    animation-name: xp-fx-fly-left;
+  }
+  &[data-xp-scatter] {
+    animation-name: xp-fx-scatter;
+  }
+}
+.xp-flyer-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation:
+    xp-fx-sprite var(--xp-sprite-seconds, 0.4s)
+      steps(var(--xp-sprite-frames, 1), jump-none) infinite,
+    xp-fx-flap-bob 1.1s steps(1, end) infinite;
+}
+.xp-flyer[data-xp-flip] .xp-flyer-sprite {
+  scale: -1 1;
+}
+.xp-flyer[data-xp-lane="ground"] .xp-flyer-sprite {
+  animation: xp-fx-sprite var(--xp-sprite-seconds, 0.6s)
+    steps(var(--xp-sprite-frames, 1), jump-none) infinite;
+}
+
+/* Pixel rain on a loss: columns of short dashes falling in hard frames. */
+.xp-stage-rain {
+  position: absolute;
+  inset: -100% 0 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    linear-gradient(90deg, var(--xp-fx-rain) 0 0.14rem, transparent 0.14rem) 0
+      0 / 2.3rem 100%,
+    linear-gradient(90deg, var(--xp-fx-rain) 0 0.14rem, transparent 0.14rem)
+      1.1rem 0 / 3.7rem 100%;
+  mask:
+    linear-gradient(currentColor 0 0.75rem, transparent 0.75rem) 0 0 / 100%
+      3.1rem,
+    linear-gradient(currentColor 0 0.5rem, transparent 0.5rem) 0 1.4rem / 100%
+      4.3rem;
+  -webkit-mask:
+    linear-gradient(currentColor 0 0.75rem, transparent 0.75rem) 0 0 / 100%
+      3.1rem,
+    linear-gradient(currentColor 0 0.5rem, transparent 0.5rem) 0 1.4rem / 100%
+      4.3rem;
+  animation:
+    xp-fx-fade-in 500ms steps(4, end) both,
+    xp-fx-rain 1.4s steps(14, end) infinite;
+}
+
+/* The stage changes mood (a gray-blue loss) in a few hard steps, not a smooth fade. */
+.xp-root[data-xp-fx-feel="stepped"]
+  :is(.xp-stage-image, .xp-stage-veil, .xp-decor) {
+  transition-timing-function: steps(4, end);
+}
+
+/* ── Retro transitions: the iris, the pipe, the glitch ───────────────────────── */
+
+/* The iris: a circle of the ink closing on the screen, then opening on the next one. */
+@property --xp-fx-iris {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+.xp-root[data-xp-fx-wipe="iris"] .xp-fx-wipe {
+  > span {
+    display: none;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 50%,
+      transparent var(--xp-fx-iris),
+      var(--xp-fx-wipe-ink, var(--xp-ink)) calc(var(--xp-fx-iris) + 0.5%)
+    );
+  }
+  &[data-xp-phase="cover"]::before {
+    animation: xp-fx-iris-close 230ms steps(6, end) both;
+  }
+  &[data-xp-phase="reveal"]::before {
+    animation: xp-fx-iris-open 250ms steps(6, end) both;
+  }
+}
+
+/* The pipe: into the form, the welcome slides down out of sight, the form comes up. */
+.xp-transition[data-xp-leaving="pipe"] > .xp-frame {
+  animation: xp-fx-pipe-down 230ms steps(4, end) both;
+}
+.xp-transition[data-xp-change="pipe"] > .xp-frame {
+  animation: xp-fx-pipe-up 260ms steps(4, end) both;
+}
+
+/* A stepped theme's error arrives in a glitch: three frames of slices pushed sideways. */
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-impact]
+  .xp-transition[data-xp-change="shake"]
+  > .xp-frame {
+  animation: xp-fx-glitch 240ms steps(1, end) both;
+}
+
+/* ── Stepped entrance, header and text ───────────────────────────────────────── */
+
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-entrance="pop"] .xp-frame {
+  /* The line under the title types itself out. */
+  > [data-xp-slot="copy"] {
+    animation: xp-fx-type 640ms steps(16, end) 260ms both;
+    &:dir(rtl) {
+      animation-name: xp-fx-type-rtl;
+    }
+  }
+  /* The buttons slide up in three steps. */
+  > [data-xp-slot="cta"] {
+    animation: xp-fx-step-up 300ms steps(3, end) 380ms both;
+  }
+  /* The trophy hops in, three stepped bounces, then bobs. */
+  > [data-xp-slot="hero"] .xp-hero-art {
+    animation:
+      xp-fx-hops 600ms steps(2, end) 60ms both,
+      xp-fx-hover 1.6s steps(2, end) 700ms infinite;
+  }
+  /* The title shines for two frames every few seconds. */
+  > [data-xp-slot="title"] {
+    animation:
+      xp-fx-title-drop 420ms var(--xp-fx-pop) 100ms both,
+      xp-fx-shine 4.5s steps(1, end) 1.5s infinite;
+  }
+}
+/* A sparkle pixel that comes and goes at the trophy's corner. */
+.xp-root[data-xp-fx-feel="stepped"]
+  .xp-frame
+  > [data-xp-slot="hero"][data-xp-hero="art"] {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: calc(50% + var(--xp-hero-art-width, 4rem) * 0.38);
+    top: 4%;
+    width: calc(var(--xp-hero-art-width, 4rem) * 0.2);
+    aspect-ratio: 1;
+    pointer-events: none;
+    background-color: var(--xp-surface);
+    mask: url("../../themes/_shared/assets/fx/burst.svg") center / contain
+      no-repeat;
+    -webkit-mask: url("../../themes/_shared/assets/fx/burst.svg") center /
+      contain no-repeat;
+    opacity: 0;
+    animation: xp-fx-glint-hard 2.6s steps(1, end) 900ms infinite;
+  }
+}
+/* The live dot blinks in two frames. */
+.xp-root[data-xp-fx-feel="stepped"] [data-xp-slot="header"] .xp-ping {
+  animation: xp-fx-blink 1s steps(1, end) infinite;
+}
+/* A stepped theme's small pops (a valid field's check, the copied badge) in two frames. */
+.xp-root[data-xp-fx-feel="stepped"] .xp-frame .xp-pop {
+  animation-timing-function: steps(2, end);
+}
+.xp-root[data-xp-fx-feel="stepped"] [data-xp-copied] .xp-code-copy-label {
+  animation: xp-fx-blink 0.3s steps(1, end) 4;
+}
+/* The arcade countdown of a loss. */
+.xp-fx-countdown {
+  color: var(--xp-copy-color, var(--xp-primary));
+  animation: xp-fx-blink 1s steps(1, end) infinite;
+  &[data-xp-countdown="done"] {
+    animation: none;
+  }
+}
+/* An arcade word over the game ("GO!") sits on slot 5. */
+.xp-frame > [data-xp-slot="interaction"]:has(> .xp-fx-word) {
+  position: relative;
+}
+.xp-root[data-xp-fx-feel="stepped"] .xp-fx-word {
+  -webkit-text-stroke-width: 0.1em;
+  animation-timing-function: steps(3, end);
+  /* A pixel font runs wide: a word stays on the screen, never past its sides. */
+  font-size: clamp(0.8rem, 5.5cqmin, 1.75rem);
+  &[data-xp-over] {
+    font-size: clamp(0.9rem, min(6vmin, 7vw), 2.75rem);
+  }
+}
+
+/* ── Arcade buttons and fields ───────────────────────────────────────────────── */
+
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-buttons]
+  .xp-btn:not([data-xp-variant="ghost"]) {
+  /* No easing: a press is instant, a release one frame. */
+  transition: none;
+  @media (hover: hover) {
+    &:hover:enabled:not([aria-busy="true"]) {
+      translate: none;
+      filter: brightness(1.12);
+      outline: 0.15rem solid var(--xp-surface);
+      outline-offset: 0.15rem;
+      animation: xp-fx-blink-outline 0.5s steps(1, end) infinite;
+    }
+  }
+  &:active:enabled:not([aria-busy="true"]) {
+    translate: 0 0.22rem;
+    scale: none;
+    filter: brightness(0.92);
+  }
+  /* Unavailable: grey, under a dotted veil. */
+  &:disabled {
+    filter: grayscale(1);
+    opacity: 0.75;
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+          circle,
+          color-mix(in srgb, var(--xp-ink) 40%, transparent) 0 0.07rem,
+          transparent 0.08rem
+        )
+        0 0 / 0.36rem 0.36rem;
+    }
+  }
+}
+/* The main button bobs a pixel or two while it waits; unlocked, it flashes twice. */
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-buttons]
+  .xp-btn[data-xp-variant="primary"]:enabled:not([aria-busy="true"]) {
+  animation:
+    xp-fx-unlock 360ms steps(1, end),
+    xp-fx-btn-bob 1.6s steps(1, end) 1s infinite;
+}
+/* "Press start": a blinking arrow before the main CTA's label (never read out). */
+.xp-root[data-xp-fx-feel="stepped"]
+  .xp-frame
+  > [data-xp-slot="cta"]
+  [data-xp-cta="primary"]:enabled
+  > span:last-child::before {
+  content: "\25B6" / "";
+  display: inline-block;
+  margin-inline-end: 0.6em;
+  animation: xp-fx-blink 0.8s steps(1, end) infinite;
+}
+.xp-root[data-xp-fx-feel="stepped"]
+  .xp-frame
+  > [data-xp-slot="cta"]
+  [data-xp-cta="primary"]:enabled
+  > span:last-child:dir(rtl)::before {
+  content: "\25C0" / "";
+}
+
+/* Fields: a thick border that blinks in focus; the error's "!" is a square block. */
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-fields]
+  .xp-field
+  :is(input, select) {
+  transition: none;
+  &:focus {
+    translate: none;
+    outline: 0.2rem solid var(--xp-primary);
+    outline-offset: 0.12rem;
+    animation: xp-fx-blink-outline 0.9s steps(1, end) infinite;
+  }
+}
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-fields] .xp-field-error > svg {
+  border-radius: 0;
+}
+
+/* ── The games, stepped ──────────────────────────────────────────────────────── */
+
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-games="lively"] {
+  /* The wheel: its pointer bounces while it waits; the slice it landed on blinks. */
+  [data-xp-game="lucky_wheel"][data-xp-phase="idle"] .xp-wheel-pointer {
+    animation: xp-fx-hover 0.8s steps(2, end) infinite;
+  }
+  [data-xp-game="lucky_wheel"][data-xp-landed] [data-xp-segment][data-xp-hit] {
+    animation: xp-fx-slice-blink 0.24s steps(1, end) 4;
+  }
+  /* The scratch card: the foil breaks away in hard frames, the prize's rays tick round. */
+  [data-xp-scratch-cover] {
+    transition-timing-function: steps(4, end) !important;
+  }
+  .xp-scratch-flake {
+    border-radius: 0;
+    animation-timing-function: steps(5, end);
+  }
+  [data-xp-uncovered] .xp-scratch-prize::before {
+    animation:
+      xp-fx-fade-in 300ms steps(3, end) both,
+      xp-fx-turn 18s steps(36, end) infinite;
+  }
+  /* The quiz: a segmented progress bar and timer. */
+  .xp-quiz-progress-fill {
+    border-radius: 0;
+    transition-timing-function: steps(3, end);
+    mask: repeating-linear-gradient(
+      90deg,
+      currentColor 0 0.9rem,
+      transparent 0.9rem 1.1rem
+    );
+    -webkit-mask: repeating-linear-gradient(
+      90deg,
+      currentColor 0 0.9rem,
+      transparent 0.9rem 1.1rem
+    );
+  }
+  [data-xp-quiz-progress] {
+    border-radius: 0;
+  }
+  .xp-quiz-timer {
+    mask: repeating-conic-gradient(
+      currentColor 0 32deg,
+      transparent 32deg 36deg
+    );
+    -webkit-mask: repeating-conic-gradient(
+      currentColor 0 32deg,
+      transparent 32deg 36deg
+    );
+    &[data-xp-low] {
+      animation: xp-fx-blink 0.5s steps(1, end) infinite;
+    }
+  }
+  /* The boxes: they hop when the mouse comes over them, never lean. */
+  [data-xp-game="mystery_box"] button {
+    rotate: none;
+    transition: none;
+  }
+  [data-xp-game="mystery_box"][data-xp-phase="interacting"]
+    button:enabled:hover
+    > .xp-box {
+    animation: xp-fx-hops 360ms steps(2, end);
+  }
+  /* Hit It: a segmented timer bar that blinks at the end. */
+  .xp-hit-time {
+    border-radius: 0;
+    mask: repeating-linear-gradient(
+      90deg,
+      currentColor 0 calc(10% - 0.2rem),
+      transparent calc(10% - 0.2rem) 10%
+    );
+    -webkit-mask: repeating-linear-gradient(
+      90deg,
+      currentColor 0 calc(10% - 0.2rem),
+      transparent calc(10% - 0.2rem) 10%
+    );
+    &[data-xp-low] {
+      animation: xp-fx-blink 0.4s steps(1, end) infinite;
+    }
+  }
+}
+
+/* ── Stepped results ─────────────────────────────────────────────────────────── */
+
+/* A win: a white flash for a frame (a hard swap, not a glow), then a 2 px shake. */
+.xp-root[data-xp-fx-feel="stepped"] .xp-fx-flash {
+  animation: xp-fx-flash-hard 80ms steps(1, end) both;
+}
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-impact]
+  .xp-transition[data-xp-change="impact"]
+  > .xp-frame {
+  animation: xp-fx-shake-px 300ms steps(1, end) 80ms both;
+}
+.xp-root[data-xp-fx-feel="stepped"][data-xp-fx-impact]
+  .xp-frame[data-xp-screen="win"] {
+  > [data-xp-slot="hero"] .xp-hero-art {
+    animation:
+      xp-fx-hops 600ms steps(2, end) 160ms both,
+      xp-fx-hover 1.6s steps(2, end) 800ms infinite;
+  }
+  > [data-xp-slot="hero"]::before {
+    animation:
+      xp-fx-pop-in 400ms steps(2, end) 120ms both,
+      xp-fx-turn 24s steps(48, end) infinite;
+  }
+}
+
+/* ── Keyframes of the pixel scene ────────────────────────────────────────────── */
+
+@keyframes xp-fx-wind {
+  from {
+    translate: calc(-100% - var(--xp-wind-from, 0vw)) 0;
+  }
+  to {
+    translate: calc(100vw - var(--xp-wind-from, 0vw)) 0;
+  }
+}
+@keyframes xp-fx-lean {
+  0%,
+  100% {
+    rotate: calc(var(--xp-decor-rotate, 0deg) - 1deg);
+  }
+  50% {
+    rotate: calc(var(--xp-decor-rotate, 0deg) + 1deg);
+  }
+}
+@keyframes xp-fx-hover {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -0.25rem;
+  }
+}
+@keyframes xp-fx-sprite {
+  from {
+    background-position-x: 0%;
+  }
+  to {
+    background-position-x: 100%;
+  }
+}
+@keyframes xp-fx-fly-right {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 100vw 0;
+  }
+}
+@keyframes xp-fx-fly-left {
+  from {
+    translate: 100vw 0;
+  }
+  to {
+    translate: -100% 0;
+  }
+}
+@keyframes xp-fx-scatter {
+  from {
+    translate: 35vw 55vh;
+  }
+  to {
+    translate: 105vw -30vh;
+  }
+}
+@keyframes xp-fx-flap-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 0.19rem;
+  }
+}
+@keyframes xp-fx-rain {
+  to {
+    translate: 0 50%;
+  }
+}
+@keyframes xp-fx-iris-close {
+  from {
+    --xp-fx-iris: 100%;
+  }
+  to {
+    --xp-fx-iris: 0%;
+  }
+}
+@keyframes xp-fx-iris-open {
+  from {
+    --xp-fx-iris: 0%;
+  }
+  to {
+    --xp-fx-iris: 100%;
+  }
+}
+@keyframes xp-fx-pipe-down {
+  to {
+    translate: 0 110%;
+  }
+}
+@keyframes xp-fx-pipe-up {
+  from {
+    translate: 0 100%;
+  }
+}
+@keyframes xp-fx-glitch {
+  0% {
+    translate: 0.6rem 0;
+    clip-path: inset(8% 0 58% 0);
+  }
+  33% {
+    translate: -0.5rem 0;
+    clip-path: inset(42% 0 22% 0);
+  }
+  66% {
+    translate: 0.25rem 0;
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    translate: 0 0;
+    clip-path: none;
+  }
+}
+@keyframes xp-fx-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes xp-fx-type-rtl {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes xp-fx-step-up {
+  from {
+    opacity: 0;
+    translate: 0 1rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes xp-fx-hops {
+  0% {
+    opacity: 0;
+    translate: 0 -1.5rem;
+  }
+  25% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  45% {
+    translate: 0 -0.6rem;
+  }
+  65% {
+    translate: 0 0;
+  }
+  82% {
+    translate: 0 -0.25rem;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+@keyframes xp-fx-shine {
+  0%,
+  93%,
+  100% {
+    filter: none;
+  }
+  95% {
+    filter: brightness(1.35);
+  }
+}
+@keyframes xp-fx-glint-hard {
+  0%,
+  55%,
+  100% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+    scale: 0.6;
+  }
+  66% {
+    opacity: 1;
+    scale: 1;
+  }
+  72% {
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-blink-outline {
+  50% {
+    outline-color: transparent;
+  }
+}
+@keyframes xp-fx-unlock {
+  0%,
+  50% {
+    filter: brightness(1.6);
+  }
+  25%,
+  75% {
+    filter: none;
+  }
+}
+@keyframes xp-fx-btn-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -0.125rem;
+  }
+}
+@keyframes xp-fx-slice-blink {
+  50% {
+    filter: brightness(1.7);
+  }
+}
+@keyframes xp-fx-flash-hard {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-shake-px {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -0.125rem 0;
+  }
+  50% {
+    translate: 0.125rem 0.125rem;
+  }
+  75% {
+    translate: 0.125rem -0.125rem;
+  }
+}
+
+/* ── The pixel scene, still ───────────────────────────────────────────────────── */
+
+/* Reduced motion, the brand's animations off, a struggling device: nothing crosses, nothing
+   falls; the scene stays as it was drawn (a cloud on the wind keeps its own place). */
+@media (prefers-reduced-motion: reduce) {
+  .xp-flyer,
+  .xp-stage-rain {
+    display: none;
+  }
+  .xp-root .xp-transition > .xp-frame,
+  .xp-root .xp-fx-wipe::before,
+  .xp-root .xp-fx-countdown,
+  .xp-root .xp-frame > [data-xp-slot="cta"] [data-xp-cta] > span::before {
+    animation: none !important;
+  }
+}
+.xp-root:has([data-xp-motion="off"]) {
+  .xp-flyer,
+  .xp-stage-rain {
+    display: none;
+  }
+  .xp-transition > .xp-frame,
+  .xp-fx-countdown,
+  .xp-frame > [data-xp-slot="cta"] [data-xp-cta] > span::before {
+    animation: none !important;
+  }
+}
+.xp-stage[data-xp-lite] :is(.xp-flyer, .xp-stage-rain) {
+  display: none;
+}

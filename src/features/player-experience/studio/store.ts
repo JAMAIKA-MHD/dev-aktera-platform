@@ -1,7 +1,11 @@
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 import { temporal, type TemporalState } from "zundo";
 import type { CampaignSnapshot } from "../domain/campaign";
-import { createDefaultExperience, DEFAULT_GAME_TYPE } from "../domain/defaults";
+import {
+  createDefaultExperience,
+  DEFAULT_GAME_TYPE,
+  screensForGame,
+} from "../domain/defaults";
 import type { GameType } from "../domain/gameTypes";
 import type { Locale } from "../domain/locale";
 import type { TemplateId } from "../domain/templates";
@@ -268,14 +272,23 @@ export function createStudioStore(
                       : themeFromPreset(classic),
               };
             }),
+          // The game's own screens follow, where they still hold the old game's texts.
           resetGame: () =>
-            edit((current) => ({
-              ...current,
-              game: createDefaultExperience({
-                gameType: get().campaign?.gameType ?? current.game.type,
-                campaign: get().campaign ?? undefined,
-              }).game,
-            })),
+            edit((current) => {
+              const gameType = get().campaign?.gameType ?? current.game.type;
+              return {
+                ...current,
+                game: createDefaultExperience({
+                  gameType,
+                  campaign: get().campaign ?? undefined,
+                }).game,
+                screens: screensForGame(
+                  current.screens,
+                  current.game.type,
+                  gameType,
+                ),
+              };
+            }),
           // The screens follow the new game only while they still hold the old game's
           // default texts: a brand's own wording is never replaced.
           setStandaloneGameType: (type) => {
