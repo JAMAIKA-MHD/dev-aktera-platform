@@ -44,7 +44,12 @@ function crossingStyle(
     "--xp-sprite-seconds": `${(flyer.frames / flyer.fps).toFixed(3)}s`,
     "--xp-decor-src": `url("${flyer.url}")`,
   };
-  if (flyer.lane === "ground") {
+  if (flyer.path === "rise") {
+    // Rising from below the screen, somewhere across it (band: its left and right bounds).
+    const [from, to] = flyer.band;
+    style.left = `${between([from, to]).toFixed(1)}%`;
+    style.top = "100%";
+  } else if (flyer.lane === "ground") {
     style.bottom = flyer.ground ?? "0px";
   } else {
     const [top, bottom] = flyer.band;

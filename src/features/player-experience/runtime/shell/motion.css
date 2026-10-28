@@ -2456,3 +2456,297 @@
   > span:last-child::before {
   content: none;
 }
+
+/* ── A TV game show: curtain, flip, rising lights, gold glow, suspense ──────────── */
+
+/* Two curtains opening once as the journey starts. */
+.xp-fx-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  pointer-events: none;
+  > span {
+    flex: 1 1 50%;
+    background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--xp-fx-curtain) 100%, transparent) 0 2.2rem,
+      color-mix(in srgb, var(--xp-fx-curtain) 72%, var(--xp-ink)) 2.2rem 3rem
+    );
+    animation: xp-fx-curtain-left 600ms cubic-bezier(0.6, 0, 0.3, 1) 120ms
+      forwards;
+  }
+  > span:last-child {
+    animation-name: xp-fx-curtain-right;
+  }
+}
+
+/* Into the form, the card turns over on its vertical axis. */
+.xp-transition[data-xp-leaving="flip"] > .xp-frame {
+  animation: xp-fx-flip-out 230ms ease-in both;
+}
+.xp-transition[data-xp-change="flip"] > .xp-frame {
+  animation: xp-fx-flip-in 260ms ease-out both;
+}
+
+/* What rises through the scene: light motes, balloons, swaying as they go. */
+.xp-flyer[data-xp-path="rise"] {
+  animation-name: xp-fx-rise;
+  animation-timing-function: linear;
+  .xp-flyer-sprite {
+    animation:
+      xp-fx-sprite var(--xp-sprite-seconds, 0.4s)
+        steps(var(--xp-sprite-frames, 1), jump-none) infinite,
+      xp-fx-rise-sway 3.4s ease-in-out infinite;
+  }
+}
+
+:where(.xp-root[data-xp-fx-feel="show"]) {
+  --xp-fx-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --xp-fx-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --xp-fx-jolt: ease-in-out;
+  --xp-fx-soft: ease-out;
+}
+
+/* Gold buttons: a soft halo inside the gloss that pulses, and the shine sweeping across it
+   (a button drawn from the theme's picture shows it too). */
+.xp-root[data-xp-fx-feel="show"] .xp-btn:not([data-xp-variant="ghost"]) {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 1.1rem
+      color-mix(in srgb, var(--xp-primary) 60%, transparent);
+    opacity: 0.3;
+    animation: xp-fx-glow 3s ease-in-out infinite;
+  }
+  &:disabled::before {
+    display: none;
+  }
+  .xp-shimmer {
+    display: block;
+    animation-duration: 3.5s;
+  }
+}
+/* The game's round button: a heartbeat, and a ring spreading out of it every 2 s. */
+.xp-root[data-xp-fx-feel="show"]
+  .xp-frame[data-xp-screen="play"]
+  > [data-xp-slot="cta"] {
+  [data-xp-cta="primary"]:enabled:not(:active) {
+    animation: xp-fx-heartbeat-show 1.2s ease-in-out infinite;
+  }
+  &:has([data-xp-cta="primary"]:enabled)::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--xp-play-cta-width, clamp(5.5rem, min(11vw, 17svh), 9.5rem));
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border: 0.2rem solid var(--xp-primary);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: xp-fx-ring-out 2s ease-out infinite;
+  }
+}
+
+/* Suspense: while the wheel crawls its last slices, the room dims around it. */
+.xp-root[data-xp-fx-feel="show"] .xp-stage-veil {
+  transition: opacity 400ms ease;
+}
+.xp-root[data-xp-fx-feel="show"]:has([data-xp-suspense]) .xp-stage-veil {
+  opacity: 0.4;
+}
+
+/* The title catches a gold shine now and then. */
+.xp-root[data-xp-fx-feel="show"] .xp-frame > [data-xp-slot="title"] {
+  animation:
+    xp-fx-title-drop 520ms var(--xp-fx-pop) 100ms both,
+    xp-fx-gold-shine 7s ease-in-out 2s infinite;
+}
+
+/* An error arrives in two frames of TV static. */
+.xp-root[data-xp-fx-feel="show"][data-xp-fx-impact]
+  .xp-transition[data-xp-change="shake"]
+  > .xp-frame {
+  animation: xp-fx-static 200ms steps(1, end) both;
+}
+/* Already played: a calm pulse of the medallion, and a check stamped on it. */
+.xp-root[data-xp-fx-feel="show"] [data-xp-status="duplicate"] .xp-medallion {
+  animation: xp-fx-glow-scale 2.8s ease-in-out infinite;
+}
+.xp-root[data-xp-fx-feel="show"] [data-xp-status="error"] .xp-medallion svg {
+  animation: xp-fx-flicker 1.6s steps(1) infinite;
+}
+
+@keyframes xp-fx-curtain-left {
+  to {
+    translate: -102% 0;
+  }
+}
+@keyframes xp-fx-curtain-right {
+  to {
+    translate: 102% 0;
+  }
+}
+@keyframes xp-fx-flip-out {
+  to {
+    rotate: y 90deg;
+    opacity: 0.4;
+  }
+}
+@keyframes xp-fx-flip-in {
+  from {
+    rotate: y -90deg;
+    opacity: 0.4;
+  }
+}
+@keyframes xp-fx-rise {
+  from {
+    translate: 0 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    translate: 0 -120vh;
+    opacity: 0;
+  }
+}
+@keyframes xp-fx-rise-sway {
+  0%,
+  100% {
+    translate: -0.6rem 0;
+  }
+  50% {
+    translate: 0.6rem 0;
+  }
+}
+@keyframes xp-fx-heartbeat-show {
+  0%,
+  40%,
+  100% {
+    scale: 1;
+  }
+  15% {
+    scale: 1.06;
+  }
+  25% {
+    scale: 1.02;
+  }
+}
+@keyframes xp-fx-ring-out {
+  0% {
+    opacity: 0.8;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.45;
+  }
+}
+@keyframes xp-fx-gold-shine {
+  0%,
+  88%,
+  100% {
+    filter: none;
+  }
+  93% {
+    filter: brightness(1.35);
+  }
+}
+@keyframes xp-fx-static {
+  0% {
+    opacity: 0.4;
+    translate: 0.3rem 0;
+    filter: contrast(1.6) grayscale(1);
+  }
+  50% {
+    opacity: 0.8;
+    translate: -0.3rem 0;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-fx-curtain {
+    display: none;
+  }
+  .xp-root .xp-frame > [data-xp-slot="cta"]::after {
+    animation: none !important;
+    display: none;
+  }
+}
+.xp-root:has([data-xp-motion="off"]) {
+  .xp-fx-curtain,
+  .xp-frame > [data-xp-slot="cta"]::after {
+    display: none;
+  }
+}
+/* Balloons let go on a win still rise; they never take the scatter's slant. */
+.xp-flyer[data-xp-path="rise"][data-xp-scatter] {
+  animation-name: xp-fx-rise;
+}
+
+/* The curtain wipe: the two stage curtains close on the screen, the screen changes behind
+   them, and they open again on the next one. */
+.xp-root[data-xp-fx-wipe="curtain"] .xp-fx-wipe {
+  display: flex;
+  > span {
+    display: none;
+  }
+  &::before,
+  &::after {
+    content: "";
+    flex: 1 1 50%;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--xp-fx-curtain, var(--xp-fx-wipe)) 0 2.2rem,
+      color-mix(
+          in srgb,
+          var(--xp-fx-curtain, var(--xp-fx-wipe)) 72%,
+          var(--xp-ink)
+        )
+        2.2rem 3rem
+    );
+  }
+  &[data-xp-phase="cover"] {
+    &::before {
+      animation: xp-fx-curtain-close-left 230ms cubic-bezier(0.5, 0, 0.75, 0.4)
+        both;
+    }
+    &::after {
+      animation: xp-fx-curtain-close-right 230ms cubic-bezier(0.5, 0, 0.75, 0.4)
+        both;
+    }
+  }
+  &[data-xp-phase="reveal"] {
+    &::before {
+      animation: xp-fx-curtain-left 250ms cubic-bezier(0.25, 0.6, 0.45, 1) both;
+    }
+    &::after {
+      animation: xp-fx-curtain-right 250ms cubic-bezier(0.25, 0.6, 0.45, 1) both;
+    }
+  }
+}
+@keyframes xp-fx-curtain-close-left {
+  from {
+    translate: -102% 0;
+  }
+}
+@keyframes xp-fx-curtain-close-right {
+  from {
+    translate: 102% 0;
+  }
+}

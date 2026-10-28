@@ -54,7 +54,7 @@
     "frame": {
       "src": "assets/frames/marquee.svg",
       "slice": "100",
-      "width": "clamp(1.75rem, 5.2vw, 4.75rem)",
+      "width": "clamp(2.4rem, 6vw, 4.75rem)",
       "outset": "0",
       "repeat": "round"
     },
@@ -91,7 +91,7 @@
       "shadowPressed": "none",
       "textShadow": "0 0.06em 0 #FFE9A8",
       "frame": {
-        "src": "assets/buttons/button-gold.png",
+        "src": "assets/buttons/button-gold.svg",
         "slice": "56 70",
         "width": "calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 56) calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 70)",
         "outset": "0",
@@ -155,22 +155,96 @@
       "games": {
         "quiz": "assets/backgrounds/bg-grid.svg"
       },
-      "screens": {}
+      "screens": {
+        "win": "assets/backgrounds/bg-stage-win.svg",
+        "lose": "assets/backgrounds/bg-stage-lose.svg"
+      }
     },
     "decor": [
+      {
+        "src": "assets/fx/haze.svg",
+        "left": "0%",
+        "top": "58%",
+        "width": "120vmax",
+        "motion": "wind",
+        "seconds": 95,
+        "opacity": 0.9
+      },
+      {
+        "src": "assets/fx/haze.svg",
+        "left": "40%",
+        "top": "30%",
+        "width": "90vmax",
+        "motion": "wind",
+        "seconds": 120,
+        "reverse": true,
+        "opacity": 0.55
+      },
       {
         "src": "assets/decor/led-left.svg",
         "left": "0",
         "top": "16.667%",
         "width": "calc((50vw + 50vh) * 0.23)",
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/decor/led-left-win.svg",
+        "left": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/led-left-lose.svg",
+        "left": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["lose"]
       },
       {
         "src": "assets/decor/led-right.svg",
         "right": "0",
         "top": "16.667%",
         "width": "calc((50vw + 50vh) * 0.23)",
-        "hideWhenLow": true
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/decor/led-right-win.svg",
+        "right": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/led-right-lose.svg",
+        "right": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["lose"]
       },
       {
         "src": "assets/decor/pedestal-left.svg",
@@ -232,8 +306,8 @@
     "moods": true
   },
   "wheel": {
-    "segments": ["#2A46D8", "#7A2FE0", "#E11D2E", "@primary"],
-    "blank": "#0A0B33",
+    "segments": ["@primary", "#7A2FE0", "#1A2E9E", "#F4F1FF"],
+    "blank": "#3B2C8F",
     "rim": "#1A1560",
     "rimInk": "@primary",
     "bulbs": "#FFD54A",
@@ -349,5 +423,87 @@
     "color": "#C9C3F2",
     "font": "ui",
     "transform": "none"
+  },
+  "motion": {
+    "feel": "show",
+    "skyFade": true,
+    "flash": "#FFE7A3",
+    "curtain": "#B01E3A",
+    "flip": false,
+    "flyers": [
+      {
+        "src": "assets/fx/mote.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 1,
+        "width": "clamp(0.45rem, 1.2vmin, 0.9rem)",
+        "path": "rise",
+        "band": [6, 94],
+        "every": [1.2, 2.6],
+        "cross": [9, 16],
+        "flock": 1,
+        "max": 8,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/fx/balloon-gold.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 0.55,
+        "width": "clamp(1.6rem, 4vmin, 2.6rem)",
+        "path": "rise",
+        "band": [3, 97],
+        "every": [20, 30],
+        "cross": [10, 14],
+        "flock": 2,
+        "max": 4,
+        "onWin": true,
+        "screens": ["welcome", "win"]
+      },
+      {
+        "src": "assets/fx/balloon-purple.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 0.55,
+        "width": "clamp(1.6rem, 4vmin, 2.6rem)",
+        "path": "rise",
+        "band": [3, 97],
+        "every": [22, 32],
+        "cross": [10, 14],
+        "flock": 1,
+        "max": 3,
+        "onWin": true,
+        "screens": ["welcome", "win"]
+      }
+    ],
+    "countdown": true,
+    "entrance": "pop",
+    "buttons": "squish",
+    "fields": "lively",
+    "wipe": {
+      "kind": "curtain",
+      "color": "#B01E3A",
+      "ink": "#05061A"
+    },
+    "impact": true,
+    "confetti": "cartoon",
+    "games": "lively",
+    "pressStart": false,
+    "words": {
+      "start": "C'EST PARTI !",
+      "open": "GAGNÉ !",
+      "win": "GAGNÉ !",
+      "lose": "PERDU !"
+    }
   }
 }

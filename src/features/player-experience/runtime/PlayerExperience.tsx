@@ -17,7 +17,11 @@ import { PlayScreen } from "./screens/PlayScreen";
 import type { FrameChrome, ScreenProps } from "./screens/screenProps";
 import { StatusScreen } from "./screens/StatusScreen";
 import { GameFrame } from "./shell/GameFrame";
-import { TransitionLayer, useScreenTransition } from "./shell/ScreenTransition";
+import {
+  OpeningCurtain,
+  TransitionLayer,
+  useScreenTransition,
+} from "./shell/ScreenTransition";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { WinScreen } from "./screens/WinScreen";
@@ -176,6 +180,9 @@ function Journey({
     enabled: Boolean(motion) && !reducedMotion,
     wipe: Boolean(motion?.wipe),
     pipe: motion?.pipe ?? false,
+    flip: motion?.flip ?? false,
+    // Curtains close and open at every change of screen.
+    always: motion?.wipe?.kind === "curtain",
   });
   const report = useRef({ onFlowEvent, onScreen });
   useEffect(() => {
@@ -203,6 +210,7 @@ function Journey({
         change={holding ?? shown.change}
         serial={shown.serial}
       />
+      <OpeningCurtain enabled={Boolean(motion?.curtain) && !reducedMotion} />
     </>
   );
 }

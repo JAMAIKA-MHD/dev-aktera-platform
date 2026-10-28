@@ -1248,3 +1248,27 @@
     animation: none !important;
   }
 }
+
+/* A framed board (a marquee): the form grows with its fields and the page scrolls, rather
+   than the consent being cut under the button inside a fixed box. */
+.xp-root[data-xp-layout="spotlight"][data-xp-panel-frame]
+  .xp-frame[data-xp-screen="register"] {
+  --xp-game-min: 0px;
+  > [data-xp-slot="interaction"] {
+    container-type: inline-size;
+  }
+  > [data-xp-slot="interaction"] > form {
+    max-height: none;
+    overflow: visible;
+  }
+}
+/* Its footer keeps a strip of its own, on a dark band, off the stage's floor art. */
+.xp-root[data-xp-layout="spotlight"][data-xp-panel-frame]
+  .xp-frame
+  > [data-xp-slot="footer"] {
+  @variant split {
+    padding: 0.35rem 1rem;
+    border-radius: var(--xp-radius-md);
+    background: color-mix(in srgb, var(--xp-ink) 72%, transparent);
+  }
+}

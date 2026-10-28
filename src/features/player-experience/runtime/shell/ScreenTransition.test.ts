@@ -30,3 +30,17 @@ describe("changeBetween · a pipe", () => {
     expect(changeBetween("register", "play", true, true)).toBe("zoom");
   });
 });
+
+describe("changeBetween · a curtain", () => {
+  it("closes the curtains at every change of screen, never inside a game", () => {
+    expect(changeBetween("register", "play", true, false, false, true)).toBe(
+      "wipe",
+    );
+    expect(changeBetween("revealing", "win", true, false, false, true)).toBe(
+      "wipe",
+    );
+    expect(
+      changeBetween("play", "resolving", true, false, false, true),
+    ).toBeNull();
+  });
+});

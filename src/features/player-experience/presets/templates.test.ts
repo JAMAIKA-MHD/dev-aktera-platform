@@ -57,9 +57,11 @@ describe("template library", () => {
     );
     expect(vars["--xp-panel-frame-slice"]).toBe("100 fill");
     expect(vars["--xp-panel-frame-repeat"]).toBe("round"); // the bulbs keep their spacing
-    // No "@role" is ever left for the browser to read.
+    // No "@role" is ever left for the browser to read. A picture's own file (an animated
+    // SVG inlined as data, its @keyframes) is not a role.
     for (const [name, value] of Object.entries(vars)) {
-      expect(value, name).not.toMatch(/@[a-z]/);
+      const withoutPictures = String(value).replace(/url\("[^"]*"\)/g, "");
+      expect(withoutPictures, name).not.toMatch(/@[a-z]/);
     }
   });
 

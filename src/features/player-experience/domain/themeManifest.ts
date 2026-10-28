@@ -376,7 +376,8 @@ const flyerSchema = z
       .default([15, 30]), // seconds
     // straight: level across. zigzag: weaving up and down (a space invader). shoot: a quick
     // streak slanting down across the upper sky (a shooting star).
-    path: z.enum(["straight", "zigzag", "shoot"]).default("straight"),
+    // rise: from the bottom up through the scene, swaying a little (a light mote, a balloon).
+    path: z.enum(["straight", "zigzag", "shoot", "rise"]).default("straight"),
     flock: z.number().int().min(1).max(5).default(1), // up to this many together
     max: z.number().int().min(1).max(8).default(5),
     both: z.boolean().default(true), // from either side (flipped), or left to right only
@@ -391,7 +392,13 @@ const motionSchema = z
     // smooth: overshoot and ease. stepped: every effect frame by frame (steps()), hard
     // color swaps for its flashes — pixel art's own way of moving. neon: light first — things
     // glow, pulse and flicker on like a sign; impacts glitch with a red/cyan split.
-    feel: z.enum(["smooth", "stepped", "neon"]).default("smooth"),
+    // show: a TV game show — smooth, elegant ambient motion and punchy reveals, a gold glow on
+    // the buttons, the room dimming while the result is in suspense.
+    feel: z.enum(["smooth", "stepped", "neon", "show"]).default("smooth"),
+    // Into the form, the welcome's card flips over on its vertical axis.
+    flip: z.boolean().default(false),
+    // Two stage curtains, in this color, opening once on the first screen.
+    curtain: colorSchema.nullable().default(null),
     // A faint scanline layer over the stage (a CRT), at this opacity; never over the panel.
     scanlines: z.number().min(0).max(0.12).nullable().default(null),
     // A synthwave floor grid at the bottom of the stage, its lines in this color, scrolling
@@ -436,7 +443,9 @@ const motionSchema = z
     wipe: z
       .object({
         // scanline: a bright line sweeping down the screen, the next one behind it.
-        kind: z.enum(["burst", "iris", "scanline"]).default("burst"),
+        // curtain: the stage curtains close on the screen and open on the next one, at every
+        // change of screen (the game's own moments excepted).
+        kind: z.enum(["burst", "iris", "scanline", "curtain"]).default("burst"),
         color: colorSchema,
         ink: colorSchema,
       })
@@ -455,7 +464,7 @@ const motionSchema = z
     // flakes on the scratch card, a stamp on a quiz answer, a burst out of a box, "POW!"…).
     games: z.enum(["classic", "lively"]).default("classic"),
     // The comic words popping in at those moments (decorative, never read out).
-    words: partialRecord(MOTION_WORDS, z.string().min(1).max(12)),
+    words: partialRecord(MOTION_WORDS, z.string().min(1).max(16)),
   })
   .strict()
   .prefault({});

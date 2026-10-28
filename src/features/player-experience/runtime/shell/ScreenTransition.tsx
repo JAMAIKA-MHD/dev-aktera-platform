@@ -19,6 +19,7 @@ import { runtimeAudio } from "../feedback/audio";
 //            result pops in.
 //   soft     into a loss: no flash, no shake; the result settles in.
 //   shake    into a status (an error, a phone that played already): the card shakes once.
+//   flip     into the form (motion.flip): the card turns over on its vertical axis.
 //   pipe     into the form (motion.pipe): the welcome slides down as into a pipe, the form
 //            comes up from below.
 //
@@ -32,7 +33,7 @@ import { runtimeAudio } from "../feedback/audio";
 // this runs (a plain fade, motion.css); nor in a browser without the Web Animations API.
 
 export type ScreenChange =
-  "wipe" | "pipe" | "zoom" | "impact" | "soft" | "shake";
+  "wipe" | "pipe" | "flip" | "zoom" | "impact" | "soft" | "shake";
 
 const ON_STAGE: ReadonlySet<FlowScreen> = new Set([
   "play",
@@ -45,13 +46,19 @@ export function changeBetween(
   to: FlowScreen,
   wipe: boolean, // the theme has a wipe (motion.wipe)
   pipe = false, // the theme goes into the form down a pipe (motion.pipe)
+  flip = false, // or turns its card over (motion.flip)
+  always = false, // the wipe covers every change of screen (a curtain)
 ): ScreenChange | null {
   if (from === to || (ON_STAGE.has(from) && ON_STAGE.has(to))) return null;
+  if (always && wipe) return "wipe";
   if (to === "win") return "impact";
   if (to === "lose") return "soft";
   if (to === "error" || to === "duplicate" || to === "closed") return "shake";
   if (ON_STAGE.has(to)) return "zoom";
-  if (pipe && from === "welcome" && to === "register") return "pipe";
+  if (from === "welcome" && to === "register") {
+    if (pipe) return "pipe";
+    if (flip) return "flip";
+  }
   return wipe ? "wipe" : null;
 }
 
@@ -75,12 +82,16 @@ export function useScreenTransition({
   enabled,
   wipe,
   pipe = false,
+  flip = false,
+  always = false,
 }: {
   screen: FlowScreen;
   element: ReactNode;
   enabled: boolean; // the theme moves, and motion is not reduced
   wipe: boolean;
   pipe?: boolean;
+  flip?: boolean;
+  always?: boolean;
 }): {
   shown: Shown;
   phase: "cover" | "reveal" | null;
@@ -99,9 +110,11 @@ export function useScreenTransition({
 
   const change =
     enabled && screen !== shown.screen
-      ? changeBetween(shown.screen, screen, wipe, pipe)
+      ? changeBetween(shown.screen, screen, wipe, pipe, flip, always)
       : null;
-  const holds = (change === "wipe" || change === "pipe") && canAnimate();
+  const holds =
+    (change === "wipe" || change === "pipe" || change === "flip") &&
+    canAnimate();
   const [holding, setHolding] = useState<ScreenChange | null>(null);
 
   useEffect(() => {
@@ -165,8 +178,8 @@ export function TransitionLayer({
   change: ScreenChange | null;
   serial: number;
 }) {
-  // A pipe needs no overlay: the screens themselves slide (motion.css).
-  if (phase && change !== "pipe") {
+  // A pipe or a flip needs no overlay: the screens themselves move (motion.css).
+  if (phase && change !== "pipe" && change !== "flip") {
     return (
       <div aria-hidden className="xp-fx-wipe" data-xp-phase={phase}>
         <span className="xp-fx-wipe-ink" />
@@ -185,4 +198,24 @@ export function TransitionLayer({
     );
   }
   return null;
+}
+
+// Two stage curtains opening once, as the journey starts (motion.curtain, motion.css): about
+// 600 ms, never in the way of a tap, then gone. Nothing of it with reduced motion.
+const CURTAIN_MS = 700;
+
+export function OpeningCurtain({ enabled }: { enabled: boolean }) {
+  const [open, setOpen] = useState(enabled && canAnimate());
+  useEffect(() => {
+    if (!open) return;
+    const done = setTimeout(() => setOpen(false), CURTAIN_MS);
+    return () => clearTimeout(done);
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div aria-hidden className="xp-fx-curtain">
+      <span />
+      <span />
+    </div>
+  );
 }
