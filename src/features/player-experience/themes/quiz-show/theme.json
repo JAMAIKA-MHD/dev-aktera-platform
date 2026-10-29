@@ -66,7 +66,7 @@
     "glow": "0 0 1.75rem #6E5AFF73",
     "room": {
       "inline": "clamp(2rem, 15.6vw, 13rem)",
-      "block": "clamp(1.75rem, 8svh, 5.5rem)",
+      "block": "clamp(1rem, 4svh, 3.5rem)",
       "columnMax": "25rem"
     }
   },
