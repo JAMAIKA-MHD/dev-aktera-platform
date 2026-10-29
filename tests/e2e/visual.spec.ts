@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
+import { mkdirSync, existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
@@ -8,8 +8,7 @@ import { watchErrors } from "./support/page";
 // The play screen of every cell at every kind of size, checked by the runtime's own layout
 // audit (the one the Studio and npm run xp:responsive use): nothing cut, nothing sideways,
 // no slot over another, the game at its floor and no decoration over it (game-covered).
-// Screenshots of each go to a contact sheet. Then every screen of every template is
-// compared with the baseline taken before this work (.baseline/, when present).
+// Screenshots of each go to a contact sheet. (Every other screen, still: stills.spec.ts.)
 
 const OUT = "test-results/e2e-visual";
 mkdirSync(OUT, { recursive: true });
@@ -54,12 +53,6 @@ for (const cell of CELLS) {
   });
 }
 
-declare global {
-  interface Window {
-    __xpLayoutAudit?: () => unknown[];
-  }
-}
-
 // ── Contact sheets: templates across, games down ────────────────────────────────
 
 test.describe("sheets", () => {
@@ -95,101 +88,4 @@ test.describe("sheets", () => {
       });
     }
   });
-});
-
-// ── Nothing else changed: every other screen against the baseline ──────────────
-
-const OTHER_SCREENS = [
-  "flow-welcome",
-  "register",
-  "resolving",
-  "status-duplicate",
-  "status-closed",
-  "status-error",
-  "wheel-welcome",
-  "scratch-welcome",
-  "boxes-welcome",
-  "quiz-welcome",
-  "hit-it-welcome",
-  "flow-win",
-  "flow-lose",
-  "wheel-play",
-] as const;
-const BASELINE = ".baseline";
-const BASELINE_SIZES = [
-  { width: 1280, height: 720 },
-  { width: 390, height: 844 },
-] as const;
-
-// Share of pixels that differ between two screenshots, in the browser (no image library).
-async function diffRatio(page: Page, a: string, b: string): Promise<number> {
-  const data = (path: string) =>
-    `data:image/png;base64,${readFileSync(path).toString("base64")}`;
-  return page.evaluate(
-    async ([first, second]) => {
-      const load = (src: string) =>
-        new Promise<HTMLImageElement>((done) => {
-          const image = new Image();
-          image.onload = () => done(image);
-          image.src = src;
-        });
-      const [x, y] = await Promise.all([load(first), load(second)]);
-      if (x.width !== y.width || x.height !== y.height) return 1;
-      const pixels = (image: HTMLImageElement) => {
-        const canvas = document.createElement("canvas");
-        canvas.width = image.width;
-        canvas.height = image.height;
-        const context = canvas.getContext("2d")!;
-        context.drawImage(image, 0, 0);
-        return context.getImageData(0, 0, image.width, image.height).data;
-      };
-      const p = pixels(x);
-      const q = pixels(y);
-      let changed = 0;
-      for (let i = 0; i < p.length; i += 4) {
-        const delta =
-          Math.abs(p[i] - q[i]) +
-          Math.abs(p[i + 1] - q[i + 1]) +
-          Math.abs(p[i + 2] - q[i + 2]);
-        if (delta > 48) changed += 1;
-      }
-      return changed / (p.length / 4);
-    },
-    [data(a), data(b)] as const,
-  );
-}
-
-test.describe("baseline", () => {
-  test.skip(!existsSync(BASELINE), "no baseline (.baseline/) on this machine");
-  for (const template of TEMPLATES) {
-    test(`other screens unchanged: ${template}`, async ({ page, browser }) => {
-      const scratch = await browser.newPage();
-      const report: Record<string, number> = {};
-      for (const fixture of OTHER_SCREENS) {
-        for (const size of BASELINE_SIZES) {
-          const name = `${template}__${fixture}__${size.width}x${size.height}.png`;
-          const before = `${BASELINE}/${name}`;
-          if (!existsSync(before)) continue;
-          await page.setViewportSize(size);
-          await openFixture(page, fixture, template);
-          await page.waitForTimeout(1200); // as the baseline was taken
-          const now = `${OUT}/now__${name}`;
-          await page.screenshot({ path: now });
-          report[name] = await diffRatio(scratch, before, now);
-        }
-      }
-      writeFileSync(
-        `${OUT}/baseline-${template}.json`,
-        JSON.stringify(report, null, 1),
-      );
-      const changed = Object.entries(report).filter(
-        ([, ratio]) => ratio > 0.01,
-      );
-      expect(
-        changed,
-        "screens more than 1% different from the baseline",
-      ).toEqual([]);
-      await scratch.close();
-    });
-  }
 });

@@ -64,7 +64,7 @@ describe("CampaignStudio", () => {
     openPlayScreen();
     expect(screen.queryByRole("region", { name: "Campaign rules" })).toBeNull();
     expect(screen.queryByText("65 %")).toBeNull();
-  });
+  }, 20_000); // the whole Studio, rendered while the other test files run
 
   it("offers a way back to the dashboard", () => {
     const onClose = vi.fn();
