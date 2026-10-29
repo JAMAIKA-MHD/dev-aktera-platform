@@ -1,6 +1,0 @@
-
-> react-example@0.0.0 typecheck
-> tsc --noEmit && tsc --noEmit -p tsconfig.strict.json
-
-src/features/player-experience/theme/shellVars.ts(179,18): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'CssVars'.
-  No index signature with a parameter of type 'string' was found on type 'CssVars'.

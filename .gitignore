@@ -74,3 +74,26 @@ coverage/
 
 # End-to-end runs (npm run test:e2e)
 /test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Local verification baselines and screenshots (never shared)
+/.baseline/
+/.baseline-pre-cleanup/
+/.cleanup-baseline/
+
+# Files moved out by the cleanup, kept for review before deletion
+/_removed_review/
+
+# Tool caches and scratch files
+*.log
+*.tsbuildinfo
+.eslintcache
+.prettiercache
+*.tmp
+*.tmp.*
+.claude/settings.local.json
+
+# Output of npm run clean's target
+/server.js
