@@ -174,6 +174,7 @@ export interface ExperienceConfig {
   features: {
     sound: boolean;
     animations: boolean;
+    winIntro: boolean; // the template's scene before a win (motion.winIntro in its theme.json)
     shareBonus: false; // locked: "+1 try for a share" stays off until the server can verify shares
   };
 }

@@ -19,7 +19,7 @@
   "fonts": {
     "display": "Luckiest Guy",
     "ui": "Fredoka",
-    "stylesheet": "https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Luckiest+Guy&display=swap"
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@500;600;700&family=Lilita+One&family=Luckiest+Guy&display=swap"
   },
   "tokens": {
     "radius": {
@@ -111,6 +111,21 @@
       "borderWidth": "0.2rem",
       "shadow": "0.3rem 0.35rem 0 #1A62AB",
       "shadowPressed": "0.08rem 0.1rem 0 #1A62AB"
+    },
+    "share": {
+      "height": "2.25rem",
+      "bg": "#FFFFFF",
+      "text": "#1B2A4A",
+      "border": "0.125rem solid #1B2A4A",
+      "radius": "0.625rem",
+      "shadow": "0 0.1875rem 0 #1B2A4A",
+      "font": "Lilita One",
+      "size": "0.65625rem",
+      "weight": 400,
+      "transform": "uppercase",
+      "icon": "0.875rem",
+      "hover": "translateY(-0.125rem)",
+      "active": "translateY(0.1875rem)"
     }
   },
   "field": {
@@ -723,6 +738,29 @@
       "hit": "POW!",
       "open": "BOOM!",
       "win": "WOW!"
+    },
+    "winIntro": {
+      "scene": "comic",
+      "seconds": 10.4,
+      "handoff": 9.8,
+      "font": "Bangers",
+      "colors": {
+        "night": "#140409",
+        "light": "#FFFFFF",
+        "ink": "#111111",
+        "yellow": "#FFE21F",
+        "orange": "#FF9A1F",
+        "red": "#E8453B",
+        "word-from": "#FFC400",
+        "word-to": "#FF4E00"
+      },
+      "art": {
+        "rays-red": "assets/win-intro/rays-red.svg",
+        "rays-blue": "assets/win-intro/rays-blue.svg",
+        "burst-red": "assets/win-intro/burst-red.svg",
+        "burst-blue": "assets/win-intro/burst-blue.svg",
+        "trophy": "assets/win-intro/trophy.svg"
+      }
     }
   }
 }

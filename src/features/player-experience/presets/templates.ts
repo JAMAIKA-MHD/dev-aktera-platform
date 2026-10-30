@@ -19,7 +19,7 @@ export interface ExperienceTemplate {
   id: TemplateId;
   label: string; // Studio label (English)
   description: string;
-  source: string | null; // folder of src/templates/ it was adapted from
+  source: string | null; // the design it was adapted from, a label only
   presetId: string | null; // its palette (themePresets.ts); null: the classic style presets
   fonts: TemplateFonts | null; // null: the brand's own font everywhere
   mode: ThemeTokens["mode"] | null; // null: the brand's own

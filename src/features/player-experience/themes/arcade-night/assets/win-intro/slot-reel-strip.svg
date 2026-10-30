@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 384" width="48" height="384">
+<rect width="48" height="384" fill="#fff8e6"/>
+<g stroke="#e0d4ff" stroke-width="2"><path d="M0 64H48M0 128H48M0 192H48M0 256H48M0 320H48"/></g>
+<!-- 0 gem -->
+<polygon points="24,12 38,26 24,52 10,26" fill="#7ad7ff" stroke="#1a5aa0" stroke-width="2.5" stroke-linejoin="round"/><path d="M10 26H38M24 12L19 26L24 52L29 26Z" fill="none" stroke="#1a5aa0" stroke-width="1.5"/>
+<!-- 1 star -->
+<polygon points="24,76 29,90 44,91 32,100 36,115 24,106 12,115 16,100 4,91 19,90" fill="#ffd24a" stroke="#b8841a" stroke-width="2.5" stroke-linejoin="round"/>
+<!-- 2 heart -->
+<path d="M24 178C6 166 8 146 20 146C24 146 24 150 24 150C24 150 24 146 28 146C40 146 42 166 24 178Z" fill="#ff6fb5" stroke="#a31d62" stroke-width="2.5" stroke-linejoin="round"/>
+<!-- 3 cherry -->
+<path d="M18 238L28 214L36 216M32 238L28 214" fill="none" stroke="#2f8f1a" stroke-width="3" stroke-linecap="round"/><circle cx="17" cy="240" r="9" fill="#e8343f" stroke="#7a0f26" stroke-width="2.5"/><circle cx="33" cy="242" r="9" fill="#e8343f" stroke="#7a0f26" stroke-width="2.5"/>
+<!-- 4 bar -->
+<rect x="6" y="283" width="36" height="22" rx="4" fill="#b784ff" stroke="#4a2a99" stroke-width="2.5"/><path d="M12 289H36M12 299H36" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+<!-- 5 seven -->
+<path d="M10 334H38L24 378H15L27 345H10Z" fill="#ff3b5c" stroke="#7a0f26" stroke-width="2.5" stroke-linejoin="round" transform="translate(0 -8)"/>
+</svg>

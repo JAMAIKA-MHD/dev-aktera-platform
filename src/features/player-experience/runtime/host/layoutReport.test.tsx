@@ -39,6 +39,22 @@ describe("window.__xpLayoutAudit", () => {
 });
 
 describe("useLayoutReport", () => {
+  it("waits for a win page held behind its intro, then reports it", () => {
+    const onReport = vi.fn();
+    const held = document.createElement("div");
+    held.setAttribute("data-xp-held", "");
+    document.body.appendChild(held);
+    renderHook(() => useLayoutReport(onReport));
+    act(() => vi.advanceTimersByTime(REPORT_DELAY_MS));
+    expect(onReport).not.toHaveBeenCalled();
+    held.remove();
+    act(() => {
+      document.dispatchEvent(new Event("animationend")); // its entrances, let go
+      vi.advanceTimersByTime(REPORT_DELAY_MS);
+    });
+    expect(onReport).toHaveBeenCalledOnce();
+  });
+
   it("reports once things have settled: one report for a burst of renders", () => {
     const onReport = vi.fn();
     const { rerender } = renderHook(() => useLayoutReport(onReport));

@@ -116,7 +116,22 @@
         "pixelated": false
       }
     },
-    "screens": {}
+    "screens": {},
+    "share": {
+      "height": "2.375rem",
+      "bg": "linear-gradient(#FFC24A, #FF8A00)",
+      "text": "#4A2000",
+      "border": "0.0625rem solid #FFF3B8",
+      "radius": "999px",
+      "shadow": "0 0.1875rem 0 #A84A00",
+      "font": "Outfit",
+      "size": "0.65625rem",
+      "weight": 800,
+      "tracking": "0.01875rem",
+      "icon": "0.875rem",
+      "hoverFilter": "brightness(1.08)",
+      "active": "translateY(0.125rem) scale(0.99)"
+    }
   },
   "field": {
     "bg": "#0E1030",
@@ -504,6 +519,32 @@
       "open": "GAGNÉ !",
       "win": "GAGNÉ !",
       "lose": "PERDU !"
+    },
+    "winIntro": {
+      "scene": "show",
+      "seconds": 10,
+      "handoff": 9.4,
+      "font": "Outfit",
+      "colors": {
+        "indigo": "#04041A",
+        "indigo-soft": "#0A0A3A",
+        "violet": "#5B2BD6",
+        "violet-soft": "#7A4BE0",
+        "gold": "#FFC83A",
+        "gold-soft": "#FFE08A",
+        "cream": "#D9D3FF",
+        "pink": "#FF5FA2",
+        "cyan": "#7AD7FF",
+        "light": "#FFFFFF"
+      },
+      "art": {
+        "stage-scene": "assets/win-intro/stage-scene.svg",
+        "audience-1": "assets/win-intro/audience-1.svg",
+        "audience-2": "assets/win-intro/audience-2.svg",
+        "audience-3": "assets/win-intro/audience-3.svg",
+        "host": "assets/win-intro/host.svg",
+        "trophy": "assets/win-intro/trophy.svg"
+      }
     }
   }
 }

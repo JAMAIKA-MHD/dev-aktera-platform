@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CampaignSnapshot } from "../domain/campaign";
 import { outcomeTimingFor, type FlowScreen } from "../domain/flow";
-import type { Locale } from "../domain/locale";
+import { resolveText, type Locale } from "../domain/locale";
 import type { ExperienceConfig } from "../domain/types";
+import { RESULT_TEXT } from "../presets/contentDefaults";
 import type { ExperienceServices, GatewayMode } from "../services/ports";
 import { useExperienceServices } from "../services/ServicesProvider";
 import { ensureFontStylesheet, ensureTemplateFonts } from "../theme/fonts";
@@ -26,6 +27,12 @@ import { useReducedMotion } from "./hooks/useReducedMotion";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { WinScreen } from "./screens/WinScreen";
 import { useExperienceFlow, type DrawSource } from "./useExperienceFlow";
+import {
+  WinHoldProvider,
+  WinIntro,
+  useWinIntro,
+  useWinIntroPreload,
+} from "./winIntro/WinIntro";
 
 // Root of the player runtime (plan §8.1): one render mode, the full document. The Studio and
 // the app simulator show it in the /xp-frame iframe, at the exact size of the device; the
@@ -44,11 +51,14 @@ export interface PlayerExperienceProps {
   // Studio. Any other one shows an explicit error instead of the game (plan §7.4).
   allowedGatewayModes: readonly GatewayMode[];
   initialScreen?: FlowScreen; // forced by the Studio preview; ignored with the live gateway
+  previewWinIntro?: boolean; // a forced win opens on the template's scene, as a real one does
   onFlowEvent?: (screen: FlowScreen) => void; // each screen shown, e.g. the Studio's tabs
   source?: DrawSource;
 }
 
 export const DEMO_BADGE = "Demo";
+
+const NO_ART: Readonly<Record<string, string>> = {};
 
 export function PlayerExperience(props: PlayerExperienceProps) {
   const { config, campaign, locale, allowedGatewayModes } = props;
@@ -150,6 +160,7 @@ function Journey({
   campaign,
   locale,
   initialScreen,
+  previewWinIntro = false,
   onFlowEvent,
   source,
   services,
@@ -172,7 +183,8 @@ function Journey({
   const props: ScreenProps = { flow, config, campaign, locale, chrome };
   // The change from one screen to the next, in the theme's own way (ScreenTransition): the
   // journey is already on the new screen; what is drawn follows, under the wipe's cover.
-  const motion = useGameTheme().manifest?.motion;
+  const { manifest, assets } = useGameTheme();
+  const motion = manifest?.motion;
   const reducedMotion = useReducedMotion(config.features.animations);
   const { shown, phase, holding } = useScreenTransition({
     screen,
@@ -184,6 +196,21 @@ function Journey({
     // Curtains close and open at every change of screen.
     always: motion?.wipe?.kind === "curtain",
   });
+  // The template's scene before a win: for a journey that arrives on it (a change of screen),
+  // or the Studio's preview, which opens on the win. A forced win shows nothing else of it.
+  const winIntro =
+    !reducedMotion && config.features.winIntro
+      ? (motion?.winIntro ?? null)
+      : null;
+  const introArt = assets?.winIntro ?? NO_ART;
+  useWinIntroPreload(winIntro, introArt);
+  const arrivedOnWin =
+    shown.screen === "win" && (shown.change !== null || previewWinIntro);
+  const intro = useWinIntro({
+    intro: arrivedOnWin ? winIntro : null,
+    serial: shown.serial,
+  });
+  const held = intro.stage === "playing";
   const report = useRef({ onFlowEvent, onScreen });
   useEffect(() => {
     report.current = { onFlowEvent, onScreen };
@@ -202,8 +229,10 @@ function Journey({
         data-xp-change={shown.change ?? undefined}
         // The old screen, held while it leaves (a pipe slides it down).
         data-xp-leaving={holding ?? undefined}
+        data-xp-held={held ? "" : undefined}
+        inert={held}
       >
-        {shown.element}
+        <WinHoldProvider value={held}>{shown.element}</WinHoldProvider>
       </div>
       <TransitionLayer
         phase={phase}
@@ -211,6 +240,19 @@ function Journey({
         serial={shown.serial}
       />
       <OpeningCurtain enabled={Boolean(motion?.curtain) && !reducedMotion} />
+      {winIntro && arrivedOnWin && intro.stage !== "gone" && (
+        <WinIntro
+          intro={winIntro}
+          art={introArt}
+          released={!held}
+          skipLabel={resolveText(
+            RESULT_TEXT.skipIntro,
+            locale,
+            config.locales.default,
+          )}
+          onSkip={intro.skip}
+        />
+      )}
     </>
   );
 }

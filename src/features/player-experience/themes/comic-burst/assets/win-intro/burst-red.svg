@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-320 -320 640 640" width="640" height="640" stroke-miterlimit="10">
+<defs><polygon id="ib" points="0,-290 34,-194 81,-223 88,-153 177,-211 136,-114 196,-113 185,-67 286,-50 177,0 243,43 166,61 231,133 151,127 149,178 89,153 99,273 31,174 0,249 -34,194 -93,256 -89,153 -147,176 -136,114 -251,145 -185,67 -240,42 -177,0 -274,-48 -166,-61 -201,-116 -151,-127 -183,-218 -88,-153 -82,-226 -31,-174"/>
+<pattern id="ihd" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="2.6" fill="#ffb800"/></pattern></defs>
+<use href="#ib" transform="translate(14 18)" fill="#000" fill-opacity=".4"/>
+<use href="#ib" fill="#111" stroke="#111" stroke-width="26"/>
+<use href="#ib" transform="scale(.97)" fill="#b3171a"/>
+<use href="#ib" transform="scale(.91)" fill="#ffee1a"/>
+<use href="#ib" transform="scale(.91)" fill="url(#ihd)"/>
+</svg>

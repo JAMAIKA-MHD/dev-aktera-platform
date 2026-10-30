@@ -1,0 +1,75 @@
+/*
+ * The scene before a win (WinIntro.tsx). Imported by layout.css. The overlay is fixed like the
+ * screen wipes: a win page taller than the phone scrolls under it, and the scene stays on the
+ * screen. Everything inside is sized on the overlay (cqmin, cqmax, cqw, cqh), so one set of
+ * rules fits a phone and a desktop with no breakpoint; colors and fonts are --xp-intro-*, set
+ * from the theme's motion.winIntro (theme/shellVars.ts).
+ *
+ * Each scene's timeline is one keyframe set per element over the whole scene, in percent of it.
+ */
+
+.xp-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 80; /* above the wipes, the confetti and the legal sheet */
+  overflow: hidden;
+  container-type: size;
+  &[data-xp-released] {
+    pointer-events: none;
+  }
+  img {
+    display: block;
+    max-width: none;
+    pointer-events: none;
+    user-select: none;
+  }
+  p {
+    margin: 0;
+    white-space: nowrap;
+  }
+}
+.xp-intro-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.xp-intro-flash {
+  position: absolute;
+  inset: 0;
+  background-color: var(--xp-intro-light);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Small, in a corner, above everything. */
+.xp-intro-skip {
+  position: absolute;
+  right: calc(var(--xp-safe-right, 0px) + 0.5rem);
+  bottom: calc(var(--xp-safe-bottom, 0px) + 0.5rem);
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  border: 0;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-family: var(--xp-font);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--xp-intro-light);
+  background-color: color-mix(
+    in srgb,
+    var(--xp-intro-ink, var(--xp-ink)) 55%,
+    transparent
+  );
+  &:focus-visible {
+    outline: 2px solid var(--xp-intro-light);
+    outline-offset: 2px;
+  }
+}
+
+/* The win page waits under the scene: its entrances start when the scene lets it go. */
+.xp-transition[data-xp-held] *,
+.xp-transition[data-xp-held] *::before,
+.xp-transition[data-xp-held] *::after {
+  animation-play-state: paused !important;
+}

@@ -53,6 +53,7 @@ function uiMessage(
     safeArea,
     restartKey,
     sound,
+    winIntro: true,
   };
 }
 

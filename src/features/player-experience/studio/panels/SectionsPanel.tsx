@@ -1,5 +1,7 @@
 import { Info } from "lucide-react";
+import { getThemeManifest } from "../../presets/themeManifests";
 import { SelectField } from "../fields/SelectField";
+import { ToggleField } from "../fields/ToggleField";
 import type { PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
 import { FormSections } from "./FormSections";
@@ -23,6 +25,27 @@ const SCREENS: readonly { value: PreviewScreen; label: string }[] = [
   { value: "lose", label: "Lose" },
   { value: "status", label: "Status (already played, closed, error)" },
 ];
+
+// A template with its own scene before a win: the brand may go straight to the win page.
+function WinIntroSection() {
+  const templateId = useStudio((state) => state.config.templateId);
+  const features = useStudio((state) => state.config.features);
+  const updateConfig = useStudio((state) => state.updateConfig);
+  if (!getThemeManifest(templateId)?.motion.winIntro) return null;
+  return (
+    <PanelSection title="Before the win">
+      <ToggleField
+        label="Intro animation"
+        description="A 10-second scene before the win page, shown here each time you open Win. Players can skip it."
+        checked={features.winIntro}
+        onChange={(winIntro) =>
+          updateConfig({ features: { ...features, winIntro } })
+        }
+        path="features.winIntro"
+      />
+    </PanelSection>
+  );
+}
 
 export function SectionsPanel() {
   const screen = useStudio((state) => state.ui.screen);
@@ -59,6 +82,7 @@ export function SectionsPanel() {
             {screen === "welcome" && <WelcomeSections />}
             {screen === "register" && <FormSections />}
             {screen === "play" && <GameSections />}
+            {screen === "win" && <WinIntroSection />}
           </>
         )}
       </PanelBody>

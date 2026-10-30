@@ -172,7 +172,12 @@ export function createDefaultExperience(
     },
     game: defaultGameSettings(campaign),
     prizeDisplay: {}, // empty = the campaign prize names and messages
-    features: { sound: true, animations: true, shareBonus: false },
+    features: {
+      sound: true,
+      animations: true,
+      winIntro: true,
+      shareBonus: false,
+    },
   };
   // Deep copy: the configuration shares no object with the presets, so editing it
   // in the Studio can never alter the defaults.

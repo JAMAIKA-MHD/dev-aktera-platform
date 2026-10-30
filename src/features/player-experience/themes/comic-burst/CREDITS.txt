@@ -28,5 +28,5 @@ icons/game-icons: game-icons.net, CC BY 3.0 (credit the authors below), https://
   magnifying-glass.svg - by Lorc (game-icons.net, CC BY 3.0)
   heart-plus.svg - by Zeromancer (game-icons.net, CC BY 3.0)
 
-backgrounds, frames, decor: style1-cartoon-style/cartoon-screens.zip, drawn for this project.
+backgrounds, frames, decor: drawn for this project.
 prizes, sounds: generated for this project, no third-party material.

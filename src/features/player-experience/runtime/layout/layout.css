@@ -15,6 +15,12 @@
 @import "../games/games.css";
 /* A theme's motion: ambient stage, entrances, wipes, lively buttons, fields and games. */
 @import "../shell/motion.css";
+/* The scene a template plays once before a win, and its four timelines. */
+@import "../winIntro/winIntro.css";
+@import "../winIntro/scenes/comic.css";
+@import "../winIntro/scenes/pixel.css";
+@import "../winIntro/scenes/jackpot.css";
+@import "../winIntro/scenes/show.css";
 
 @custom-variant compact (@media (max-width: 359px));
 @custom-variant wide (@media (min-width: 600px));

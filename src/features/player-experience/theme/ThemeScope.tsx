@@ -82,6 +82,7 @@ export function ThemeScope({
           gameTheme.assets?.buttonFrames.secondary ? "" : undefined
         }
         data-xp-notch={manifest?.button.notch ? "" : undefined}
+        data-xp-share-skin={manifest?.button.share ? "" : undefined}
         data-xp-reward-card={manifest?.layout.rewardCard}
         data-xp-copy={manifest && copyStyled(manifest) ? "" : undefined}
         data-xp-copy-size={manifest?.copy.size ? "" : undefined}

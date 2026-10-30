@@ -517,6 +517,7 @@ export const RESULT_TEXT = {
     "Your code stays valid even though the confirmation failed.",
   ),
   reveal: localized("Révéler", "اكشف", "Reveal"),
+  skipIntro: localized("PASSER L'INTRO", "تخطي المقدمة", "SKIP INTRO"),
   shareWhatsapp: localized(
     "Partager sur WhatsApp",
     "شارك عبر واتساب",

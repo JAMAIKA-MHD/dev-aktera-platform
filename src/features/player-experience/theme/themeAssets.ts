@@ -57,6 +57,7 @@ export interface ThemeAssets {
   buttonFrames: Readonly<{ primary: string | null; secondary: string | null }>;
   decor: readonly ResolvedDecor[];
   flyers: readonly ResolvedFlyer[]; // what crosses the stage (motion.flyers)
+  winIntro: Readonly<Record<string, string>>; // the pictures of its win scene, by name
   prizes: Readonly<Partial<Record<PrizeArtName, string>>>;
   characters: Readonly<{ happy?: string; sad?: string }>;
   sounds: Readonly<Partial<Record<ThemeSoundName, string>>>;
@@ -132,6 +133,10 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
       const resolved = url(src);
       return resolved ? [{ ...flyer, url: resolved }] : [];
     }),
+    winIntro: urls(manifest, manifest.motion.winIntro?.art ?? {}) as Record<
+      string,
+      string
+    >,
     prizes: urls(manifest, manifest.prizes),
     characters: urls(manifest, manifest.characters),
     sounds: urls(manifest, manifest.sounds),

@@ -28,6 +28,7 @@ export interface FrameExperienceProps {
   gateway: "demo" | "scripted";
   scenario?: ScriptedScenario; // outcome of the scripted gateway
   initialScreen?: FlowScreen;
+  previewWinIntro?: boolean;
   allowedGatewayModes?: readonly GatewayMode[]; // a fixture checks the refusal screen
   onFlowEvent?: (screen: FlowScreen) => void;
 }
@@ -52,6 +53,7 @@ export function FrameExperience({
   gateway,
   scenario,
   initialScreen,
+  previewWinIntro,
   allowedGatewayModes = FRAME_GATEWAYS,
   onFlowEvent,
 }: FrameExperienceProps) {
@@ -78,6 +80,7 @@ export function FrameExperience({
           locale={locale}
           allowedGatewayModes={allowedGatewayModes}
           initialScreen={initialScreen}
+          previewWinIntro={previewWinIntro}
           onFlowEvent={onFlowEvent}
         />
       </ServicesProvider>

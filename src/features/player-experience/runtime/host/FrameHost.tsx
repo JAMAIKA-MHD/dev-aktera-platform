@@ -147,6 +147,8 @@ export function BridgeFrame({
     };
     const stopTouch = (event: Event) => event.stopPropagation();
     const onClick = (event: MouseEvent) => {
+      // The one control that works here: a brand editing its win need not wait for the scene.
+      if ((event.target as Element).closest(".xp-intro-skip")) return;
       const target = (event.target as Element).closest("[data-xp-edit]");
       const path = target?.getAttribute("data-xp-edit");
       if (path) bridge.post({ type: "xp:edit-target", path });
@@ -190,6 +192,7 @@ export function BridgeFrame({
           ui.mode === "static" ? (ui.screen ?? "welcome") : ui.screen,
           ui.scenario,
         )}
+        previewWinIntro={ui.winIntro}
         onFlowEvent={(screen) => bridge.post({ type: "xp:flow-event", screen })}
       />
     </div>

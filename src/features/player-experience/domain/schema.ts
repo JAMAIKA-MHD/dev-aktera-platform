@@ -291,6 +291,8 @@ export const experienceConfigSchema = z.object({
   features: z.object({
     sound: z.boolean(),
     animations: z.boolean(),
+    // A design saved before it existed keeps a valid shape, with the intro on.
+    winIntro: z.boolean().default(true),
     shareBonus: z.literal(false),
   }),
 });

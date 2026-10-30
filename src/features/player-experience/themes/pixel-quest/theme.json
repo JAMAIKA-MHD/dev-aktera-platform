@@ -19,7 +19,7 @@
   "fonts": {
     "display": "Press Start 2P",
     "ui": "VT323",
-    "stylesheet": "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap"
   },
   "tokens": {
     "radius": {
@@ -102,6 +102,19 @@
         "repeat": "stretch",
         "pixelated": true
       }
+    },
+    "share": {
+      "height": "2.25rem",
+      "bg": "#C9D3E6",
+      "text": "#1D3FAE",
+      "border": "0 none",
+      "radius": "0",
+      "shadow": "0 0 0 0.1875rem #1D3FAE, inset -0.25rem -0.25rem 0 #8E9BB8, inset 0.25rem 0.25rem 0 #FFFFFF",
+      "font": "Silkscreen",
+      "size": "0.65625rem",
+      "weight": 700,
+      "icon": "0.875rem",
+      "active": "translateY(0.25rem)"
     }
   },
   "field": {
@@ -185,7 +198,7 @@
         "seconds": 50
       },
       {
-        "src": "assets/decor/cloud-5.svg",
+        "src": "assets/decor/cloud-2.svg",
         "right": "20.9375%",
         "top": "14.4444%",
         "width": "calc((50vw + 50vh) * 0.112)",
@@ -201,14 +214,14 @@
         "seconds": 90
       },
       {
-        "src": "assets/decor/cloud-7.svg",
+        "src": "assets/decor/cloud-2.svg",
         "left": "32.8125%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 1.2381)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
         "hideWhenLow": true
       },
       {
-        "src": "assets/decor/cloud-8.svg",
+        "src": "assets/decor/cloud-6.svg",
         "right": "25.3125%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 1.1548)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 1)",
@@ -231,7 +244,7 @@
         "seconds": 2.8
       },
       {
-        "src": "assets/decor/bush-3.svg",
+        "src": "assets/decor/bush.svg",
         "right": "1.25%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
@@ -239,7 +252,7 @@
         "seconds": 2.8
       },
       {
-        "src": "assets/decor/bush-4.svg",
+        "src": "assets/decor/bush-2.svg",
         "right": "7.8125%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)",
@@ -255,7 +268,7 @@
         "seconds": 3.2
       },
       {
-        "src": "assets/decor/tree-2.svg",
+        "src": "assets/decor/tree.svg",
         "right": "21.0938%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8214)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.3883)",
@@ -272,7 +285,7 @@
         "seconds": 2.8
       },
       {
-        "src": "assets/decor/bush-6.svg",
+        "src": "assets/decor/bush-5.svg",
         "right": "18.75%",
         "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8204)",
         "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.295)",
@@ -646,6 +659,33 @@
       "win": "LEVEL CLEAR!",
       "lose": "GAME OVER"
     },
-    "pressStart": true
+    "pressStart": true,
+    "winIntro": {
+      "scene": "pixel",
+      "seconds": 10,
+      "handoff": 9.4,
+      "font": "Press Start 2P",
+      "fontUi": "Silkscreen",
+      "colors": {
+        "night": "#0B1030",
+        "blue": "#1D3FAE",
+        "gold": "#FFC928",
+        "orange": "#FF7A1A",
+        "orange-deep": "#C26A00",
+        "cream": "#FFF8D6",
+        "brick": "#A8452D",
+        "grass": "#58C02A",
+        "coral": "#FF6A4F",
+        "light": "#FFFFFF",
+        "dark": "#000000"
+      },
+      "art": {
+        "question-block": "assets/win-intro/question-block.svg",
+        "explosion-sprite": "assets/win-intro/explosion-sprite.svg",
+        "trophy": "assets/win-intro/trophy.svg",
+        "coin": "assets/win-intro/coin.svg",
+        "sparkle": "assets/win-intro/sparkle.svg"
+      }
+    }
   }
 }

@@ -1,5 +1,9 @@
 import { contrastRatio } from "../domain/contrast";
-import type { ThemeManifest, ThemeScreen } from "../domain/themeManifest";
+import type {
+  ThemeManifest,
+  ThemeScreen,
+  ThemeWinIntro,
+} from "../domain/themeManifest";
 import type { ThemeTokens } from "../domain/types";
 import { templateFontStack } from "./fonts";
 import { resolveThemeAssets, type ThemeAssets } from "./themeAssets";
@@ -113,6 +117,51 @@ function buttonFrameVars(
           : "auto",
       }
     : {};
+}
+
+// The win screen's share buttons (motion.css reads these only when the theme gives them).
+function shareVars(
+  share: NonNullable<ThemeManifest["button"]["share"]>,
+  css: (value: string) => string,
+): CssVars {
+  return {
+    "--xp-share-height": share.height,
+    "--xp-share-bg": css(share.bg),
+    "--xp-share-text": css(share.text),
+    "--xp-share-border": css(share.border),
+    "--xp-share-radius": share.radius,
+    "--xp-share-shadow": css(share.shadow),
+    "--xp-share-font": templateFontStack(`"${share.font}"`),
+    "--xp-share-size": share.size,
+    "--xp-share-weight": String(share.weight),
+    "--xp-share-tracking": share.tracking,
+    "--xp-share-case": share.transform,
+    "--xp-share-icon": share.icon,
+    "--xp-share-hover": share.hover,
+    "--xp-share-hover-filter": share.hoverFilter,
+    "--xp-share-active": share.active,
+  };
+}
+
+// The scene before a win (runtime/winIntro/): its length, its fonts and each of its colors.
+function winIntroVars(
+  intro: ThemeWinIntro,
+  css: (value: string) => string,
+): CssVars {
+  const font = templateFontStack(`"${intro.font}"`);
+  return {
+    "--xp-intro-seconds": `${intro.seconds}s`,
+    "--xp-intro-font": font,
+    "--xp-intro-font-ui": intro.fontUi
+      ? templateFontStack(`"${intro.fontUi}"`)
+      : font,
+    ...Object.fromEntries(
+      Object.entries(intro.colors).map(([name, color]) => [
+        `--xp-intro-${name}`,
+        css(color),
+      ]),
+    ),
+  };
 }
 
 // The line under the title (slot 4), when the theme styles it: none of these is set otherwise,
@@ -285,6 +334,7 @@ export function manifestToCssVars(
       ? css(button.secondary.textShadow)
       : "none",
     ...(button.notch ? { "--xp-notch": button.notch } : {}),
+    ...(button.share ? shareVars(button.share, css) : {}),
     ...buttonFrameVars(
       "btn",
       assets.buttonFrames.primary,
@@ -411,6 +461,7 @@ function motionVars(
           "--xp-fx-wipe-ink": css(motion.wipe.ink),
         }
       : {}),
+    ...(motion.winIntro ? winIntroVars(motion.winIntro, css) : {}),
   } as CssVars;
 }
 

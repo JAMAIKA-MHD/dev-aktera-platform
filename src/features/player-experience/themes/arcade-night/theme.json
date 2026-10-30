@@ -113,7 +113,21 @@
         "textShadow": "0 0.2rem 0 #7A0F2E"
       }
     },
-    "notch": "0.6rem"
+    "notch": "0.6rem",
+    "share": {
+      "height": "2.25rem",
+      "bg": "#2A1A74",
+      "text": "#FFFFFF",
+      "border": "0.125rem solid #8A7AD8",
+      "radius": "0.25rem",
+      "shadow": "none",
+      "font": "Silkscreen",
+      "size": "0.65625rem",
+      "weight": 700,
+      "icon": "0.875rem",
+      "hoverFilter": "brightness(1.15)",
+      "active": "translateY(0.1875rem)"
+    }
   },
   "field": {
     "bg": "#15123D",
@@ -593,6 +607,35 @@
       "open": "BONUS!",
       "win": "YOU WIN",
       "lose": "GAME OVER"
+    },
+    "winIntro": {
+      "scene": "jackpot",
+      "seconds": 10,
+      "handoff": 9.4,
+      "font": "Press Start 2P",
+      "fontUi": "Silkscreen",
+      "colors": {
+        "gold": "#FFD24A",
+        "gold-deep": "#8A5A00",
+        "cyan": "#7AD7FF",
+        "light": "#FFFFFF",
+        "dark": "#000000"
+      },
+      "art": {
+        "scene-bg": "assets/win-intro/scene-bg.svg",
+        "slot-machine": "assets/win-intro/slot-machine.svg",
+        "slot-reel-strip": "assets/win-intro/slot-reel-strip.svg",
+        "slot-lever": "assets/win-intro/slot-lever.svg",
+        "nixo-sprite": "assets/win-intro/nixo-sprite.svg",
+        "coin": "assets/win-intro/coin.svg",
+        "trophy": "assets/win-intro/trophy.svg",
+        "medal": "assets/win-intro/medal.svg",
+        "crown": "assets/win-intro/crown.svg",
+        "gem": "assets/win-intro/gem.svg",
+        "star": "assets/win-intro/star.svg",
+        "gift-box": "assets/win-intro/gift-box.svg",
+        "gift-lid": "assets/win-intro/gift-lid.svg"
+      }
     }
   }
 }

@@ -16,6 +16,7 @@ import { RewardPopup } from "../shell/RewardPopup";
 import { useThemeHeroArt } from "../shell/useThemeHeroArt";
 import { ComicWord, useComicWord } from "../shell/ComicWord";
 import { useGameTheme } from "../../theme/GameTheme";
+import { useWinHold } from "../winIntro/WinIntro";
 import { press, type ScreenProps } from "./screenProps";
 
 // The end of a winning journey (plan §6.3, tasks.md T4.4), on the shell: the prize popping in
@@ -65,6 +66,7 @@ export function WinScreen({
   const confirmUnderCta = manifest?.layout.kind === "spotlight";
   const motion = manifest?.motion;
   const winWord = useComicWord("win");
+  const held = useWinHold();
   const canConfirm =
     couponCode !== null &&
     couponStatus !== "confirmed" &&
@@ -73,8 +75,10 @@ export function WinScreen({
     couponStatus === "sending" ? RESULT_TEXT.confirming : RESULT_TEXT.confirm,
   );
 
-  // Once, when the win is first shown: never replayed on a re-render (a resize, an edit).
+  // Once, when the win is first shown: never replayed on a re-render (a resize, an edit). A
+  // template's scene before the win holds all of it back until the page shows.
   useEffect(() => {
+    if (held) return;
     runtimeAudio.play("win");
     vibrate(motion?.games === "lively" ? "bigWin" : "win");
     if (card.current) {
@@ -85,7 +89,7 @@ export function WinScreen({
     }
     // The theme's look of it is read once: a template changed in the Studio mid-win does
     // not fire the confetti again.
-  }, [reducedMotion]);
+  }, [reducedMotion, held]);
   // The code is the player's: the reward sound, once it is confirmed.
   useEffect(() => {
     if (couponStatus === "confirmed") runtimeAudio.play("reward");
@@ -132,7 +136,9 @@ export function WinScreen({
           : null),
       }}
     >
-      {winWord && !reducedMotion && <ComicWord word={winWord} over y={18} />}
+      {winWord && !reducedMotion && !held && (
+        <ComicWord word={winWord} over y={18} />
+      )}
       <ResultScreen
         tone="win"
         art={

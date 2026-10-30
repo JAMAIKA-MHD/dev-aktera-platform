@@ -48,6 +48,19 @@ describe("the scrolling notice switch", () => {
   });
 });
 
+describe("the win intro switch", () => {
+  it("is on in a new design, and a design saved before it exists plays the intro, unrepaired", () => {
+    expect(validConfig().features.winIntro).toBe(true);
+    const saved = validConfig() as unknown as {
+      features: Record<string, unknown>;
+    };
+    delete saved.features.winIntro;
+    const { config, recovered } = parseExperienceConfig(saved);
+    expect(recovered).toBe(false);
+    expect(config.features.winIntro).toBe(true);
+  });
+});
+
 describe("experienceConfigSchema", () => {
   it("accepts the default configuration of every game", () => {
     for (const gameType of GAME_TYPES) {

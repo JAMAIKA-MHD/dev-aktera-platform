@@ -1417,7 +1417,8 @@
   /* No easing: a press is instant, a release one frame. */
   transition: none;
   @media (hover: hover) {
-    &:hover:enabled:not([aria-busy="true"]) {
+    /* Not the win's share buttons: they keep their own hover, and their entrance. */
+    &:hover:enabled:not([aria-busy="true"]):not([data-xp-share-row] > *) {
       translate: none;
       filter: brightness(1.12);
       outline: 0.15rem solid var(--xp-surface);
@@ -2751,4 +2752,66 @@
   from {
     translate: 102% 0;
   }
+}
+
+/* ── The win's share buttons in the theme's own look (button.share) ──────────── */
+
+/* Last in the file, to win over every lively or stepped button rule above: these buttons only
+   move the way the theme says. Thinner than a touch target: the hit area reaches past them. */
+.xp-root[data-xp-share-skin]
+  .xp-frame[data-xp-screen="win"]
+  [data-xp-share-row]
+  .xp-btn:not([data-xp-variant="ghost"]) {
+  overflow: visible;
+  min-height: var(--xp-share-height);
+  height: var(--xp-share-height);
+  padding-block: 0;
+  gap: 0.375rem;
+  border: var(--xp-share-border);
+  border-image: none;
+  border-radius: var(--xp-share-radius);
+  clip-path: none;
+  background: var(--xp-share-bg);
+  box-shadow: var(--xp-share-shadow);
+  color: var(--xp-share-text);
+  font-family: var(--xp-share-font);
+  font-size: var(--xp-share-size);
+  font-weight: var(--xp-share-weight);
+  letter-spacing: var(--xp-share-tracking);
+  text-transform: var(--xp-share-case);
+  text-shadow: none;
+  image-rendering: auto;
+  transition:
+    transform 120ms ease-out,
+    filter 120ms ease-out;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -0.25rem 0;
+  }
+  > svg {
+    width: var(--xp-share-icon);
+    height: var(--xp-share-icon);
+  }
+  @media (hover: hover) {
+    &:hover:enabled:not([aria-busy="true"]) {
+      translate: none;
+      transform: var(--xp-share-hover);
+      filter: var(--xp-share-hover-filter);
+    }
+  }
+  &:active:enabled:not([aria-busy="true"]) {
+    translate: none;
+    scale: none;
+    transform: var(--xp-share-active);
+    filter: none;
+    box-shadow: var(--xp-share-shadow);
+    transition-duration: 60ms;
+  }
+}
+.xp-root[data-xp-fx-feel="stepped"][data-xp-share-skin]
+  .xp-frame[data-xp-screen="win"]
+  [data-xp-share-row]
+  .xp-btn:not([data-xp-variant="ghost"]) {
+  transition: none;
 }

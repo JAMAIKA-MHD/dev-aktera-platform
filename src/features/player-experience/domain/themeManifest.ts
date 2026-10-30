@@ -136,6 +136,29 @@ const buttonSchema = z.object({
   frame: frameSchema.optional(),
 });
 
+// The win screen's share buttons in the theme's own look, smaller and quieter than the other
+// buttons: everything of them, down to their font, their lift under the mouse and how far they
+// sink when pressed (hover and active are transforms).
+const shareButtonSchema = z
+  .object({
+    height: cssSchema,
+    bg: cssSchema, // a color or a gradient
+    text: colorSchema,
+    border: cssSchema, // the whole border ("0.125rem solid #1B2A4A")
+    radius: cssSchema,
+    shadow: cssSchema,
+    font: z.string().regex(/^[A-Za-z0-9 ]+$/), // named by fonts.stylesheet
+    size: cssSchema,
+    weight: z.number().int().min(100).max(900),
+    tracking: cssSchema.default("normal"),
+    transform: z.enum(["none", "uppercase"]).default("none"),
+    icon: cssSchema,
+    hover: cssSchema.default("none"),
+    hoverFilter: cssSchema.default("none"),
+    active: cssSchema,
+  })
+  .strict();
+
 const partialRecord = <K extends string, V extends z.ZodTypeAny>(
   keys: readonly [K, ...K[]],
   value: V,
@@ -387,6 +410,33 @@ const flyerSchema = z
   })
   .strict();
 
+// The scene played once between a game and its win (runtime/winIntro/): how it moves is the
+// scene's own, what it looks like is here. `colors` become --xp-intro-<name>, `art` the pictures
+// the scene shows, by name. The win page starts `handoff` seconds in, under the scene's last
+// moments; the scene is gone at `seconds`. Pure look: the win is already decided and recorded.
+export const WIN_INTRO_SCENES = ["comic", "pixel", "jackpot", "show"] as const;
+export type WinIntroScene = (typeof WIN_INTRO_SCENES)[number];
+
+const winIntroName = z.string().regex(/^[a-z0-9-]+$/);
+const winIntroSchema = z
+  .object({
+    scene: z.enum(WIN_INTRO_SCENES),
+    seconds: z.number().min(1).max(15),
+    handoff: z.number().min(0).max(15),
+    font: z.string().regex(/^[A-Za-z0-9 ]+$/), // the big words, named by fonts.stylesheet
+    fontUi: z
+      .string()
+      .regex(/^[A-Za-z0-9 ]+$/)
+      .optional(), // the small ones
+    colors: z.record(winIntroName, colorSchema),
+    art: z.record(winIntroName, assetSchema),
+  })
+  .strict()
+  .refine((intro) => intro.handoff <= intro.seconds, {
+    message: "The win page starts before the scene ends",
+    path: ["handoff"],
+  });
+
 const motionSchema = z
   .object({
     // smooth: overshoot and ease. stepped: every effect frame by frame (steps()), hard
@@ -454,6 +504,7 @@ const motionSchema = z
       .default(null),
     // A flash and a shake into a win, a shake on an error.
     impact: z.boolean().default(false),
+    winIntro: winIntroSchema.nullable().default(null),
     // cartoon: stars and circles from two cannons in the bottom corners, then a short shower.
     // pixel: flat squares in the palette, falling at their own speeds, and a coin shower.
     // neon: fireworks bursting over the stage in the palette's accents.
@@ -477,7 +528,7 @@ export const themeManifestSchema = z
     ),
     label: z.string().min(1).max(24),
     description: z.string().min(1).max(160),
-    source: z.string().nullable(), // folder of src/templates/ it was adapted from
+    source: z.string().nullable(), // the design it was adapted from, a label only
     credits: z.string().nullable().default(null), // file of the theme folder naming the authors
 
     // What the brand-level theme (ThemeTokens) starts from when the template is picked. The
@@ -554,6 +605,7 @@ export const themeManifestSchema = z
       secondary: buttonSchema,
       // The main button's own look on some screens (a gold one on a win).
       screens: partialRecord(FLOW_SCREENS, buttonSchema.partial()),
+      share: shareButtonSchema.optional(),
       // Pixel corners cut off buttons, fields and the prize card ("0.5rem").
       notch: cssSchema.optional(),
     }),
@@ -792,6 +844,7 @@ export type ThemePaint = z.infer<typeof paintSchema>;
 export type ThemeStageFrame = z.infer<typeof stageFrameSchema>;
 export type ThemeScreen = (typeof FLOW_SCREENS)[number];
 export type ThemeMotion = z.infer<typeof motionSchema>;
+export type ThemeWinIntro = z.infer<typeof winIntroSchema>;
 
 // Where a path of a manifest lives under themes/: its own folder, or the shared parts.
 export function themeFilePath(themeId: string, path: string): string {
@@ -819,6 +872,7 @@ export function manifestAssetPaths(manifest: ThemeManifest): string[] {
     manifest.wheel.pointerArt,
     manifest.games.hitIt.art,
     ...manifest.motion.flyers.map((flyer) => flyer.src),
+    ...Object.values(manifest.motion.winIntro?.art ?? {}),
     ...Object.values(manifest.heroes).map((hero) => hero?.src),
     ...Object.values(prizes),
     ...Object.values(characters),

@@ -60,13 +60,13 @@ Theme panel and nowhere else: `templateId` accepts only the ids of `domain/templ
 (`save_experience_config` answers `INVALID`, and a CHECK guards `campaign_experiences.template_id`,
 migration `20261020120000_experience_templates.sql`).
 
-| Id             | Label        | Theme                            | Assets from (`src/templates/`)              |
-| -------------- | ------------ | -------------------------------- | ------------------------------------------- |
-| `eight-slot`   | Classic      | — (the brand's theme presets)    | —                                           |
-| `comic-burst`  | Cartoon Pop  | `themes/comic-burst/theme.json`  | `style1-cartoon-style/cartoon-screens.zip`  |
-| `quiz-show`    | Quiz Show    | `themes/quiz-show/theme.json`    | `style4-quiz-style/trivia-quiz-screens.zip` |
-| `arcade-night` | Arcade Night | `themes/arcade-night/theme.json` | `style3-nightgaming-style/game-night.zip`   |
-| `pixel-quest`  | Pixel Quest  | `themes/pixel-quest/theme.json`  | `style2-pixel-style/pixel-screens.zip`      |
+| Id             | Label        | Theme                            | Adapted from (label)       |
+| -------------- | ------------ | -------------------------------- | -------------------------- |
+| `eight-slot`   | Classic      | — (the brand's theme presets)    | —                          |
+| `comic-burst`  | Cartoon Pop  | `themes/comic-burst/theme.json`  | `style1-cartoon-style`     |
+| `quiz-show`    | Quiz Show    | `themes/quiz-show/theme.json`    | `style4-quiz-style`        |
+| `arcade-night` | Arcade Night | `themes/arcade-night/theme.json` | `style3-nightgaming-style` |
+| `pixel-quest`  | Pixel Quest  | `themes/pixel-quest/theme.json`  | `style2-pixel-style`       |
 
 ### A theme is data: `themes/<id>/theme.json`
 
@@ -199,6 +199,17 @@ only come in through `assets/` paths. `presets/themeManifests.ts` loads and chec
   no component, no CSS. `theme/themeLoader.test.tsx` renders the whole shell on a made-up theme.
 - **Checks.** `/xp-frame?fixture=<name>&template=<id>` dresses any fixture in a template, for the
   responsive sweep.
+
+## The scene before a win
+
+A themed template can play one scene between a game and its win page: `motion.winIntro` in its `theme.json` names the scene and gives its length, the moment the page starts (`handoff`), its fonts, its colors (`--xp-intro-<name>`) and its pictures (`assets/win-intro/`). What moves is code, in `runtime/winIntro/`: `WinIntro.tsx` (overlay, timers, skip) and one component with its timeline per scene (`scenes/`), one keyframe set per element in percent of the scene, sized on the overlay (`cqmin`) with no breakpoint.
+
+- A journey that arrives on the win plays it, and so does the Studio's preview each time it opens on Win (`winIntro` on the bridge's `xp:ui`, `previewWinIntro`), with its skip button working there. Other forced screens never do: fixtures, or the hidden frame of "Check all sizes".
+- While it plays the page is already there, held: its entrances paused (`data-xp-held`), out of reach (`inert`), its sound, vibration and confetti waiting (`useWinHold`).
+- Off with `features.winIntro` (Studio: Sections, Win), with `features.animations` and with reduced motion. The player can skip it.
+- The outcome is already decided and recorded when it starts. Nothing in it depends on the prize.
+
+`comic.css` is in percent of 10.4 s; the three other timelines are in percent of 10 s, so `1%` is `0.1 s`.
 
 ## Responsive rules (plan §8.3)
 
