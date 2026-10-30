@@ -71,3 +71,28 @@ service-account*.json
 .gitlab-ci-local/
 coverage/
 
+# Test results (e2e runs, screenshots, reports)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Local verification baselines and screenshots (never shared)
+/.baseline/
+/.baseline-pre-cleanup/
+/.cleanup-baseline/
+
+# Files moved out by a cleanup, kept for review before deletion
+/_removed_review/
+
+# Tool caches and scratch files
+*.log
+*.tsbuildinfo
+.eslintcache
+.prettiercache
+*.tmp
+*.tmp.*
+.claude/settings.local.json
+
+# Output of npm run clean's target
+/server.js
