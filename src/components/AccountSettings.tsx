@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -6,7 +6,6 @@ import {
   Monitor,
   Plus,
   Save,
-  Send,
   ShieldCheck,
   Smartphone,
   Trash2,
@@ -23,10 +22,10 @@ import {
   CompactCard,
   Divider,
   Field,
+  FormActions,
   IconTile,
   Note,
   PasswordInput,
-  SaveBar,
   SelectInput,
   SettingsCard,
   Skeleton,
@@ -106,6 +105,23 @@ const DAYS = [
   "Friday",
   "Saturday",
 ].map((day) => ({ value: day, label: day }));
+const DIGEST_FREQUENCIES = [
+  { value: "week", label: "Every week" },
+  { value: "month", label: "Every month" },
+];
+// Up to the 28th: the one range every month has.
+const MONTH_DAYS = Array.from({ length: 28 }, (_, index) => {
+  const day = index + 1;
+  const suffix =
+    day % 10 === 1 && day !== 11
+      ? "st"
+      : day % 10 === 2 && day !== 12
+        ? "nd"
+        : day % 10 === 3 && day !== 13
+          ? "rd"
+          : "th";
+  return { value: String(day), label: `${day}${suffix} of the month` };
+});
 const TIMES = [
   "06:00",
   "07:00",
@@ -117,11 +133,10 @@ const TIMES = [
 ].map((time) => ({ value: time, label: `${time} · Algiers time` }));
 
 // The alerts of the Notifications tab, by group, and the channels each goes to.
-const CHANNELS = ["email", "telegram", "inApp"] as const;
+const CHANNELS = ["email", "inApp"] as const;
 type Channel = (typeof CHANNELS)[number];
 const CHANNEL_LABELS: Record<Channel, string> = {
   email: "Email",
-  telegram: "Telegram",
   inApp: "In-app",
 };
 const ALERT_GROUPS = [
@@ -211,10 +226,9 @@ function initials(name: string): string {
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
-// "a, b and c"
-function listOf(items: readonly string[]): string {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+// The labels of the fields still empty.
+function emptyOf(fields: Record<string, string>): string[] {
+  return Object.keys(fields).filter((label) => !fields[label].trim());
 }
 
 // This device, as the browser describes itself: the one session the page can name.
@@ -296,27 +310,35 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const [emailPassword, setEmailPassword] = useState(""); // asked, not sent (no backend)
 
   // Notification settings (kept on this page: saving them only confirms, as before). The
-  // former four switches live on in the grid: operational alerts by email, stock warnings,
-  // Telegram alerts for winners and redemptions, and the weekly digest.
+  // former switches live on in the grid (operational alerts by email, stock warnings) and in
+  // the scheduled digest.
   const [alerts, setAlerts] = useState<AlertMatrix>({
-    surge: { email: true, telegram: false, inApp: true },
-    milestone: { email: true, telegram: false, inApp: true },
-    stock: { email: true, telegram: false, inApp: true },
-    winner: { email: false, telegram: false, inApp: true },
-    redeemed: { email: false, telegram: false, inApp: true },
+    surge: { email: true, inApp: true },
+    milestone: { email: true, inApp: true },
+    stock: { email: true, inApp: true },
+    winner: { email: false, inApp: true },
+    redeemed: { email: false, inApp: true },
   });
   const [stockThreshold, setStockThreshold] = useState("10");
-  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [digestFrequency, setDigestFrequency] = useState("week");
   const [digestDay, setDigestDay] = useState("Sunday");
+  const [digestMonthDay, setDigestMonthDay] = useState("1");
   const [digestTime, setDigestTime] = useState("08:00");
   const [recipients, setRecipients] = useState<string[]>([]);
   const [recipientDraft, setRecipientDraft] = useState<string | null>(null);
-  const telegramConnected = false; // no bot backend yet
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // What the long forms hold now, and what they held when last loaded or saved: the save
-  // bar compares the two, and Discard brings the saved values back.
+  // The save buttons sit at the bottom of long forms and the messages at the top: bring a new
+  // message into view.
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    feedbackRef.current?.scrollIntoView({ block: "nearest" });
+  }, [error, successMessage]);
+
+  // What the long forms hold now, and what they held when last loaded or saved: the buttons
+  // compare the two, and Discard brings the saved values back.
   const orgValues = {
     orgName,
     orgContactEmail,
@@ -361,8 +383,10 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const notificationValues = {
     alerts,
     stockThreshold,
-    weeklyDigest,
+    digestEnabled,
+    digestFrequency,
     digestDay,
+    digestMonthDay,
     digestTime,
     recipients,
   };
@@ -420,8 +444,10 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const discardNotifications = () => {
     setAlerts(notificationsSaved.alerts);
     setStockThreshold(notificationsSaved.stockThreshold);
-    setWeeklyDigest(notificationsSaved.weeklyDigest);
+    setDigestEnabled(notificationsSaved.digestEnabled);
+    setDigestFrequency(notificationsSaved.digestFrequency);
     setDigestDay(notificationsSaved.digestDay);
+    setDigestMonthDay(notificationsSaved.digestMonthDay);
     setDigestTime(notificationsSaved.digestTime);
     setRecipients(notificationsSaved.recipients);
     setRecipientDraft(null);
@@ -434,63 +460,32 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const errorOf = (key: keyof OrgValues) =>
     left.has(key) ? checkField(key, orgValues[key]) : null;
 
-  // How complete the profile is: 13 fields a brand is expected to fill, and what is still
-  // missing, said by group ("tax identifiers (NIF, RC), headquarters address and website").
-  const completeness = useMemo(() => {
-    const fields = {
-      name: orgName,
-      industry,
-      website,
-      email: orgContactEmail,
-      phone: orgPhone,
-      NIF: nif,
-      NIS: nis,
-      RC: rc,
-      AI: ai,
-      address,
-      wilaya,
-      commune,
-      representative: contactName,
-    };
-    const empty = (value: string) => !value.trim();
-    const done = Object.values(fields).filter((value) => !empty(value)).length;
-    const missing: string[] = [];
-    if (empty(fields.name)) missing.push("organization name");
-    if (empty(fields.industry)) missing.push("industry");
-    const contact = [
-      empty(fields.email) && "email",
-      empty(fields.phone) && "phone",
-    ].filter(Boolean);
-    if (contact.length) missing.push(`contact ${listOf(contact as string[])}`);
-    const tax = (["NIF", "NIS", "RC", "AI"] as const).filter((key) =>
-      empty(fields[key]),
+  // How complete the profile is: 13 fields a brand is expected to fill, by section of the
+  // form. The page title carries the tag; each section with an empty field, a small sign.
+  const missing = {
+    identity: emptyOf({ "organization name": orgName, industry, website }),
+    contact: emptyOf({ email: orgContactEmail, phone: orgPhone }),
+    legal: emptyOf({ NIF: nif, NIS: nis, RC: rc, AI: ai }),
+    headquarters: emptyOf({ address, wilaya, commune }),
+    representative: emptyOf({ "full name": contactName }),
+  };
+  const profileComplete = Object.values(missing).every(
+    (fields) => fields.length === 0,
+  );
+  const missingSign = (part: keyof typeof missing) => {
+    if (missing[part].length === 0) return null;
+    const label = `Still missing: ${missing[part].join(", ")}`;
+    return (
+      <span
+        className="os-part-missing"
+        role="img"
+        title={label}
+        aria-label={label}
+      >
+        <AlertCircle aria-hidden strokeWidth={2} />
+      </span>
     );
-    if (tax.length) missing.push(`tax identifiers (${tax.join(", ")})`);
-    if (
-      empty(fields.address) ||
-      empty(fields.wilaya) ||
-      empty(fields.commune)
-    ) {
-      missing.push("headquarters address");
-    }
-    if (empty(fields.representative)) missing.push("representative's name");
-    if (empty(fields.website)) missing.push("website");
-    return { total: Object.keys(fields).length, done, missing };
-  }, [
-    orgName,
-    industry,
-    website,
-    orgContactEmail,
-    orgPhone,
-    nif,
-    nis,
-    rc,
-    ai,
-    address,
-    wilaya,
-    commune,
-    contactName,
-  ]);
+  };
 
   const [isDragging, setIsDragging] = useState(false);
 
@@ -705,9 +700,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   };
   const optional = t("settings.optional", "optional");
   const soon = t("settings.soon", "Coming soon");
-  const saveBarLabels = {
-    unsaved: t("settings.unsaved", "You have unsaved changes"),
-    saved: t("settings.allSaved", "All changes saved"),
+  const formLabels = {
     discard: t("settings.discard", "Discard"),
     save: t("settings.saveChanges", "Save changes"),
     saving: t("settings.saving", "Saving..."),
@@ -774,9 +767,20 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     );
   };
 
-  const progress = Math.round((completeness.done / completeness.total) * 100);
   const section = sections[activeTab];
   const loadingProfile = !organization && !profile;
+  const sectionTag =
+    activeTab === "Integrations" ? (
+      <Badge tone="brand">{soon}</Badge>
+    ) : activeTab !== "Organization" ||
+      loadingProfile ? null : profileComplete ? (
+      <Badge tone="ok">
+        <Check aria-hidden strokeWidth={2.5} />
+        Profile complete
+      </Badge>
+    ) : (
+      <Badge tone="warn">Profile incomplete</Badge>
+    );
 
   // The Security tab: how strong the new password looks (described live), and whether the
   // save's own rule is met (at least MIN_PASSWORD_LENGTH characters, both fields equal).
@@ -787,40 +791,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     newPassword.length >= MIN_PASSWORD_LENGTH &&
     newPassword === confirmPassword;
   const device = thisDevice();
-
-  const telegramCard = (
-    <CompactCard
-      labelledBy="card-telegram"
-      tile={
-        <IconTile>
-          <Send strokeWidth={2} />
-        </IconTile>
-      }
-      title="Telegram operations bot"
-      badge={
-        telegramConnected ? (
-          <Badge tone="ok">Connected</Badge>
-        ) : (
-          <Badge tone="neutral">Not connected</Badge>
-        )
-      }
-      description="Instant winning-entry and code-redemption alerts in your team's Telegram channel."
-      actions={
-        <button
-          type="button"
-          className={
-            telegramConnected
-              ? "os-btn os-btn-secondary"
-              : "os-btn os-btn-primary"
-          }
-          disabled
-          title={soon}
-        >
-          {telegramConnected ? "Disconnect" : "Connect Telegram"}
-        </button>
-      }
-    />
-  );
 
   return (
     <div id="account-settings-root" className="os-root">
@@ -850,20 +820,31 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
       </nav>
 
       <div className="os-section">
-        <h2 className="os-section-title">{section.title}</h2>
+        <div className="os-title-row">
+          <h2 className="os-section-title">{section.title}</h2>
+          {sectionTag}
+        </div>
         <p className="os-section-desc">{section.description}</p>
 
         <form onSubmit={handleSave} noValidate={activeTab !== "Organization"}>
           <div className="os-stack">
-            {error && (
-              <Note tone="danger" icon={<AlertCircle aria-hidden />} live>
-                {error}
-              </Note>
-            )}
-            {successMessage && (
-              <Note tone="ok" icon={<Check aria-hidden />} live>
-                {successMessage}
-              </Note>
+            {(error || successMessage) && (
+              <div
+                ref={feedbackRef}
+                className="os-stack"
+                style={{ marginTop: 0 }}
+              >
+                {error && (
+                  <Note tone="danger" icon={<AlertCircle aria-hidden />} live>
+                    {error}
+                  </Note>
+                )}
+                {successMessage && (
+                  <Note tone="ok" icon={<Check aria-hidden />} live>
+                    {successMessage}
+                  </Note>
+                )}
+              </div>
             )}
 
             {activeTab === "Organization" && loadingProfile && (
@@ -876,330 +857,295 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
             {activeTab === "Organization" && !loadingProfile && (
               <>
-                <section
-                  className="os-card os-card-compact"
-                  style={{ padding: "20px 28px", display: "block" }}
-                  aria-label={t(
-                    "settings.completeness",
-                    "Profile completeness",
-                  )}
-                >
-                  <div className="os-completeness-head">
-                    <span>
-                      {completeness.done} of {completeness.total} fields
-                      completed
-                    </span>
-                    {completeness.missing.length > 0 ? (
-                      <Badge tone="warn">Profile incomplete</Badge>
-                    ) : (
-                      <Badge tone="ok">
-                        <Check aria-hidden strokeWidth={2.5} />
-                        Profile complete
-                      </Badge>
-                    )}
-                  </div>
-                  <div
-                    className="os-progress"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={completeness.total}
-                    aria-valuenow={completeness.done}
-                    aria-label="Profile completeness"
+                <div className="os-card-group">
+                  <SettingsCard
+                    labelledBy="card-identity"
+                    title={<>Identity{missingSign("identity")}</>}
+                    description="How your organization appears across the platform."
                   >
                     <div
-                      className="os-progress-fill"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="os-missing">
-                    {completeness.missing.length > 0
-                      ? `Still missing: ${listOf(completeness.missing)}.`
-                      : "Every field of your profile is filled in."}
-                  </p>
-                </section>
+                      className="os-logo"
+                      data-dragging={isDragging ? "" : undefined}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <div className="os-logo-tile" aria-hidden>
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt="" />
+                        ) : (
+                          initials(orgName)
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/png, image/jpeg, image/webp"
+                          onChange={handleAvatarSelect}
+                          className="hidden"
+                          aria-hidden
+                          tabIndex={-1}
+                        />
+                        <div className="os-logo-actions">
+                          <button
+                            type="button"
+                            className="os-btn os-btn-secondary os-btn-sm"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload aria-hidden strokeWidth={2} />
+                            Upload logo
+                          </button>
+                          <button
+                            type="button"
+                            className="os-btn os-btn-danger os-btn-sm"
+                            onClick={removeAvatar}
+                            disabled={!avatarUrl}
+                          >
+                            <Trash2 aria-hidden strokeWidth={2} />
+                            Remove
+                          </button>
+                        </div>
+                        <p className="os-help">
+                          JPG or PNG, at least 800 × 800 px. Initials are shown
+                          until you upload a logo.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="os-grid" style={{ marginTop: 24 }}>
+                      {orgText(
+                        "orgName",
+                        t("settings.orgName", "Organization name"),
+                        { placeholder: "Acme Corp", required: true },
+                      )}
+                      <Field id="org-industry" label="Industry & sector">
+                        <SelectInput
+                          id="org-industry"
+                          value={industry}
+                          onChange={setIndustry}
+                          options={[
+                            ...(INDUSTRIES.includes(
+                              industry as (typeof INDUSTRIES)[number],
+                            )
+                              ? []
+                              : [{ value: industry, label: industry }]),
+                            ...INDUSTRIES.map((value) => ({
+                              value,
+                              label: value,
+                            })),
+                          ]}
+                        />
+                      </Field>
+                      {orgText("website", "Official website", {
+                        type: "url",
+                        placeholder: "https://www.company.com",
+                        isOptional: true,
+                        full: true,
+                      })}
+                    </div>
+                  </SettingsCard>
 
-                <SettingsCard
-                  labelledBy="card-identity"
-                  title="Identity"
-                  description="How your organization appears across the platform."
-                >
-                  <div
-                    className="os-logo"
-                    data-dragging={isDragging ? "" : undefined}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
+                  <SettingsCard
+                    labelledBy="card-contact"
+                    title={<>Organization contact{missingSign("contact")}</>}
+                    description="A shared address and number for your company, not a personal one."
                   >
-                    <div className="os-logo-tile" aria-hidden>
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="" />
-                      ) : (
-                        initials(orgName)
+                    <div className="os-grid">
+                      {orgText(
+                        "orgContactEmail",
+                        t("settings.orgEmail", "Contact email"),
+                        {
+                          type: "email",
+                          placeholder: "contact@company.com",
+                          required: true,
+                        },
+                      )}
+                      <Field
+                        id="org-orgPhone"
+                        label="Phone number"
+                        error={errorOf("orgPhone")}
+                      >
+                        <div className="os-phone">
+                          <span className="os-prefix" aria-hidden>
+                            DZ <span className="os-mono">+213</span>
+                          </span>
+                          <TextInput
+                            id="org-orgPhone"
+                            type="tel"
+                            dir="ltr"
+                            mono
+                            inputMode="tel"
+                            value={orgPhone}
+                            placeholder="550 00 00 00"
+                            invalid={Boolean(errorOf("orgPhone"))}
+                            aria-describedby={describedBy("org-orgPhone", {
+                              error: errorOf("orgPhone"),
+                            })}
+                            onChange={(event) =>
+                              setOrgPhone(event.target.value)
+                            }
+                            onBlur={() => leave("orgPhone")}
+                          />
+                        </div>
+                      </Field>
+                    </div>
+                  </SettingsCard>
+
+                  <SettingsCard
+                    labelledBy="card-legal"
+                    title={
+                      <>Legal & fiscal identifiers{missingSign("legal")}</>
+                    }
+                    description="Your official registration numbers in Algeria. Format hints appear under each field."
+                  >
+                    <div className="os-grid os-grid-2">
+                      {orgText(
+                        "nif",
+                        t("settings.nif", "Tax identification number (NIF)"),
+                        {
+                          mono: true,
+                          placeholder: "000000000000000",
+                          help: "15 digits",
+                          inputMode: "numeric",
+                          maxLength: 15,
+                        },
+                      )}
+                      {orgText(
+                        "nis",
+                        t(
+                          "settings.nis",
+                          "Statistical identification number (NIS)",
+                        ),
+                        {
+                          mono: true,
+                          placeholder: "000000000000000",
+                          help: "15 digits",
+                          inputMode: "numeric",
+                          maxLength: 15,
+                        },
+                      )}
+                      {orgText(
+                        "rc",
+                        t("settings.rc", "Commercial register (RC)"),
+                        {
+                          mono: true,
+                          placeholder: "00/00-0000000B00",
+                          help: "Format 00/00-0000000B00",
+                        },
+                      )}
+                      {orgText(
+                        "ai",
+                        t("settings.ai", "Article d'imposition (AI)"),
+                        {
+                          mono: true,
+                          placeholder: "00000000000",
+                          help: "11 digits",
+                          inputMode: "numeric",
+                          maxLength: 11,
+                        },
                       )}
                     </div>
-                    <div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/png, image/jpeg, image/webp"
-                        onChange={handleAvatarSelect}
-                        className="hidden"
-                        aria-hidden
-                        tabIndex={-1}
-                      />
-                      <div className="os-logo-actions">
-                        <button
-                          type="button"
-                          className="os-btn os-btn-secondary os-btn-sm"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <Upload aria-hidden strokeWidth={2} />
-                          Upload logo
-                        </button>
-                        <button
-                          type="button"
-                          className="os-btn os-btn-danger os-btn-sm"
-                          onClick={removeAvatar}
-                          disabled={!avatarUrl}
-                        >
-                          <Trash2 aria-hidden strokeWidth={2} />
-                          Remove
-                        </button>
-                      </div>
-                      <p className="os-help">
-                        JPG or PNG, at least 800 × 800 px. Initials are shown
-                        until you upload a logo.
-                      </p>
-                    </div>
-                  </div>
-                  <Divider />
-                  <div className="os-grid">
-                    {orgText(
-                      "orgName",
-                      t("settings.orgName", "Organization name"),
-                      { placeholder: "Acme Corp", required: true },
-                    )}
-                    <Field id="org-industry" label="Industry & sector">
-                      <SelectInput
-                        id="org-industry"
-                        value={industry}
-                        onChange={setIndustry}
-                        options={[
-                          ...(INDUSTRIES.includes(
-                            industry as (typeof INDUSTRIES)[number],
-                          )
-                            ? []
-                            : [{ value: industry, label: industry }]),
-                          ...INDUSTRIES.map((value) => ({
-                            value,
-                            label: value,
-                          })),
-                        ]}
-                      />
-                    </Field>
-                    {orgText("website", "Official website", {
-                      type: "url",
-                      placeholder: "https://www.company.com",
-                      isOptional: true,
-                      full: true,
-                    })}
-                  </div>
-                </SettingsCard>
+                  </SettingsCard>
 
-                <SettingsCard
-                  labelledBy="card-contact"
-                  title="Organization contact"
-                  description="A shared address and number for your company, not a personal one."
-                >
-                  <div className="os-grid">
-                    {orgText(
-                      "orgContactEmail",
-                      t("settings.orgEmail", "Contact email"),
-                      {
-                        type: "email",
-                        placeholder: "contact@company.com",
-                        required: true,
-                      },
-                    )}
-                    <Field
-                      id="org-orgPhone"
-                      label="Phone number"
-                      error={errorOf("orgPhone")}
-                    >
-                      <div className="os-phone">
-                        <span className="os-prefix" aria-hidden>
-                          DZ <span className="os-mono">+213</span>
-                        </span>
-                        <TextInput
-                          id="org-orgPhone"
-                          type="tel"
-                          dir="ltr"
-                          mono
-                          inputMode="tel"
-                          value={orgPhone}
-                          placeholder="550 00 00 00"
-                          invalid={Boolean(errorOf("orgPhone"))}
-                          aria-describedby={describedBy("org-orgPhone", {
-                            error: errorOf("orgPhone"),
-                          })}
-                          onChange={(event) => setOrgPhone(event.target.value)}
-                          onBlur={() => leave("orgPhone")}
-                        />
-                      </div>
-                    </Field>
-                  </div>
-                </SettingsCard>
-
-                <SettingsCard
-                  labelledBy="card-legal"
-                  title="Legal & fiscal identifiers"
-                  description="Your official registration numbers in Algeria. Format hints appear under each field."
-                >
-                  <div className="os-grid os-grid-2">
-                    {orgText(
-                      "nif",
-                      t("settings.nif", "Tax identification number (NIF)"),
-                      {
-                        mono: true,
-                        placeholder: "000000000000000",
-                        help: "15 digits",
-                        inputMode: "numeric",
-                        maxLength: 15,
-                      },
-                    )}
-                    {orgText(
-                      "nis",
-                      t(
-                        "settings.nis",
-                        "Statistical identification number (NIS)",
-                      ),
-                      {
-                        mono: true,
-                        placeholder: "000000000000000",
-                        help: "15 digits",
-                        inputMode: "numeric",
-                        maxLength: 15,
-                      },
-                    )}
-                    {orgText(
-                      "rc",
-                      t("settings.rc", "Commercial register (RC)"),
-                      {
-                        mono: true,
-                        placeholder: "00/00-0000000B00",
-                        help: "Format 00/00-0000000B00",
-                      },
-                    )}
-                    {orgText(
-                      "ai",
-                      t("settings.ai", "Article d'imposition (AI)"),
-                      {
-                        mono: true,
-                        placeholder: "00000000000",
-                        help: "11 digits",
-                        inputMode: "numeric",
-                        maxLength: 11,
-                      },
-                    )}
-                  </div>
-                </SettingsCard>
-
-                <SettingsCard
-                  labelledBy="card-hq"
-                  title="Headquarters"
-                  description="The registered address of your organization."
-                >
-                  <div className="os-grid">
-                    {orgText(
-                      "address",
-                      t("settings.address", "Street address"),
-                      {
-                        placeholder: "12 Rue Didouche Mourad",
-                        full: true,
-                      },
-                    )}
-                    <Field
-                      id="org-wilaya"
-                      label={t("settings.wilaya", "Wilaya")}
-                    >
-                      <SelectInput
+                  <SettingsCard
+                    labelledBy="card-hq"
+                    title={<>Headquarters{missingSign("headquarters")}</>}
+                    description="The registered address of your organization."
+                  >
+                    <div className="os-grid">
+                      {orgText(
+                        "address",
+                        t("settings.address", "Street address"),
+                        {
+                          placeholder: "12 Rue Didouche Mourad",
+                          full: true,
+                        },
+                      )}
+                      <Field
                         id="org-wilaya"
-                        value={wilaya}
-                        onChange={setWilaya}
-                        options={WILAYA_OPTIONS}
-                      />
-                    </Field>
-                    {orgText("commune", "Commune", {
-                      placeholder: "Sidi M'Hamed",
-                    })}
-                    {orgText("postalCode", "Postal code", {
-                      mono: true,
-                      placeholder: "16000",
-                      isOptional: true,
-                      inputMode: "numeric",
-                      maxLength: 5,
-                    })}
-                  </div>
-                </SettingsCard>
+                        label={t("settings.wilaya", "Wilaya")}
+                      >
+                        <SelectInput
+                          id="org-wilaya"
+                          value={wilaya}
+                          onChange={setWilaya}
+                          options={WILAYA_OPTIONS}
+                        />
+                      </Field>
+                      {orgText("commune", "Commune", {
+                        placeholder: "Sidi M'Hamed",
+                      })}
+                      {orgText("postalCode", "Postal code", {
+                        mono: true,
+                        placeholder: "16000",
+                        isOptional: true,
+                        inputMode: "numeric",
+                        maxLength: 5,
+                      })}
+                    </div>
+                  </SettingsCard>
 
-                <SettingsCard
-                  labelledBy="card-regional"
-                  title="Regional preferences"
-                  description="Used for dates, amounts and the schedule of your weekly digest."
-                >
-                  <div className="os-grid os-grid-3">
-                    <Field id="org-language" label="Language">
-                      <SelectInput
-                        id="org-language"
-                        value={language}
-                        onChange={setLanguage}
-                        options={LANGUAGES}
-                      />
-                    </Field>
-                    <Field id="org-timezone" label="Time zone">
-                      <SelectInput
-                        id="org-timezone"
-                        value={timeZone}
-                        onChange={setTimeZone}
-                        options={TIME_ZONES}
-                      />
-                    </Field>
-                    <Field id="org-currency" label="Currency">
-                      <SelectInput
-                        id="org-currency"
-                        value={currency}
-                        onChange={setCurrency}
-                        options={CURRENCIES}
-                      />
-                    </Field>
-                  </div>
-                </SettingsCard>
+                  <SettingsCard
+                    labelledBy="card-regional"
+                    title="Regional preferences"
+                    description="Used for dates, amounts and the schedule of your digest."
+                  >
+                    <div className="os-grid os-grid-3">
+                      <Field id="org-language" label="Language">
+                        <SelectInput
+                          id="org-language"
+                          value={language}
+                          onChange={setLanguage}
+                          options={LANGUAGES}
+                        />
+                      </Field>
+                      <Field id="org-timezone" label="Time zone">
+                        <SelectInput
+                          id="org-timezone"
+                          value={timeZone}
+                          onChange={setTimeZone}
+                          options={TIME_ZONES}
+                        />
+                      </Field>
+                      <Field id="org-currency" label="Currency">
+                        <SelectInput
+                          id="org-currency"
+                          value={currency}
+                          onChange={setCurrency}
+                          options={CURRENCIES}
+                        />
+                      </Field>
+                    </div>
+                  </SettingsCard>
 
-                <SettingsCard
-                  labelledBy="card-rep"
-                  title="Account representative"
-                  description="The person responsible for this organization's account."
-                >
-                  <div className="os-grid">
-                    {orgText(
-                      "contactName",
-                      t("settings.repName", "Full name"),
-                      {
-                        placeholder: "Amina Benali",
-                      },
-                    )}
-                    {orgText("jobTitle", "Role & title", {
-                      placeholder: "Marketing lead",
-                    })}
-                  </div>
-                </SettingsCard>
+                  <SettingsCard
+                    labelledBy="card-rep"
+                    title={
+                      <>Account representative{missingSign("representative")}</>
+                    }
+                    description="The person responsible for this organization's account."
+                  >
+                    <div className="os-grid">
+                      {orgText(
+                        "contactName",
+                        t("settings.repName", "Full name"),
+                        {
+                          placeholder: "Amina Benali",
+                        },
+                      )}
+                      {orgText("jobTitle", "Role & title", {
+                        placeholder: "Marketing lead",
+                      })}
+                    </div>
+                  </SettingsCard>
+                </div>
 
-                <SaveBar
+                <FormActions
                   dirty={orgDirty}
                   saving={saving}
                   onDiscard={discardOrg}
                   saveIcon={<Save aria-hidden strokeWidth={2} />}
-                  labels={saveBarLabels}
+                  labels={formLabels}
                 />
               </>
             )}
@@ -1221,8 +1167,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
             {activeTab === "Notifications" && (
               <>
-                {telegramCard}
-
                 <section
                   className="os-card"
                   aria-labelledby="card-channels"
@@ -1234,8 +1178,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                         Alert channels
                       </h3>
                       <p className="os-card-desc">
-                        Turn each alert on or off per channel. Telegram unlocks
-                        once the bot is connected.
+                        Turn each alert on or off per channel.
                       </p>
                     </div>
                   </header>
@@ -1296,9 +1239,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                                   key={channel}
                                   label={`${alert.title} by ${CHANNEL_LABELS[channel]}`}
                                   checked={alerts[alert.id][channel]}
-                                  disabled={
-                                    channel === "telegram" && !telegramConnected
-                                  }
                                   onChange={(checked) =>
                                     setAlerts((now) => ({
                                       ...now,
@@ -1325,31 +1265,50 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                   >
                     <div>
                       <h3 id="card-digest" className="os-card-title">
-                        Weekly performance digest
+                        Scheduled Performance digest
                       </h3>
                       <p id="card-digest-desc" className="os-card-desc">
                         An executive PDF summary of all active campaigns, sent
-                        once a week.
+                        every week or every month.
                       </p>
                     </div>
                     <Switch
-                      checked={weeklyDigest}
-                      onChange={setWeeklyDigest}
+                      checked={digestEnabled}
+                      onChange={setDigestEnabled}
                       labelledBy="card-digest"
                       describedById="card-digest-desc"
                     />
                   </header>
-                  {weeklyDigest ? (
+                  {digestEnabled ? (
                     <div className="os-card-body">
-                      <div className="os-grid os-grid-2">
-                        <Field id="digest-day" label="Send on">
+                      <div className="os-grid os-grid-3">
+                        <Field id="digest-frequency" label="Frequency">
                           <SelectInput
-                            id="digest-day"
-                            value={digestDay}
-                            onChange={setDigestDay}
-                            options={DAYS}
+                            id="digest-frequency"
+                            value={digestFrequency}
+                            onChange={setDigestFrequency}
+                            options={DIGEST_FREQUENCIES}
                           />
                         </Field>
+                        {digestFrequency === "week" ? (
+                          <Field id="digest-day" label="Send on">
+                            <SelectInput
+                              id="digest-day"
+                              value={digestDay}
+                              onChange={setDigestDay}
+                              options={DAYS}
+                            />
+                          </Field>
+                        ) : (
+                          <Field id="digest-month-day" label="Send on">
+                            <SelectInput
+                              id="digest-month-day"
+                              value={digestMonthDay}
+                              onChange={setDigestMonthDay}
+                              options={MONTH_DAYS}
+                            />
+                          </Field>
+                        )}
                         <Field id="digest-time" label="At">
                           <SelectInput
                             id="digest-time"
@@ -1434,12 +1393,12 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                   )}
                 </section>
 
-                <SaveBar
+                <FormActions
                   dirty={notificationsDirty}
                   saving={saving}
                   onDiscard={discardNotifications}
                   saveIcon={<Save aria-hidden strokeWidth={2} />}
-                  labels={saveBarLabels}
+                  labels={formLabels}
                 />
               </>
             )}
@@ -1705,11 +1664,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               </SettingsCard>
             )}
 
-            {activeTab === "Integrations" && (
-              <IntegrationsTab
-                onGoToNotifications={() => goTo("Notifications")}
-              />
-            )}
+            {activeTab === "Integrations" && <IntegrationsTab />}
 
             {activeTab === "Billing" && (
               <BillingTab

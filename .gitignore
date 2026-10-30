@@ -71,3 +71,9 @@ service-account*.json
 .gitlab-ci-local/
 coverage/
 
+# Local check output (screenshots, baselines, test runs)
+test-results/
+.baseline/
+.baseline-pre-cleanup/
+.cleanup-baseline/
+

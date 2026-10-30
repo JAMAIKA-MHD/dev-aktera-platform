@@ -31,7 +31,6 @@
   --on-primary: #ffffff;
   --knob: #ffffff;
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px rgba(15, 23, 42, 0.04);
-  --bar-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
   --knob-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
 }
 :root.dark .os-root,
@@ -59,7 +58,6 @@
   --danger-soft: #3b1816;
   --track-off: #5e6e8a;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --bar-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
@@ -199,6 +197,33 @@
 }
 .os-card-body {
   padding: 20px 28px 28px;
+}
+/* Several sections as one surface: a thin line between them, no card of their own. */
+.os-card-group {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  > .os-card {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  > .os-card + .os-card {
+    border-top: 1px solid var(--border);
+  }
+}
+/* The small sign beside a section that still has fields to fill in. */
+.os-part-missing {
+  display: inline-flex;
+  margin-inline-start: 6px;
+  vertical-align: -2px;
+  color: var(--warn);
+  & svg {
+    width: 15px;
+    height: 15px;
+  }
 }
 /* A list of rows straight in the card: no body padding, rows carry their own. */
 .os-card-body[data-flush] {
@@ -762,11 +787,11 @@
   overflow-x: auto;
 }
 .os-matrix {
-  min-width: 600px;
+  min-width: 500px;
 }
 .os-matrix-row {
   display: grid;
-  grid-template-columns: 1fr repeat(3, 88px);
+  grid-template-columns: 1fr repeat(2, 88px);
   column-gap: 8px;
   align-items: center;
   padding: 16px 28px;
@@ -787,7 +812,7 @@
   background: var(--surface-2);
 }
 
-/* ── Profile completeness, logo, password strength ────────────────────────── */
+/* ── Meters, logo, password strength ──────────────────────────────────────── */
 
 .os-progress {
   height: 8px;
@@ -819,19 +844,6 @@
   font-size: 12px;
   color: var(--warn);
 }
-.os-completeness-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 14px;
-  font-weight: 600;
-}
-.os-missing {
-  font-size: 13px;
-  color: var(--muted);
-}
-
 .os-logo {
   display: flex;
   align-items: center;
@@ -962,47 +974,12 @@
   }
 }
 
-/* ── The sticky save bar ──────────────────────────────────────────────────── */
+/* ── The buttons closing a long form ──────────────────────────────────────── */
 
-.os-savebar {
-  position: sticky;
-  bottom: 16px;
-  z-index: 10;
+.os-form-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 12px 12px 22px;
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--bar-shadow);
-}
-.os-savebar-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  &[data-saved] {
-    color: var(--muted);
-  }
-  & svg {
-    width: 18px;
-    height: 18px;
-    color: var(--ok);
-  }
-}
-.os-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--warn-bar);
-}
-.os-savebar-actions {
-  display: flex;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 /* ── Focus, small screens, reduced motion ─────────────────────────────────── */
@@ -1038,12 +1015,7 @@
   .os-btn-sm {
     height: 44px;
   }
-  .os-savebar {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 12px;
-  }
-  .os-savebar-actions > * {
+  .os-form-actions > * {
     flex: 1;
   }
 }

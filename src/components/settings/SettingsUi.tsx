@@ -4,11 +4,11 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
 } from "react";
-import { Check, ChevronDown, Eye, EyeOff, Info, X } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Info, X } from "lucide-react";
 
 // The parts of the Organization settings page (organizationSettings.css), built once and
 // reused by every tab: cards, fields, inputs, selects, switches, badges, notes, tiles, chips,
-// empty states, skeletons and the sticky save bar. Look only — every value and handler comes
+// empty states, skeletons and the form's buttons. Look only — every value and handler comes
 // from the page.
 
 export function SettingsCard({
@@ -377,9 +377,9 @@ export function EmptyState({
   );
 }
 
-// The sticky bar of a long form: where its changes stand, and Discard / Save, both
-// unavailable until something has changed.
-export function SaveBar({
+// The two buttons closing a long form: Discard and Save, both unavailable until something
+// has changed.
+export function FormActions({
   dirty,
   saving,
   onDiscard,
@@ -390,53 +390,27 @@ export function SaveBar({
   saving: boolean;
   onDiscard: () => void;
   saveIcon: ReactNode;
-  labels: {
-    unsaved: string;
-    saved: string;
-    discard: string;
-    save: string;
-    saving: string;
-  };
+  labels: { discard: string; save: string; saving: string };
 }) {
   return (
-    <div className="os-savebar">
-      <p
-        className="os-savebar-state"
-        data-saved={dirty ? undefined : ""}
-        aria-live="polite"
+    <div className="os-form-actions">
+      <button
+        type="button"
+        className="os-btn os-btn-secondary"
+        disabled={!dirty || saving}
+        onClick={onDiscard}
       >
-        {dirty ? (
-          <>
-            <span aria-hidden className="os-dot" />
-            {labels.unsaved}
-          </>
-        ) : (
-          <>
-            <Check aria-hidden strokeWidth={2.5} />
-            {labels.saved}
-          </>
-        )}
-      </p>
-      <div className="os-savebar-actions">
-        <button
-          type="button"
-          className="os-btn os-btn-secondary"
-          disabled={!dirty || saving}
-          onClick={onDiscard}
-        >
-          {labels.discard}
-        </button>
-        {/* Saving keeps the bar still: the label changes, never the layout. */}
-        <button
-          type="submit"
-          className="os-btn os-btn-primary"
-          disabled={!dirty || saving}
-          aria-busy={saving || undefined}
-        >
-          {saveIcon}
-          {saving ? labels.saving : labels.save}
-        </button>
-      </div>
+        {labels.discard}
+      </button>
+      <button
+        type="submit"
+        className="os-btn os-btn-primary"
+        disabled={!dirty || saving}
+        aria-busy={saving || undefined}
+      >
+        {saveIcon}
+        {saving ? labels.saving : labels.save}
+      </button>
     </div>
   );
 }

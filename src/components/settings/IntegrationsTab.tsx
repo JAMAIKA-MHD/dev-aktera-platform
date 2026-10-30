@@ -1,44 +1,13 @@
-import { KeyRound, Plug, Plus, Send } from "lucide-react";
-import {
-  Badge,
-  CompactCard,
-  EmptyState,
-  IconTile,
-  SettingsCard,
-} from "./SettingsUi";
+import { KeyRound, Plug, Plus } from "lucide-react";
+import { EmptyState, SettingsCard } from "./SettingsUi";
 
-// The Integrations tab. The Telegram bot, API keys and webhooks have no backend yet: each is
-// shown in its final layout, empty, with its actions unavailable. A key, once there is a
-// backend, is only ever listed masked (.os-key).
+// The Integrations tab. API keys and webhooks have no backend yet: each is shown in its final
+// layout, empty, with its actions unavailable. A key, once there is a backend, is only ever
+// listed masked (.os-key).
 
-export function IntegrationsTab({
-  onGoToNotifications,
-}: {
-  onGoToNotifications: () => void;
-}) {
+export function IntegrationsTab() {
   return (
     <>
-      <CompactCard
-        labelledBy="card-int-telegram"
-        tile={
-          <IconTile>
-            <Send strokeWidth={2} />
-          </IconTile>
-        }
-        title="Telegram operations bot"
-        badge={<Badge tone="neutral">Not connected</Badge>}
-        description="Instant winning-entry and code-redemption alerts in your team's Telegram channel."
-        actions={
-          <button
-            type="button"
-            className="os-btn os-btn-secondary"
-            onClick={onGoToNotifications}
-          >
-            Set up in Notifications
-          </button>
-        }
-      />
-
       <SettingsCard
         labelledBy="card-api-keys"
         title="API keys"
