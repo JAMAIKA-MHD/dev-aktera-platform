@@ -43,6 +43,9 @@ export interface CampaignSnapshot {
   prizes: CampaignPrize[];
   quiz: CampaignQuizQuestion[]; // sorted by position
   rules: CampaignRules;
+  // From the Wizard's foundation step: they seed the default welcome screen (brand + logo).
+  brandName?: string;
+  imageUrl?: string;
 }
 
 // Same defaults as the resolve_game_outcome RPC when game_logic_config has no value.
@@ -142,5 +145,7 @@ export function buildCampaignSnapshot(
       options: [...question.options],
     })),
     rules: rulesFromGameLogic(campaign.gameType, campaign.gameLogicConfig),
+    brandName: campaign.gameLogicConfig?.brand_name || undefined,
+    imageUrl: campaign.heroImageUrl || undefined,
   };
 }

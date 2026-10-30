@@ -35,8 +35,7 @@ const finite = (value: unknown): number =>
 // Campaign.maxEntries → campaigns.max_entries, as campaignService writes it.
 function maxEntriesOf(campaign: Campaign): number {
   if (campaign.maxEntries === "unlimited") return 0;
-  if (campaign.maxEntries === "2") return 2;
-  return 1; // "1", or no value: the server default
+  return Math.max(1, Math.floor(Number(campaign.maxEntries)) || 1); // no value: the server default, 1
 }
 
 // Reads the dashboard Campaign model (useCampaigns), like buildCampaignSnapshot (T1.8),

@@ -173,7 +173,7 @@ export interface Campaign {
   gameLogicConfig?: any;
   status: "active" | "paused" | "draft" | "archived";
   winProbability: number; // Server-enforced winning percentage (0 to 100)
-  maxEntries?: "1" | "2" | "unlimited";
+  maxEntries?: string; // plays per phone: a number as text ("1", "5"...) or "unlimited"
   prizes: {
     id?: string;
     templateId: string;

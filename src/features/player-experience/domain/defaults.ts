@@ -127,7 +127,7 @@ export function createDefaultExperience(
   // A real campaign decides the game (chosen in the Wizard); without one, the demo
   // campaign is built for the requested type.
   const campaign = input.campaign ?? createDemoCampaign(input.gameType);
-  const organizerName = input.brandName ?? "";
+  const organizerName = input.brandName ?? campaign.brandName ?? "";
   const config: ExperienceConfig = {
     schemaVersion: 1,
     id: createUuid(),
@@ -138,7 +138,10 @@ export function createDefaultExperience(
     theme: themeFromPreset(input.presetId),
     brand: {
       name: organizerName,
-      logo: null,
+      // The schema only accepts https images (a local http URL would fail validation).
+      logo: campaign.imageUrl?.startsWith("https://")
+        ? { kind: "remote", url: campaign.imageUrl }
+        : null,
       logoIcon: "crown",
       tagline: {},
     },

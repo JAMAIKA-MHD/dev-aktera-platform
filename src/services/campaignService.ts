@@ -151,6 +151,10 @@ export async function updatePrizeTemplateStockService(
   if (error) throw error;
 }
 
+// Dates come as "YYYY-MM-DD" (day only) or "YYYY-MM-DDTHH:mm" (the wizard's date-time input).
+const toIso = (value: string, dayOnlySuffix: string) =>
+  new Date(value.includes("T") ? value : value + dayOnlySuffix).toISOString();
+
 export interface SaveCampaignInput {
   orgId: string;
   newCamp: {
@@ -167,7 +171,7 @@ export interface SaveCampaignInput {
     endDate: string;
     winProbability: number;
     autoPacePrizes?: boolean;
-    maxEntries?: "1" | "2" | "unlimited";
+    maxEntries?: string;
     parentCampaignId?: string;
     playerScreenConfig?: any;
     prizes: { templateId?: string; quantity: number; weight: number }[];
@@ -226,15 +230,13 @@ export async function createOrUpdateCampaignFullService(
     p_hero_image_url: newCamp.heroImageUrl || null,
     p_description: null,
     p_status: submitStatus || "active",
-    p_start_date: new Date(newCamp.startDate + "T00:00:00Z").toISOString(),
-    p_end_date: new Date(newCamp.endDate + "T23:59:59Z").toISOString(),
+    p_start_date: toIso(newCamp.startDate, "T00:00:00Z"),
+    p_end_date: toIso(newCamp.endDate, "T23:59:59Z"),
     p_win_probability: Number(newCamp.winProbability) / 100,
     p_max_entries:
-      newCamp.maxEntries === "2"
-        ? 2
-        : newCamp.maxEntries === "unlimited"
-          ? 0
-          : 1,
+      newCamp.maxEntries === "unlimited"
+        ? 0
+        : Math.max(1, Math.floor(Number(newCamp.maxEntries)) || 1),
     p_require_quiz: newCamp.gameType === "quiz",
     p_prizes: prizesPayload,
     p_questions: questionsPayload,
