@@ -136,8 +136,8 @@ export function DashboardShell() {
               type="button"
               onClick={toggleTheme}
               className="dz-icon-btn"
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              aria-label="Switch theme"
+              title="Switch theme"
             >
               {theme === "dark" ? (
                 <Sun {...TOPBAR_ICON} />
@@ -150,7 +150,7 @@ export function DashboardShell() {
               type="button"
               className="dz-icon-btn"
               aria-label="Notifications, 3 unread"
-              title="Notifications"
+              title="Notifications, 3 unread"
             >
               <Bell {...TOPBAR_ICON} />
               <span aria-hidden className="dz-unread-dot" />
@@ -160,8 +160,8 @@ export function DashboardShell() {
               type="button"
               onClick={() => navigate(PATHS.account)}
               className="dz-avatar-pill"
-              aria-label="Account settings"
-              title="Account settings"
+              aria-label="Account menu"
+              title="Account menu"
             >
               <span aria-hidden className="dz-avatar">
                 {initial}
@@ -188,7 +188,12 @@ export function DashboardShell() {
         )}
 
         {/* PAGE: the route decides what shows here */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 z-10 scroll-smooth">
+        <div
+          className={`flex-1 overflow-y-auto z-10 scroll-smooth ${
+            currentSection === "" ? "dz-page dz-theme" : "p-4 sm:p-6 pt-2"
+          }`}
+          data-theme={theme === "dark" ? "dark" : "light"}
+        >
           <motion.div
             key={currentSection}
             initial={{ opacity: 0 }}
