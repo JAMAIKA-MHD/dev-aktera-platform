@@ -2815,3 +2815,28 @@
   .xp-btn:not([data-xp-variant="ghost"]) {
   transition: none;
 }
+
+/* On a phone: side by side, the logo alone. The label stays for screen readers. */
+.xp-frame[data-xp-screen="win"] [data-xp-share-row] {
+  @variant not-wide {
+    --xp-share-icon: 1.25rem;
+    flex-flow: row nowrap;
+    > .xp-btn {
+      flex: 1 1 0;
+      min-width: 0;
+      padding-inline: 0;
+      > svg {
+        width: var(--xp-share-icon);
+        height: var(--xp-share-icon);
+      }
+      > span:last-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+  }
+}

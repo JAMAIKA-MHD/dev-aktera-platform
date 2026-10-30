@@ -13,7 +13,6 @@ export interface RewardPopupProps {
   prizeLabel: string;
   winMessage: string | null;
   code: string | null;
-  codeLabel: string;
   copyLabel: string;
   copiedLabel: string;
   copied: boolean;
@@ -28,7 +27,6 @@ export function RewardPopup({
   prizeLabel,
   winMessage,
   code,
-  codeLabel,
   copyLabel,
   copiedLabel,
   copied,
@@ -89,9 +87,6 @@ export function RewardPopup({
 
         {code ? (
           <div className="flex flex-col items-center gap-1.5">
-            <p className="xp-label text-[0.65rem] font-extrabold uppercase tracking-[0.14em] text-[var(--xp-text-muted)]">
-              {codeLabel}
-            </p>
             <button
               type="button"
               data-xp-code

@@ -489,8 +489,7 @@ export const SCRATCH_COVER_TEXT = localized(
 // {prize}, {brand}.
 export const RESULT_TEXT = {
   // A prize without a name of its own (a placeholder in the Studio's preview).
-  prizeFallback: localized("Votre lot", "جائزتك", "Your prize"),
-  codeLabel: localized("Votre code", "رمزك", "Your code"),
+  prizeFallback: localized("Votre Cadeau", "هديتك", "Your Gift"),
   copy: localized("Copier", "نسخ", "Copy"),
   copied: localized("Copié !", "تم النسخ!", "Copied!"),
   // No code was issued: never invent one (B6), show how to collect the prize instead.
@@ -499,23 +498,7 @@ export const RESULT_TEXT = {
     "اعرض هذه الشاشة لأحد المستشارين لاستلام جائزتك.",
     "Show this screen to a staff member to collect your prize.",
   ),
-  confirm: localized(
-    "J'ai copié mon code",
-    "لقد نسخت رمزي",
-    "I've copied my code",
-  ),
-  confirming: localized("Confirmation…", "جارٍ التأكيد…", "Confirming…"),
-  confirmed: localized(
-    "Merci, c'est noté !",
-    "شكراً، تم التسجيل!",
-    "Thanks, noted!",
-  ),
   // The code stays valid whether or not this background ping succeeds: never alarming.
-  confirmFailed: localized(
-    "Votre code reste valable même si la confirmation a échoué.",
-    "يبقى رمزك صالحاً حتى لو فشل التأكيد.",
-    "Your code stays valid even though the confirmation failed.",
-  ),
   reveal: localized("Révéler", "اكشف", "Reveal"),
   skipIntro: localized("PASSER L'INTRO", "تخطي المقدمة", "SKIP INTRO"),
   shareWhatsapp: localized(

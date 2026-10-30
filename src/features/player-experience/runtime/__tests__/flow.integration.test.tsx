@@ -141,7 +141,9 @@ describe("the player journey, played end to end (T4.5)", () => {
     expect(request.consent.accepted).toBe(true);
     expect(request.gamePayload).toEqual({ kind: "none" });
 
-    fireEvent.click(screen.getByText("J'ai copié mon code"));
+    fireEvent.click(
+      screen.getByText(/^DEMO-[A-Z0-9]{4}-[A-Z0-9]{4}$/).closest("button")!,
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0); // confirmCoupon has no artificial latency
     });

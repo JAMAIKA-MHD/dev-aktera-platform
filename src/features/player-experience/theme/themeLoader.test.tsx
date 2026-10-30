@@ -55,7 +55,6 @@ function shell() {
           prizeLabel="Free coffee"
           winMessage={null}
           code="DEMO-1234"
-          codeLabel="Your code"
           copyLabel="Copy"
           copiedLabel="Copied"
           copied={false}

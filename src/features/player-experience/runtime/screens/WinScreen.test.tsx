@@ -69,8 +69,6 @@ function setup(
 }
 
 const codeButton = () => screen.getByText("DEMO-0000-0000").closest("button")!;
-const confirmButton = () =>
-  screen.queryByText("J'ai copié mon code")?.closest("button") ?? null;
 
 // A win state built directly (not through the reducer), for the outcome shapes no local
 // gateway produces: no coupon code, or an outcome that carries no prize.
@@ -154,15 +152,12 @@ describe("WinScreen", () => {
     );
   });
 
-  it("confirms the coupon once, even with a second click, and never sends it twice", async () => {
+  it("confirms the coupon when it is copied, once, even with a second copy", async () => {
     const { confirm } = setup();
-    expect(confirmButton()).toBeTruthy();
-    fireEvent.click(confirmButton()!);
-    await vi.waitFor(() =>
-      expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
-    );
-    expect(confirmButton()).toBeNull(); // spent: no second attempt possible
-    expect(confirm).toHaveBeenCalledOnce();
+    fireEvent.click(codeButton());
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+    fireEvent.click(codeButton());
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
   });
 
   it("shows the win screen, never the loss, when the Studio asks for it on a campaign without prizes", () => {
@@ -170,69 +165,35 @@ describe("WinScreen", () => {
     expect(
       container.querySelector(".xp-frame")?.getAttribute("data-xp-screen"),
     ).toBe("win");
-    expect(screen.getByText("Votre lot")).toBeTruthy();
+    expect(screen.getByText("Votre Cadeau")).toBeTruthy();
     expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
   });
 
-  it("follows a spotlight template's own win screen: its star over the title, the confirmation under the CTA", async () => {
-    const { container, confirm } = setup({ templateId: "comic-burst" });
+  it("follows a spotlight template's own win screen: its star over the title", () => {
+    const { container } = setup({ templateId: "comic-burst" });
     const hero = container.querySelector('[data-xp-slot="hero"]');
     expect(hero?.getAttribute("data-xp-hero")).toBe("art");
     expect(hero?.querySelector("img")?.getAttribute("src")).toBeTruthy();
     // The star replaces the prize popping in: it is drawn once, in slot 2.
     expect(container.querySelector(".xp-result-art")).toBeNull();
-    const cta = container.querySelector('[data-xp-slot="cta"]')!;
-    expect(cta.contains(confirmButton())).toBe(true);
     expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
-    fireEvent.click(confirmButton()!);
-    await vi.waitFor(() =>
-      expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
-    );
-    expect(confirmButton()).toBeNull();
-    expect(confirm).toHaveBeenCalledOnce();
   });
 
-  it("shows the button waiting while the confirmation is in flight", async () => {
+  it("says nothing when the confirmation fails: the code is already there", async () => {
     const services = createLocalServices({
       participation: "scripted",
       campaign: createDemoCampaign("lucky_wheel"),
     });
-    let resolveConfirm: (result: { ok: true }) => void;
-    vi.spyOn(services.participation, "confirmCoupon").mockReturnValue(
-      new Promise((resolve) => {
-        resolveConfirm = resolve;
-      }),
-    );
+    const confirm = vi
+      .spyOn(services.participation, "confirmCoupon")
+      .mockResolvedValue({
+        ok: false,
+        error: { code: "NETWORK", message: "offline" },
+      });
     setup({ services });
-    fireEvent.click(confirmButton()!);
-    const waiting = screen.getByText("Confirmation…").closest("button")!;
-    expect(waiting.hasAttribute("disabled")).toBe(true);
-    resolveConfirm!({ ok: true });
-    await vi.waitFor(() =>
-      expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
-    );
-  });
-
-  it("stays calm when the confirmation fails: the code is already there", async () => {
-    const services = createLocalServices({
-      participation: "scripted",
-      campaign: createDemoCampaign("lucky_wheel"),
-    });
-    vi.spyOn(services.participation, "confirmCoupon").mockResolvedValue({
-      ok: false,
-      error: { code: "NETWORK", message: "offline" },
-    });
-    setup({ services });
-    fireEvent.click(confirmButton()!);
-    await vi.waitFor(() =>
-      expect(
-        screen.getByText(
-          "Votre code reste valable même si la confirmation a échoué.",
-        ),
-      ).toBeTruthy(),
-    );
-    expect(screen.queryByText("Merci, c'est noté !")).toBeNull();
-    expect(confirmButton()).toBeNull(); // still spent, not alarming
+    fireEvent.click(codeButton());
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+    expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
   });
 
   it("opens WhatsApp and Facebook with the prize and the page link, and reports each", () => {
@@ -275,7 +236,6 @@ describe("WinScreen", () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByText("AKT-DZ-9824X")).toBeNull();
-    expect(screen.queryByText("J'ai copié mon code")).toBeNull(); // nothing to confirm
   });
 
   it("shows the campaign's own win message when the prize has one", () => {
