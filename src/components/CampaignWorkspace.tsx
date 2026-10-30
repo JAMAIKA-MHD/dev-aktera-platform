@@ -246,11 +246,11 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
       id="campaign-workspace-root"
       className={cn(
         cxRoot,
-        "mx-auto grid max-w-[1800px] grid-cols-1 gap-6 xl:grid-cols-2",
+        "mx-auto grid max-w-[1800px] grid-cols-1 gap-6 lg:grid-cols-[3fr_1fr]",
       )}
     >
-      {/* LEFT HALF: the campaign's details, all visible, nothing folded away */}
-      <div className="@container grid grid-cols-1 min-w-0 content-start gap-4 xl:pb-16">
+      {/* LEFT, 75%: the campaign's details, all visible, nothing folded away */}
+      <div className="@container grid grid-cols-1 min-w-0 content-start gap-4 lg:pb-16">
         <nav
           aria-label="Breadcrumb"
           className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-cx-ink-subtle"
@@ -580,10 +580,10 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
         )}
       </div>
 
-      {/* RIGHT HALF: the campaign's image, and on it the phone playing the saved design */}
+      {/* RIGHT, 25%: the campaign's image, and on it the phone playing the saved design */}
       <aside
         aria-label="Player preview"
-        className="relative flex h-[720px] flex-col self-start overflow-hidden rounded-cx-xl border border-cx-border shadow-cx-card xl:sticky xl:top-2 xl:h-[calc(100dvh-7rem)] xl:min-h-[480px]"
+        className="relative flex h-[720px] min-w-0 flex-col self-start overflow-hidden rounded-cx-xl border border-cx-border shadow-cx-card lg:sticky lg:top-2 lg:h-[calc(100dvh-7rem)] lg:min-h-[480px]"
       >
         {campaign.heroImageUrl ? (
           <img
