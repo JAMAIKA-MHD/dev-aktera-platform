@@ -47,18 +47,21 @@ export interface CampaignCardProps {
 function Metric({
   label,
   value,
-  divided = false,
+  divided,
 }: {
   label: string;
   value: string;
-  /** Set apart from the metric before it by a hairline. */
-  divided?: boolean;
+  /** A hairline from the metric before it, once they share a row: all three ("inline") or a pair. */
+  divided?: "inline" | "pair";
 }) {
   return (
     <div
       className={cn(
         "flex flex-col gap-0.5",
-        divided && "border-l border-cx-border pl-2 @sm:pl-3",
+        divided === "pair" &&
+          "border-cx-border @[10.5rem]:border-l @[10.5rem]:pl-2 @sm:pl-3",
+        divided === "inline" &&
+          "border-cx-border @[18.5rem]:border-l @[18.5rem]:pl-2 @sm:pl-3",
       )}
     >
       <span className={cxText.label}>{label}</span>
@@ -223,12 +226,13 @@ export function CampaignCard({
         </div>
 
         {/* Always in this order: prizes won (the donut), entries, win chance. On a narrow
-            card the captions wrap and the gaps tighten; the numbers stay on one line. */}
-        <div className="grid grid-cols-[auto_auto_auto] items-center gap-2 rounded-cx-md border border-cx-border p-2.5 @sm:gap-3 @sm:px-3">
-          <div className="flex items-center gap-2 @sm:gap-3">
+            card prizes won takes a row of its own; on the narrowest, each metric does and the
+            donut goes. The numbers stay on one line. */}
+        <div className="grid grid-cols-1 items-center gap-2 rounded-cx-md border border-cx-border p-2.5 @[10.5rem]:grid-cols-2 @[18.5rem]:grid-cols-[auto_auto_auto] @sm:gap-3 @sm:px-3">
+          <div className="flex items-center gap-2 @[10.5rem]:col-span-2 @[18.5rem]:col-span-1 @sm:gap-3">
             <span
               aria-hidden
-              className="relative grid size-10 shrink-0 place-items-center rounded-full"
+              className="relative hidden size-10 shrink-0 place-items-center rounded-full @[10.5rem]:grid"
               style={{
                 background: `conic-gradient(var(--cx-g) ${wonPercent}%, var(--cx-surface-sunken) 0)`,
               }}
@@ -246,19 +250,19 @@ export function CampaignCard({
           <Metric
             label="Entries"
             value={formatCount(campaign.participantsCount)}
-            divided
+            divided="inline"
           />
           <Metric
             label="Win chance"
             value={
               campaign.autoPacePrizes ? "Paced" : `${campaign.winProbability}%`
             }
-            divided
+            divided="pair"
           />
         </div>
 
         {(onEdit || !isArchived) && (
-          <footer className="flex items-center gap-2 border-t border-cx-border pt-3">
+          <footer className="flex flex-wrap items-center gap-2 border-t border-cx-border pt-3">
             {onEdit && (
               <CxButton size="sm" onClick={onEdit}>
                 <Pencil aria-hidden />

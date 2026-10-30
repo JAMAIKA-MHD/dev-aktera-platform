@@ -72,15 +72,15 @@ service-account*.json
 coverage/
 
 # Test results (e2e runs, screenshots, reports)
-/test-results/
+test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
 
 # Local verification baselines and screenshots (never shared)
-/.baseline/
-/.baseline-pre-cleanup/
-/.cleanup-baseline/
+.baseline/
+.baseline-pre-cleanup/
+.cleanup-baseline/
 
 # Files moved out by a cleanup, kept for review before deletion
 /_removed_review/

@@ -279,7 +279,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
               <CxButton onClick={clearFilters}>Clear filters</CxButton>
             </div>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {pageCampaigns.map((campaign) => (
                 <CampaignCard
                   key={campaign.id}
