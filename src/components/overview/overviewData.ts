@@ -105,67 +105,6 @@ export const GAME_TYPES = {
 export type GameKey = keyof typeof GAME_TYPES;
 export const GAME_LIST = Object.values(GAME_TYPES);
 
-// ── Needs attention ──────────────────────────────────────────────────────────
-
-export const ATTENTION_VISIBLE = 3;
-export const ATTENTION_ITEMS: {
-  tone: "danger" | "warning" | "info";
-  badgeTone: "bad" | "warn" | "info";
-  icon: LucideIcon;
-  badge: string;
-  sentence: string;
-  action: string;
-  to: "create" | "prizes" | "campaigns";
-}[] = [
-  {
-    tone: "danger",
-    badgeTone: "bad",
-    icon: Clock,
-    badge: "Urgent · 28 h left",
-    sentence:
-      "Autumn Gift Wheel ends Fri 30 Oct, 23:59 with nothing scheduled after it.",
-    action: "Schedule next campaign",
-    to: "create",
-  },
-  {
-    tone: "danger",
-    badgeTone: "bad",
-    icon: Ticket,
-    badge: "Urgent · 4 units left",
-    sentence: "Free coffee voucher is almost out of stock (4 of 100 left).",
-    action: "Restock voucher",
-    to: "prizes",
-  },
-  {
-    tone: "warning",
-    badgeTone: "warn",
-    icon: Ticket,
-    badge: "Soon · 9.5% left",
-    sentence: "Cinema ticket is running low (38 of 400 left).",
-    action: "Restock voucher",
-    to: "prizes",
-  },
-  {
-    tone: "info",
-    badgeTone: "info",
-    icon: Gift,
-    badge: "In 27 days",
-    sentence: "Black Friday Quiz starts 25 Nov but has no prize yet.",
-    action: "Add missing prize",
-    to: "campaigns",
-  },
-  {
-    tone: "info",
-    badgeTone: "info",
-    icon: FileText,
-    badge: "Draft · 6 days",
-    sentence:
-      "Spring Teaser has been a draft for 6 days and was never launched.",
-    action: "Review draft",
-    to: "campaigns",
-  },
-];
-
 // ── Vouchers running low ─────────────────────────────────────────────────────
 
 export const LOW_VOUCHERS = [
@@ -390,7 +329,6 @@ export const ACTIVITY_FILTERS: { key: ActivityFilter; label: string }[] = [
 
 export const ACTIVITY: {
   category: Exclude<ActivityFilter, "all">;
-  important: boolean;
   initials: string;
   accent: Accent;
   who: string;
@@ -403,7 +341,6 @@ export const ACTIVITY: {
 }[] = [
   {
     category: "campaign",
-    important: true,
     initials: "SB",
     accent: "k4",
     who: "Sara",
@@ -415,7 +352,6 @@ export const ACTIVITY: {
   },
   {
     category: "campaign",
-    important: false,
     initials: "LM",
     accent: "k1",
     who: "Lina",
@@ -426,7 +362,6 @@ export const ACTIVITY: {
   },
   {
     category: "reward",
-    important: true,
     initials: "AK",
     accent: "k2",
     who: "Amine",
@@ -438,7 +373,6 @@ export const ACTIVITY: {
   },
   {
     category: "reward",
-    important: true,
     initials: "SY",
     accent: "k3",
     who: "System",
@@ -451,7 +385,6 @@ export const ACTIVITY: {
   },
   {
     category: "campaign",
-    important: false,
     initials: "M",
     accent: "k3",
     who: "You",
@@ -462,7 +395,6 @@ export const ACTIVITY: {
   },
   {
     category: "team",
-    important: false,
     initials: "LM",
     accent: "k1",
     who: "Lina",
@@ -474,7 +406,6 @@ export const ACTIVITY: {
   },
   {
     category: "campaign",
-    important: true,
     initials: "SB",
     accent: "k4",
     who: "Sara",
@@ -486,7 +417,6 @@ export const ACTIVITY: {
   },
   {
     category: "team",
-    important: true,
     initials: "LM",
     accent: "k1",
     who: "Lina",
