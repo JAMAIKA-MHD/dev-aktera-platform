@@ -729,48 +729,6 @@
   }
 }
 
-/* ── Needs attention ──────────────────────────────────────────────────────── */
-
-.ov-attention {
-  padding: 0;
-  overflow: hidden;
-}
-.ov-attention-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  padding: 12px 16px;
-  background: var(--surface-sunken);
-}
-.ov-attention-list {
-  padding: 0;
-  list-style: none;
-  > li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-    padding: 10px 16px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    line-height: 18px;
-  }
-  & p {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 8px;
-    flex: 1 1 300px;
-    min-width: 0;
-    color: var(--ink);
-  }
-}
-.ov-attention-foot {
-  padding: 8px 16px;
-  border-top: 1px solid var(--border);
-}
-
 /* ── Summary cards ────────────────────────────────────────────────────────── */
 
 .ov-summary {
@@ -1324,14 +1282,13 @@
 .ov-activity-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   padding: 0;
   list-style: none;
   > li {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 6px 0;
+    padding: 10px 0;
     > div {
       display: flex;
       flex-direction: column;
@@ -1340,11 +1297,8 @@
       min-width: 0;
     }
   }
-  & li.ov-activity-imp {
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface-sunken);
+  > li + li {
+    border-top: 1px solid var(--border);
   }
   & strong {
     font-weight: 700;

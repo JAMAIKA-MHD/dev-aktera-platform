@@ -4,13 +4,11 @@ import {
   ArrowRight,
   Calendar,
   ChevronDown,
-  ChevronUp,
   CircleCheck,
   Clock,
   Flag,
   Plus,
   Ticket,
-  TriangleAlert,
 } from "lucide-react";
 
 import { PATHS, STANDALONE_STUDIO } from "../../dashboard/paths";
@@ -21,8 +19,6 @@ import {
   ACTIVITY,
   ACTIVITY_FILTERS,
   ACTIVITY_LIMIT,
-  ATTENTION_ITEMS,
-  ATTENTION_VISIBLE,
   GAME_LIST,
   LOW_VOUCHERS,
   PERFORMANCE,
@@ -34,7 +30,6 @@ import {
   Delta,
   FilterChips,
   ICON,
-  ROUTES,
   SMALL_ICON,
   Segmented,
   Sparkline,
@@ -136,71 +131,6 @@ function PageHeader() {
       </div>
       <NewCampaignButton />
     </header>
-  );
-}
-
-// ── Needs attention ──────────────────────────────────────────────────────────
-
-function AttentionPanel() {
-  const [attnAll, setAttnAll] = useState(false);
-  const items = attnAll
-    ? ATTENTION_ITEMS
-    : ATTENTION_ITEMS.slice(0, ATTENTION_VISIBLE);
-  const hidden = ATTENTION_ITEMS.length - ATTENTION_VISIBLE;
-
-  return (
-    <section
-      className="ov-card ov-attention"
-      aria-labelledby="ov-attention-title"
-    >
-      <div className="ov-attention-head">
-        <TriangleAlert {...ICON} className="dz-icon ov-text-warn" />
-        <h2 id="ov-attention-title" className="ov-title">
-          {ATTENTION_ITEMS.length} items need attention
-        </h2>
-        <span className="ov-badge ov-badge-sm ov-bad">2 urgent</span>
-        <span className="ov-badge ov-badge-sm ov-warn">1 soon</span>
-        <span className="ov-badge ov-badge-sm ov-info">2 planned</span>
-        <span className="ov-spacer" />
-        <span className="ov-caption">Sorted by urgency</span>
-      </div>
-      <ul className="ov-attention-list">
-        {items.map((item) => {
-          const ItemIcon = item.icon;
-          return (
-            <li key={item.badge} className={`t-${item.tone}`}>
-              <span aria-hidden className="ov-tile ov-tile-28">
-                <ItemIcon {...SMALL_ICON} />
-              </span>
-              <p>
-                <span className={`ov-badge ov-badge-sm ov-${item.badgeTone}`}>
-                  {item.badge}
-                </span>
-                {item.sentence}
-              </p>
-              <Link to={ROUTES[item.to]} className="ov-btn ov-btn-sm">
-                {item.action}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="ov-attention-foot">
-        <button
-          type="button"
-          className="ov-link"
-          aria-expanded={attnAll}
-          onClick={() => setAttnAll((open) => !open)}
-        >
-          {attnAll ? "Show less" : `Show ${hidden} more`}
-          {attnAll ? (
-            <ChevronUp {...SMALL_ICON} />
-          ) : (
-            <ChevronDown {...SMALL_ICON} />
-          )}
-        </button>
-      </div>
-    </section>
   );
 }
 
@@ -461,10 +391,7 @@ function TeamActivity() {
       />
       <ul className="ov-activity-list">
         {rows.map((row) => (
-          <li
-            key={row.absolute}
-            className={`${row.accent} ${row.important ? "ov-activity-imp" : ""}`}
-          >
+          <li key={row.absolute} className={row.accent}>
             <span aria-hidden className="ov-avatar">
               {row.initials}
             </span>
@@ -555,12 +482,6 @@ function LoadingState() {
         </div>
         <Skeleton width={150} height={36} />
       </div>
-      <div className="ov-card ov-sk-stack">
-        <Skeleton width={220} height={18} />
-        <Skeleton height={30} />
-        <Skeleton height={30} />
-        <Skeleton height={30} />
-      </div>
       <div className="ov-card ov-sk-row">
         <Skeleton height={70} />
         <Skeleton height={70} />
@@ -596,15 +517,12 @@ function LoadingState() {
 
 export interface OverviewPageProps {
   mode?: "full" | "empty" | "loading";
-  /** Shows the "needs attention" panel. */
-  attention?: boolean;
   /** Shows the performance snapshot. */
   performance?: boolean;
 }
 
 export function OverviewPage({
   mode = "full",
-  attention = true,
   performance = true,
 }: OverviewPageProps) {
   const { theme } = useTheme();
@@ -624,7 +542,6 @@ export function OverviewPage({
       {mode === "full" && (
         <>
           <PageHeader />
-          {attention && <AttentionPanel />}
           <SummaryCards />
           {performance && <PerformanceSnapshot />}
           <div className="ov-pair">
