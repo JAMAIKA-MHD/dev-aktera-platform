@@ -179,6 +179,7 @@ export function PreviewPane() {
       <PreviewViewport
         customDevices={custom.devices}
         restartKey={restartKey}
+        sound={ui.previewSound}
         onZoomChange={setZoom}
       />
       {editingDevices && (

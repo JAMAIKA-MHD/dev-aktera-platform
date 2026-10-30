@@ -321,17 +321,17 @@ export function TemplatePanel() {
   return (
     <>
       <PanelHeader
-        title="Template"
+        title="Theme"
         description="The look of every screen. Pick one from the library, then make it yours in Brand."
       />
       <PanelBody>
         <PanelSection
-          title="Template library"
-          description="Each template dresses the welcome, form, game and result screens, on every screen size. Your texts are kept."
+          title="Theme library"
+          description="Each theme dresses the welcome, form, game and result screens, on every screen size. Your texts are kept."
         >
           <div
             role="radiogroup"
-            aria-label="Template library"
+            aria-label="Theme library"
             className="grid grid-cols-2 gap-3"
           >
             {EXPERIENCE_TEMPLATES.map((candidate) => (

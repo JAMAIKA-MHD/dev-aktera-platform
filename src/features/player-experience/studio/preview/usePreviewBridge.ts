@@ -22,6 +22,7 @@ export const CONFIG_DEBOUNCE_MS = 100;
 export interface PreviewBridgeOptions {
   safeArea: SafeAreaInsets;
   restartKey: number;
+  sound?: boolean; // the Studio's sound button; the sandbox has none
   onFlowScreen?: (screen: FlowScreen) => void;
 }
 
@@ -40,7 +41,7 @@ function configMessage(state: StudioState): ToFrameMessage {
 
 function uiMessage(
   state: StudioState,
-  { safeArea, restartKey }: PreviewBridgeOptions,
+  { safeArea, restartKey, sound }: PreviewBridgeOptions,
 ): ToFrameMessage {
   const { screen, locale, mode, scenario } = state.ui;
   return {
@@ -51,6 +52,7 @@ function uiMessage(
     scenario: mode === "demo" ? undefined : scenario,
     safeArea,
     restartKey,
+    sound,
   };
 }
 
@@ -127,13 +129,13 @@ export function usePreviewBridge(
     };
   }, [store]);
 
-  // What to show, at once: screen, language, mode, device insets, restart.
+  // What to show, at once: screen, language, mode, device insets, restart, sound.
   const { screen, locale, mode, scenario } = useStudio((state) => state.ui);
   const safeKey = JSON.stringify(options.safeArea);
-  const { restartKey } = options;
+  const { restartKey, sound } = options;
   useEffect(() => {
     if (ready.current) {
       bridge.current?.post(uiMessage(store.getState(), latest.current));
     }
-  }, [store, safeKey, restartKey, screen, locale, mode, scenario]);
+  }, [store, safeKey, restartKey, sound, screen, locale, mode, scenario]);
 }

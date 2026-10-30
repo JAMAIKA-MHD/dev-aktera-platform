@@ -53,7 +53,7 @@ describe("PlayerExperienceStudio", () => {
   it("shows the top bar, the sections and the device-sized preview", async () => {
     await renderStudio();
     expect(screen.getByText("Standalone (demo campaign)")).toBeTruthy();
-    for (const label of ["Template", "Brand", "Sections", "Legal", "Export"]) {
+    for (const label of ["Theme", "Brand", "Sections", "Legal", "Export"]) {
       expect(
         screen.getByRole("button", { name: new RegExp(label) }),
       ).toBeTruthy();

@@ -1128,7 +1128,8 @@
       .xp-medallion svg,
       [data-xp-code],
       [data-xp-share-row] > *,
-      .xp-reward-popup
+      .xp-reward-popup,
+      .xp-ping
     ),
   .xp-root .xp-frame > [data-xp-slot="hero"]::before,
   .xp-root .xp-frame > [data-xp-slot="hero"]::after {
@@ -1163,7 +1164,8 @@
     .xp-medallion svg,
     [data-xp-code],
     [data-xp-share-row] > *,
-    .xp-reward-popup
+    .xp-reward-popup,
+    .xp-ping
   ),
   .xp-frame > [data-xp-slot="hero"]::before,
   .xp-frame > [data-xp-slot="hero"]::after {

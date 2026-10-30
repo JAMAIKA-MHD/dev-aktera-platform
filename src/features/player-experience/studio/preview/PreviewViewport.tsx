@@ -20,6 +20,7 @@ const PADDING = 28; // room between the device and the edges of the pane (and th
 
 export interface PreviewViewportProps {
   restartKey: number;
+  sound?: boolean; // the Studio's sound button; the sandbox has none
   customDevices?: readonly Device[];
   onFlowScreen?: (screen: FlowScreen) => void;
   // The zoom on show, for the summary of the device bar (it is "fit" most of the time).
@@ -29,6 +30,7 @@ export interface PreviewViewportProps {
 
 export function PreviewViewport({
   restartKey,
+  sound,
   customDevices = [],
   onFlowScreen,
   onZoomChange,
@@ -86,7 +88,7 @@ export function PreviewViewport({
   }, [zoom, onZoomChange]);
 
   const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null);
-  usePreviewBridge(iframe, { safeArea, restartKey, onFlowScreen });
+  usePreviewBridge(iframe, { safeArea, restartKey, sound, onFlowScreen });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

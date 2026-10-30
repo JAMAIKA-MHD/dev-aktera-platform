@@ -163,8 +163,8 @@ export function StudioTopBar({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Back to dashboard"
-            title="Back to dashboard"
+            aria-label="Back to Player Studio"
+            title="Back to Player Studio"
             className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-card-border text-brand-text transition short:size-9 hover:bg-card-hover focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95"
           >
             <ArrowLeft className="size-5" aria-hidden />

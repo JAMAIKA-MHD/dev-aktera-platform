@@ -119,7 +119,7 @@ export function BrandPanel() {
           title="Colors"
           description={
             staged
-              ? `Buttons, highlights and the game. The ${template.label} template keeps its own panels and page.`
+              ? `Buttons, highlights and the game. The ${template.label} theme keeps its own panels and page.`
               : "Buttons, highlights, the game and the page."
           }
         >
@@ -143,8 +143,8 @@ export function BrandPanel() {
           <PanelIssues prefixes={["theme.background"]} />
           {staged ? (
             <p className="text-xs text-brand-text-muted">
-              The {template.label} template draws its own background on every
-              screen. Pick the Classic template to use a color or a photo.
+              The {template.label} theme draws its own background on every
+              screen. Pick the Classic theme to use a color or a photo.
             </p>
           ) : (
             <>

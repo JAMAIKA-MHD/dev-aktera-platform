@@ -4,6 +4,7 @@ import { createDefaultExperience } from "../../domain/defaults";
 import type { Locale } from "../../domain/locale";
 import type { ExperienceConfig } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
+import { runtimeAudio } from "../feedback/audio";
 import { ensureViewportFitCover } from "../layout/safeArea";
 import { FrameExperience, frameScreen } from "./FrameExperience";
 import {
@@ -122,6 +123,16 @@ export function BridgeFrame({
     bridge.post({ type: "xp:ready" });
     return unsubscribe;
   }, [bridge]);
+
+  // The Studio's sound button rules the audio here: the runtime's own button is part of the
+  // still picture. The click happened in the Studio, a parent of the same origin, so the browser
+  // lets this document unlock its audio without a gesture of its own.
+  const { sound } = ui;
+  useEffect(() => {
+    if (sound === undefined) return;
+    if (sound) runtimeAudio.unlock();
+    runtimeAudio.setMuted(!sound);
+  }, [sound]);
 
   // The preview is a picture: every gesture is stopped on its way down, before the screen
   // can hear it. A click on an editable element opens the matching field in the Studio.

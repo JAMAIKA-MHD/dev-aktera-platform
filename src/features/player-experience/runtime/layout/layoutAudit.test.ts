@@ -183,6 +183,23 @@ describe("layoutAudit", () => {
     expect(layoutAudit(root)).toEqual([]);
   });
 
+  it("lets the glyphs of a tight line-height reach past their box, unless it clips them", () => {
+    const { root, $ } = cleanFrame();
+    const title = $('[data-xp-slot="title"]');
+    title.style.lineHeight = "26px"; // two lines of a display font at line-height 1
+    measure(title, { scrollHeight: 56 }); // its ink, 2 px over each edge: drawn in full
+    expect(layoutAudit(root)).toEqual([]);
+    title.style.overflowY = "hidden"; // the same ink, cut
+    expect(layoutAudit(root).map((issue) => issue.kind)).toEqual([
+      "text-clipped",
+    ]);
+    title.style.overflowY = "visible";
+    measure(title, { scrollHeight: 78 }); // a third line: half a line or more is lost
+    expect(layoutAudit(root).map((issue) => issue.kind)).toEqual([
+      "text-clipped",
+    ]);
+  });
+
   it("skips inline boxes, which have no size of their own", () => {
     const { root, $ } = cleanFrame();
     const inline = document.createElement("span");

@@ -1,5 +1,5 @@
 import {
-  LayoutTemplate,
+  Fingerprint,
   ListChecks,
   Palette,
   PanelLeftClose,
@@ -54,10 +54,10 @@ export function StudioMenuToggle({ menu }: { menu: StudioMenu }) {
 export const PANEL_META: Readonly<
   Record<StudioPanel, { label: string; icon: LucideIcon; hint: string }>
 > = {
-  template: { label: "Template", icon: LayoutTemplate, hint: "Starting style" },
+  template: { label: "Theme", icon: Palette, hint: "Starting style" },
   brand: {
     label: "Brand Identity",
-    icon: Palette,
+    icon: Fingerprint,
     hint: "Logo, colors, background",
   },
   sections: {

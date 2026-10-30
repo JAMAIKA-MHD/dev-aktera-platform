@@ -159,6 +159,30 @@ const anonChecks = [
         ).error,
       ),
   },
+  // The leftover grants removed by 20261029120000_revoke_leftover_function_grants.sql.
+  ...[
+    ["claim_prize_inventory", { p_prize_id: missingId() }],
+    ["increment_prize_winner_count", { p_prize_id: missingId() }],
+    ["is_org_member", { org_id: missingId() }],
+    [
+      "complete_current_user_onboarding",
+      { p_org_name: "x", p_full_name: "x", p_phone: null, p_plan: "free" },
+    ],
+    [
+      "create_organization_onboarding",
+      {
+        p_user_id: missingId(),
+        p_org_name: "x",
+        p_full_name: "x",
+        p_email: "x@example.com",
+        p_phone: null,
+        p_plan: "free",
+      },
+    ],
+  ].map(([fn, args]) => ({
+    name: `anon cannot call ${fn}`,
+    run: async () => blocked((await anon.rpc(fn, args)).error),
+  })),
   {
     name: "anon cannot call set_entry_delivery_status",
     run: async () =>

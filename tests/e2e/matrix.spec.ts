@@ -195,6 +195,45 @@ for (const cell of CELLS) {
     });
 
     await players.close();
+
+    // ── 3. Played again, still: with prefers-reduced-motion, then the brand's animations
+    // off (features.animations, no field of the Studio yet: written as a member would). ──
+    for (const still of ["reduced-motion", "animations-off"] as const) {
+      if (still === "animations-off") {
+        const [row] = await storedDesigns(campaign.id);
+        const config = row.config as { features: Record<string, unknown> };
+        const { error } = await member.client
+          .from("campaign_experiences")
+          .update({
+            config: {
+              ...config,
+              features: { ...config.features, animations: false },
+            },
+          })
+          .eq("campaign_id", campaign.id);
+        expect(error).toBeNull();
+      }
+      const context = await browser.newContext({
+        locale: "fr-DZ",
+        reducedMotion: still === "reduced-motion" ? "reduce" : "no-preference",
+      });
+      const again = await context.newPage();
+      const againErrors = watchErrors(again);
+      await again.setViewportSize(VIEWPORTS.mobile);
+      await again.goto(`/play/${campaign.slug}`);
+      await registerPlayer(again, nextPhone(fixture.tag + cell.key + still));
+      if (still === "animations-off")
+        await expect(
+          again.locator('.xp-frame[data-xp-motion="off"]'),
+        ).toBeVisible();
+      await playGame(again, cell.game);
+      await expect(
+        again.locator(`.xp-frame[data-xp-screen="${result}"]`),
+      ).toBeVisible({ timeout: 30_000 });
+      await context.close();
+      expect(againErrors, `${still}: errors`).toEqual([]);
+    }
+
     const allowed = new Set([cell.template, "_shared"]);
     expect(
       [...themeFolders].filter((folder) => !allowed.has(folder)),

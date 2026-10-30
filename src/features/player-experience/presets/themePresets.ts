@@ -162,7 +162,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
   ...TEMPLATE_PALETTES,
 ];
 
-// The styles offered with the classic layout (the Template panel's preset grid).
+// The styles offered with the classic layout (the Theme panel's preset grid).
 export const STYLE_PRESETS: readonly ThemePreset[] = THEME_PRESETS.filter(
   (preset) => !preset.template,
 );

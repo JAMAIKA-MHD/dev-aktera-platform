@@ -1,4 +1,4 @@
-import { Smartphone } from "lucide-react";
+import { Smartphone, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useStudio } from "../StudioContext";
 import { DEVICES, deviceSize, type Device, type DeviceGroup } from "./devices";
@@ -7,7 +7,8 @@ import { clampToEnvelope, ZOOM_LEVELS } from "./viewportMath";
 
 // The device bar (plan §9.3, tasks.md T6.9), as in the browser's device mode: a device or
 // "Responsive", the size (editing a device's size turns it into Responsive, as DevTools do),
-// the zoom, the rotation and the device frame. Native controls only: all usable with a keyboard.
+// the zoom, the rotation, the device frame and the sound of the preview (for the brand only: it
+// changes nothing for players). Native controls only: all usable with a keyboard.
 
 export const EDIT_CUSTOM = "__edit-custom__";
 const RESPONSIVE = "";
@@ -61,6 +62,11 @@ export function DeviceToolbar({
 }) {
   const viewport = useStudio((state) => state.ui.viewport);
   const setViewport = useStudio((state) => state.setViewport);
+  const previewSound = useStudio((state) => state.ui.previewSound);
+  const setPreviewSound = useStudio((state) => state.setPreviewSound);
+  const hasSound = useStudio((state) => state.config.features.sound);
+  const soundOn = hasSound && previewSound;
+  const SoundIcon = soundOn ? Volume2 : VolumeX;
   const all = [...DEVICES, ...customDevices];
   const device = all.find((candidate) => candidate.id === viewport.deviceId);
 
@@ -179,6 +185,27 @@ export function DeviceToolbar({
         }`}
       >
         <Smartphone className="size-4" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={() => setPreviewSound(!previewSound)}
+        disabled={!hasSound}
+        aria-pressed={soundOn}
+        aria-label="Preview sound"
+        title={
+          !hasSound
+            ? "This experience has no sound"
+            : soundOn
+              ? "Turn the preview sound off"
+              : "Turn the preview sound on"
+        }
+        className={`${control} flex w-9 items-center justify-center transition active:scale-95 disabled:opacity-35 ${
+          soundOn
+            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+            : "hover:bg-card-hover"
+        }`}
+      >
+        <SoundIcon className="size-4" aria-hidden />
       </button>
     </div>
   );

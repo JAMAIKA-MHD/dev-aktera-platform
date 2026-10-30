@@ -97,8 +97,8 @@ export function ScreenTextFields({ screenKey: key }: { screenKey: ScreenKey }) {
               Visual above the title
             </span>
             <br />
-            The {manifest.label} template draws its own picture above the title
-            of this screen.
+            The {manifest.label} theme draws its own picture above the title of
+            this screen.
           </p>
         ) : (
           <SegmentedControl

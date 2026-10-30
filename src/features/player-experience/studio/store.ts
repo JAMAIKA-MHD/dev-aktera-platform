@@ -73,6 +73,9 @@ export interface StudioUi {
   mode: PreviewFlowMode;
   scenario: ScriptedScenario;
   viewport: ViewportState;
+  // The device bar's sound button: for the brand's ears only, never part of the configuration.
+  // Off until asked for, so editing stays silent.
+  previewSound: boolean;
   // A field to bring into view, set when the preview or the validation panel points at one.
   focusPath: string | null;
 }
@@ -130,6 +133,7 @@ export interface StudioState {
   setLocale(locale: Locale): void;
   setMode(mode: PreviewFlowMode, scenario?: ScriptedScenario): void;
   setViewport(patch: Partial<ViewportState>): void;
+  setPreviewSound(previewSound: boolean): void;
   setSaveStatus(status: SaveStatus): void;
   setLayoutIssues(
     issues: LayoutIssue[],
@@ -199,6 +203,7 @@ export function createStudioStore(
             mode: "static", // the preview is a still picture; the journey plays in "Open in window"
             scenario: "lose",
             viewport: options.viewport ?? DEFAULT_VIEWPORT,
+            previewSound: false,
             focusPath: null,
           },
           saveStatus: "idle",
@@ -374,6 +379,8 @@ export function createStudioStore(
             set((state) => ({
               ui: { ...state.ui, viewport: { ...state.ui.viewport, ...patch } },
             })),
+          setPreviewSound: (previewSound) =>
+            set((state) => ({ ui: { ...state.ui, previewSound } })),
           setSaveStatus: (saveStatus) => set({ saveStatus }),
           setLayoutIssues: (layoutIssues, layoutSize = null) =>
             set({ layoutIssues, layoutSize }),

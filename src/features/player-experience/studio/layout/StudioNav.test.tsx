@@ -49,12 +49,7 @@ describe("StudioNav", () => {
     const { open, toggle } = setup();
     expect(open()).toBe(false);
     expect(toggle().getAttribute("aria-pressed")).toBe("false");
-    for (const name of [
-      "Template",
-      "Brand Identity",
-      "Sections",
-      "Validation",
-    ]) {
+    for (const name of ["Theme", "Brand Identity", "Sections", "Validation"]) {
       expect(screen.getByRole("button", { name })).toBeTruthy();
     }
   });
@@ -62,7 +57,7 @@ describe("StudioNav", () => {
   it("gives every section its icon, which is what the rail shows", () => {
     const { nav } = setup();
     for (const name of [
-      "Template",
+      "Theme",
       "Brand Identity",
       "Sections",
       "Legal",

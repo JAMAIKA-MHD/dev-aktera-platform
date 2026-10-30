@@ -21,6 +21,7 @@ export type ToFrameMessage =
       scenario?: ScriptedScenario;
       safeArea?: SafeAreaInsets;
       restartKey: number; // incremented to restart the journey
+      sound?: boolean; // the Studio's sound button; absent, the frame's audio is left alone
     };
 
 // Frame → Studio

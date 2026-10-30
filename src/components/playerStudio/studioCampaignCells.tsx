@@ -195,7 +195,7 @@ export function DesignCell({
       </span>
       {row.designTemplate && (
         <span className="text-xs text-muted-foreground">
-          {t("playerStudio.design.template", "Template: {name}").replace(
+          {t("playerStudio.design.template", "Theme: {name}").replace(
             "{name}",
             templateLabel(row.designTemplate),
           )}

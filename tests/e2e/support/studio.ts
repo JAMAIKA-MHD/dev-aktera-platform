@@ -9,7 +9,7 @@ export async function openStudio(
 ): Promise<void> {
   await page.goto(`/studio/${campaignId}`);
   await expect(
-    page.getByRole("radiogroup", { name: "Template library" }),
+    page.getByRole("radiogroup", { name: "Theme library" }),
   ).toBeVisible({
     timeout: 30_000,
   });
@@ -46,7 +46,7 @@ export async function chooseTemplate(
   page: Page,
   template: TemplateId,
 ): Promise<void> {
-  await page.getByRole("button", { name: /^Template(\s\d+)?$/ }).click();
+  await page.getByRole("button", { name: /^Theme(\s\d+)?$/ }).click();
   const card = page.getByRole("radio", { name: TEMPLATE_LABELS[template] });
   if ((await card.getAttribute("aria-checked")) !== "true") {
     await card.click();

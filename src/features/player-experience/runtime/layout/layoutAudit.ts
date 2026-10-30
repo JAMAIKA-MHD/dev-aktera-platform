@@ -142,9 +142,16 @@ export function layoutAudit(root: HTMLElement): LayoutIssue[] {
     );
     if (!ownText || element.closest("[data-xp-clamp]")) continue;
     if (element.clientWidth === 0 && element.clientHeight === 0) continue; // inline box
+    // Under a tight line-height (a display font at 1) the glyphs reach past their line box:
+    // drawn in full when the element does not clip, less than half a line, and no line lost.
+    const style = view.getComputedStyle(element);
+    const extraHeight = element.scrollHeight - element.clientHeight;
+    const inkOnly =
+      style.overflowY === "visible" &&
+      extraHeight < toPixels(style.lineHeight, view) / 2;
     if (
       element.scrollWidth > element.clientWidth + 1 ||
-      element.scrollHeight > element.clientHeight + 1
+      (extraHeight > 1 && !inkOnly)
     ) {
       add(
         "text-clipped",

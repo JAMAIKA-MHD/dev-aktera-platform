@@ -66,7 +66,7 @@ describe("CampaignStudio", () => {
     expect(screen.queryByText("65 %")).toBeNull();
   }, 20_000); // the whole Studio, rendered while the other test files run
 
-  it("offers a way back to the dashboard", () => {
+  it("offers a way back to the Player Studio section", () => {
     const onClose = vi.fn();
     render(
       <CampaignStudio
@@ -76,7 +76,9 @@ describe("CampaignStudio", () => {
         onClose={onClose}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Back to dashboard" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to Player Studio" }),
+    );
     expect(onClose).toHaveBeenCalled();
     // No campaign: the demo one, and no picker without campaigns to pick.
     expect(screen.getByText("Standalone (demo campaign)")).toBeTruthy();

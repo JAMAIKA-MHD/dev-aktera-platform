@@ -55,7 +55,7 @@ ESLint blocks three of these rules: deep imports from outside the module, `servi
 ## Template library
 
 A brand picks the look of its player screens from a closed library, in the Studio's
-Template panel and nowhere else: `templateId` accepts only the ids of `domain/templates.ts`
+Theme panel and nowhere else: `templateId` accepts only the ids of `domain/templates.ts`
 (the schema repairs any other one to `eight-slot`), and the database refuses them too
 (`save_experience_config` answers `INVALID`, and a CHECK guards `campaign_experiences.template_id`,
 migration `20261020120000_experience_templates.sql`).

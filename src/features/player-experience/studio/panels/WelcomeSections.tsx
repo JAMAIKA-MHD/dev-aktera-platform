@@ -161,7 +161,7 @@ export function WelcomeSections() {
       ) : (
         <PanelSection
           title="Welcome teaser"
-          description={`The ${manifest?.label ?? ""} template opens on its texts alone: players first see the game on the Play screen.`}
+          description={`The ${manifest?.label ?? ""} theme opens on its texts alone: players first see the game on the Play screen.`}
         >
           {null}
         </PanelSection>

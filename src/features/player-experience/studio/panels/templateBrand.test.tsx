@@ -81,7 +81,7 @@ describe("TemplatePanel · template library", () => {
   it("lists every template of the library, the classic one selected", () => {
     renderPanel(TemplatePanel);
     const library = screen.getByRole("radiogroup", {
-      name: "Template library",
+      name: "Theme library",
     });
     const names = within(library)
       .getAllByRole("radio")
@@ -136,7 +136,7 @@ describe("BrandPanel", () => {
     expect(screen.getByRole("radiogroup", { name: "Style" })).toBeTruthy();
     act(() => store.getState().applyTemplate("arcade-night"));
     expect(
-      screen.getByText(/Arcade Night template draws its own background/),
+      screen.getByText(/Arcade Night theme draws its own background/),
     ).toBeTruthy();
     // Only primary and accent are the brand's: the panels and the page are the theme's.
     expect(screen.getByLabelText("Primary")).toBeTruthy();
