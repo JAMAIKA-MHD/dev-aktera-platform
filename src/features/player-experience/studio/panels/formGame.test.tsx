@@ -107,6 +107,7 @@ describe("Sections › Play (the game)", () => {
         "setLocale",
         "setMode",
         "setPanel",
+        "setPreviewSound",
         "setSaveStatus",
         "setScreen",
         "setStandaloneGameType",

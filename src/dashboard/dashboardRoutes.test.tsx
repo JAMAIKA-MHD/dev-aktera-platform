@@ -445,7 +445,7 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     expect(url()).toBe("/studio");
   });
 
-  it("goes back to the dashboard home when the Studio closes", async () => {
+  it("goes back to the Player Studio section when the Studio closes", async () => {
     const user = userEvent.setup();
     renderAt("/studio");
     await user.click(within(await findTable()).getByText("Summer Wheel"));
@@ -455,9 +455,9 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Studio" })).toBeNull(),
     );
-    expect(await screen.findByText("dashboard-home")).toBeTruthy();
-    expect(screen.queryByRole("table", { name: "Your campaigns" })).toBeNull();
-    expect(url()).toBe("/");
+    expect(await findTable()).toBeTruthy();
+    expect(screen.queryByText("dashboard-home")).toBeNull();
+    expect(url()).toBe("/studio");
   });
 
   it("still opens the Studio directly from Customize player screen", async () => {
@@ -486,7 +486,7 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     await user.click(within(await findTable()).getByText("Winter Wheel"));
     expect(await findStudio()).toContain("studio:c2");
     await user.click(screen.getByRole("button", { name: "Close Studio" }));
-    expect(await screen.findByText("dashboard-home")).toBeTruthy();
+    expect(await findTable()).toBeTruthy();
 
     await user.click(
       screen.getByRole("button", { name: /Interactive Player Sandbox/ }),
