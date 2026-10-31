@@ -97,13 +97,16 @@ vi.mock("../components/CampaignWorkspace", () => ({
   CampaignWorkspace: ({
     campaign,
     onBack,
+    onEditCampaign,
   }: {
     campaign: Campaign;
     onBack: () => void;
+    onEditCampaign: (campaign: Campaign) => void;
   }) => (
     <div>
       <p>workspace:{campaign.id}</p>
       <button onClick={onBack}>Back to campaigns</button>
+      <button onClick={() => onEditCampaign(campaign)}>Edit campaign</button>
     </div>
   ),
 }));
@@ -111,13 +114,18 @@ vi.mock("../components/CampaignWizard", () => ({
   CampaignWizard: ({
     editingCampaign,
     relaunchDraft,
+    onCancel,
   }: {
     editingCampaign?: Campaign | null;
     relaunchDraft?: Campaign | null;
+    onCancel: () => void;
   }) => (
-    <p>
-      wizard:{editingCampaign?.id ?? "-"}|{relaunchDraft?.id ?? "-"}
-    </p>
+    <div>
+      <p>
+        wizard:{editingCampaign?.id ?? "-"}|{relaunchDraft?.id ?? "-"}
+      </p>
+      <button onClick={onCancel}>Close wizard</button>
+    </div>
   ),
 }));
 vi.mock("../features/player-experience", () => ({
@@ -356,6 +364,26 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
     expect(await screen.findByText("wizard:-|c2")).toBeTruthy();
   });
 
+  it("closes the wizard back onto the screen it was opened from", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderAt("/campaigns/c2");
+    await user.click(
+      await screen.findByRole("button", { name: "Edit campaign" }),
+    );
+    expect(await screen.findByText("wizard:c2|-")).toBeTruthy();
+    expect(url()).toBe("/create/c2/edit");
+    await user.click(screen.getByRole("button", { name: "Close wizard" }));
+    await waitFor(() => expect(url()).toBe("/campaigns/c2"));
+    unmount();
+
+    // Opened from the list (or straight from its URL), it closes onto the list.
+    renderAt("/create/c1/edit");
+    await user.click(
+      await screen.findByRole("button", { name: "Close wizard" }),
+    );
+    await waitFor(() => expect(url()).toBe("/campaigns"));
+  });
+
   it("sends an unknown campaign or an unknown path back to a screen that exists", async () => {
     const { unmount } = renderAt("/campaigns/nope");
     await waitFor(() => expect(url()).toBe("/campaigns"));
@@ -435,10 +463,14 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
   it("still opens the Studio directly from Customize player screen", async () => {
     const user = userEvent.setup();
     renderAt("/campaigns");
-    const [customize] = await screen.findAllByTitle(
-      "Customize Player Screen UI in Editor",
+    // The action lives in each campaign card's "More actions" menu.
+    const [moreActions] = await screen.findAllByRole("button", {
+      name: /^More actions for /,
+    });
+    await user.click(moreActions);
+    await user.click(
+      screen.getByRole("menuitem", { name: "Design player screens" }),
     );
-    await user.click(customize);
     expect(await findStudio()).toMatch(/studio:c[12]/);
     expect(url()).toMatch(/^\/studio\/c[12]$/);
 

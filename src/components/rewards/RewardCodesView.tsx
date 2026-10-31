@@ -392,7 +392,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
               </p>
             ) : (
               <p className="text-xs text-brand-textMuted mt-1">
-                Winners of this physical reward and delivery status.
+                Winners of this Physical Item and delivery status.
               </p>
             )}
           </div>
