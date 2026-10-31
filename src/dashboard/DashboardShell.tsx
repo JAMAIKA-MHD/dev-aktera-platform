@@ -1,16 +1,8 @@
 // The dashboard frame shared by every page: sidebar (real links), top bar, the action-error
 // banner and the Portal Simulator drawer. The page itself comes from the router (<Outlet />).
-import React, { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  Bell,
-  ChevronDown,
-  Moon,
-  Search,
-  Smartphone,
-  Sun,
-  X,
-} from "lucide-react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
+import { Outlet, useLocation, useOutletContext } from "react-router-dom";
+import { Moon, Smartphone, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -22,8 +14,11 @@ import {
   DashboardSidebar,
   useDashboardMenu,
 } from "./DashboardSidebar";
-import { PATHS, STANDALONE_STUDIO } from "./paths";
+import { GlobalSearch } from "./GlobalSearch";
+import { useOnboarding } from "./onboarding/OnboardingContext";
+import { STANDALONE_STUDIO } from "./paths";
 import { STUDIO_BACKEND } from "./studioBackend";
+import { AccountMenu, NotificationsMenu } from "./TopbarMenus";
 
 // The Portal Simulator (T7.2): the real runtime in a phone-sized frame, loaded on demand.
 const CampaignSimulator = lazy(() =>
@@ -31,6 +26,15 @@ const CampaignSimulator = lazy(() =>
     default: module.CampaignSimulator,
   })),
 );
+
+// The product tour: only the people who see it download it.
+const OnboardingTour = lazy(() => import("./onboarding/OnboardingTour"));
+
+/** What the shell offers the pages inside it. */
+export interface ShellActions {
+  openSandbox: () => void;
+}
+export const useShellActions = () => useOutletContext<ShellActions>();
 
 const TOPBAR_ICON = {
   size: 18,
@@ -49,9 +53,9 @@ export function PageSpinner({ className = "h-40" }: { className?: string }) {
 
 export function DashboardShell() {
   const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   const { campaigns, prizes, actionError, setActionError } = useDashboard();
+  const { tourRun, markSandboxTested } = useOnboarding();
 
   // Portal Simulator drawer and the campaign it plays: its own, never the Studio's.
   const [showSandbox, setShowSandbox] = useState(false);
@@ -68,27 +72,17 @@ export function DashboardShell() {
   const { profile } = useAuth();
   const initial = (profile?.full_name?.trim()[0] ?? "M").toUpperCase();
 
-  // "/" jumps to the search field, unless someone is already typing in a field.
-  const searchRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey)
-        return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("input, textarea, select, [contenteditable='true']"))
-        return;
-      event.preventDefault();
-      searchRef.current?.focus();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
   const currentSection = pathname.split("/")[1] ?? "";
+
+  const openSandbox = () => {
+    setShowSandbox(true);
+    markSandboxTested();
+  };
 
   return (
     <div
       id="saas-app-root"
-      className="h-screen flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
+      className="h-dvh flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
     >
       <DashboardSidebar menu={menu} />
 
@@ -101,27 +95,14 @@ export function DashboardShell() {
         >
           <div className="dz-topbar-start">
             <DashboardMenuToggle menu={menu} />
-            {/* Search has no backend yet: the field is here, the results come later. */}
-            <div className="dz-search" role="search">
-              <Search {...TOPBAR_ICON} />
-              <label htmlFor="dz-search" className="sr-only">
-                Search
-              </label>
-              <input
-                ref={searchRef}
-                id="dz-search"
-                type="search"
-                placeholder="Search campaigns, rewards, players"
-                autoComplete="off"
-              />
-              <kbd aria-hidden>/</kbd>
-            </div>
+            <GlobalSearch />
           </div>
           <div className="dz-topbar-end">
             <button
               type="button"
-              onClick={() => setShowSandbox(true)}
+              onClick={openSandbox}
               className="sbx"
+              data-tour="topbar-sandbox"
               title="Try your campaigns as a player would see them"
             >
               <span aria-hidden className="sbx-play">
@@ -129,7 +110,7 @@ export function DashboardShell() {
                   <path d="M3 1.8v8.4L10 6z" fill="currentColor" />
                 </svg>
               </span>
-              Open player sandbox
+              <span className="sbx-label">Open player sandbox</span>
             </button>
 
             <button
@@ -146,28 +127,8 @@ export function DashboardShell() {
               )}
             </button>
 
-            <button
-              type="button"
-              className="dz-icon-btn"
-              aria-label="Notifications, 3 unread"
-              title="Notifications, 3 unread"
-            >
-              <Bell {...TOPBAR_ICON} />
-              <span aria-hidden className="dz-unread-dot" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate(PATHS.account)}
-              className="dz-avatar-pill"
-              aria-label="Account menu"
-              title="Account menu"
-            >
-              <span aria-hidden className="dz-avatar">
-                {initial}
-              </span>
-              <ChevronDown {...TOPBAR_ICON} size={14} />
-            </button>
+            <NotificationsMenu />
+            <AccountMenu initial={initial} />
           </div>
         </header>
 
@@ -200,7 +161,7 @@ export function DashboardShell() {
             animate={{ opacity: 1 }}
           >
             <Suspense fallback={<PageSpinner />}>
-              <Outlet />
+              <Outlet context={{ openSandbox } satisfies ShellActions} />
             </Suspense>
           </motion.div>
         </div>
@@ -262,6 +223,12 @@ export function DashboardShell() {
           </div>
         )}
       </AnimatePresence>
+
+      {tourRun && (
+        <Suspense fallback={null}>
+          <OnboardingTour key={tourRun.id} run={tourRun} menu={menu} />
+        </Suspense>
+      )}
     </div>
   );
 }

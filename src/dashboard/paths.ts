@@ -25,6 +25,7 @@ export const PATHS = {
     section === "campaigns" ? "/analytics" : `/analytics?section=${section}`,
   billing: "/billing",
   account: "/account",
+  accountTeam: "/account?tab=Team",
   support: "/support",
   studio: "/studio",
   studioFor: (id: string) => `/studio/${id}`,

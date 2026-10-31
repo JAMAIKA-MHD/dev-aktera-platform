@@ -2,9 +2,11 @@
  * The console's Overview page and its top bar (OverviewPage.tsx, DashboardShell's header).
  * Every color is a token below, set on .dz-theme and switched by its data-theme attribute
  * (the app's own theme toggle). Components never write a color of their own.
+ * .dz-theme-auto takes the same tokens from the page's theme, for parts that sit outside it.
  */
 
-.dz-theme {
+.dz-theme,
+.dz-theme-auto {
   --bg: #f4f7fd;
   --surface: #ffffff;
   --surface-sunken: #f8fafc;
@@ -42,7 +44,8 @@
   --k4-soft: #ece8ff;
   --k4-text: #5232c9;
 }
-.dz-theme[data-theme="dark"] {
+.dz-theme[data-theme="dark"],
+:root[data-theme="dark"] .dz-theme-auto {
   --bg: #0a0d14;
   --surface: #121826;
   --surface-sunken: #0d121d;
@@ -1501,6 +1504,72 @@
       background: var(--surface-hover);
     }
   }
+}
+
+/* ── First steps (a new account) ──────────────────────────────────────────── */
+
+.ov-journey {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px;
+  & h2 {
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 700;
+  }
+}
+.ov-journey-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+  > li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-sunken);
+  }
+}
+.ov-journey-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.ov-journey-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-text);
+  font-size: 12px;
+  font-weight: 700;
+  &[data-done] {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+}
+.ov-sum-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+}
+.ov-ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 /* ── Reduced motion ───────────────────────────────────────────────────────── */
