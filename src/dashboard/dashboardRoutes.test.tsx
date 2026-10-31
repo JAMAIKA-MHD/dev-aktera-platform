@@ -457,7 +457,7 @@ describe("Player Studio in the dashboard", { timeout: 15000 }, () => {
     expect(await screen.findByText("dashboard-home")).toBeTruthy();
 
     await user.click(
-      screen.getByRole("button", { name: /Interactive Player Sandbox/ }),
+      screen.getByRole("button", { name: /Open player sandbox/ }),
     );
     expect(await screen.findByText("simulator:c1")).toBeTruthy();
   });

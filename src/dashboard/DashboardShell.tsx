@@ -1,11 +1,21 @@
 // The dashboard frame shared by every page: sidebar (real links), top bar, the action-error
 // banner and the Portal Simulator drawer. The page itself comes from the router (<Outlet />).
-import React, { Suspense, lazy, useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Smartphone, X } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  Moon,
+  Search,
+  Smartphone,
+  Sun,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import "../components/overview/overview.css";
 import { useDashboard } from "./DashboardContext";
 import {
   DashboardMenuToggle,
@@ -22,6 +32,13 @@ const CampaignSimulator = lazy(() =>
   })),
 );
 
+const TOPBAR_ICON = {
+  size: 18,
+  strokeWidth: 1.75,
+  className: "dz-icon",
+  "aria-hidden": true,
+} as const;
+
 export function PageSpinner({ className = "h-40" }: { className?: string }) {
   return (
     <div className={`flex items-center justify-center ${className}`}>
@@ -34,8 +51,7 @@ export function DashboardShell() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { campaigns, prizes, avatarUrl, actionError, setActionError } =
-    useDashboard();
+  const { campaigns, prizes, actionError, setActionError } = useDashboard();
 
   // Portal Simulator drawer and the campaign it plays: its own, never the Studio's.
   const [showSandbox, setShowSandbox] = useState(false);
@@ -47,6 +63,26 @@ export function DashboardShell() {
   }, [campaigns, sandboxCampaignId]);
 
   const menu = useDashboardMenu();
+
+  // The account pill shows the signed-in person's initial.
+  const { profile } = useAuth();
+  const initial = (profile?.full_name?.trim()[0] ?? "M").toUpperCase();
+
+  // "/" jumps to the search field, unless someone is already typing in a field.
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey)
+        return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']"))
+        return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
   const currentSection = pathname.split("/")[1] ?? "";
 
   return (
@@ -58,62 +94,80 @@ export function DashboardShell() {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* TOPBAR */}
-        <header className="h-18 sm:h-20 flex items-center justify-between px-7 z-40 shrink-0 border-b border-brand-border/20 relative">
-          <div className="flex items-center gap-3">
+        {/* TOPBAR: search, the player sandbox, theme, notifications, account. */}
+        <header
+          className="dz-topbar dz-theme"
+          data-theme={theme === "dark" ? "dark" : "light"}
+        >
+          <div className="dz-topbar-start">
             <DashboardMenuToggle menu={menu} />
-            <button
-              onClick={() =>
-                document
-                  .getElementById("mobile-nav-bar")
-                  ?.classList.toggle("hidden")
-              }
-              className="lg:hidden w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-colors shadow-sm"
-            >
-              <i className="fa-solid fa-bars"></i>
-            </button>
-          </div>
-          <div className="flex items-center gap-4 ml-auto">
-            {/* Interactive Player Sandbox Pill button */}
-            <button
-              onClick={() => setShowSandbox(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:scale-105 cursor-pointer"
-            >
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 animate-pulse"></div>
-              <span>Interactive Player Sandbox</span>
-            </button>
-
-            {/* Theme toggle circular button */}
-            <button
-              onClick={toggleTheme}
-              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              <i
-                className={`fa-solid ${theme === "dark" ? "fa-sun text-amber-400 text-base" : "fa-moon text-slate-700 text-base"}`}
-              ></i>
-            </button>
-
-            {/* Notifications circular button */}
-            <button
-              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
-              title="Notifications"
-            >
-              <i className="fa-regular fa-bell text-base"></i>
-            </button>
-
-            {/* User Avatar */}
-            <div
-              onClick={() => navigate(PATHS.account)}
-              className="relative cursor-pointer hover:opacity-90 transition-opacity"
-              title="Account Settings"
-            >
-              <img
-                alt="User profile"
-                className="w-10 h-10 rounded-full object-cover border border-brand-border shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                src={avatarUrl}
+            {/* Search has no backend yet: the field is here, the results come later. */}
+            <div className="dz-search" role="search">
+              <Search {...TOPBAR_ICON} />
+              <label htmlFor="dz-search" className="sr-only">
+                Search
+              </label>
+              <input
+                ref={searchRef}
+                id="dz-search"
+                type="search"
+                placeholder="Search campaigns, rewards, players"
+                autoComplete="off"
               />
+              <kbd aria-hidden>/</kbd>
             </div>
+          </div>
+          <div className="dz-topbar-end">
+            <button
+              type="button"
+              onClick={() => setShowSandbox(true)}
+              className="sbx"
+              title="Try your campaigns as a player would see them"
+            >
+              <span aria-hidden className="sbx-play">
+                <svg width="12" height="12" viewBox="0 0 12 12">
+                  <path d="M3 1.8v8.4L10 6z" fill="currentColor" />
+                </svg>
+              </span>
+              Open player sandbox
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="dz-icon-btn"
+              aria-label="Switch theme"
+              title="Switch theme"
+            >
+              {theme === "dark" ? (
+                <Sun {...TOPBAR_ICON} />
+              ) : (
+                <Moon {...TOPBAR_ICON} />
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="dz-icon-btn"
+              aria-label="Notifications, 3 unread"
+              title="Notifications, 3 unread"
+            >
+              <Bell {...TOPBAR_ICON} />
+              <span aria-hidden className="dz-unread-dot" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate(PATHS.account)}
+              className="dz-avatar-pill"
+              aria-label="Account menu"
+              title="Account menu"
+            >
+              <span aria-hidden className="dz-avatar">
+                {initial}
+              </span>
+              <ChevronDown {...TOPBAR_ICON} size={14} />
+            </button>
           </div>
         </header>
 
@@ -134,7 +188,12 @@ export function DashboardShell() {
         )}
 
         {/* PAGE: the route decides what shows here */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 z-10 scroll-smooth">
+        <div
+          className={`flex-1 overflow-y-auto z-10 scroll-smooth ${
+            currentSection === "" ? "dz-page dz-theme" : "p-4 sm:p-6 pt-2"
+          }`}
+          data-theme={theme === "dark" ? "dark" : "light"}
+        >
           <motion.div
             key={currentSection}
             initial={{ opacity: 0 }}
