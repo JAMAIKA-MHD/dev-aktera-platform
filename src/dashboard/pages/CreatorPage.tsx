@@ -73,6 +73,7 @@ export default function CreatorPage({
         onCancel={() => navigate(detailsPath ?? PATHS.campaigns)}
         relaunchDraft={mode === "relaunch" ? source : null}
         editingCampaign={mode === "edit" ? source : null}
+        initialGameType={location.state?.gameType}
       />
     </>
   );

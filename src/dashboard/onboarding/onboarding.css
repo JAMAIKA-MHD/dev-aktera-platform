@@ -1,0 +1,240 @@
+/* The product tour and the "Get started" checklist. Colors are the console's tokens. */
+
+.ot-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.ot-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: rgba(15, 23, 42, 0.62);
+}
+.ot-ring {
+  position: absolute;
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px var(--brand-soft);
+  pointer-events: none;
+}
+.ot-card {
+  position: absolute;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  & *,
+  & *::before,
+  & *::after {
+    box-sizing: border-box;
+  }
+  & :where(p, h2) {
+    margin: 0;
+  }
+  & :where(button, a):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+.ot-card-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: inherit;
+  padding: 16px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  &[data-nudge] {
+    animation: otNudge 0.24s ease-out;
+  }
+}
+.ot-card[data-side] .ot-card-inner {
+  overflow: visible;
+}
+.ot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+.ot-title {
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+}
+.ot-body {
+  color: var(--ink-muted);
+}
+.ot-progress {
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--brand) var(--ot-done),
+    var(--surface-hover) var(--ot-done)
+  );
+}
+[dir="rtl"] .ot-progress {
+  background: linear-gradient(
+    to left,
+    var(--brand) var(--ot-done),
+    var(--surface-hover) var(--ot-done)
+  );
+}
+.ot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ot-skip {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ot-arrow {
+  display: none;
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: solid var(--border);
+  border-width: 1px 0 0 1px;
+  background: var(--surface);
+}
+.ot-card[data-side] .ot-arrow {
+  display: block;
+}
+.ot-card[data-side="bottom"] .ot-arrow {
+  top: -7px;
+  left: calc(var(--ot-arrow) - 6px);
+  rotate: 45deg;
+}
+.ot-card[data-side="top"] .ot-arrow {
+  bottom: -7px;
+  left: calc(var(--ot-arrow) - 6px);
+  rotate: 225deg;
+}
+.ot-card[data-side="right"] .ot-arrow {
+  left: -7px;
+  top: calc(var(--ot-arrow) - 6px);
+  rotate: -45deg;
+}
+.ot-card[data-side="left"] .ot-arrow {
+  right: -7px;
+  top: calc(var(--ot-arrow) - 6px);
+  rotate: 135deg;
+}
+@keyframes otNudge {
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ot-card-inner[data-nudge] {
+    animation: none;
+  }
+}
+
+/* ── Get started ──────────────────────────────────────────────────────────── */
+
+.oc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.oc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.oc-ring {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  & svg {
+    display: block;
+    rotate: -90deg;
+  }
+  & span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+}
+.oc-ring-track {
+  stroke: var(--surface-hover);
+}
+.oc-ring-value {
+  stroke: var(--brand);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s ease-out;
+}
+.oc-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.oc-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  &:hover {
+    background: var(--surface-hover);
+  }
+  &[data-done] {
+    color: var(--ink-subtle);
+    font-weight: 400;
+    text-decoration: line-through;
+  }
+}
+.oc-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-control);
+  border-radius: 50%;
+  [data-done] > & {
+    border-color: var(--success);
+    background: var(--success-soft);
+    color: var(--success);
+  }
+}

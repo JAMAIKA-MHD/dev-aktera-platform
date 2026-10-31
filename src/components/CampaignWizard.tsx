@@ -55,6 +55,8 @@ interface CampaignWizardProps {
   // Opens on a given step (1 to 4): Basics (1), Game rules and quiz questions (2),
   // Prizes (3) or Review (4).
   initialStep?: 1 | 2 | 3 | 4;
+  // A new campaign chosen from a quick-start card opens on that game.
+  initialGameType?: Campaign["gameType"];
 }
 
 type SubmitStatus = "draft" | "active";
@@ -76,6 +78,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   relaunchDraft,
   editingCampaign,
   initialStep = 1,
+  initialGameType,
 }) => {
   const { t } = useLanguage();
   const baseCampaign = editingCampaign ?? relaunchDraft ?? null;
@@ -87,9 +90,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   const isRelaunchMode = Boolean(relaunchDraft) && !editingCampaign;
 
   // The form as it was opened, to tell whether leaving would lose anything.
-  const [initialForm, setInitialForm] = useState(() =>
-    initialWizardForm(editingCampaign, relaunchDraft, prizes),
-  );
+  const [initialForm, setInitialForm] = useState(() => {
+    const opened = initialWizardForm(editingCampaign, relaunchDraft, prizes);
+    return initialGameType && !baseCampaign
+      ? { ...opened, type: initialGameType }
+      : opened;
+  });
   const [form, setForm] = useState<WizardForm>(initialForm);
   const update = (patch: Partial<WizardForm>) =>
     setForm((current) => ({ ...current, ...patch }));

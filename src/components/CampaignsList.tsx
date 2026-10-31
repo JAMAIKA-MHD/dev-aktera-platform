@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Megaphone, Plus, Search, X } from "lucide-react";
+import { Megaphone, Plus, Search, SearchX, X } from "lucide-react";
 
 import { Campaign } from "../types";
 import { useLanguage } from "../contexts/LanguageContext";
+import { searchable } from "../lib/searchText";
 import { cn } from "../lib/utils";
 import { CampaignCard } from "./campaigns/CampaignCard";
 import {
@@ -23,6 +24,7 @@ import {
   cxText,
 } from "./campaigns/campaignUi";
 import { pageWindow } from "./ui/data-table-parts";
+import { EmptyState, ErrorState, LoadingState } from "./ui/EmptyState";
 
 interface CampaignsListProps {
   campaigns: Campaign[];
@@ -35,6 +37,11 @@ interface CampaignsListProps {
   onDelete: (id: string) => void;
   onOpenAnalytics?: (id: string) => void;
   onOpenWizard: () => void;
+  /** A quick-start card: opens the wizard on that game. */
+  onQuickStart?: (game: GameType) => void;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 type StatusFilter = "all" | CampaignStatus;
@@ -42,12 +49,6 @@ type GameFilter = "all" | GameType;
 
 const PAGE_SIZE = 12;
 
-// Search ignores case, accents and extra spaces.
-const searchable = (text: string) =>
-  text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-
-const EMPTY_STATE =
-  "flex flex-col items-center gap-3 rounded-cx-lg border border-dashed border-cx-control bg-cx-surface px-6 text-center";
 // The chosen filter or page: tinted, not filled (the filled button is "create").
 const CHOSEN =
   "bg-cx-brand-soft text-cx-brand-text not-disabled:hover:bg-cx-brand-soft";
@@ -63,6 +64,10 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
   onDelete,
   onOpenAnalytics,
   onOpenWizard,
+  onQuickStart,
+  loading = false,
+  error = null,
+  onRetry,
 }) => {
   const { t } = useLanguage();
 
@@ -169,21 +174,75 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
         </CxButton>
       </header>
 
-      {campaigns.length === 0 ? (
-        <div className={cn(EMPTY_STATE, "py-16")}>
-          <span className="grid size-11 place-items-center rounded-cx-lg bg-cx-brand-soft text-cx-brand-text">
-            <Megaphone className="size-5" aria-hidden />
-          </span>
-          <h3 className={cxText.sectionTitle}>No campaigns yet</h3>
-          <p className="max-w-sm text-cx-ink-muted">
-            A campaign is a game your customers play to win your prizes. Pick a
-            game, add prizes, and share the link.
-          </p>
-          <CxButton onClick={onOpenWizard}>
-            <Plus aria-hidden />
-            Create your first campaign
-          </CxButton>
-        </div>
+      {error && campaigns.length === 0 ? (
+        <ErrorState
+          title={t("campaigns.loadError", "Your campaigns could not be loaded")}
+          message={error}
+          onRetry={() => onRetry?.()}
+        />
+      ) : loading && campaigns.length === 0 ? (
+        <LoadingState
+          rows={4}
+          label={t("campaigns.loading", "Loading campaigns")}
+        />
+      ) : campaigns.length === 0 ? (
+        <EmptyState
+          icon={Megaphone}
+          headingLevel={3}
+          title={t("campaigns.emptyTitle", "No campaigns yet")}
+          description={t(
+            "campaigns.emptyDescription",
+            "Campaigns are the games your players take part in. Create a Lucky Spin, a quiz and more in a few minutes.",
+          )}
+          primaryAction={{
+            label: t("campaigns.emptyCreate", "Create your first campaign"),
+            icon: Plus,
+            onClick: onOpenWizard,
+          }}
+          secondaryAction={{
+            label: t("campaigns.emptyBrowse", "Browse campaign templates"),
+            onClick: () =>
+              document
+                .querySelector<HTMLElement>("#campaign-quick-start button")
+                ?.focus(),
+          }}
+        >
+          <div
+            id="campaign-quick-start"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
+          >
+            {GAME_TYPES.map((item) => {
+              const GameIcon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() =>
+                    onQuickStart ? onQuickStart(item.id) : onOpenWizard()
+                  }
+                  className={cn(
+                    cxFocus,
+                    "flex cursor-pointer flex-col items-center gap-2 rounded-cx-lg border border-cx-border bg-cx-surface p-4 text-center transition-colors duration-[120ms] hover:border-cx-control",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "grid size-10 place-items-center rounded-cx-lg",
+                      item.tile,
+                    )}
+                  >
+                    <GameIcon className="size-5" />
+                  </span>
+                  <span className="font-semibold text-cx-ink">
+                    {t(item.key, item.label)}
+                  </span>
+                  <span className={cxText.caption}>{item.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </EmptyState>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -269,15 +328,22 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
           </div>
 
           {filteredCampaigns.length === 0 ? (
-            <div className={cn(EMPTY_STATE, "py-14")}>
-              <h3 className={cxText.sectionTitle}>
-                No campaign matches your filters
-              </h3>
-              <p className="text-cx-ink-muted">
-                Try another status or game, or search for a different name.
-              </p>
-              <CxButton onClick={clearFilters}>Clear filters</CxButton>
-            </div>
+            <EmptyState
+              icon={SearchX}
+              headingLevel={3}
+              title={t(
+                "campaigns.noResults",
+                "No campaign matches your filters",
+              )}
+              description={t(
+                "campaigns.noResultsHint",
+                "Try another status or game, or search for a different name.",
+              )}
+              primaryAction={{
+                label: t("campaigns.clearFilters", "Clear filters"),
+                onClick: clearFilters,
+              }}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {pageCampaigns.map((campaign) => (

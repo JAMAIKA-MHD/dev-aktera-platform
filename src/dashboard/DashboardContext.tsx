@@ -56,9 +56,13 @@ export interface DashboardData {
 
   prizes: PrizeTemplate[];
   prizeLoading: boolean;
+  prizeError: string | null;
   refetchPrizes: () => Promise<void> | void;
 
   leads: LeadEntry[];
+  leadsLoading: boolean;
+  leadsError: string | null;
+  refetchLeads: () => Promise<void> | void;
 
   /** CRUD failure shown in the shell's banner. */
   actionError: string | null;
@@ -107,9 +111,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const {
     prizes,
     loading: prizeLoading,
+    error: prizeError = null,
     refetch: refetchPrizes,
   } = usePrizeTemplates(orgId);
-  const { entries: leads } = useEntries(orgId);
+  const {
+    entries: leads,
+    loading: leadsLoading = false,
+    error: leadsError = null,
+    refetch: refetchLeads,
+  } = useEntries(orgId);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -251,8 +261,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       refetchCampaigns,
       prizes,
       prizeLoading,
+      prizeError,
       refetchPrizes,
       leads,
+      leadsLoading,
+      leadsError,
+      refetchLeads,
       actionError,
       setActionError,
       addPrize,
@@ -274,8 +288,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     refetchCampaigns,
     prizes,
     prizeLoading,
+    prizeError,
     refetchPrizes,
     leads,
+    leadsLoading,
+    leadsError,
+    refetchLeads,
     actionError,
   ]);
 

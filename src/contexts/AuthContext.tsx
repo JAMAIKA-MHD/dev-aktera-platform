@@ -11,6 +11,15 @@ import { supabase } from "../lib/supabase";
 
 // ── DB row shapes (snake_case, 1:1 with Postgres) ──────────────────────────
 
+export type OnboardingStatus =
+  "not_started" | "in_progress" | "skipped" | "completed";
+
+/** What the checklist cannot read from the data. */
+export interface OnboardingChecklistState {
+  sandbox_tested_at?: string;
+  dismissed_at?: string;
+}
+
 export interface DbProfile {
   id: string;
   organization_id: string;
@@ -20,6 +29,11 @@ export interface DbProfile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  /** Missing until the onboarding migration is applied: nothing starts on its own then. */
+  onboarding_status?: OnboardingStatus;
+  onboarding_step?: number;
+  onboarding_completed_at?: string | null;
+  onboarding_checklist?: OnboardingChecklistState;
 }
 
 export interface DbOrganization {
