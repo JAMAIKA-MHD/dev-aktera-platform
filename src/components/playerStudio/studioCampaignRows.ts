@@ -1,6 +1,7 @@
 // Campaign (+ when its Studio design was last saved) → one row of the Player Studio table.
 // Pure: the date is a parameter, so the "ended" rule is testable.
 import type { Campaign } from "../../types";
+import { campaignEndTime } from "../campaigns/campaignMeta";
 
 // What the table shows: an active campaign whose end date is past is "ended" for the brand.
 export type StudioDisplayStatus =
@@ -33,7 +34,7 @@ export function displayStatusOf(
   campaign: Pick<Campaign, "status" | "endDate">,
   now: Date,
 ): StudioDisplayStatus {
-  const endsAt = Date.parse(campaign.endDate);
+  const endsAt = campaignEndTime(campaign.endDate);
   if (
     campaign.status === "active" &&
     Number.isFinite(endsAt) &&

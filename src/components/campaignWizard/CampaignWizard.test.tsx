@@ -6,7 +6,12 @@ import { describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../../contexts/LanguageContext";
 import type { Campaign, PrizeTemplate } from "../../types";
 import { CampaignWizard } from "../CampaignWizard";
-import { initialWizardForm, slugify, validateWizard } from "./wizardForm";
+import {
+  initialWizardForm,
+  slugify,
+  startingOn,
+  validateWizard,
+} from "./wizardForm";
 
 vi.mock("../common/ImageUploader", () => ({
   ImageUploader: () => <div data-testid="image-uploader" />,
@@ -98,6 +103,12 @@ describe("wizard rules", () => {
   it("keeps the id of existing prize rows, which the save needs", () => {
     expect(initialWizardForm(LIVE, null, TEMPLATES).prizes[0].id).toBe("p1");
   });
+
+  it("gives a campaign started on a chosen day its usual length", () => {
+    const form = startingOn(initialWizardForm(null, null, []), "2026-12-20");
+    expect(form.startDate).toBe("2026-12-20");
+    expect(form.endDate).toBe("2027-01-19");
+  });
 });
 
 // State of the circle of a part in the left list: pending, current, done or error.
@@ -108,6 +119,35 @@ const circle = (label: RegExp) =>
     ?.getAttribute("data-state");
 
 describe("CampaignWizard", () => {
+  it("opens on the date chosen on the Overview, and saves it", async () => {
+    const { user, onSave, onCancel } = setup({
+      initialStartDate: "2026-12-20",
+    });
+    const start = screen.getByLabelText(/Start date/) as HTMLInputElement;
+    const end = screen.getByLabelText(/End date/) as HTMLInputElement;
+    expect(start.value).toBe("2026-12-20");
+    expect(end.value).toBe("2027-01-19");
+
+    // The date came with the window: leaving at once loses nothing.
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalled();
+    expect(screen.queryByText("Leave without saving?")).toBeNull();
+
+    await user.type(screen.getByLabelText(/Campaign name/), "Eid Wheel");
+    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      startDate: "2026-12-20",
+      endDate: "2027-01-19",
+    });
+  });
+
+  it("keeps the dates of a campaign being edited", () => {
+    setup({ editingCampaign: LIVE, initialStartDate: "2026-12-20" });
+    expect(
+      (screen.getByLabelText(/Start date/) as HTMLInputElement).value,
+    ).toBe(LIVE.startDate);
+  });
+
   it("opens as a window with the four parts listed, green once finished", async () => {
     const { user } = setup();
     expect(screen.getByRole("dialog", { name: "New campaign" })).toBeTruthy();

@@ -74,6 +74,7 @@ export default function CreatorPage({
         relaunchDraft={mode === "relaunch" ? source : null}
         editingCampaign={mode === "edit" ? source : null}
         initialGameType={location.state?.gameType}
+        initialStartDate={location.state?.startDate}
       />
     </>
   );

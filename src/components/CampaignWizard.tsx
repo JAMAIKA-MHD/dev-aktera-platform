@@ -33,6 +33,7 @@ import { StepReview } from "./campaignWizard/StepReview";
 import {
   allocatedPrizeLines,
   initialWizardForm,
+  startingOn,
   validateWizard,
   WIZARD_STEPS,
   type StepId,
@@ -57,6 +58,8 @@ interface CampaignWizardProps {
   initialStep?: 1 | 2 | 3 | 4;
   // A new campaign chosen from a quick-start card opens on that game.
   initialGameType?: Campaign["gameType"];
+  // A new campaign chosen from a date on the Overview timeline starts on that day.
+  initialStartDate?: string;
 }
 
 type SubmitStatus = "draft" | "active";
@@ -79,6 +82,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   editingCampaign,
   initialStep = 1,
   initialGameType,
+  initialStartDate,
 }) => {
   const { t } = useLanguage();
   const baseCampaign = editingCampaign ?? relaunchDraft ?? null;
@@ -92,9 +96,11 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   // The form as it was opened, to tell whether leaving would lose anything.
   const [initialForm, setInitialForm] = useState(() => {
     const opened = initialWizardForm(editingCampaign, relaunchDraft, prizes);
-    return initialGameType && !baseCampaign
+    if (baseCampaign) return opened;
+    const typed = initialGameType
       ? { ...opened, type: initialGameType }
       : opened;
+    return initialStartDate ? startingOn(typed, initialStartDate) : typed;
   });
   const [form, setForm] = useState<WizardForm>(initialForm);
   const update = (patch: Partial<WizardForm>) =>

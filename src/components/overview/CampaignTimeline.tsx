@@ -16,6 +16,7 @@ import {
   GAME_TYPES,
   TIMELINE_FILTERS,
   addDays,
+  isoDate,
   longDate,
   shortDate,
   startOfDay,
@@ -150,9 +151,11 @@ function SelectedCampaign({ campaign }: { campaign: TimelineCampaign }) {
 
 function SelectedDate({
   date,
+  today,
   onChange,
 }: {
   date: number | null;
+  today: number;
   onChange: (date: number | null) => void;
 }) {
   return (
@@ -193,12 +196,22 @@ function SelectedDate({
               Clear
             </button>
           </div>
-          <div>
-            <Link to={PATHS.create} className="ov-btn ov-btn-sm ov-btn-primary">
-              <Plus {...SMALL_ICON} />
-              Create campaign on this date
-            </Link>
-          </div>
+          {date < today ? (
+            <p className="ov-caption">
+              This day has passed. Pick today or a later date.
+            </p>
+          ) : (
+            <div>
+              <Link
+                to={PATHS.create}
+                state={{ startDate: isoDate(date) }}
+                className="ov-btn ov-btn-sm ov-btn-primary"
+              >
+                <Plus {...SMALL_ICON} />
+                Create campaign on this date
+              </Link>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -373,7 +386,11 @@ export function CampaignTimeline({
 
       <div className="ov-details" aria-live="polite">
         {selected && <SelectedCampaign campaign={selected} />}
-        <SelectedDate date={selDate} onChange={setSelDate} />
+        <SelectedDate
+          date={selDate}
+          today={startOfDay(now)}
+          onChange={setSelDate}
+        />
       </div>
 
       <div className="ov-footer">

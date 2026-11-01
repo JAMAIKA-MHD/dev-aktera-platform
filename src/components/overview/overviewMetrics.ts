@@ -1,6 +1,7 @@
 // Everything the Overview computes from the account's campaigns and rewards. Pure functions, free
 // of React, with the current time passed in: tested on their own.
 import type { Campaign, OverviewSnapshot, PrizeTemplate } from "../../types";
+import { campaignEndTime } from "../campaigns/campaignMeta";
 import {
   DAY,
   clockTime,
@@ -14,7 +15,7 @@ export const LOW_STOCK_UNITS = 10;
 export const LOW_STOCK_SHARE = 0.15;
 
 const startOf = (campaign: Campaign) => Date.parse(campaign.startDate);
-const endOf = (campaign: Campaign) => Date.parse(campaign.endDate);
+const endOf = (campaign: Campaign) => campaignEndTime(campaign.endDate);
 
 const isLive = (campaign: Campaign, now: number) =>
   campaign.status === "active" &&
@@ -190,7 +191,8 @@ export function timelineCampaigns(
       game: campaign.gameType,
       start,
       end,
-      dates: campaignDates(start, end),
+      // The day the campaign names: its closing moment already falls on the next local day.
+      dates: campaignDates(start, Date.parse(campaign.endDate)),
       prize: firstPrizeName(campaign, prizes),
     };
     if (isLive(campaign, now)) {
