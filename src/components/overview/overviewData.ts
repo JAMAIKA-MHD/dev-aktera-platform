@@ -64,6 +64,13 @@ export const shortDate = (time: number) => {
 /** "Sat 14 Nov 2026" */
 export const longDate = (time: number) =>
   `${shortDate(time)} ${new Date(time).getFullYear()}`;
+/** "2026-11-14": the local day, for a date field. toISOString would give the UTC day before. */
+export const isoDate = (time: number) => {
+  const date = new Date(time);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+};
 /** "14 Nov" */
 export const dayMonth = (time: number) => shortDate(time).slice(4);
 /** "19:40" */

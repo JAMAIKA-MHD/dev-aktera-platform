@@ -40,6 +40,7 @@ export interface WizardIssue {
 }
 
 const isoDay = (date: Date) => date.toISOString().split("T")[0];
+const DEFAULT_RUN_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function initialWizardForm(
   editingCampaign: Campaign | null | undefined,
@@ -66,8 +67,7 @@ export function initialWizardForm(
       pass_threshold_percentage: 50,
     },
     startDate: base?.startDate ?? isoDay(new Date()),
-    endDate:
-      base?.endDate ?? isoDay(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+    endDate: base?.endDate ?? isoDay(new Date(Date.now() + DEFAULT_RUN_MS)),
     winProbability: base ? base.winProbability : 60,
     autoPacePrizes: base?.autoPacePrizes ?? false,
     maxEntries: base?.maxEntries ?? "1",
@@ -88,6 +88,15 @@ export function initialWizardForm(
               correctIndex: 0,
             },
           ],
+  };
+}
+
+/** A new campaign opened on a chosen day: it keeps the usual length, from that day. */
+export function startingOn(form: WizardForm, startDate: string): WizardForm {
+  return {
+    ...form,
+    startDate,
+    endDate: isoDay(new Date(Date.parse(startDate) + DEFAULT_RUN_MS)),
   };
 }
 

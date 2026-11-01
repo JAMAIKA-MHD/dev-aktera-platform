@@ -81,6 +81,10 @@ const DAY_MS = 86_400_000;
 const dayStart = (isoDay: string) =>
   Date.parse(`${isoDay.slice(0, 10)}T00:00:00`);
 
+/** When a campaign closes: its last day counts in full, as the server saves it (campaignService). */
+export const campaignEndTime = (endDate: string) =>
+  Date.parse(`${endDate.slice(0, 10)}T23:59:59Z`);
+
 /** Whole days from start to end, both included; null when a date is missing or reversed. */
 export function campaignDurationDays(startDate: string, endDate: string) {
   const start = dayStart(startDate);

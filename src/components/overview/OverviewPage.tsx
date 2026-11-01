@@ -29,6 +29,7 @@ import {
 } from "../../hooks/useOverviewData";
 import type { ActivityEntry, Campaign, PrizeTemplate } from "../../types";
 import { useExperienceSummaries } from "../playerStudio/useExperienceSummaries";
+import { campaignEndTime } from "../campaigns/campaignMeta";
 import { GameEmblem } from "../campaigns/GameEmblem";
 import { ErrorState, GhostChart } from "../ui/EmptyState";
 import { CampaignTimeline } from "./CampaignTimeline";
@@ -253,7 +254,7 @@ function ActiveCard({
         <p className="ov-sum-context ov-text-bad ov-semibold">
           <Clock {...SMALL_ICON} />
           {endingNext.name} ends in{" "}
-          {countdown(Date.parse(endingNext.endDate) - now)}
+          {countdown(campaignEndTime(endingNext.endDate) - now)}
         </p>
       ) : (
         <p className="ov-sum-context ov-text-muted">

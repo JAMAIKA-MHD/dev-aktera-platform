@@ -82,8 +82,15 @@ describe("campaignSummary", () => {
   });
 
   it("does not count an active campaign whose end date has passed as live", () => {
-    const summary = campaignSummary([campaign({ endDate: at(-HOUR) })], NOW);
+    const summary = campaignSummary([campaign({ endDate: at(-DAY) })], NOW);
     expect(summary.live).toHaveLength(0);
+  });
+
+  it("keeps a campaign live for the whole of its last day, as the server does", () => {
+    const lastDay = campaign({ endDate: "2026-10-31" });
+    expect(campaignSummary([lastDay], NOW).live).toHaveLength(1);
+    const oneDay = campaign({ startDate: "2026-10-31", endDate: "2026-10-31" });
+    expect(campaignSummary([oneDay], NOW).live).toHaveLength(1);
   });
 
   it("names the campaign ending first, within three days", () => {
