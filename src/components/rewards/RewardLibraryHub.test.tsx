@@ -70,14 +70,28 @@ beforeEach(() => {
 });
 
 describe("RewardLibraryHub", () => {
+  it("points an empty library to creating a reward, not to a page of zeros", () => {
+    renderHub([], { canManage: true });
+    expect(screen.getByText("Your reward library is empty")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Add a reward" }).getAttribute("href"),
+    ).toBe("/prizes/local");
+    expect(screen.queryByRole("link", { name: /Local Library/ })).toBeNull();
+  });
+
+  it("shows no create action to a read-only viewer", () => {
+    renderHub([], { canManage: false });
+    expect(screen.queryByRole("link", { name: "Add a reward" })).toBeNull();
+  });
+
   it("offers the Local Library as a real link to its own page", () => {
-    renderHub();
+    renderHub([prize({})]);
     const local = screen.getByRole("link", { name: /Local Library/ });
     expect(local.getAttribute("href")).toBe("/prizes/local");
   });
 
   it("shows Gifty, Yassir and Chargily as Coming soon, with nothing to click", () => {
-    renderHub();
+    renderHub([prize({})]);
     for (const name of ["Gifty", "Yassir", "Chargily"]) {
       const card = screen.getByRole("listitem", {
         name: `${name}: coming soon`,

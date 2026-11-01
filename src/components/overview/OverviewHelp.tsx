@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CircleHelp, X } from "lucide-react";
+import { CircleHelp, Compass, X } from "lucide-react";
 
+import { useOnboarding } from "../../dashboard/onboarding/OnboardingContext";
 import { PATHS } from "../../dashboard/paths";
 import { HELP_SUGGESTIONS } from "./overviewData";
 import { ICON, ROUTES } from "./overviewParts";
 
 export function OverviewHelp({ mode }: { mode: "full" | "empty" }) {
+  const { replayTour } = useOnboarding();
   const [helpOpen, setHelpOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -89,6 +91,17 @@ export function OverviewHelp({ mode }: { mode: "full" | "empty" }) {
               );
             })}
           </ul>
+          <button
+            type="button"
+            className="ov-btn ov-btn-block"
+            onClick={() => {
+              setHelpOpen(false);
+              replayTour();
+            }}
+          >
+            <Compass {...ICON} />
+            Replay product tour
+          </button>
           <Link to={PATHS.support} className="ov-btn ov-btn-block">
             Contact support
           </Link>

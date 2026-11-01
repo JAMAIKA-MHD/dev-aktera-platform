@@ -2,12 +2,13 @@
 // Studio (App.tsx decides what "open" does). The Studio itself is not rendered here.
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnFiltersState } from "@tanstack/react-table";
-import { AlertTriangle, Plus } from "lucide-react";
+import { AlertTriangle, Plus, Smartphone } from "lucide-react";
 
 import { useLanguage } from "../../contexts/LanguageContext";
 import type { Campaign } from "../../types";
 import { Button } from "../ui/button";
 import { DataTable } from "../ui/data-table";
+import { EmptyState } from "../ui/EmptyState";
 import { studioCampaignColumns } from "./studioCampaignColumns";
 import {
   matchesStatusFilter,
@@ -30,6 +31,7 @@ export interface StudioCampaignsPageProps {
   onOpenCampaign: (campaignId: string) => void;
   onCreateCampaign: () => void;
   onRetry: () => void;
+  onOpenSandbox?: () => void;
 }
 
 function StateCard({ children }: { children: ReactNode }) {
@@ -48,6 +50,7 @@ export function StudioCampaignsPage({
   onOpenCampaign,
   onCreateCampaign,
   onRetry,
+  onOpenSandbox,
 }: StudioCampaignsPageProps) {
   const { t } = useLanguage();
   const { savedAt } = useExperienceSummaries(organizationId);
@@ -125,6 +128,29 @@ export function StudioCampaignsPage({
             </Button>
           </StateCard>
         </div>
+      ) : !loading && campaigns.length === 0 ? (
+        <EmptyState
+          icon={Smartphone}
+          variant="bare"
+          title={t("playerStudio.empty", "Design your player experience")}
+          description={t(
+            "playerStudio.emptyHint",
+            "Customize colors, logo and layout of what your players see. Start by creating a campaign.",
+          )}
+          primaryAction={{
+            label: t("playerStudio.create", "Create a campaign"),
+            icon: Plus,
+            onClick: onCreateCampaign,
+          }}
+          secondaryAction={
+            onOpenSandbox
+              ? {
+                  label: t("playerStudio.sandbox", "Open player sandbox"),
+                  onClick: onOpenSandbox,
+                }
+              : undefined
+          }
+        />
       ) : (
         <>
           <StudioCampaignsToolbar
@@ -155,23 +181,6 @@ export function StudioCampaignsPage({
               players: "lg",
               period: "xl",
             }}
-            emptyState={
-              <StateCard>
-                <p className="font-semibold text-foreground">
-                  {t("playerStudio.empty", "No campaigns yet")}
-                </p>
-                <p className="max-w-sm text-sm text-muted-foreground">
-                  {t(
-                    "playerStudio.emptyHint",
-                    "Create a campaign, then design what its players see here.",
-                  )}
-                </p>
-                <Button onClick={onCreateCampaign}>
-                  <Plus aria-hidden />
-                  {t("playerStudio.create", "Create a campaign")}
-                </Button>
-              </StateCard>
-            }
             noResultsState={
               <StateCard>
                 <p className="font-semibold text-foreground">

@@ -6,6 +6,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { searchable } from "../lib/searchText";
 import { cn } from "../lib/utils";
 import { CampaignCard } from "./campaigns/CampaignCard";
+import { GameEmblem } from "./campaigns/GameEmblem";
 import {
   GAME_TYPES,
   gameMeta,
@@ -188,6 +189,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
       ) : campaigns.length === 0 ? (
         <EmptyState
           icon={Megaphone}
+          variant="bare"
           headingLevel={3}
           title={t("campaigns.emptyTitle", "No campaigns yet")}
           description={t(
@@ -212,7 +214,6 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
           >
             {GAME_TYPES.map((item) => {
-              const GameIcon = item.icon;
               return (
                 <button
                   key={item.id}
@@ -225,15 +226,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                     "flex cursor-pointer flex-col items-center gap-2 rounded-cx-lg border border-cx-border bg-cx-surface p-4 text-center transition-colors duration-[120ms] hover:border-cx-control",
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "grid size-10 place-items-center rounded-cx-lg",
-                      item.tile,
-                    )}
-                  >
-                    <GameIcon className="size-5" />
-                  </span>
+                  <GameEmblem gameType={item.id} size={44} />
                   <span className="font-semibold text-cx-ink">
                     {t(item.key, item.label)}
                   </span>

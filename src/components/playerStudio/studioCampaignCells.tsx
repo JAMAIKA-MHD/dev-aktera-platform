@@ -1,13 +1,5 @@
 // Labels, formats and cell contents of the Player Studio campaigns table.
-import {
-  Disc,
-  Gift,
-  HelpCircle,
-  Layers,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
-
+import { GameEmblem } from "../campaigns/GameEmblem";
 import { Badge } from "../ui/badge";
 import type { Campaign } from "../../types";
 import type {
@@ -17,40 +9,27 @@ import type {
 
 export type Translate = (key: string, fallback?: string) => string;
 
-// Same labels, icons and colors as the dashboard campaign list (CampaignsList.tsx).
-const GAMES: Record<
-  Campaign["gameType"],
-  { key: string; label: string; icon: LucideIcon; tone: string }
-> = {
+// Same labels as the dashboard campaign list (CampaignsList.tsx).
+const GAMES: Record<Campaign["gameType"], { key: string; label: string }> = {
   lucky_wheel: {
     key: "campaigns.spinWheel",
     label: "Spin Wheel",
-    icon: Disc,
-    tone: "text-emerald-600 dark:text-emerald-300",
   },
   quiz: {
     key: "campaigns.quiz",
     label: "Quiz Challenge",
-    icon: HelpCircle,
-    tone: "text-purple-600 dark:text-purple-300",
   },
   scratch_card: {
     key: "campaigns.scratchCard",
     label: "Scratch Card",
-    icon: Layers,
-    tone: "text-amber-600 dark:text-amber-300",
   },
   mystery_box: {
     key: "campaigns.mysteryBox",
     label: "Mystery Box",
-    icon: Gift,
-    tone: "text-blue-600 dark:text-blue-300",
   },
   hit_it: {
     key: "campaigns.hitIt",
     label: "Hit It",
-    icon: Zap,
-    tone: "text-rose-600 dark:text-rose-300",
   },
 };
 
@@ -142,11 +121,9 @@ export function CampaignNameCell({ row }: { row: StudioCampaignRow }) {
 }
 
 export function GameCell({ row, t }: { row: StudioCampaignRow; t: Translate }) {
-  const game = GAMES[row.gameType];
-  const Icon = game.icon;
   return (
     <span className="inline-flex items-center gap-2 text-foreground">
-      <Icon className={`size-4 ${game.tone}`} aria-hidden />
+      <GameEmblem gameType={row.gameType} size={24} />
       {gameLabel(row.gameType, t)}
     </span>
   );

@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -9,23 +15,48 @@ import {
   Flag,
   Plus,
   Ticket,
+  TriangleAlert,
+  type LucideIcon,
 } from "lucide-react";
 
-import { PATHS, STANDALONE_STUDIO } from "../../dashboard/paths";
+import { useDashboard } from "../../dashboard/DashboardContext";
+import { useOnboarding } from "../../dashboard/onboarding/OnboardingContext";
+import { PATHS } from "../../dashboard/paths";
 import { useTheme } from "../../contexts/ThemeContext";
+import {
+  useActivityFeed,
+  useOverviewSnapshot,
+} from "../../hooks/useOverviewData";
+import type { ActivityEntry, Campaign, PrizeTemplate } from "../../types";
+import { useExperienceSummaries } from "../playerStudio/useExperienceSummaries";
+import { GameEmblem } from "../campaigns/GameEmblem";
+import { ErrorState, GhostChart } from "../ui/EmptyState";
 import { CampaignTimeline } from "./CampaignTimeline";
 import { OverviewHelp } from "./OverviewHelp";
 import {
-  ACTIVITY,
+  ACTIVITY_FETCHED,
   ACTIVITY_FILTERS,
   ACTIVITY_LIMIT,
   GAME_LIST,
-  LOW_VOUCHERS,
-  PERFORMANCE,
-  sparkValues,
+  GAME_TYPES,
+  PERFORMANCE_RANGES,
+  clockTime,
+  shortDate,
+  type Accent,
   type ActivityFilter,
   type RangeKey,
 } from "./overviewData";
+import {
+  LOW_STOCK_SHARE,
+  LOW_STOCK_UNITS,
+  absoluteTime,
+  campaignSummary,
+  countdown,
+  initialsOf,
+  lowRewards,
+  performanceFigures,
+  relativeTime,
+} from "./overviewMetrics";
 import {
   Delta,
   FilterChips,
@@ -35,10 +66,13 @@ import {
   Sparkline,
   TextLink,
 } from "./overviewParts";
+import { SetupSection } from "./SetupSection";
+import { deriveSetupSteps } from "./setupSteps";
 import "./overview.css";
 
-// The Overview page of the console. It shows mock data only (overviewData.ts): `mode` picks the
-// full page, the first-run page of a new account, or the loading skeleton.
+// The Overview page of the console: the account's real campaigns, rewards, participations and
+// team activity. Each block shows its data or its own empty form, on its own, and an empty form
+// only ever follows a successful load.
 
 // ── Header ───────────────────────────────────────────────────────────────────
 
@@ -73,7 +107,7 @@ function NewCampaignButton() {
   };
 
   return (
-    <div ref={rootRef} className="ov-split-btn">
+    <div ref={rootRef} className="ov-split-btn" data-tour="new-campaign">
       <Link to={PATHS.create} className="ov-btn ov-btn-primary">
         <Plus {...ICON} />
         New campaign
@@ -97,17 +131,15 @@ function NewCampaignButton() {
           </p>
           <div ref={menuRef} role="menu" aria-labelledby="ov-menu-title">
             {GAME_LIST.map((game) => {
-              const GameIcon = game.icon;
               return (
                 <Link
-                  key={game.label}
+                  key={game.id}
                   to={PATHS.create}
+                  state={{ gameType: game.id }}
                   role="menuitem"
-                  className={`ov-menu-item ${game.accent}`}
+                  className="ov-menu-item"
                 >
-                  <span aria-hidden className="ov-tile ov-tile-36">
-                    <GameIcon {...ICON} />
-                  </span>
+                  <GameEmblem gameType={game.id} size={36} />
                   <span>
                     <strong>{game.label}</strong>
                     <span className="ov-caption">{game.caption}</span>
@@ -122,12 +154,18 @@ function NewCampaignButton() {
   );
 }
 
+const TODAY_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
 function PageHeader() {
   return (
     <header className="ov-page-head">
       <div>
-        <h1>Overview Page</h1>
-        <p className="ov-sub">Thursday 29 October</p>
+        <h1>Overview</h1>
+        <p className="ov-sub">{TODAY_FORMAT.format(new Date())}</p>
       </div>
       <NewCampaignButton />
     </header>
@@ -136,159 +174,305 @@ function PageHeader() {
 
 // ── Summary cards ────────────────────────────────────────────────────────────
 
-function SummaryCards() {
+function EmptySummaryCard({
+  accent,
+  icon: Icon,
+  title,
+  message,
+  action,
+  to,
+  state,
+}: {
+  accent: string;
+  icon: LucideIcon;
+  title: string;
+  message: string;
+  action: string;
+  to: string;
+  state?: unknown;
+}) {
+  const id = `ov-sum-${accent}`;
   return (
-    <div className="ov-summary">
-      <section className="ov-card ov-sum k1" aria-labelledby="ov-sum-active">
-        <Link
-          to={PATHS.campaigns}
-          className="ov-card-link"
-          aria-label="Active now: 7 campaigns live. Open campaigns list"
-        />
-        <div className="ov-sum-head">
-          <span aria-hidden className="ov-tile">
-            <Flag {...ICON} />
-          </span>
-          <h2 id="ov-sum-active" className="ov-eyebrow">
-            Active now
-          </h2>
-          <span className="ov-live">
-            <span aria-hidden />
-            Live
-          </span>
-        </div>
-        <p className="ov-metric">
-          <strong>7</strong>
-          <span>campaigns live</span>
-        </p>
-        <p className="ov-sum-context ov-text-bad ov-semibold">
-          <Clock {...SMALL_ICON} />1 ends in 28 h
-        </p>
-        <div className="ov-sum-visual">
-          <div className="ov-stack" aria-hidden>
-            <span style={{ flex: 7 }} />
-            <span style={{ flex: 3 }} />
-            <span style={{ flex: 12 }} />
-          </div>
-          <div className="ov-legend">
-            <span>
-              <span aria-hidden className="ov-dot ov-dot-1" />7 active
-            </span>
-            <span>
-              <span aria-hidden className="ov-dot ov-dot-2" />3 paused
-            </span>
-            <span>
-              <span aria-hidden className="ov-dot ov-dot-3" />
-              12 archived
-            </span>
-          </div>
-        </div>
-        <div className="ov-footer">
-          <TextLink to={PATHS.campaigns} label="View all campaigns" />
-        </div>
-      </section>
+    <section className={`ov-card ov-sum ${accent}`} aria-labelledby={id}>
+      <div className="ov-sum-head">
+        <span aria-hidden className="ov-tile">
+          <Icon {...ICON} />
+        </span>
+        <h2 id={id} className="ov-eyebrow">
+          {title}
+        </h2>
+      </div>
+      <div className="ov-sum-empty">
+        <p className="ov-sub">{message}</p>
+        <Link to={to} state={state} className="ov-btn ov-btn-sm">
+          {action}
+        </Link>
+      </div>
+    </section>
+  );
+}
 
-      <section className="ov-card ov-sum k4" aria-labelledby="ov-sum-next">
-        <Link
-          to={PATHS.campaigns}
-          className="ov-card-link"
-          aria-label="Up next: Winter Gift Wheel starts in 2 days 13 hours. Open the schedule"
-        />
-        <div className="ov-sum-head">
-          <span aria-hidden className="ov-tile">
-            <Calendar {...ICON} />
-          </span>
-          <h2 id="ov-sum-next" className="ov-eyebrow">
-            Up next
-          </h2>
-        </div>
-        <p className="ov-metric">
-          <strong className="ov-text-accent">2d 13h</strong>
-          <span>until launch</span>
+function ActiveCard({
+  live,
+  endingNext,
+  paused,
+  archived,
+  now,
+}: {
+  live: number;
+  endingNext: Campaign | null;
+  paused: number;
+  archived: number;
+  now: number;
+}) {
+  const noun = live === 1 ? "campaign" : "campaigns";
+  return (
+    <section className="ov-card ov-sum k1" aria-labelledby="ov-sum-active">
+      <Link
+        to={PATHS.campaigns}
+        className="ov-card-link"
+        aria-label={`Active now: ${live} ${noun} live. Open campaigns list`}
+      />
+      <div className="ov-sum-head">
+        <span aria-hidden className="ov-tile">
+          <Flag {...ICON} />
+        </span>
+        <h2 id="ov-sum-active" className="ov-eyebrow">
+          Active now
+        </h2>
+        <span className="ov-live">
+          <span aria-hidden />
+          Live
+        </span>
+      </div>
+      <p className="ov-metric">
+        <strong>{live}</strong>
+        <span>{noun} live</span>
+      </p>
+      {endingNext ? (
+        <p className="ov-sum-context ov-text-bad ov-semibold">
+          <Clock {...SMALL_ICON} />
+          {endingNext.name} ends in{" "}
+          {countdown(Date.parse(endingNext.endDate) - now)}
         </p>
+      ) : (
         <p className="ov-sum-context ov-text-muted">
-          <strong className="ov-strong">Winter Gift Wheel</strong>· Sun 1 Nov,
-          09:00
+          No campaign ending in the next 3 days
         </p>
-        <div className="ov-sum-visual">
-          <div className="ov-sum-chips">
-            <span className="ov-chip">Lucky Spin</span>
+      )}
+      <div className="ov-sum-visual">
+        <div className="ov-stack" aria-hidden>
+          <span style={{ flex: live }} />
+          <span style={{ flex: paused }} />
+          <span style={{ flex: archived }} />
+        </div>
+        <div className="ov-legend">
+          <span>
+            <span aria-hidden className="ov-dot ov-dot-1" />
+            {live} active
+          </span>
+          <span>
+            <span aria-hidden className="ov-dot ov-dot-2" />
+            {paused} paused
+          </span>
+          <span>
+            <span aria-hidden className="ov-dot ov-dot-3" />
+            {archived} archived
+          </span>
+        </div>
+      </div>
+      <div className="ov-footer">
+        <TextLink to={PATHS.campaigns} label="View all campaigns" />
+      </div>
+    </section>
+  );
+}
+
+function UpNextCard({
+  scheduled,
+  now,
+}: {
+  scheduled: Campaign[];
+  now: number;
+}) {
+  const next = scheduled[0];
+  const start = Date.parse(next.startDate);
+  const left = countdown(start - now);
+  const others = scheduled.slice(1);
+  return (
+    <section className="ov-card ov-sum k4" aria-labelledby="ov-sum-next">
+      <Link
+        to={PATHS.campaign(next.id)}
+        className="ov-card-link"
+        aria-label={`Up next: ${next.name} starts in ${left}. Open the campaign`}
+      />
+      <div className="ov-sum-head">
+        <span aria-hidden className="ov-tile">
+          <Calendar {...ICON} />
+        </span>
+        <h2 id="ov-sum-next" className="ov-eyebrow">
+          Up next
+        </h2>
+      </div>
+      <p className="ov-metric">
+        <strong className="ov-text-accent">{left}</strong>
+        <span>until launch</span>
+      </p>
+      <p className="ov-sum-context ov-text-muted">
+        <strong className="ov-strong" dir="auto">
+          {next.name}
+        </strong>
+        · {shortDate(start)}, {clockTime(start)}
+      </p>
+      <div className="ov-sum-visual">
+        <div className="ov-sum-chips">
+          <span className="ov-chip">{GAME_TYPES[next.gameType].label}</span>
+          {next.prizes.length > 0 ? (
             <span className="ov-badge ov-badge-sm ov-ok">
               <CircleCheck {...SMALL_ICON} />
               Prize set
             </span>
-          </div>
+          ) : (
+            <span className="ov-badge ov-badge-sm ov-warn">
+              <TriangleAlert {...SMALL_ICON} />
+              No prize yet
+            </span>
+          )}
+        </div>
+        {others.length > 0 && (
           <p className="ov-caption">
-            1 more scheduled: Black Friday Quiz · 25 Nov
+            {others.length} more scheduled: {others[0].name} ·{" "}
+            {shortDate(Date.parse(others[0].startDate))}
           </p>
-        </div>
-        <div className="ov-footer">
-          <TextLink to={PATHS.campaigns} label="Open schedule" />
-          <Link to={PATHS.campaigns} className="ov-btn ov-btn-sm">
-            Edit
-          </Link>
-        </div>
-      </section>
+        )}
+      </div>
+      <div className="ov-footer">
+        <TextLink to={PATHS.campaigns} label="Open schedule" />
+        <Link to={PATHS.edit(next.id)} className="ov-btn ov-btn-sm">
+          Edit
+        </Link>
+      </div>
+    </section>
+  );
+}
 
-      <section
-        className="ov-card ov-sum t-danger"
-        aria-labelledby="ov-sum-vouchers"
-      >
-        <Link
-          to={PATHS.prizes}
-          className="ov-card-link"
-          aria-label="Vouchers: 3 running low. Open vouchers filtered to critical"
-        />
-        <div className="ov-sum-head">
-          <span aria-hidden className="ov-tile">
-            <Ticket {...ICON} />
-          </span>
-          <h2 id="ov-sum-vouchers" className="ov-eyebrow">
-            Vouchers
-          </h2>
-        </div>
-        <p className="ov-metric">
-          <strong className="ov-text-bad">3</strong>
-          <span>running low</span>
-        </p>
-        <p className="ov-sum-context ov-text-muted">
-          Critical: under 10 units or under 15% of stock
-        </p>
+function VouchersCard({ prizes }: { prizes: PrizeTemplate[] }) {
+  const low = lowRewards(prizes);
+  const hasLow = low.length > 0;
+  return (
+    <section
+      className={`ov-card ov-sum ${hasLow ? "t-danger" : "k2"}`}
+      aria-labelledby="ov-sum-vouchers"
+    >
+      <Link
+        to={PATHS.prizesLocal}
+        className="ov-card-link"
+        aria-label={
+          hasLow
+            ? `Vouchers: ${low.length} running low. Open your rewards`
+            : `Vouchers: ${prizes.length} rewards in stock. Open your rewards`
+        }
+      />
+      <div className="ov-sum-head">
+        <span aria-hidden className="ov-tile">
+          <Ticket {...ICON} />
+        </span>
+        <h2 id="ov-sum-vouchers" className="ov-eyebrow">
+          Vouchers
+        </h2>
+      </div>
+      <p className="ov-metric">
+        <strong className={hasLow ? "ov-text-bad" : undefined}>
+          {hasLow ? low.length : prizes.length}
+        </strong>
+        <span>
+          {hasLow
+            ? "running low"
+            : prizes.length === 1
+              ? "reward in stock"
+              : "rewards in stock"}
+        </span>
+      </p>
+      <p className="ov-sum-context ov-text-muted">
+        {hasLow
+          ? `Critical: under ${LOW_STOCK_UNITS} units or under ${LOW_STOCK_SHARE * 100}% of stock`
+          : "All your rewards are well stocked"}
+      </p>
+      {hasLow && (
         <div className="ov-sum-visual ov-vouchers">
-          {LOW_VOUCHERS.map((voucher) => (
-            <div key={voucher.name}>
+          {low.slice(0, 2).map((reward) => (
+            <div key={reward.id}>
               <p>
-                <span>{voucher.name}</span>
-                <strong className="dz-num" data-tone={voucher.variant}>
-                  {voucher.left} left
+                <span dir="auto">{reward.name}</span>
+                <strong className="dz-num" data-tone={reward.tone}>
+                  {reward.left} left
                 </strong>
               </p>
               <progress
-                className={`ov-progress ov-progress-${voucher.variant}`}
-                value={voucher.value}
+                className={`ov-progress ov-progress-${reward.tone}`}
+                value={reward.share * 100}
                 max={100}
-                aria-label={`${voucher.name}: ${voucher.left} left of ${voucher.total}`}
+                aria-label={`${reward.name}: ${reward.left} left of ${reward.total}`}
               />
             </div>
           ))}
         </div>
-        <div className="ov-footer">
-          <TextLink to={PATHS.prizes} label="View full inventory" />
-          <Link to={PATHS.prizes} className="ov-btn ov-btn-sm">
-            Restock low items
-          </Link>
-        </div>
-      </section>
-    </div>
+      )}
+      <div className="ov-footer">
+        <TextLink to={PATHS.prizesLocal} label="View full inventory" />
+      </div>
+    </section>
   );
 }
 
 // ── Performance snapshot ─────────────────────────────────────────────────────
 
-function PerformanceSnapshot() {
+function PerformanceSnapshot({ orgId }: { orgId: string | null }) {
   const [perfRange, setPerfRange] = useState<RangeKey>("7d");
-  const data = PERFORMANCE[perfRange];
-  const versus = `vs previous ${data.days} days`;
+  const { days } = PERFORMANCE_RANGES[perfRange];
+  const { data, loading, error, refetch } = useOverviewSnapshot(orgId, days);
+  const figures = useMemo(
+    () => (data ? performanceFigures(data) : null),
+    [data],
+  );
+  const versus = `vs previous ${days} days`;
+
+  if (error) {
+    return (
+      <section className="ov-card ov-perf">
+        <ErrorState
+          variant="inline"
+          title="Your performance could not be loaded"
+          onRetry={() => void refetch()}
+        />
+      </section>
+    );
+  }
+  if (!data || !figures) {
+    return loading ? (
+      <section className="ov-card ov-perf" aria-busy="true">
+        <span className="ov-sk" style={{ display: "block", height: 148 }} />
+      </section>
+    ) : null;
+  }
+  if (data.totalParticipants === 0) {
+    return (
+      <section
+        className="ov-card ov-perf"
+        aria-labelledby="ov-performance-title"
+      >
+        <div className="ov-ghost">
+          <h2 id="ov-performance-title" className="ov-title">
+            Performance snapshot
+          </h2>
+          <GhostChart label="Sample data" />
+          <p className="ov-sub">
+            Your metrics will appear here once players start participating.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="ov-card ov-perf" aria-labelledby="ov-performance-title">
@@ -298,7 +482,7 @@ function PerformanceSnapshot() {
             Performance snapshot
           </h2>
           <p className="ov-sub">
-            Last {data.days} days, compared with the previous {data.days} days
+            Last {days} days, compared with the previous {days} days
           </p>
         </div>
         <div className="ov-perf-actions">
@@ -307,7 +491,7 @@ function PerformanceSnapshot() {
             value={perfRange}
             options={(["7d", "30d"] as const).map((key) => ({
               key,
-              label: PERFORMANCE[key].tab,
+              label: PERFORMANCE_RANGES[key].tab,
             }))}
             onChange={setPerfRange}
           />
@@ -318,40 +502,52 @@ function PerformanceSnapshot() {
         <div className="ov-stat k1">
           <div className="ov-stat-main">
             <p className="ov-stat-label">Participants</p>
-            <p className="ov-stat-value">{data.participants}</p>
+            <p className="ov-stat-value">{figures.participants}</p>
             <p className="ov-stat-delta">
-              <Delta value={data.participantsDelta} />
-              <span className="ov-caption">{versus}</span>
+              {figures.participantsChange ? (
+                <>
+                  <Delta {...figures.participantsChange} />
+                  <span className="ov-caption">{versus}</span>
+                </>
+              ) : (
+                <span className="ov-caption">No earlier period to compare</span>
+              )}
             </p>
           </div>
           <Sparkline
-            values={sparkValues(data.days)}
-            label={`Participation trend over the last ${data.days} days`}
+            values={figures.trend}
+            label={`Participation trend over the last ${days} days`}
           />
         </div>
         <div className="ov-stat k3">
           <div className="ov-stat-main">
             <p className="ov-stat-label">Rewards claimed</p>
             <p className="ov-stat-value">
-              {data.claimed}
-              <span> of {data.available} available</span>
+              {figures.claimed}
+              <span> of {figures.available} available</span>
             </p>
             <progress
               className="ov-progress ov-progress-warning"
-              value={data.claimedShare}
+              value={figures.claimedShare}
               max={100}
-              aria-label={`Rewards claimed: ${data.claimedShare}%`}
+              aria-label={`Rewards claimed: ${figures.claimedShare}%`}
             />
-            <p className="ov-caption dz-num">{data.claimedShare}% claimed</p>
+            <p className="ov-caption dz-num">{figures.claimedShare}% claimed</p>
           </div>
         </div>
         <div className="ov-stat k2">
           <div className="ov-stat-main">
             <p className="ov-stat-label">Redemption rate</p>
-            <p className="ov-stat-value">{data.redemption}</p>
+            <p className="ov-stat-value">{figures.redemption}</p>
             <p className="ov-stat-delta">
-              <Delta value={data.redemptionDelta} />
-              <span className="ov-caption">{versus}</span>
+              {figures.redemptionChange ? (
+                <>
+                  <Delta {...figures.redemptionChange} />
+                  <span className="ov-caption">{versus}</span>
+                </>
+              ) : (
+                <span className="ov-caption">No earlier period to compare</span>
+              )}
             </p>
             <p className="ov-caption">of handed-out rewards were redeemed</p>
           </div>
@@ -363,17 +559,31 @@ function PerformanceSnapshot() {
 
 // ── Team activity ────────────────────────────────────────────────────────────
 
-const ACTIVITY_ROUTES = {
-  campaign: PATHS.campaigns,
-  reward: PATHS.prizes,
-  team: PATHS.account,
-} as const;
+const ACTIVITY_ACCENTS: Record<ActivityEntry["category"], Accent> = {
+  campaign: "k4",
+  reward: "k2",
+  team: "k1",
+};
 
-function TeamActivity() {
+const activityLink = (entry: ActivityEntry) =>
+  entry.category === "team"
+    ? PATHS.accountTeam
+    : entry.category === "reward"
+      ? PATHS.prizesLocal
+      : entry.objectId
+        ? PATHS.campaign(entry.objectId)
+        : PATHS.campaigns;
+
+function TeamActivity({ orgId }: { orgId: string | null }) {
   const [actFilter, setActFilter] = useState<ActivityFilter>("all");
-  const rows = ACTIVITY.filter(
-    (row) => actFilter === "all" || row.category === actFilter,
-  ).slice(0, ACTIVITY_LIMIT);
+  const { data, loading, error, refetch } = useActivityFeed(
+    orgId,
+    ACTIVITY_FETCHED,
+  );
+  const now = Date.now();
+  const rows = (data ?? [])
+    .filter((row) => actFilter === "all" || row.category === actFilter)
+    .slice(0, ACTIVITY_LIMIT);
 
   return (
     <section
@@ -389,79 +599,53 @@ function TeamActivity() {
         options={ACTIVITY_FILTERS}
         onChange={setActFilter}
       />
-      <ul className="ov-activity-list">
-        {rows.map((row) => (
-          <li key={row.absolute} className={row.accent}>
-            <span aria-hidden className="ov-avatar">
-              {row.initials}
-            </span>
-            <div>
-              <p className="ov-sub">
-                <strong>{row.who}</strong> {row.verb}{" "}
-                <Link to={ACTIVITY_ROUTES[row.category]}>{row.object}</Link>
-                {row.suffix && ` ${row.suffix}`}
-              </p>
-              {row.detail && (
-                <p className="ov-activity-detail">
-                  <ArrowRight {...SMALL_ICON} />
-                  {row.detail}
-                </p>
-              )}
-              <p className="ov-caption dz-num">
-                {row.relative} ·{" "}
-                <span title={row.absolute}>{row.absolute}</span>
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className="ov-activity-foot">
-        <TextLink to={PATHS.account} label="View all activity" />
-      </div>
+      {error ? (
+        <ErrorState
+          variant="inline"
+          title="Team activity could not be loaded"
+          onRetry={() => void refetch()}
+        />
+      ) : loading && !data ? (
+        <span className="ov-sk" style={{ display: "block", height: 120 }} />
+      ) : rows.length === 0 ? (
+        <p className="ov-tl-none">No activity to show here yet.</p>
+      ) : (
+        <ul className="ov-activity-list">
+          {rows.map((row) => {
+            const time = Date.parse(row.createdAt);
+            return (
+              <li key={row.id} className={ACTIVITY_ACCENTS[row.category]}>
+                <span aria-hidden className="ov-avatar">
+                  {initialsOf(row.actorName)}
+                </span>
+                <div>
+                  <p className="ov-sub">
+                    <strong dir="auto">{row.actorName}</strong> {row.verb}{" "}
+                    <Link to={activityLink(row)} dir="auto">
+                      {row.objectName}
+                    </Link>
+                  </p>
+                  {row.detail && (
+                    <p className="ov-activity-detail">
+                      <ArrowRight {...SMALL_ICON} />
+                      {row.detail}
+                    </p>
+                  )}
+                  <p className="ov-caption dz-num">
+                    {relativeTime(time, now)} ·{" "}
+                    <span title={absoluteTime(time)}>{absoluteTime(time)}</span>
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }
 
 // ── States ───────────────────────────────────────────────────────────────────
-
-function EmptyState() {
-  return (
-    <section className="ov-card ov-empty" aria-labelledby="ov-empty-title">
-      <span aria-hidden className="ov-tile ov-tile-56 k1">
-        <Flag {...ICON} size={24} />
-      </span>
-      <div>
-        <h2 id="ov-empty-title">Create your first campaign</h2>
-        <p className="ov-sub">
-          Pick a game type to get started. You can change the design, prizes and
-          schedule at any time before you launch.
-        </p>
-      </div>
-      <div className="ov-empty-games">
-        {GAME_LIST.map((game) => {
-          const GameIcon = game.icon;
-          return (
-            <Link
-              key={game.label}
-              to={PATHS.create}
-              className={`ov-card ${game.accent}`}
-            >
-              <span aria-hidden className="ov-tile ov-tile-40">
-                <GameIcon {...ICON} />
-              </span>
-              <strong>{game.label}</strong>
-              <span className="ov-caption">{game.caption}</span>
-            </Link>
-          );
-        })}
-      </div>
-      <TextLink
-        to={PATHS.studioFor(STANDALONE_STUDIO)}
-        label="Preview a sample campaign in the player sandbox"
-      />
-    </section>
-  );
-}
 
 const Skeleton = ({ width, height }: { width?: number; height: number }) => (
   <span className="ov-sk" style={{ width, height }} />
@@ -515,42 +699,129 @@ function LoadingState() {
 
 // ── The page ─────────────────────────────────────────────────────────────────
 
-export interface OverviewPageProps {
-  mode?: "full" | "empty" | "loading";
-  /** Shows the performance snapshot. */
-  performance?: boolean;
-}
-
-export function OverviewPage({
-  mode = "full",
-  performance = true,
-}: OverviewPageProps) {
+export function OverviewPage() {
   const { theme } = useTheme();
+  const {
+    orgId,
+    campaigns,
+    campLoading,
+    campError,
+    refetchCampaigns,
+    prizes,
+    prizeLoading,
+    prizeError,
+    refetchPrizes,
+  } = useDashboard();
+
+  // The first load only: a refresh in the background keeps the page on screen.
+  const loading =
+    (campLoading && campaigns.length === 0) ||
+    (prizeLoading && prizes.length === 0);
+  const failed = Boolean(campError || prizeError);
+
+  const now = Date.now();
+  const summary = campaignSummary(campaigns, now);
+  const hasCampaigns = campaigns.length > 0;
+  const hasRewards = prizes.length > 0;
+  const hasLaunched = campaigns.some((campaign) => campaign.status !== "draft");
+
+  const { setupActive, sandboxTested, finishSetup } = useOnboarding();
+  // Read only while it matters: the Overview of an established account does not need it.
+  const designs = useExperienceSummaries(setupActive ? orgId : null);
+  const setupSteps = deriveSetupSteps({
+    hasReward: hasRewards,
+    hasCampaign: hasCampaigns,
+    hasDesign: designs.savedAt.size > 0,
+    sandboxTested,
+    hasLaunched,
+  });
+  const stepsLeft =
+    setupActive && setupSteps.some((step) => step.status !== "done");
+  // The last step ends setup for good: the section does not come back on a later change.
+  const setupDone = setupActive && !stepsLeft;
+  useEffect(() => {
+    if (setupDone) finishSetup();
+  }, [setupDone, finishSetup]);
 
   return (
     <div
       className="ov-root dz-theme"
       data-theme={theme === "dark" ? "dark" : "light"}
     >
-      {mode === "loading" && <LoadingState />}
-      {mode === "empty" && (
+      {loading || designs.loading ? (
+        <LoadingState />
+      ) : failed ? (
+        <ErrorState
+          title="Your overview could not be loaded"
+          message={campError ?? prizeError ?? undefined}
+          onRetry={() => {
+            void refetchCampaigns();
+            void refetchPrizes();
+          }}
+        />
+      ) : (
         <>
           <PageHeader />
-          <EmptyState />
+          {stepsLeft && <SetupSection steps={setupSteps} />}
+          {(hasLaunched || !stepsLeft) && (
+            <>
+              <div className="ov-summary">
+                {summary.live.length > 0 ? (
+                  <ActiveCard
+                    live={summary.live.length}
+                    endingNext={summary.endingNext}
+                    paused={summary.paused}
+                    archived={summary.archived}
+                    now={now}
+                  />
+                ) : (
+                  <EmptySummaryCard
+                    accent="k1"
+                    icon={Flag}
+                    title="Active now"
+                    message="No campaigns live yet"
+                    action="Create campaign"
+                    to={PATHS.create}
+                  />
+                )}
+                {summary.scheduled.length > 0 ? (
+                  <UpNextCard scheduled={summary.scheduled} now={now} />
+                ) : (
+                  <EmptySummaryCard
+                    accent="k4"
+                    icon={Calendar}
+                    title="Up next"
+                    message="Nothing scheduled"
+                    action="Schedule a campaign"
+                    to={PATHS.create}
+                  />
+                )}
+                {hasRewards ? (
+                  <VouchersCard prizes={prizes} />
+                ) : (
+                  <EmptySummaryCard
+                    accent="k3"
+                    icon={Ticket}
+                    title="Vouchers"
+                    message="No rewards in stock"
+                    action="Add your first voucher"
+                    to={PATHS.prizesLocal}
+                    state={{ createReward: true }}
+                  />
+                )}
+              </div>
+              <PerformanceSnapshot orgId={orgId} />
+              {hasCampaigns && (
+                <div className="ov-pair">
+                  <CampaignTimeline campaigns={campaigns} prizes={prizes} />
+                  <TeamActivity orgId={orgId} />
+                </div>
+              )}
+            </>
+          )}
+          <OverviewHelp mode={hasCampaigns ? "full" : "empty"} />
         </>
       )}
-      {mode === "full" && (
-        <>
-          <PageHeader />
-          <SummaryCards />
-          {performance && <PerformanceSnapshot />}
-          <div className="ov-pair">
-            <CampaignTimeline />
-            <TeamActivity />
-          </div>
-        </>
-      )}
-      {mode !== "loading" && <OverviewHelp mode={mode} />}
     </div>
   );
 }

@@ -18,7 +18,7 @@ import {
   type OnboardingStatus,
 } from "../../contexts/AuthContext";
 import {
-  countOrganizationMembers,
+  markJoined,
   saveOnboardingProgress,
   type OnboardingPatch,
 } from "../../services/onboardingService";
@@ -46,12 +46,13 @@ export interface OnboardingValue {
   saveTourStep: (step: number) => void;
   endTour: (outcome: "completed" | "skipped", step: number) => void;
 
-  /** False once dismissed, and for accounts that were here before the checklist. */
-  checklistAvailable: boolean;
+  /** Still in setup: not for accounts that were here before it, nor for invited teammates. */
+  setupActive: boolean;
+  setupStyle: "guide" | "own";
+  setSetupStyle: (style: "guide" | "own") => void;
+  finishSetup: () => void;
   sandboxTested: boolean;
-  memberCount: number;
   markSandboxTested: () => void;
-  dismissChecklist: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingValue>({
@@ -59,11 +60,12 @@ const OnboardingContext = createContext<OnboardingValue>({
   replayTour: () => {},
   saveTourStep: () => {},
   endTour: () => {},
-  checklistAvailable: false,
+  setupActive: false,
+  setupStyle: "guide",
+  setSetupStyle: () => {},
+  finishSetup: () => {},
   sandboxTested: false,
-  memberCount: 1,
   markSandboxTested: () => {},
-  dismissChecklist: () => {},
 });
 
 export const useOnboarding = () => useContext(OnboardingContext);
@@ -74,14 +76,13 @@ export function OnboardingProvider({
   children: React.ReactNode;
 }) {
   const { profile } = useAuth();
-  const { orgId, campLoading, prizeLoading } = useDashboard();
+  const { campLoading, prizeLoading } = useDashboard();
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   const userId = profile?.id ?? null;
   const [progress, setProgress] = useState<Progress | null>(null);
   const [tourRun, setTourRun] = useState<TourRun | null>(null);
-  const [memberCount, setMemberCount] = useState(1);
   const runCount = useRef(0);
   const autoStartDone = useRef(false);
 
@@ -98,6 +99,12 @@ export function OnboardingProvider({
           }
         : null,
     );
+    // First arrival of an invited teammate: they stop showing as "Invited".
+    if (userId && profile?.invited_at && !profile.joined_at) {
+      markJoined(userId).catch((err) =>
+        console.warn("[onboarding] arrival not saved", err),
+      );
+    }
     // Only a change of person resets it: `profile` itself is left out of the dependencies.
   }, [userId]);
 
@@ -183,18 +190,21 @@ export function OnboardingProvider({
       updateChecklist({ sandbox_tested_at: new Date().toISOString() });
     }
   }, [sandboxTested, updateChecklist]);
-  const dismissChecklist = useCallback(
-    () => updateChecklist({ dismissed_at: new Date().toISOString() }),
+  const setSetupStyle = useCallback(
+    (style: "guide" | "own") => updateChecklist({ setup_style: style }),
+    [updateChecklist],
+  );
+  const finishSetup = useCallback(
+    () => updateChecklist({ setup_finished_at: new Date().toISOString() }),
     [updateChecklist],
   );
 
-  const checklistAvailable = Boolean(checklist) && !checklist?.dismissed_at;
-  useEffect(() => {
-    if (!checklistAvailable || !orgId) return;
-    countOrganizationMembers(orgId)
-      .then(setMemberCount)
-      .catch((err) => console.warn("[onboarding] members not counted", err));
-  }, [checklistAvailable, orgId]);
+  const setupActive =
+    Boolean(checklist) &&
+    !checklist?.dismissed_at &&
+    !checklist?.setup_finished_at &&
+    !profile?.invited_at;
+  const setupStyle = checklist?.setup_style ?? "guide";
 
   const value = useMemo<OnboardingValue>(
     () => ({
@@ -202,22 +212,24 @@ export function OnboardingProvider({
       replayTour,
       saveTourStep,
       endTour,
-      checklistAvailable,
+      setupActive,
+      setupStyle,
+      setSetupStyle,
+      finishSetup,
       sandboxTested,
-      memberCount,
       markSandboxTested,
-      dismissChecklist,
     }),
     [
       tourRun,
       replayTour,
       saveTourStep,
       endTour,
-      checklistAvailable,
+      setupActive,
+      setupStyle,
+      setSetupStyle,
+      finishSetup,
       sandboxTested,
-      memberCount,
       markSandboxTested,
-      dismissChecklist,
     ],
   );
 

@@ -11,9 +11,20 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
 import { toFriendlyErrorMessage } from "../lib/errorMessages";
+import {
+  changePassword,
+  removeOrganizationLogo,
+  requestEmailChange,
+  saveNotificationSettings,
+  saveOrganizationProfile,
+  saveRepresentative,
+  signOutOtherDevices,
+  uploadOrganizationLogo,
+} from "../services/organizationService";
+import type { NotificationSettings } from "../types";
 import { useLanguage } from "../contexts/LanguageContext";
 import { ALGERIA_WILAYAS } from "../lib/algeriaWilayas";
 import {
@@ -175,8 +186,24 @@ const ALERT_GROUPS = [
     ],
   },
 ] as const;
-type AlertId = (typeof ALERT_GROUPS)[number]["alerts"][number]["id"];
-type AlertMatrix = Record<AlertId, Record<Channel, boolean>>;
+type AlertMatrix = NotificationSettings["alerts"];
+
+const DEFAULT_NOTIFICATIONS: NotificationSettings = {
+  alerts: {
+    surge: { email: true, inApp: true },
+    milestone: { email: true, inApp: true },
+    stock: { email: true, inApp: true },
+    winner: { email: false, inApp: true },
+    redeemed: { email: false, inApp: true },
+  },
+  stockThreshold: "10",
+  digestEnabled: true,
+  digestFrequency: "week",
+  digestDay: "Sunday",
+  digestMonthDay: "1",
+  digestTime: "08:00",
+  recipients: [],
+};
 
 // Checks of the organization form, run once a field has been left (never while it is first
 // typed), then as it changes. They only tell; the save itself is unchanged.
@@ -263,10 +290,19 @@ function thisDevice(): { name: string; mobile: boolean } {
 export const AccountSettings: React.FC<AccountSettingsProps> = ({
   onAvatarChange,
 }) => {
-  const { profile, organization, refreshProfile } = useAuth();
+  const { profile, organization, patchProfile, patchOrganization } = useAuth();
   const { t } = useLanguage();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<Tab>("Organization");
+  // The server enforces this too; here it only avoids offering what would be refused.
+  const canEdit = profile?.role === "owner" || profile?.role === "admin";
+  // Arrived from an invitation: there is no password yet to confirm.
+  const invited = searchParams.get("invited") === "1";
+
+  const requestedTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<Tab>(
+    TABS.includes(requestedTab as Tab) ? (requestedTab as Tab) : "Organization",
+  );
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -281,13 +317,13 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const [nis, setNis] = useState("");
   const [ai, setAi] = useState("");
   const [address, setAddress] = useState("");
-  const [wilaya, setWilaya] = useState("16 - Alger");
+  const [wilaya, setWilaya] = useState("");
   const [commune, setCommune] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [website, setWebsite] = useState("");
-  const [industry, setIndustry] = useState("Telecom & Retail");
+  const [industry, setIndustry] = useState("");
 
-  // Regional preferences (kept on this page, like the fiscal identifiers)
+  // Regional preferences
   const [language, setLanguage] = useState("fr");
   const [timeZone, setTimeZone] = useState("Africa/Algiers");
   const [currency, setCurrency] = useState("DZD");
@@ -295,10 +331,9 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   // Contact / Representative Fields
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [jobTitle, setJobTitle] = useState("Marketing & Growth Lead");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
-    return localStorage.getItem("user-avatar-preview") || null;
-  });
+  const [jobTitle, setJobTitle] = useState("");
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [signingOutOthers, setSigningOutOthers] = useState(false);
 
   // Password Fields
   const [currentPassword, setCurrentPassword] = useState("");
@@ -307,25 +342,31 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
   // Email Fields
   const [newEmail, setNewEmail] = useState("");
-  const [emailPassword, setEmailPassword] = useState(""); // asked, not sent (no backend)
+  const [emailPassword, setEmailPassword] = useState("");
 
-  // Notification settings (kept on this page: saving them only confirms, as before). The
-  // former switches live on in the grid (operational alerts by email, stock warnings) and in
-  // the scheduled digest.
-  const [alerts, setAlerts] = useState<AlertMatrix>({
-    surge: { email: true, inApp: true },
-    milestone: { email: true, inApp: true },
-    stock: { email: true, inApp: true },
-    winner: { email: false, inApp: true },
-    redeemed: { email: false, inApp: true },
-  });
-  const [stockThreshold, setStockThreshold] = useState("10");
-  const [digestEnabled, setDigestEnabled] = useState(true);
-  const [digestFrequency, setDigestFrequency] = useState("week");
-  const [digestDay, setDigestDay] = useState("Sunday");
-  const [digestMonthDay, setDigestMonthDay] = useState("1");
-  const [digestTime, setDigestTime] = useState("08:00");
-  const [recipients, setRecipients] = useState<string[]>([]);
+  // Notification settings, saved on the organization.
+  const [alerts, setAlerts] = useState<AlertMatrix>(
+    DEFAULT_NOTIFICATIONS.alerts,
+  );
+  const [stockThreshold, setStockThreshold] = useState(
+    DEFAULT_NOTIFICATIONS.stockThreshold,
+  );
+  const [digestEnabled, setDigestEnabled] = useState(
+    DEFAULT_NOTIFICATIONS.digestEnabled,
+  );
+  const [digestFrequency, setDigestFrequency] = useState(
+    DEFAULT_NOTIFICATIONS.digestFrequency,
+  );
+  const [digestDay, setDigestDay] = useState(DEFAULT_NOTIFICATIONS.digestDay);
+  const [digestMonthDay, setDigestMonthDay] = useState(
+    DEFAULT_NOTIFICATIONS.digestMonthDay,
+  );
+  const [digestTime, setDigestTime] = useState(
+    DEFAULT_NOTIFICATIONS.digestTime,
+  );
+  const [recipients, setRecipients] = useState<string[]>(
+    DEFAULT_NOTIFICATIONS.recipients,
+  );
   const [recipientDraft, setRecipientDraft] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -380,7 +421,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     contactName: setContactName,
     jobTitle: setJobTitle,
   };
-  const notificationValues = {
+  const notificationValues: NotificationSettings = {
     alerts,
     stockThreshold,
     digestEnabled,
@@ -394,39 +435,56 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const [notificationsSaved, setNotificationsSaved] =
     useState(notificationValues);
 
+  const logoUrl = organization?.logo_url ?? null;
+
   useEffect(() => {
     const loaded: Partial<OrgValues> = {};
     if (organization) {
-      setOrgName(organization.name);
-      setOrgContactEmail(organization.contact_email ?? "");
-      setOrgPhone(organization.phone_number ?? "");
       loaded.orgName = organization.name;
       loaded.orgContactEmail = organization.contact_email ?? "";
       loaded.orgPhone = organization.phone_number ?? "";
+      loaded.nif = organization.nif ?? "";
+      loaded.nis = organization.nis ?? "";
+      loaded.rc = organization.rc ?? "";
+      loaded.ai = organization.ai ?? "";
+      loaded.address = organization.address ?? "";
+      loaded.wilaya = organization.wilaya ?? "";
+      loaded.commune = organization.commune ?? "";
+      loaded.postalCode = organization.postal_code ?? "";
+      loaded.website = organization.website ?? "";
+      loaded.industry = organization.industry ?? "";
+      loaded.language = organization.language ?? "fr";
+      loaded.timeZone = organization.time_zone ?? "Africa/Algiers";
+      loaded.currency = organization.currency ?? "DZD";
     }
     if (profile) {
-      setContactName(profile.full_name);
       setContactEmail(profile.email);
       loaded.contactName = profile.full_name;
+      loaded.jobTitle = profile.job_title ?? "";
+    }
+    for (const key of Object.keys(loaded) as (keyof OrgValues)[]) {
+      orgSetters[key](loaded[key] as string);
     }
     setOrgSaved((saved) => ({ ...saved, ...loaded }));
+
     // The digest goes to the signed-in person until someone else is added.
-    if (profile?.email) {
-      setRecipients((now) => (now.length ? now : [profile.email]));
-      setNotificationsSaved((saved) =>
-        saved.recipients.length
-          ? saved
-          : { ...saved, recipients: [profile.email] },
-      );
-    }
-    const savedPreview = localStorage.getItem("user-avatar-preview");
-    if (savedPreview) {
-      setAvatarUrl(savedPreview);
-    } else if (profile?.avatar_url) {
-      setAvatarUrl(profile.avatar_url);
-    } else if (organization?.logo_url) {
-      setAvatarUrl(organization.logo_url);
-    }
+    const stored = organization?.notification_settings;
+    const settings: NotificationSettings = {
+      ...DEFAULT_NOTIFICATIONS,
+      ...stored,
+      alerts: { ...DEFAULT_NOTIFICATIONS.alerts, ...stored?.alerts },
+      recipients: stored?.recipients ?? (profile?.email ? [profile.email] : []),
+    };
+    setAlerts(settings.alerts);
+    setStockThreshold(settings.stockThreshold);
+    setDigestEnabled(settings.digestEnabled);
+    setDigestFrequency(settings.digestFrequency);
+    setDigestDay(settings.digestDay);
+    setDigestMonthDay(settings.digestMonthDay);
+    setDigestTime(settings.digestTime);
+    setRecipients(settings.recipients);
+    setNotificationsSaved(settings);
+    // The setters above never change; only new data reloads the forms.
   }, [organization, profile]);
 
   const orgDirty = (Object.keys(orgValues) as (keyof OrgValues)[]).some(
@@ -489,40 +547,58 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
   const [isDragging, setIsDragging] = useState(false);
 
-  const validateAndProcessAvatar = (file: File) => {
+  const validateAndProcessAvatar = async (file: File) => {
+    if (!organization) return;
     setError(null);
-    const validTypes = ["image/png", "image/jpeg", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      setError(
-        "Invalid file format. Please upload a PNG, JPEG, or WebP image.",
-      );
-      return;
+    setLogoBusy(true);
+    try {
+      const url = await uploadOrganizationLogo(organization.id, file);
+      patchOrganization({ logo_url: url });
+      onAvatarChange?.(url);
+    } catch (err) {
+      setError(toFriendlyErrorMessage(err, "The logo could not be uploaded."));
+    } finally {
+      setLogoBusy(false);
     }
-    const maxSizeBytes = 2 * 1024 * 1024; // 2MB limit
-    if (file.size > maxSizeBytes) {
-      setError("Image file size exceeds the 2MB limit.");
-      return;
-    }
-
-    // Generate local preview URL
-    const preview = URL.createObjectURL(file);
-    setAvatarUrl(preview);
-    localStorage.setItem("user-avatar-preview", preview);
-    onAvatarChange?.(preview);
-
-    // TODO(backend): wire to Supabase Storage + persist url to profile
   };
 
-  // Clears the local preview only, like the upload sets it (no backend storage yet).
-  const removeAvatar = () => {
-    setAvatarUrl(null);
-    localStorage.removeItem("user-avatar-preview");
+  const removeAvatar = async () => {
+    if (!organization) return;
+    setError(null);
+    setLogoBusy(true);
+    try {
+      await removeOrganizationLogo(organization.id);
+      patchOrganization({ logo_url: null });
+    } catch (err) {
+      setError(toFriendlyErrorMessage(err, "The logo could not be removed."));
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const handleSignOutOthers = async () => {
+    setError(null);
+    setSuccessMessage(null);
+    setSigningOutOthers(true);
+    try {
+      await signOutOtherDevices();
+      setSuccessMessage("Your other devices were signed out.");
+    } catch (err) {
+      setError(
+        toFriendlyErrorMessage(
+          err,
+          "Your other devices could not be signed out.",
+        ),
+      );
+    } finally {
+      setSigningOutOthers(false);
+    }
   };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      validateAndProcessAvatar(file);
+      void validateAndProcessAvatar(file);
     }
     e.target.value = "";
   };
@@ -544,8 +620,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     e.stopPropagation();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      validateAndProcessAvatar(file);
+    if (file && canEdit) {
+      void validateAndProcessAvatar(file);
     }
   };
 
@@ -557,19 +633,19 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
     try {
       if (activeTab === "Security") {
-        if (!newPassword) {
-          throw new Error("Please enter a new password.");
-        }
-        if (newPassword.length < 6) {
-          throw new Error("Password must be at least 6 characters long.");
+        if (newPassword.length < MIN_PASSWORD_LENGTH) {
+          throw new Error(
+            `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`,
+          );
         }
         if (newPassword !== confirmPassword) {
           throw new Error("Passwords do not match.");
         }
-        const { error: passErr } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
-        if (passErr) throw passErr;
+        await changePassword(
+          contactEmail,
+          newPassword,
+          invited ? null : currentPassword,
+        );
 
         setCurrentPassword("");
         setNewPassword("");
@@ -585,21 +661,26 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
         if (!targetEmail || targetEmail === contactEmail.toLowerCase()) {
           throw new Error("Please enter a different valid email address.");
         }
-        const { error: emailErr } = await supabase.auth.updateUser({
-          email: targetEmail,
-        });
-        if (emailErr) throw emailErr;
+        await requestEmailChange(contactEmail, targetEmail, emailPassword);
 
         setSuccessMessage(
           "Confirmation link sent to your new email address. Please click it to verify.",
         );
         setNewEmail("");
+        setEmailPassword("");
         window.setTimeout(() => setSuccessMessage(null), 5000);
         setSaving(false);
         return;
       }
 
       if (activeTab === "Notifications") {
+        if (!organization) {
+          throw new Error(
+            "Your organization profile is unavailable. Please refresh and try again.",
+          );
+        }
+        await saveNotificationSettings(organization.id, notificationValues);
+        patchOrganization({ notification_settings: notificationValues });
         setNotificationsSaved(notificationValues);
         setSuccessMessage("Notification settings saved successfully!");
         window.setTimeout(() => setSuccessMessage(null), 4000);
@@ -613,30 +694,41 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
         );
       }
 
-      const normalizedOrgName = orgName.trim();
-      const normalizedOrgEmail = orgContactEmail.trim().toLowerCase();
-      const normalizedOrgPhone = orgPhone.trim();
-      const normalizedFullName = contactName.trim();
+      // Every field is checked before anything is written, not only those already left.
+      const firstError = (Object.keys(orgValues) as (keyof OrgValues)[])
+        .map((key) => checkField(key, orgValues[key]))
+        .find(Boolean);
+      if (firstError) {
+        setLeft(new Set(Object.keys(orgValues)));
+        throw new Error(firstError);
+      }
 
-      const { error: orgErr } = await supabase
-        .from("organizations")
-        .update({
-          name: normalizedOrgName,
-          contact_email: normalizedOrgEmail,
-          phone_number: normalizedOrgPhone || null,
-        })
-        .eq("id", organization.id);
-      if (orgErr) throw orgErr;
-
-      const { error: profileErr } = await supabase
-        .from("profiles")
-        .update({
-          full_name: normalizedFullName,
-        })
-        .eq("id", profile.id);
-      if (profileErr) throw profileErr;
-
-      await refreshProfile();
+      const orgPatch = {
+        name: orgName.trim(),
+        contact_email: orgContactEmail.trim().toLowerCase(),
+        phone_number: orgPhone.trim() || null,
+        nif: digits(nif) || null,
+        nis: digits(nis) || null,
+        rc: rc.trim() || null,
+        ai: digits(ai) || null,
+        address: address.trim() || null,
+        wilaya: wilaya || null,
+        commune: commune.trim() || null,
+        postal_code: postalCode.trim() || null,
+        website: website.trim() || null,
+        industry: industry || null,
+        language,
+        time_zone: timeZone,
+        currency,
+      };
+      const representative = {
+        full_name: contactName.trim(),
+        job_title: jobTitle.trim() || null,
+      };
+      await saveOrganizationProfile(organization.id, orgPatch);
+      await saveRepresentative(profile.id, representative);
+      patchOrganization(orgPatch);
+      patchProfile(representative);
 
       setOrgSaved(orgValues);
       setSuccessMessage("Organization settings saved successfully!");
@@ -789,7 +881,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const mismatch = confirmPassword !== "" && confirmPassword !== newPassword;
   const passwordReady =
     newPassword.length >= MIN_PASSWORD_LENGTH &&
-    newPassword === confirmPassword;
+    newPassword === confirmPassword &&
+    (invited || currentPassword !== "");
   const device = thisDevice();
 
   return (
@@ -855,8 +948,17 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               </>
             )}
 
+            {!canEdit &&
+              !loadingProfile &&
+              (activeTab === "Organization" ||
+                activeTab === "Notifications") && (
+                <Note title="View only">
+                  Only an owner or an admin can change these settings.
+                </Note>
+              )}
+
             {activeTab === "Organization" && !loadingProfile && (
-              <>
+              <fieldset disabled={!canEdit} className="contents">
                 <div className="os-card-group">
                   <SettingsCard
                     labelledBy="card-identity"
@@ -871,8 +973,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                       onDrop={handleDrop}
                     >
                       <div className="os-logo-tile" aria-hidden>
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt="" />
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="" />
                         ) : (
                           initials(orgName)
                         )}
@@ -891,24 +993,26 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                           <button
                             type="button"
                             className="os-btn os-btn-secondary os-btn-sm"
+                            disabled={logoBusy}
+                            aria-busy={logoBusy || undefined}
                             onClick={() => fileInputRef.current?.click()}
                           >
                             <Upload aria-hidden strokeWidth={2} />
-                            Upload logo
+                            {logoBusy ? "Saving..." : "Upload logo"}
                           </button>
                           <button
                             type="button"
                             className="os-btn os-btn-danger os-btn-sm"
-                            onClick={removeAvatar}
-                            disabled={!avatarUrl}
+                            onClick={() => void removeAvatar()}
+                            disabled={!logoUrl || logoBusy}
                           >
                             <Trash2 aria-hidden strokeWidth={2} />
                             Remove
                           </button>
                         </div>
                         <p className="os-help">
-                          JPG or PNG, at least 800 × 800 px. Initials are shown
-                          until you upload a logo.
+                          JPG, PNG or WebP, up to 2 MB. Initials are shown until
+                          you upload a logo.
                         </p>
                       </div>
                     </div>
@@ -924,7 +1028,9 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                           value={industry}
                           onChange={setIndustry}
                           options={[
-                            ...(INDUSTRIES.includes(
+                            { value: "", label: "Select an industry" },
+                            ...(industry === "" ||
+                            INDUSTRIES.includes(
                               industry as (typeof INDUSTRIES)[number],
                             )
                               ? []
@@ -1069,7 +1175,10 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                           id="org-wilaya"
                           value={wilaya}
                           onChange={setWilaya}
-                          options={WILAYA_OPTIONS}
+                          options={[
+                            { value: "", label: "Select a wilaya" },
+                            ...WILAYA_OPTIONS,
+                          ]}
                         />
                       </Field>
                       {orgText("commune", "Commune", {
@@ -1147,26 +1256,19 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                   saveIcon={<Save aria-hidden strokeWidth={2} />}
                   labels={formLabels}
                 />
-              </>
+              </fieldset>
             )}
 
             {activeTab === "Team" && (
               <TeamTab
-                soonLabel={soon}
-                me={
-                  profile
-                    ? {
-                        fullName: profile.full_name,
-                        email: profile.email,
-                        role: profile.role,
-                      }
-                    : null
-                }
+                organizationId={organization?.id ?? null}
+                myId={profile?.id ?? null}
+                canManage={canEdit}
               />
             )}
 
             {activeTab === "Notifications" && (
-              <>
+              <fieldset disabled={!canEdit} className="contents">
                 <section
                   className="os-card"
                   aria-labelledby="card-channels"
@@ -1400,7 +1502,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                   saveIcon={<Save aria-hidden strokeWidth={2} />}
                   labels={formLabels}
                 />
-              </>
+              </fieldset>
             )}
 
             {activeTab === "Security" && (
@@ -1410,22 +1512,33 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                   title="Change password"
                   description="Use a long, unique password that you do not use anywhere else."
                 >
-                  <Field
-                    id="current-password"
-                    label={t("settings.currentPassword", "Current password")}
-                    className="os-narrow"
-                  >
-                    <PasswordInput
-                      id="current-password"
-                      autoComplete="current-password"
-                      value={currentPassword}
-                      onChange={(event) =>
-                        setCurrentPassword(event.target.value)
-                      }
-                      {...passwordToggle}
-                    />
-                  </Field>
-                  <Divider />
+                  {invited ? (
+                    <Note title="Welcome">
+                      Choose a password to finish setting up your account.
+                    </Note>
+                  ) : (
+                    <>
+                      <Field
+                        id="current-password"
+                        label={t(
+                          "settings.currentPassword",
+                          "Current password",
+                        )}
+                        className="os-narrow"
+                      >
+                        <PasswordInput
+                          id="current-password"
+                          autoComplete="current-password"
+                          value={currentPassword}
+                          onChange={(event) =>
+                            setCurrentPassword(event.target.value)
+                          }
+                          {...passwordToggle}
+                        />
+                      </Field>
+                      <Divider />
+                    </>
+                  )}
                   <div className="os-password-columns">
                     <div>
                       <div className="os-field">
@@ -1535,7 +1648,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                     </IconTile>
                   }
                   title="Two-step verification"
-                  badge={<Badge tone="warn">Off</Badge>}
+                  badge={<Badge tone="neutral">{soon}</Badge>}
                   description="Ask for a code from an authenticator app each time you sign in. Recommended for anyone who manages campaigns and rewards."
                   actions={
                     <button
@@ -1558,8 +1671,9 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                     <button
                       type="button"
                       className="os-btn os-btn-secondary os-btn-sm"
-                      disabled
-                      title={soon}
+                      disabled={signingOutOthers}
+                      aria-busy={signingOutOthers || undefined}
+                      onClick={() => void handleSignOutOthers()}
                     >
                       Sign out of other devices
                     </button>
@@ -1652,7 +1766,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                   <button
                     type="submit"
                     className="os-btn os-btn-primary"
-                    disabled={saving || !newEmail.trim()}
+                    disabled={saving || !newEmail.trim() || !emailPassword}
                     aria-busy={saving || undefined}
                   >
                     <Mail aria-hidden strokeWidth={2} />

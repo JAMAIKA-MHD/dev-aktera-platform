@@ -253,6 +253,18 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
   });
 
   it("opens the Reward Library on its libraries, then the Local Library on its own URL", async () => {
+    rewardHook.prizes = [
+      {
+        id: "r0",
+        name: "Gift",
+        category: "voucher",
+        description: "",
+        totalStock: 1,
+        availableStock: 1,
+        allocatedStock: 0,
+        itemValue: "",
+      },
+    ];
     renderAt("/prizes");
     const user = userEvent.setup();
     expect(

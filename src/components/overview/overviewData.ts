@@ -1,18 +1,18 @@
 import {
   CircleCheck,
-  CircleHelp,
   Clock,
-  FerrisWheel,
   FileText,
+  Gamepad2,
   Gift,
-  LayoutGrid,
   Pause,
   Ticket,
   type LucideIcon,
 } from "lucide-react";
 
-// Everything the Overview page shows. It is all MOCK data, kept here so that each block can be
-// wired to real data on its own. Nothing here fetches anything.
+import type { Campaign } from "../../types";
+
+// The fixed vocabulary of the Overview: dates, game types, statuses, filters. The account's own
+// figures are computed in overviewMetrics.ts.
 
 export type Accent = "k1" | "k2" | "k3" | "k4";
 export type RangeKey = "7d" | "30d";
@@ -40,12 +40,6 @@ const MONTH_NAMES = [
   "Dec",
 ];
 
-const at = (month: number, day: number, hour = 0, minute = 0, year = 2026) =>
-  new Date(year, month - 1, day, hour, minute).getTime();
-const endOfDay = (month: number, day: number) => at(month, day, 23, 59);
-
-export const NOW = at(10, 29, 19, 40);
-
 export const startOfDay = (time: number) => {
   const date = new Date(time);
   return new Date(
@@ -70,107 +64,45 @@ export const shortDate = (time: number) => {
 /** "Sat 14 Nov 2026" */
 export const longDate = (time: number) =>
   `${shortDate(time)} ${new Date(time).getFullYear()}`;
+/** "14 Nov" */
+export const dayMonth = (time: number) => shortDate(time).slice(4);
+/** "19:40" */
+export const clockTime = (time: number) => {
+  const date = new Date(time);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
 
 // ── Game types ───────────────────────────────────────────────────────────────
 
 export const GAME_TYPES = {
-  spin: {
-    label: "Lucky Spin",
-    caption: "A wheel with prizes",
-    accent: "k4",
-    icon: FerrisWheel,
+  lucky_wheel: { label: "Lucky Spin", caption: "A wheel with prizes" },
+  quiz: { label: "Quiz", caption: "Questions and scores" },
+  scratch_card: { label: "Scratch card", caption: "Reveal a hidden prize" },
+  mystery_box: {
+    label: "Mystery box",
+    caption: "Pick a box, win what is inside",
   },
-  quiz: {
-    label: "Quiz",
-    caption: "Questions and scores",
-    accent: "k2",
-    icon: CircleHelp,
-  },
-  scratch: {
-    label: "Scratch card",
-    caption: "Reveal a hidden prize",
-    accent: "k1",
-    icon: Ticket,
-  },
-  memory: {
-    label: "Memory match",
-    caption: "Match pairs to win",
-    accent: "k3",
-    icon: LayoutGrid,
-  },
+  hit_it: { label: "Hit It", caption: "Tap fast to score" },
 } as const satisfies Record<
-  string,
-  { label: string; caption: string; accent: Accent; icon: LucideIcon }
+  Campaign["gameType"],
+  { label: string; caption: string }
 >;
 export type GameKey = keyof typeof GAME_TYPES;
-export const GAME_LIST = Object.values(GAME_TYPES);
-
-// ── Vouchers running low ─────────────────────────────────────────────────────
-
-export const LOW_VOUCHERS = [
-  {
-    name: "Free coffee voucher",
-    left: 4,
-    total: 100,
-    value: 4,
-    variant: "danger",
-  },
-  {
-    name: "Cinema ticket",
-    left: 38,
-    total: 400,
-    value: 9.5,
-    variant: "warning",
-  },
-] as const;
+export const GAME_LIST = (Object.keys(GAME_TYPES) as GameKey[]).map((id) => ({
+  id,
+  ...GAME_TYPES[id],
+}));
 
 // ── Performance snapshot ─────────────────────────────────────────────────────
 
-export const PERFORMANCE: Record<
+export const PERFORMANCE_RANGES: Record<
   RangeKey,
-  {
-    tab: string;
-    days: number;
-    participants: string;
-    participantsDelta: string;
-    claimed: string;
-    available: string;
-    claimedShare: number;
-    redemption: string;
-    redemptionDelta: string;
-  }
+  { tab: string; days: number }
 > = {
-  "7d": {
-    tab: "7 days",
-    days: 7,
-    participants: "18.4K",
-    participantsDelta: "12%",
-    claimed: "6.2K",
-    available: "9.0K",
-    claimedShare: 69,
-    redemption: "24.5%",
-    redemptionDelta: "2.1 pts",
-  },
-  "30d": {
-    tab: "30 days",
-    days: 30,
-    participants: "74.1K",
-    participantsDelta: "9%",
-    claimed: "24.8K",
-    available: "36.0K",
-    claimedShare: 69,
-    redemption: "24.5%",
-    redemptionDelta: "1.4 pts",
-  },
+  "7d": { tab: "7 days", days: 7 },
+  "30d": { tab: "30 days", days: 30 },
 };
-
-/** A gentle upward trend with a small sine wobble, between 0 and 1. */
-export const sparkValues = (points: number) =>
-  Array.from({ length: points }, (_, index) => {
-    const progress = index / (points - 1);
-    const wobble = Math.sin(progress * Math.PI * (points > 10 ? 9 : 3.5));
-    return 0.2 + 0.6 * progress + 0.1 * wobble;
-  });
 
 // ── Campaign timeline ────────────────────────────────────────────────────────
 
@@ -194,78 +126,6 @@ export interface TimelineCampaign {
   prize: string | null;
 }
 
-export const TIMELINE_CAMPAIGNS: TimelineCampaign[] = [
-  {
-    id: "autumn",
-    name: "Autumn Gift Wheel",
-    game: "spin",
-    status: "active",
-    ending: true,
-    start: at(9, 29),
-    end: endOfDay(10, 30),
-    dates: "29 Sep – 30 Oct, 23:59",
-    rightLabel: "Ending soon · 28 h left",
-    rightTone: "danger",
-    prize: "Cinema ticket",
-  },
-  {
-    id: "dzz",
-    name: "DZZ Mega Grand Challenge",
-    game: "spin",
-    status: "active",
-    start: at(9, 29),
-    end: endOfDay(11, 15),
-    dates: "29 Sep – 15 Nov",
-    rightLabel: "Active · 17 d left",
-    prize: "10% discount code",
-  },
-  {
-    id: "weekend",
-    name: "Weekend Scratch & Win",
-    game: "scratch",
-    status: "active",
-    start: at(10, 12),
-    end: endOfDay(11, 9),
-    dates: "12 Oct – 9 Nov",
-    rightLabel: "Active · 11 d left",
-    prize: "Free coffee voucher",
-  },
-  {
-    id: "winter",
-    name: "Winter Gift Wheel",
-    game: "spin",
-    status: "scheduled",
-    start: at(11, 1, 9),
-    end: endOfDay(11, 30),
-    dates: "1 Nov, 09:00 – 30 Nov",
-    rightLabel: "Scheduled · starts in 2 d",
-    prize: "Gift card",
-  },
-  {
-    id: "bf",
-    name: "Black Friday Quiz",
-    game: "quiz",
-    status: "scheduled",
-    start: at(11, 25),
-    end: endOfDay(11, 30),
-    dates: "25 Nov – 30 Nov",
-    rightLabel: "Scheduled · starts in 27 d",
-    prize: null,
-  },
-  {
-    id: "memory",
-    name: "Memory Match Rewards",
-    game: "memory",
-    status: "paused",
-    start: at(10, 5),
-    end: endOfDay(11, 20),
-    dates: "5 Oct – 20 Nov",
-    rightLabel: "Paused",
-    rightTone: "warning",
-    prize: "Cinema ticket",
-  },
-];
-
 export const TIMELINE_FILTERS: {
   key: TimelineFilter;
   label: string;
@@ -282,150 +142,66 @@ export const TIMELINE_FILTERS: {
   { key: "ending", label: "Ending soon", matches: (c) => Boolean(c.ending) },
 ];
 
-const weekTick = (index: number) => {
-  const time = addDays(at(10, 26), index * 7);
-  return { time, label: shortDate(time).slice(4) };
-};
-export const TIMELINE_SCALES: Record<
-  Scale,
-  {
-    tab: string;
-    subtitle: string;
-    start: number;
-    days: number;
-    ticks: { time: number; label: string }[];
-  }
-> = {
-  weeks: {
-    tab: "Weeks",
-    subtitle: "Next 8 weeks",
-    start: at(10, 26),
-    days: 56,
-    ticks: Array.from({ length: 8 }, (_, index) => weekTick(index)),
-  },
-  months: {
-    tab: "Months",
-    subtitle: "Oct 2026 – Jan 2027",
-    start: at(10, 1),
-    days: 122,
-    ticks: [
-      { time: at(10, 1), label: "Oct" },
-      { time: at(11, 1), label: "Nov" },
-      { time: at(12, 1), label: "Dec" },
-      { time: at(1, 1, 0, 0, 2027), label: "Jan 2027" },
-    ],
-  },
-};
+export interface TimelineScale {
+  tab: string;
+  subtitle: string;
+  start: number;
+  days: number;
+  ticks: { time: number; label: string }[];
+}
+
+/** The two views of the timeline, from the week and the month of `now`. */
+export function timelineScales(now: number): Record<Scale, TimelineScale> {
+  const date = new Date(now);
+  // Monday of this week.
+  const weekStart = addDays(now, -((date.getDay() + 6) % 7));
+  const WEEKS = 8;
+  const MONTHS = 4;
+  const monthStart = (offset: number) =>
+    new Date(date.getFullYear(), date.getMonth() + offset, 1).getTime();
+  const monthLabel = (time: number, withYear: boolean) => {
+    const month = new Date(time);
+    const name = MONTH_NAMES[month.getMonth()];
+    return withYear ? `${name} ${month.getFullYear()}` : name;
+  };
+  const lastMonth = monthStart(MONTHS - 1);
+  return {
+    weeks: {
+      tab: "Weeks",
+      subtitle: `Next ${WEEKS} weeks`,
+      start: weekStart,
+      days: WEEKS * 7,
+      ticks: Array.from({ length: WEEKS }, (_, index) => {
+        const time = addDays(weekStart, index * 7);
+        return { time, label: dayMonth(time) };
+      }),
+    },
+    months: {
+      tab: "Months",
+      subtitle: `${monthLabel(monthStart(0), true)} – ${monthLabel(lastMonth, true)}`,
+      start: monthStart(0),
+      days: Math.round((monthStart(MONTHS) - monthStart(0)) / DAY),
+      ticks: Array.from({ length: MONTHS }, (_, index) => {
+        const time = monthStart(index);
+        return {
+          time,
+          label: monthLabel(time, new Date(time).getMonth() === 0),
+        };
+      }),
+    },
+  };
+}
 
 // ── Team activity ────────────────────────────────────────────────────────────
 
 export const ACTIVITY_LIMIT = 6;
+/** Enough rows for each filter to have something to show. */
+export const ACTIVITY_FETCHED = 40;
 export const ACTIVITY_FILTERS: { key: ActivityFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "campaign", label: "Campaigns" },
   { key: "reward", label: "Rewards" },
   { key: "team", label: "Team access" },
-];
-
-export const ACTIVITY: {
-  category: Exclude<ActivityFilter, "all">;
-  initials: string;
-  accent: Accent;
-  who: string;
-  verb: string;
-  object: string;
-  suffix?: string;
-  detail?: string;
-  relative: string;
-  absolute: string;
-}[] = [
-  {
-    category: "campaign",
-    initials: "SB",
-    accent: "k4",
-    who: "Sara",
-    verb: "paused",
-    object: "Summer Wheel",
-    detail: "Status: Live → Paused",
-    relative: "12 min ago",
-    absolute: "Thu 29 Oct, 19:28",
-  },
-  {
-    category: "campaign",
-    initials: "LM",
-    accent: "k1",
-    who: "Lina",
-    verb: "scheduled",
-    object: "Winter Gift Wheel",
-    relative: "1 h ago",
-    absolute: "Thu 29 Oct, 18:40",
-  },
-  {
-    category: "reward",
-    initials: "AK",
-    accent: "k2",
-    who: "Amine",
-    verb: "edited the prize of",
-    object: "Weekend Scratch & Win",
-    detail: "Prize: 10% discount code → Free coffee voucher",
-    relative: "3 h ago",
-    absolute: "Thu 29 Oct, 16:40",
-  },
-  {
-    category: "reward",
-    initials: "SY",
-    accent: "k3",
-    who: "System",
-    verb: "flagged",
-    object: "Free coffee voucher",
-    suffix: "as critical stock",
-    detail: "Stock: 4 of 100 left",
-    relative: "5 h ago",
-    absolute: "Thu 29 Oct, 14:32",
-  },
-  {
-    category: "campaign",
-    initials: "M",
-    accent: "k3",
-    who: "You",
-    verb: "launched",
-    object: "DZZ Mega Grand Challenge",
-    relative: "Yesterday",
-    absolute: "Wed 28 Oct, 09:15",
-  },
-  {
-    category: "team",
-    initials: "LM",
-    accent: "k1",
-    who: "Lina",
-    verb: "invited",
-    object: "Karim",
-    suffix: "as Viewer",
-    relative: "Yesterday",
-    absolute: "Wed 28 Oct, 08:40",
-  },
-  {
-    category: "campaign",
-    initials: "SB",
-    accent: "k4",
-    who: "Sara",
-    verb: "archived",
-    object: "Spring Quiz",
-    detail: "Status: Ended → Archived",
-    relative: "2 days ago",
-    absolute: "Tue 27 Oct, 14:05",
-  },
-  {
-    category: "team",
-    initials: "LM",
-    accent: "k1",
-    who: "Lina",
-    verb: "changed the role of",
-    object: "Amine",
-    detail: "Role: Viewer → Editor",
-    relative: "3 days ago",
-    absolute: "Mon 26 Oct, 11:20",
-  },
 ];
 
 // ── Help panel ───────────────────────────────────────────────────────────────
@@ -441,7 +217,7 @@ export const HELP_SUGGESTIONS: Record<
 > = {
   full: [
     {
-      label: "How to top up voucher stock (3 are critical)",
+      label: "How to top up voucher stock",
       accent: "k3",
       icon: Ticket,
       to: "prizes",
@@ -469,7 +245,7 @@ export const HELP_SUGGESTIONS: Record<
     {
       label: "Choose the right game type",
       accent: "k4",
-      icon: FerrisWheel,
+      icon: Gamepad2,
       to: "create",
     },
     {

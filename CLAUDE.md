@@ -62,11 +62,12 @@ Custom hooks (`useCampaigns`, `usePrizeTemplates`, `useEntries`, etc.) return ma
 
 ### Supabase Edge Functions (Deno)
 
-Located in `supabase/functions/`. Three functions:
+Located in `supabase/functions/`. Four functions:
 
 - **`select-prize`** — Core server-side prize selection. POST with `campaign_id`, `phone_number`, game payload and `metadata` (consent proof, `client_request_id`, `source`, `wilaya`). Normalizes Algerian phone numbers (`0541234567` / `+213541234567`), refuses a participation without consent, replays the same answer for the same `client_request_id` (`replayed: true`), checks the campaign period, and claims the coupon atomically (`claim_campaign_prize_coupon`). Every error has a `code` (`INVALID_INPUT`, `CONSENT_REQUIRED`, `CAMPAIGN_CLOSED`, `ALREADY_PARTICIPATED`, `DRAW_FAILED`, `SERVER_ERROR`). Returns winner status, prize, coupon code.
 - **`create-organization`** — Gated by `REGISTRATION_ENABLED` env var.
 - **`confirm-coupon`** — Coupon redemption confirmation.
+- **`team-members`** — Invite a teammate, change a role, remove a member. Checks that the caller is an owner or admin; roles, organizations and plans can only be changed by the server (`trg_protect_profile_access`, `trg_protect_organization_plan`).
 
 **Prize selection must always happen in `select-prize`, never client-side.** This is a security invariant.
 

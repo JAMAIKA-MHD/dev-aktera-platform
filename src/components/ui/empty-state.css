@@ -37,6 +37,9 @@
   border-radius: 16px;
   background: var(--surface);
 }
+.es[data-variant="bare"] {
+  padding: 56px 24px;
+}
 .es[data-variant="card"] {
   padding: 32px 20px;
 }
@@ -89,6 +92,15 @@
   width: 100%;
   max-width: 860px;
   margin-top: 12px;
+}
+/* The next step as plain text: for a notice that sits above a working page. */
+.es-link {
+  color: var(--brand-text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* A greyed chart that stands for data to come. Always carries a visible label. */
