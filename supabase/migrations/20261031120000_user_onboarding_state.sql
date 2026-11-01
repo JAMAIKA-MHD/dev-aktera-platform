@@ -7,9 +7,11 @@
 --   onboarding_completed_at  when the tour was finished
 --   onboarding_checklist     what the data cannot tell: { sandbox_tested_at, dismissed_at }
 --
--- Everyone who already has an account is marked as done: the tour is for new accounts, and
--- their dashboard is not empty. The tour stays available from the account menu. The columns
--- and that mark are applied together, once, so running this again cannot end a tour in progress.
+-- Accounts that already have a campaign are marked as done: the tour and the setup section are
+-- for accounts starting out, and their dashboard is not empty. An account without a campaign is
+-- still starting out, however old it is, and gets both. The tour stays available from the account
+-- menu. The columns and that mark are applied together, once, so running this again cannot end a
+-- tour in progress.
 --
 -- Access: the existing policies apply. A person updates their own row (update_org_profiles);
 -- no new function is needed.
@@ -31,10 +33,13 @@ BEGIN
       ADD COLUMN onboarding_completed_at timestamptz,
       ADD COLUMN onboarding_checklist jsonb NOT NULL DEFAULT '{}'::jsonb;
 
-    UPDATE public.profiles
+    UPDATE public.profiles p
     SET onboarding_status = 'completed',
         onboarding_completed_at = now(),
-        onboarding_checklist = jsonb_build_object('dismissed_at', now());
+        onboarding_checklist = jsonb_build_object('dismissed_at', now())
+    WHERE EXISTS (
+      SELECT 1 FROM public.campaigns c WHERE c.organization_id = p.organization_id
+    );
   END IF;
 END;
 $$;

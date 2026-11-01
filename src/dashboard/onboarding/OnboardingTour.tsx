@@ -164,7 +164,20 @@ export default function OnboardingTour({
 
   const [step, setStep] = useState(Math.min(run.startStep, LAST_STEP));
   const [passed, setPassed] = useState<ReadonlySet<number>>(new Set());
-  const [nudge, setNudge] = useState(0);
+
+  // A click on the dimmed page closes nothing: the card just points at itself.
+  const nudgeCard = () => {
+    if (reduceMotion) return;
+    cardRef.current?.firstElementChild?.animate?.(
+      [
+        { transform: "translateX(0)" },
+        { transform: "translateX(-5px)" },
+        { transform: "translateX(5px)" },
+        { transform: "translateX(0)" },
+      ],
+      { duration: 240, easing: "ease-out" },
+    );
+  };
 
   const current = tourStepAt(step);
   const viewport = useViewport();
@@ -287,11 +300,7 @@ export default function OnboardingTour({
 
   return createPortal(
     <div className="ot-root dz-theme-auto">
-      <svg
-        className="ot-scrim"
-        aria-hidden
-        onClick={() => setNudge((count) => count + 1)}
-      >
+      <svg className="ot-scrim" aria-hidden onClick={nudgeCard}>
         <defs>
           <mask id="ot-holes">
             <rect width="100%" height="100%" fill="white" />
@@ -339,7 +348,7 @@ export default function OnboardingTour({
         {isWelcome ? title : `${stepLabel}: ${title}`}
       </p>
 
-      <motion.div
+      <div
         ref={cardRef}
         role="dialog"
         aria-modal="true"
@@ -351,22 +360,12 @@ export default function OnboardingTour({
         style={
           {
             "--ot-arrow": `${placement?.arrow ?? 0}px`,
-            ...(centered
-              ? { top: "50%", left: "50%", x: "-50%", y: "-50%" }
-              : {}),
+            top: placement?.top,
+            left: placement?.left,
           } as CSSProperties
         }
-        initial={false}
-        animate={
-          placement ? { top: placement.top, left: placement.left } : undefined
-        }
-        transition={transition}
       >
-        <div
-          key={nudge}
-          className="ot-card-inner"
-          data-nudge={nudge > 0 || undefined}
-        >
+        <div className="ot-card-inner">
           {!isWelcome && <span aria-hidden className="ot-arrow" />}
           <div className="ot-head">
             {isWelcome ? (
@@ -473,7 +472,7 @@ export default function OnboardingTour({
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>,
     document.body,
   );

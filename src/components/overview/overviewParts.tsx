@@ -1,5 +1,5 @@
 // The small pieces every Overview section shares. They read their colors from overview.css.
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PATHS } from "../../dashboard/paths";
@@ -12,7 +12,7 @@ export const ICON = {
 } as const;
 export const SMALL_ICON = { ...ICON, size: 14 } as const;
 
-/** The screens a mock row can point to. */
+/** The screens a help suggestion can point to. */
 export const ROUTES = {
   create: PATHS.create,
   campaigns: PATHS.campaigns,
@@ -20,12 +20,13 @@ export const ROUTES = {
   support: PATHS.support,
 } as const;
 
-export function Delta({ value }: { value: string }) {
+export function Delta({ label, up }: { label: string; up: boolean }) {
+  const Arrow = up ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className="ov-badge ov-badge-sm ov-ok">
-      <ArrowUpRight {...SMALL_ICON} />
-      <span className="sr-only">Up </span>
-      {value}
+    <span className={`ov-badge ov-badge-sm ${up ? "ov-ok" : "ov-warn"}`}>
+      <Arrow {...SMALL_ICON} />
+      <span className="sr-only">{up ? "Up " : "Down "}</span>
+      {label}
     </span>
   );
 }
@@ -51,13 +52,29 @@ export function Segmented<Key extends string>({
   onChange: (key: NoInfer<Key>) => void;
 }) {
   return (
-    <div className="ov-segmented" role="tablist" aria-label={label}>
+    <div
+      className="ov-segmented"
+      role="tablist"
+      aria-label={label}
+      onKeyDown={(event) => {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+        event.preventDefault();
+        const step = event.key === "ArrowRight" ? 1 : -1;
+        const index = options.findIndex((option) => option.key === value);
+        const next = options[(index + step + options.length) % options.length];
+        onChange(next.key);
+        // The tab that was just chosen takes the focus, wherever it is in the row.
+        const tabs = event.currentTarget.querySelectorAll("button");
+        tabs[options.indexOf(next)]?.focus();
+      }}
+    >
       {options.map((option) => (
         <button
           key={option.key}
           type="button"
           role="tab"
           aria-selected={value === option.key}
+          tabIndex={value === option.key ? 0 : -1}
           onClick={() => onChange(option.key)}
         >
           {option.label}

@@ -1,6 +1,6 @@
-// The emblem of a game: a two-tone drawing on a soft tile, in that game's colour family.
-// It identifies the game only (never a status) and follows the theme through the
-// `cx-g-<game>` classes of src/index.css.
+// The emblem of a game: a two-tone drawing on a soft tile, in that game's colour family. This is
+// the one icon of a game everywhere in the app. It identifies the game only (never a status) and
+// follows the theme through the `cx-g-<game>` classes of src/index.css.
 import type { ReactNode } from "react";
 
 import { cn } from "../../lib/utils";
@@ -163,7 +163,7 @@ export function GameEmblem({
   className,
 }: {
   gameType: GameType;
-  /** Side of the tile in pixels: 32, 44, 56, 60 or 96. */
+  /** Side of the tile in pixels. */
   size?: number;
   /** Ringed with the surface colour, for an emblem that overlaps a card's banner. */
   lifted?: boolean;

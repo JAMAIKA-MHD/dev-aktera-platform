@@ -23,13 +23,10 @@ export async function saveOnboardingProgress(
   if (error) throw error;
 }
 
-export async function countOrganizationMembers(
-  organizationId: string,
-): Promise<number> {
-  const { count, error } = await supabase
+export async function markJoined(userId: string): Promise<void> {
+  const { error } = await supabase
     .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId);
+    .update({ joined_at: new Date().toISOString() })
+    .eq("id", userId);
   if (error) throw error;
-  return count ?? 0;
 }

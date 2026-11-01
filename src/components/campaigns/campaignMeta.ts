@@ -1,14 +1,5 @@
-// Shared vocabulary of the campaigns section (list, wizard, workspace): one label, icon and
-// colour per game type and per status, so the three screens always agree.
-import {
-  Disc,
-  Gift,
-  HelpCircle,
-  Layers,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
-
+// Shared vocabulary of the campaigns section (list, wizard, workspace): one label per game type
+// and per status, so the three screens always agree. A game's icon is its GameEmblem.
 import type { Campaign } from "../../types";
 
 export type GameType = Campaign["gameType"];
@@ -23,9 +14,6 @@ export interface GameMeta {
   description: string;
   /** What the brand has to set up for this game. */
   setup: string;
-  icon: LucideIcon;
-  /** Icon tile: tinted background and matching text colour. */
-  tile: string;
 }
 
 export const GAME_TYPES: GameMeta[] = [
@@ -35,8 +23,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Spin Wheel",
     description: "Players spin a wheel and land on a prize.",
     setup: "Prizes and their share of the wheel",
-    icon: Disc,
-    tile: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
   },
   {
     id: "scratch_card",
@@ -44,8 +30,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Scratch Card",
     description: "Players scratch a card to reveal what they won.",
     setup: "Prizes and win chance",
-    icon: Layers,
-    tile: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
   },
   {
     id: "mystery_box",
@@ -53,8 +37,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Mystery Box",
     description: "Players pick one of three boxes to open.",
     setup: "Prizes and win chance",
-    icon: Gift,
-    tile: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
   },
   {
     id: "hit_it",
@@ -62,8 +44,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Hit It",
     description: "Players tap a target as fast as they can in 10 seconds.",
     setup: "Number of hits needed to win",
-    icon: Zap,
-    tile: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
   },
   {
     id: "quiz",
@@ -71,8 +51,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Quiz Challenge",
     description: "Players answer your questions to unlock the prize draw.",
     setup: "Your questions and the passing score",
-    icon: HelpCircle,
-    tile: "bg-purple-500/10 text-purple-600 dark:text-purple-300",
   },
 ];
 

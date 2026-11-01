@@ -1506,58 +1506,8 @@
   }
 }
 
-/* ── First steps (a new account) ──────────────────────────────────────────── */
+/* ── Empty forms of the blocks ────────────────────────────────────────────── */
 
-.ov-journey {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px 22px;
-  & h2 {
-    font-size: 18px;
-    line-height: 26px;
-    font-weight: 700;
-  }
-}
-.ov-journey-steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  padding: 0;
-  list-style: none;
-  > li {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface-sunken);
-  }
-}
-.ov-journey-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-.ov-journey-mark {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--brand-soft);
-  color: var(--brand-text);
-  font-size: 12px;
-  font-weight: 700;
-  &[data-done] {
-    background: var(--success-soft);
-    color: var(--success);
-  }
-}
 .ov-sum-empty {
   display: flex;
   flex-direction: column;
@@ -1569,7 +1519,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 12px;
+  padding: 16px 18px;
+  & > .ov-title {
+    margin-bottom: 2px;
+  }
 }
 
 /* ── Reduced motion ───────────────────────────────────────────────────────── */

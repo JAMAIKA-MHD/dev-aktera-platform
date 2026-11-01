@@ -81,7 +81,8 @@ describe("PublicPlayPage", () => {
     expect(load).toHaveBeenCalledWith(expect.anything(), "zeta");
     // No demo badge: the live gateway is used, and accepted.
     expect(screen.queryByText("Demo")).toBeNull();
-    expect(document.title).toBe("Zeta Wheel");
+    // Set just after the page appears: checked once it has had the time to.
+    await waitFor(() => expect(document.title).toBe("Zeta Wheel"));
   });
 
   it("says so, in three languages, when the campaign does not exist", async () => {

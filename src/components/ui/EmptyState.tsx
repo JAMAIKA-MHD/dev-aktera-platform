@@ -26,7 +26,8 @@ export interface EmptyStateProps {
   primaryAction?: EmptyStateAction;
   secondaryAction?: EmptyStateAction;
   hint?: string;
-  variant?: "page" | "card" | "inline";
+  /** "bare" is "page" with nothing behind it, directly on the page background. */
+  variant?: "page" | "bare" | "card" | "inline";
   /** The level that fits the page around it. */
   headingLevel?: 2 | 3;
   tone?: "brand" | "danger";

@@ -26,6 +26,8 @@ import {
 
 interface AnalyticsCenterProps {
   initialCampaignId?: string | null;
+  /** Shown above the combined view's cards, under the toolbar. */
+  notice?: React.ReactNode;
 }
 
 const SECTION_TABS: { key: AnalyticsSection; label: string }[] = [
@@ -40,6 +42,7 @@ const SECTION_TABS: { key: AnalyticsSection; label: string }[] = [
  */
 export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
+  notice,
 }) => {
   const [searchParams] = useSearchParams();
   const requested = searchParams.get("section") as AnalyticsSection | null;
@@ -76,7 +79,10 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
       </div>
 
       {section === "campaigns" && (
-        <CampaignsSection initialCampaignId={initialCampaignId} />
+        <CampaignsSection
+          initialCampaignId={initialCampaignId}
+          notice={notice}
+        />
       )}
       {section === "rewards" && <RewardAnalyticsDashboard />}
       {section === "billing" && <BillingAnalyticsDashboard />}
@@ -86,6 +92,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
 const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
+  notice,
 }) => {
   const { organization: _organization } = useAuth();
   const { theme } = useTheme();
@@ -274,6 +281,8 @@ const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
           {reportError}
         </div>
       )}
+
+      {isAllCampaigns && notice}
 
       {selectedCampId !== "all" ? (
         <div className="mb-4">

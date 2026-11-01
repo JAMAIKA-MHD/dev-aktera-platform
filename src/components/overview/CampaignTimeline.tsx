@@ -1,10 +1,4 @@
-import {
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type MouseEvent,
-} from "react";
+import { useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   ChevronLeft,
@@ -15,29 +9,24 @@ import {
 } from "lucide-react";
 
 import { PATHS } from "../../dashboard/paths";
+import type { Campaign, PrizeTemplate } from "../../types";
 import {
   CAMPAIGN_STATUSES,
   DAY,
   GAME_TYPES,
-  NOW,
-  TIMELINE_CAMPAIGNS,
   TIMELINE_FILTERS,
-  TIMELINE_SCALES,
   addDays,
   longDate,
   shortDate,
   startOfDay,
+  timelineScales,
   type Scale,
   type TimelineCampaign,
   type TimelineFilter,
 } from "./overviewData";
-import {
-  FilterChips,
-  ICON,
-  SMALL_ICON,
-  Segmented,
-  TextLink,
-} from "./overviewParts";
+import { GameEmblem } from "../campaigns/GameEmblem";
+import { timelineCampaigns } from "./overviewMetrics";
+import { FilterChips, SMALL_ICON, Segmented, TextLink } from "./overviewParts";
 
 const MIN_BAR_WIDTH = 1.2;
 // A bar ending past this share of a narrow chart has no room for its label after it.
@@ -117,13 +106,10 @@ function CampaignBar({
 
 function SelectedCampaign({ campaign }: { campaign: TimelineCampaign }) {
   const game = GAME_TYPES[campaign.game];
-  const GameIcon = game.icon;
   return (
     <div className="ov-detail">
-      <div className={`ov-detail-head ${game.accent}`}>
-        <span aria-hidden className="ov-tile ov-tile-40">
-          <GameIcon {...ICON} />
-        </span>
+      <div className="ov-detail-head">
+        <GameEmblem gameType={campaign.game} size={40} />
         <div className="ov-detail-name">
           <p className="ov-strong">{campaign.name}</p>
           <p className="ov-caption dz-num">
@@ -151,10 +137,10 @@ function SelectedCampaign({ campaign }: { campaign: TimelineCampaign }) {
         )}
       </p>
       <div className="ov-detail-actions">
-        <Link to={PATHS.campaigns} className="ov-btn ov-btn-sm">
+        <Link to={PATHS.campaign(campaign.id)} className="ov-btn ov-btn-sm">
           Open campaign
         </Link>
-        <Link to={PATHS.campaigns} className="ov-btn ov-btn-sm">
+        <Link to={PATHS.edit(campaign.id)} className="ov-btn ov-btn-sm">
           Edit schedule
         </Link>
       </div>
@@ -219,31 +205,38 @@ function SelectedDate({
   );
 }
 
-export function CampaignTimeline() {
+export function CampaignTimeline({
+  campaigns: allCampaigns,
+  prizes,
+}: {
+  campaigns: Campaign[];
+  prizes: PrizeTemplate[];
+}) {
   const [scale, setScale] = useState<Scale>("weeks");
   const [filter, setFilter] = useState<TimelineFilter>("all");
-  const [selId, setSelId] = useState("autumn");
+  const [selId, setSelId] = useState<string | null>(null);
   const [selDate, setSelDate] = useState<number | null>(null);
   const plotRef = useRef<HTMLDivElement>(null);
 
-  const range = TIMELINE_SCALES[scale];
+  const now = Date.now();
+  const scales = timelineScales(now);
+  const rows = timelineCampaigns(allCampaigns, prizes, now);
+
+  const range = scales[scale];
   const span = range.days * DAY;
   const rangeEnd = range.start + span;
   const percent = (time: number) =>
     clampPercent(((time - range.start) / span) * 100);
 
   const matches = TIMELINE_FILTERS.find((f) => f.key === filter)!.matches;
-  const campaigns = TIMELINE_CAMPAIGNS.filter(matches);
-  const selected = campaigns.find((c) => c.id === selId) ?? null;
-  const filterOptions = useMemo(
-    () =>
-      TIMELINE_FILTERS.map(({ key, label, matches }) => ({
-        key,
-        label,
-        count: TIMELINE_CAMPAIGNS.filter(matches).length,
-      })),
-    [],
-  );
+  const campaigns = rows.filter(matches);
+  const selected =
+    campaigns.find((c) => c.id === selId) ?? campaigns[0] ?? null;
+  const filterOptions = TIMELINE_FILTERS.map(({ key, label, matches }) => ({
+    key,
+    label,
+    count: rows.filter(matches).length,
+  }));
 
   const dateVisible =
     selDate !== null && selDate >= range.start && selDate < rangeEnd;
@@ -255,7 +248,7 @@ export function CampaignTimeline() {
     if (!plot) return;
     // A keyboard press has no position: it picks today.
     if (event.detail === 0) {
-      setSelDate(startOfDay(NOW));
+      setSelDate(startOfDay(now));
       return;
     }
     const { left, width } = plot.getBoundingClientRect();
@@ -280,7 +273,7 @@ export function CampaignTimeline() {
           value={scale}
           options={(["weeks", "months"] as const).map((key) => ({
             key,
-            label: TIMELINE_SCALES[key].tab,
+            label: scales[key].tab,
           }))}
           onChange={setScale}
         />
@@ -294,18 +287,18 @@ export function CampaignTimeline() {
       />
 
       {campaigns.length === 0 ? (
-        <p className="ov-tl-none">No campaigns match this filter.</p>
+        <p className="ov-tl-none">
+          {rows.length === 0
+            ? "Nothing live, scheduled or paused right now."
+            : "No campaigns match this filter."}
+        </p>
       ) : (
         <div className="ov-tl">
           <div className="ov-tl-labels">
             {campaigns.map((campaign) => {
-              const game = GAME_TYPES[campaign.game];
-              const GameIcon = game.icon;
               return (
-                <div key={campaign.id} className={`ov-tl-name ${game.accent}`}>
-                  <span aria-hidden className="ov-tile ov-tile-24">
-                    <GameIcon {...SMALL_ICON} />
-                  </span>
+                <div key={campaign.id} className="ov-tl-name">
+                  <GameEmblem gameType={campaign.game} size={24} />
                   <span title={campaign.name}>{campaign.name}</span>
                 </div>
               );
@@ -360,7 +353,7 @@ export function CampaignTimeline() {
               <span
                 aria-hidden
                 className="ov-tl-today"
-                style={{ left: `${percent(NOW)}%` }}
+                style={{ left: `${percent(now)}%` }}
               >
                 <span>Today</span>
               </span>
