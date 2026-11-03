@@ -139,3 +139,15 @@ export const formatCount = (count: number) =>
   count >= 1000
     ? `${(count / 1000).toFixed(1).replace(/\.0$/, "")}K`
     : String(count);
+
+/** How a campaign decides its winners, as the card and the details page show it. */
+export function winChanceLabel(
+  campaign: Pick<
+    Campaign,
+    "winProbability" | "autoPacePrizes" | "gameLogicConfig"
+  >,
+) {
+  if (campaign.gameLogicConfig?.wizard?.method === "draw") return "Draw";
+  if (campaign.winProbability >= 100) return "100%";
+  return campaign.autoPacePrizes ? "Paced" : `${campaign.winProbability}%`;
+}

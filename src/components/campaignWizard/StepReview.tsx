@@ -1,5 +1,5 @@
-// Step 4: everything the campaign will do, with a way back to each step, and what is
-// still missing before it can go live.
+// Step 5: everything the campaign will do, with a way back to each step, what is still
+// missing before it can be saved, and the player sandbox to test it before publishing.
 import type { ReactNode } from "react";
 import {
   AlertCircle,
@@ -7,24 +7,48 @@ import {
   Palette,
   Pencil,
   ShieldCheck,
+  Smartphone,
 } from "lucide-react";
 
 import type { PrizeTemplate } from "../../types";
 import { cn } from "../../lib/utils";
-import { formatPeriod } from "../playerStudio/studioCampaignCells";
-import { campaignDurationDays, gameMeta } from "../campaigns/campaignMeta";
 import { CxButton, CxNotice, cxFocus, cxText } from "../campaigns/campaignUi";
 import { GameEmblem } from "../campaigns/GameEmblem";
 import { hintClass, rowClass, StepPanel } from "./wizardFields";
 import {
-  allocatedPrizeLines,
+  consolationOn,
+  drawHandledByBrand,
+  engagementLabel,
+  engagementSettings,
+  formatDateTime,
+  gameTypeOf,
+  isDraw,
   maxEntriesLabel,
-  totalPrizeQuantity,
+  revealLabel,
+  rewardModeLabel,
+  savedPrizeLines,
   totalPrizeWeight,
+  type FieldErrors,
   type StepId,
   type WizardForm,
-  type WizardIssue,
 } from "./wizardForm";
+
+export interface ReviewIssue {
+  step: StepId;
+  field: string;
+  message: string;
+}
+
+export const listIssues = (
+  errors: Partial<Record<StepId, FieldErrors>>,
+): ReviewIssue[] =>
+  (Object.entries(errors) as [string, FieldErrors][]).flatMap(([step, found]) =>
+    Object.entries(found).map(([field, message]) => ({
+      step: Number(step) as StepId,
+      field,
+      message,
+    })),
+  );
 
 function Section({
   title,
@@ -72,18 +96,22 @@ export function StepReview({
   issues,
   templates,
   onEdit,
+  onOpenSandbox,
   onOpenPlayerStudio,
 }: {
   form: WizardForm;
-  issues: WizardIssue[];
+  issues: ReviewIssue[];
   templates: PrizeTemplate[];
   onEdit: (step: StepId) => void;
+  onOpenSandbox: () => void;
   onOpenPlayerStudio?: () => void;
 }) {
-  const game = gameMeta(form.type);
-  const days = campaignDurationDays(form.startDate, form.endDate);
-  const lines = allocatedPrizeLines(form);
+  const { w } = form;
+  const draw = isDraw(form);
+  const lines = savedPrizeLines(form);
   const totalWeight = totalPrizeWeight(lines);
+  const nameOf = (templateId: string) =>
+    templates.find((item) => item.id === templateId)?.name ?? "Unknown reward";
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -101,7 +129,7 @@ export function StepReview({
             <ul className="mt-1.5 grid grid-cols-1 gap-1.5">
               {issues.map((issue) => (
                 <li
-                  key={issue.field}
+                  key={`${issue.step}-${issue.field}`}
                   className="flex items-center justify-between gap-3 font-medium text-cx-ink"
                 >
                   <span>{issue.message}</span>
@@ -126,102 +154,98 @@ export function StepReview({
         )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Section title="Basics" step={1} onEdit={onEdit}>
+          <Section title="Foundation" step={1} onEdit={onEdit}>
             <div className="mb-1 flex items-center gap-3">
-              <GameEmblem gameType={form.type} size={44} />
+              {form.heroImageUrl ? (
+                <img
+                  src={form.heroImageUrl}
+                  alt=""
+                  className="size-11 shrink-0 rounded-cx-md object-cover"
+                />
+              ) : (
+                <GameEmblem gameType={gameTypeOf(form)} size={44} />
+              )}
               <div className="min-w-0">
                 <p className="truncate font-semibold text-cx-ink">
                   {form.name || "Untitled campaign"}
                 </p>
-                <p className={hintClass}>{game.label}</p>
+                <p className={hintClass}>{form.brandName || "No brand yet"}</p>
               </div>
             </div>
             <Row label="Player link">
               <span className="font-mono text-[13px] font-normal">
-                /play/{form.slug || "…"}
+                /play/{form.slug}
               </span>
             </Row>
-            <Row label="Runs">
-              {formatPeriod(form.startDate, form.endDate)}
-              {days !== null && ` · ${days} ${days === 1 ? "day" : "days"}`}
-            </Row>
-            <Row label="Arabic tagline">
-              <span dir="auto">{form.arabicName || "—"}</span>
-            </Row>
-            <Row label="Cover image">
-              {form.heroImageUrl ? "Added" : "None"}
+            <Row label="Starts">{formatDateTime(form.startDate)}</Row>
+            <Row label="Ends">{formatDateTime(form.endDate)}</Row>
+            <Row label="Per phone number">
+              {maxEntriesLabel(form.maxEntries)}
             </Row>
           </Section>
 
-          <Section title="Game rules" step={2} onEdit={onEdit}>
-            <Row label="Win chance">
-              {form.autoPacePrizes
-                ? "Automatic, spread over the campaign"
-                : `${form.winProbability}%`}
-            </Row>
-            <Row label="Per phone number">
-              {maxEntriesLabel(form.maxEntries, form.type)}
-            </Row>
-            {form.type === "hit_it" && (
-              <Row label="To win">
-                {form.gameLogicConfig.win_threshold ?? 8} hits in 10 seconds
-              </Row>
-            )}
-            {form.type === "quiz" && (
+          <Section title="Engagement" step={2} onEdit={onEdit}>
+            <Row label="Type">{engagementLabel(form)}</Row>
+            <Row label="Settings">{engagementSettings(form)}</Row>
+          </Section>
+
+          <Section title="Reward" step={3} onEdit={onEdit}>
+            {draw ? (
               <>
-                <Row label="Passing score">
-                  {form.gameLogicConfig.pass_threshold_percentage ?? 50}%
+                <Row label="Method">Draw</Row>
+                <Row label="Draw on">{formatDateTime(w.draw.at)}</Row>
+                <Row label="Winners">{w.draw.winners}</Row>
+                <Row label="Rules">
+                  {w.draw.rules.trim() ? "Written" : "Missing"}
                 </Row>
-                <Row label="Questions">{form.questions.length}</Row>
+              </>
+            ) : (
+              <>
+                <Row label="Method">Instant win</Row>
+                <Row label="Mode">{rewardModeLabel(form)}</Row>
+                <Row label="Reveal">{revealLabel(form)}</Row>
+                {w.mode === "probabilistic" && (
+                  <Row label="Consolation">{w.consolation ? "On" : "Off"}</Row>
+                )}
               </>
             )}
           </Section>
 
-          <div className="md:col-span-2">
-            <Section title="Prizes" step={3} onEdit={onEdit}>
-              {lines.length === 0 ? (
-                <p className={hintClass}>No prize added yet.</p>
-              ) : (
-                <>
-                  {lines.map((line, index) => {
-                    const template = templates.find(
-                      (item) => item.id === line.templateId,
-                    );
-                    const share =
-                      totalWeight > 0
-                        ? Math.round(
-                            (Number(line.weight || 0) / totalWeight) * 100,
-                          )
-                        : 0;
-                    return (
-                      <Row
-                        key={index}
-                        label={template?.name ?? "Unknown reward"}
-                      >
-                        {line.quantity} to win · {share}% of wins
-                      </Row>
-                    );
-                  })}
-                  <div className="border-t border-cx-border pt-2">
-                    <Row label="Total">{totalPrizeQuantity(lines)} prizes</Row>
-                  </div>
-                </>
-              )}
-            </Section>
-          </div>
+          <Section title="Prizes" step={4} onEdit={onEdit}>
+            {drawHandledByBrand(form) ? (
+              <p className={hintClass}>Handled by you, outside Aktera.</p>
+            ) : lines.length === 0 ? (
+              <p className={hintClass}>No prize added yet.</p>
+            ) : (
+              lines.map((line, index) => (
+                <Row key={index} label={nameOf(line.templateId)}>
+                  {line.quantity} to win
+                  {!draw &&
+                    totalWeight > 0 &&
+                    ` · ${Math.round((Number(line.weight || 0) / totalWeight) * 100)}% of wins`}
+                </Row>
+              ))
+            )}
+            {consolationOn(form) && (
+              <div className="border-t border-cx-border pt-2">
+                <Row label="Consolation">
+                  {w.consolationPrizes.length}{" "}
+                  {w.consolationPrizes.length === 1 ? "reward" : "rewards"}
+                </Row>
+              </div>
+            )}
+          </Section>
         </div>
       </StepPanel>
 
       <StepPanel
-        title="Design what players see"
-        description="The welcome, form, game and result screens are styled in the Player Studio. Save this campaign first: unsaved changes here are not carried over."
+        title="Try it before you publish"
+        description="Play the campaign as configured now, as a player would. Nothing is saved and no real prize is given."
         actions={
-          onOpenPlayerStudio && (
-            <CxButton onClick={onOpenPlayerStudio}>
-              <Palette aria-hidden />
-              Open Player Studio
-            </CxButton>
-          )
+          <CxButton onClick={onOpenSandbox}>
+            <Smartphone aria-hidden />
+            Open player sandbox
+          </CxButton>
         }
       >
         <p className={cn(hintClass, "flex items-start gap-2")}>
@@ -233,6 +257,21 @@ export function StepReview({
           campaign, and phone numbers are validated before a coupon is issued.
         </p>
       </StepPanel>
+
+      {onOpenPlayerStudio && (
+        <StepPanel
+          title="Design what players see"
+          description="The welcome, form, game and result screens are styled in the Player Studio. Save this campaign first: unsaved changes here are not carried over."
+          actions={
+            <CxButton onClick={onOpenPlayerStudio}>
+              <Palette aria-hidden />
+              Open Player Studio
+            </CxButton>
+          }
+        >
+          {null}
+        </StepPanel>
+      )}
     </div>
   );
 }

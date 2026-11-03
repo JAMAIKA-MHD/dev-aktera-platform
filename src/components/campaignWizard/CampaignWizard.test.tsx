@@ -8,9 +8,11 @@ import type { Campaign, PrizeTemplate } from "../../types";
 import { CampaignWizard } from "../CampaignWizard";
 import {
   initialWizardForm,
-  slugify,
+  playingGame,
+  savedPrizeLines,
   startingOn,
   validateWizard,
+  type WizardContext,
 } from "./wizardForm";
 
 vi.mock("../common/ImageUploader", () => ({
@@ -36,8 +38,10 @@ const LIVE: Campaign = {
   arabicName: "",
   slug: "summer-spin",
   gameType: "lucky_wheel",
+  gameLogicConfig: { brand_name: "Sunny" },
   status: "active",
   winProbability: 40,
+  autoPacePrizes: false,
   maxEntries: "2",
   prizes: [{ id: "p1", templateId: "t1", quantity: 50, weight: 100 }],
   questions: [],
@@ -45,6 +49,12 @@ const LIVE: Campaign = {
   rewardsClaimed: 3,
   startDate: "2026-10-01",
   endDate: "2026-10-31",
+};
+
+const CONTEXT: WizardContext = {
+  templates: TEMPLATES,
+  editingCampaign: null,
+  existingNames: ["Eid Wheel"],
 };
 
 function setup(props: Partial<ComponentProps<typeof CampaignWizard>> = {}) {
@@ -64,178 +74,288 @@ function setup(props: Partial<ComponentProps<typeof CampaignWizard>> = {}) {
   return { onSave, onCancel, user };
 }
 
+const steps = () =>
+  within(screen.getByRole("navigation", { name: "Steps of the campaign" }));
+const stepButton = (label: RegExp) =>
+  steps().getByRole("button", { name: label });
 const currentStep = () =>
-  screen
+  steps()
     .getAllByRole("button")
     .find((button) => button.getAttribute("aria-current") === "step")
     ?.textContent;
+// State of the circle of a step in the left list: pending, current, done or error.
+const circle = (label: RegExp) =>
+  stepButton(label).querySelector("[data-state]")?.getAttribute("data-state");
+
+async function fillFoundation(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText(/Campaign name/), "Ramadan Wheel");
+  await user.type(screen.getByLabelText(/Brand name/), "Sunny");
+}
 
 describe("wizard rules", () => {
-  it("turns a name into a link", () => {
-    expect(slugify("Ramadan Super Spin 2026!")).toBe("ramadan-super-spin-2026");
-  });
-
   it("lists what blocks saving, step by step", () => {
     const form = {
       ...initialWizardForm(null, null, []),
-      type: "quiz" as const,
-      endDate: "2020-01-01",
-      questions: [
-        {
-          id: "q1",
-          questionText: "",
-          options: ["a", "", "c", "d"],
-          correctIndex: 0,
-        },
-      ],
+      name: "Eid Wheel",
+      endDate: "2020-01-01T00:00",
     };
-    expect(
-      validateWizard(form).map((issue) => [issue.step, issue.field]),
-    ).toEqual([
-      [1, "name"],
-      [1, "slug"],
-      [1, "dates"],
-      [2, "question-q1"],
-      [3, "prizes"],
-    ]);
+    const quiz = playingGame(form, "quiz");
+    const errors = validateWizard(quiz, "draft", CONTEXT);
+    expect(errors[1]).toMatchObject({
+      name: "A campaign with this name already exists.",
+      brandName: expect.any(String),
+      endDate: "The end must be after the start.",
+    });
+    expect(Object.keys(errors[2] ?? {})).toContain("questions.0.questionText");
+    expect(errors[4]).toMatchObject({
+      "prizes.0.templateId": expect.any(String),
+    });
+  });
+
+  it("asks for the sweepstake rules only to go live", () => {
+    const base = initialWizardForm(null, null, TEMPLATES);
+    const draw = {
+      ...base,
+      w: {
+        ...base.w,
+        method: "draw" as const,
+        draw: { ...base.w.draw, at: "2999-01-01T10:00", manageStock: false },
+      },
+    };
+    expect(validateWizard(draw, "draft", CONTEXT)[3]).toBeUndefined();
+    expect(validateWizard(draw, "active", CONTEXT)[3]).toEqual({
+      "draw.rules": "Sweepstake rules are required before going live.",
+    });
+    // The brand handles the prizes of this draw: nothing is saved for it.
+    expect(savedPrizeLines(draw)).toEqual([]);
   });
 
   it("keeps the id of existing prize rows, which the save needs", () => {
     expect(initialWizardForm(LIVE, null, TEMPLATES).prizes[0].id).toBe("p1");
   });
 
+  it("reads an older campaign's game as its two layers", () => {
+    expect(initialWizardForm(LIVE, null, TEMPLATES).w).toMatchObject({
+      category: "luck",
+      revealId: "wheel",
+    });
+    const quiz = playingGame(initialWizardForm(null, null, []), "quiz").w;
+    expect(quiz).toMatchObject({ category: "knowledge", engagementId: "quiz" });
+  });
+
   it("gives a campaign started on a chosen day its usual length", () => {
-    const form = startingOn(initialWizardForm(null, null, []), "2026-12-20");
-    expect(form.startDate).toBe("2026-12-20");
-    expect(form.endDate).toBe("2027-01-19");
+    const now = new Date(2026, 10, 3, 15, 30);
+    const form = startingOn(
+      initialWizardForm(null, null, []),
+      "2026-12-20",
+      now,
+    );
+    expect(form.startDate).toBe("2026-12-20T00:00");
+    expect(form.endDate).toBe("2027-01-19T23:59");
+    // Today: it starts now, not at midnight.
+    expect(startingOn(form, "2026-11-03", now).startDate).toBe(
+      "2026-11-03T15:30",
+    );
   });
 });
-
-// State of the circle of a part in the left list: pending, current, done or error.
-const circle = (label: RegExp) =>
-  screen
-    .getByRole("button", { name: label })
-    .querySelector("[data-state]")
-    ?.getAttribute("data-state");
 
 describe("CampaignWizard", () => {
   it("opens on the date chosen on the Overview, and saves it", async () => {
     const { user, onSave, onCancel } = setup({
       initialStartDate: "2026-12-20",
     });
-    const start = screen.getByLabelText(/Start date/) as HTMLInputElement;
-    const end = screen.getByLabelText(/End date/) as HTMLInputElement;
-    expect(start.value).toBe("2026-12-20");
-    expect(end.value).toBe("2027-01-19");
+    expect((screen.getByLabelText(/Starts/) as HTMLInputElement).value).toBe(
+      "2026-12-20T00:00",
+    );
+    expect((screen.getByLabelText(/Ends/) as HTMLInputElement).value).toBe(
+      "2027-01-19T23:59",
+    );
 
     // The date came with the window: leaving at once loses nothing.
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalled();
     expect(screen.queryByText("Leave without saving?")).toBeNull();
 
-    await user.type(screen.getByLabelText(/Campaign name/), "Eid Wheel");
+    await fillFoundation(user);
     await user.click(screen.getByRole("button", { name: /Save draft/ }));
     expect(onSave.mock.calls[0][0]).toMatchObject({
-      startDate: "2026-12-20",
-      endDate: "2027-01-19",
+      startDate: "2026-12-20T00:00",
+      endDate: "2027-01-19T23:59",
     });
   });
 
   it("keeps the dates of a campaign being edited", () => {
     setup({ editingCampaign: LIVE, initialStartDate: "2026-12-20" });
-    expect(
-      (screen.getByLabelText(/Start date/) as HTMLInputElement).value,
-    ).toBe(LIVE.startDate);
+    expect((screen.getByLabelText(/Starts/) as HTMLInputElement).value).toBe(
+      "2026-10-01T00:00",
+    );
   });
 
-  it("opens as a window with the four parts listed, green once finished", async () => {
+  it("opens a quick-start game on its layers", async () => {
+    const { user } = setup({ initialGameType: "scratch_card" });
+    await user.click(stepButton(/Engagement/));
+    expect(
+      screen.getByRole("radio", { name: /^Luck/ }).getAttribute("aria-checked"),
+    ).toBe("true");
+    await user.click(stepButton(/Reward/));
+    expect(
+      screen
+        .getByRole("radio", { name: /Scratch Card/ })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("opens as a window with the five steps listed, green once finished", async () => {
     const { user } = setup();
     expect(screen.getByRole("dialog", { name: "New campaign" })).toBeTruthy();
-    const parts = within(
-      screen.getByRole("navigation", { name: "Parts of the campaign" }),
-    ).getAllByRole("button");
-    expect(parts.map((part) => part.textContent)).toEqual([
-      expect.stringContaining("Basics"),
-      expect.stringContaining("Game rules"),
+    expect(
+      steps()
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual([
+      expect.stringContaining("Foundation"),
+      expect.stringContaining("Engagement"),
+      expect.stringContaining("Reward"),
       expect.stringContaining("Prizes"),
       expect.stringContaining("Review"),
     ]);
-    expect(circle(/Basics/)).toBe("current");
-    expect(circle(/Game rules/)).toBe("pending");
+    expect(circle(/Foundation/)).toBe("current");
+    expect(circle(/Engagement/)).toBe("pending");
 
-    await user.type(screen.getByLabelText(/Campaign name/), "Eid Wheel");
+    await fillFoundation(user);
     await user.click(screen.getByRole("button", { name: /Continue/ }));
-    expect(circle(/Basics/)).toBe("done");
-    expect(circle(/Game rules/)).toBe("current");
-    expect(circle(/Review/)).toBe("pending");
+    expect(circle(/Foundation/)).toBe("done");
+    expect(circle(/Engagement/)).toBe("current");
 
-    await user.click(screen.getByRole("button", { name: /Continue/ }));
-    await user.click(screen.getByRole("button", { name: /Continue/ }));
-    // The three parts are finished, so the review is too.
+    for (let i = 0; i < 3; i += 1) {
+      await user.click(screen.getByRole("button", { name: /Continue/ }));
+    }
+    // The four steps are finished, so the review is too.
+    expect(currentStep()).toContain("Review");
     expect(circle(/Prizes/)).toBe("done");
     expect(circle(/Review/)).toBe("done");
   });
 
-  it("shows the parts of an existing campaign as already done", () => {
+  it("shows the steps of an existing campaign as already done", () => {
     setup({ editingCampaign: LIVE });
-    expect(circle(/Basics/)).toBe("done");
+    expect(circle(/Foundation/)).toBe("done");
     expect(circle(/Prizes/)).toBe("done");
     expect(circle(/Review/)).toBe("done");
   });
 
   it("does not leave a step that still has something to fix", async () => {
-    const { user } = setup();
+    const { user } = setup({ existingNames: ["Ramadan Wheel"] });
     await user.click(screen.getByRole("button", { name: /Continue/ }));
-    expect(currentStep()).toContain("Basics");
-    expect(screen.getByText("Give the campaign a name.")).toBeTruthy();
-
-    await user.type(screen.getByLabelText(/Campaign name/), "Eid Wheel");
-    // The link follows the name until it is typed by hand.
+    expect(currentStep()).toContain("Foundation");
     expect(
-      (screen.getByLabelText(/Player link/) as HTMLInputElement).value,
-    ).toBe("eid-wheel");
+      screen.getAllByText("Campaign name must be at least 3 characters.")
+        .length,
+    ).toBeGreaterThan(0);
+
+    await fillFoundation(user);
+    expect(
+      screen.getAllByText("A campaign with this name already exists.").length,
+    ).toBeGreaterThan(0);
+    await user.clear(screen.getByLabelText(/Campaign name/));
+    await user.type(screen.getByLabelText(/Campaign name/), "Eid Wheel");
     await user.click(screen.getByRole("button", { name: /Continue/ }));
-    expect(currentStep()).toContain("Game rules");
+    expect(currentStep()).toContain("Engagement");
   });
 
-  it("builds quiz questions in the game rules step", async () => {
+  it("builds quiz questions in the engagement step", async () => {
     const { user } = setup();
-    await user.click(screen.getByRole("radio", { name: /Quiz Challenge/ }));
-    await user.click(screen.getByRole("button", { name: /Game rules/ }));
-    expect(screen.getByText("Quiz questions")).toBeTruthy();
-    await user.click(
-      screen.getByRole("radio", { name: "Mark answer 2 as correct" }),
-    );
-    expect(
-      screen
-        .getByRole("radio", { name: "Mark answer 2 as correct" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+    await user.click(stepButton(/Engagement/));
+    await user.click(screen.getByRole("radio", { name: /Knowledge-based/ }));
+    expect(screen.getByText("Quiz settings")).toBeTruthy();
+    expect(screen.getAllByText(/^Question \d$/)).toHaveLength(3);
+    await user.click(screen.getByRole("radio", { name: "5" }));
+    expect(screen.getAllByText(/^Question \d$/)).toHaveLength(5);
+
+    const correct = screen.getAllByRole("radio", {
+      name: "Mark answer 2 as correct",
+    })[0];
+    await user.click(correct);
+    expect(correct.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("hides the game settings for luck", async () => {
+    const { user } = setup();
+    await user.click(stepButton(/Engagement/));
+    await user.click(screen.getByRole("radio", { name: /^Luck/ }));
+    expect(screen.getByText("No game settings for luck.")).toBeTruthy();
+    expect(screen.queryByText("Game settings")).toBeNull();
   });
 
   it("saves a draft from any step, and sends the user to what is missing", async () => {
     const { user, onSave } = setup();
-    await user.click(screen.getByRole("button", { name: /Prizes/ }));
+    await user.click(stepButton(/Prizes/));
     await user.click(screen.getByRole("button", { name: /Save draft/ }));
     expect(onSave).not.toHaveBeenCalled();
-    expect(currentStep()).toContain("Basics");
+    expect(currentStep()).toContain("Foundation");
 
-    await user.type(screen.getByLabelText(/Campaign name/), "Eid Wheel");
+    await fillFoundation(user);
     await user.click(screen.getByRole("button", { name: /Save draft/ }));
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave.mock.calls[0][0]).toMatchObject({
-      name: "Eid Wheel",
-      slug: "eid-wheel",
+      name: "Ramadan Wheel",
+      gameType: "hit_it",
+      gameLogicConfig: {
+        brand_name: "Sunny",
+        win_threshold: 8,
+        wizard: { category: "skill", method: "instant" },
+      },
+      autoPacePrizes: true,
       submitStatus: "draft",
       mode: "create",
       prizes: [{ templateId: "t1", quantity: 100, weight: 100 }],
     });
   });
 
+  it("saves a guaranteed instant win at 100%", async () => {
+    const { user, onSave } = setup();
+    await fillFoundation(user);
+    await user.click(stepButton(/Reward/));
+    await user.click(screen.getByRole("radio", { name: /Guaranteed winning/ }));
+    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      winProbability: 100,
+      autoPacePrizes: false,
+    });
+  });
+
+  it("asks for the draw rules before going live, not for a draft", async () => {
+    const { user, onSave } = setup();
+    await fillFoundation(user);
+    await user.click(stepButton(/Reward/));
+    await user.click(screen.getByRole("radio", { name: /^Draw/ }));
+    await user.type(
+      screen.getByLabelText(/Draw date and time/),
+      "2999-01-01T10:00",
+    );
+    await user.click(stepButton(/Prizes/));
+    await user.click(screen.getByRole("radio", { name: /^No/ }));
+
+    await user.click(stepButton(/Review/));
+    await user.click(screen.getByRole("button", { name: /Publish campaign/ }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(currentStep()).toContain("Reward");
+    expect(
+      screen.getAllByText("Sweepstake rules are required before going live.")
+        .length,
+    ).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      winProbability: 0,
+      prizes: [],
+      gameLogicConfig: { wizard: { method: "draw" } },
+    });
+  });
+
   it("reviews the real settings and confirms before saving a live campaign", async () => {
-    const { user, onSave } = setup({ editingCampaign: LIVE, initialStep: 4 });
-    // The review used to always say "1 play per phone number".
-    expect(screen.getByText("2 spins")).toBeTruthy();
+    const { user, onSave } = setup({ editingCampaign: LIVE, initialStep: 5 });
+    expect(screen.getByText("2 plays")).toBeTruthy();
+    expect(screen.getByText("Wheel of Fortune")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Save draft/ })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -246,6 +366,9 @@ describe("CampaignWizard", () => {
     );
     expect(onSave.mock.calls[0][0]).toMatchObject({
       id: "c1",
+      slug: "summer-spin",
+      gameType: "lucky_wheel",
+      winProbability: 40,
       mode: "edit",
       submitStatus: "active",
       prizes: [{ id: "p1", templateId: "t1" }],

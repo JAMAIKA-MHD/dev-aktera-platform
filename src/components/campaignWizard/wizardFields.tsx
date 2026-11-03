@@ -229,3 +229,194 @@ export function SegmentedChoice<T extends string>({
     </div>
   );
 }
+
+// An on/off setting.
+export function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        cxFocus,
+        "relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-[120ms]",
+        checked ? "bg-cx-brand" : "bg-cx-control",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute left-0.5 top-0.5 size-5 rounded-full bg-cx-surface transition-transform duration-[120ms]",
+          checked && "translate-x-5",
+        )}
+      />
+    </button>
+  );
+}
+
+// A row with a title, one line of guidance and a switch; what it turns on goes below.
+export function SwitchRow({
+  checked,
+  onChange,
+  title,
+  description,
+  children,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  description: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        rowClass,
+        "grid grid-cols-1 gap-3 transition-colors duration-[120ms]",
+        checked && "border-cx-brand",
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-semibold text-cx-ink">{title}</p>
+          <p className={cn(hintClass, "mt-0.5 max-w-xl")}>{description}</p>
+        </div>
+        <Switch checked={checked} onChange={onChange} label={title} />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// A number picked on a scale, with its value shown beside its label.
+export function RangeField({
+  label,
+  hint,
+  value,
+  min,
+  max,
+  step = 1,
+  unit,
+  onChange,
+}: {
+  label: string;
+  hint?: ReactNode;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  unit: string;
+  onChange: (value: number) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="grid grid-cols-1 gap-2">
+      <div className="flex items-end justify-between gap-3">
+        <label htmlFor={id}>
+          <span className="block font-semibold text-cx-ink">{label}</span>
+          {hint && (
+            <span className={cn(hintClass, "mt-0.5 block")}>{hint}</span>
+          )}
+        </label>
+        <span className={cxText.statValueSm}>
+          {value}
+          {unit}
+        </span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className={cn(
+          cxFocus,
+          "h-1.5 w-full cursor-pointer rounded-full accent-cx-brand",
+        )}
+      />
+      <div className={cn(hintClass, "flex justify-between gap-2 tabular-nums")}>
+        <span>
+          {min}
+          {unit}
+        </span>
+        <span>
+          {max}
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// A compact selectable card: a choice of the mechanics library, a method or a mode.
+export function OptionCard({
+  selected,
+  onSelect,
+  title,
+  description,
+  icon,
+  disabled = false,
+  badge,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  description?: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  badge?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      onClick={onSelect}
+      className={cn(
+        cxFocus,
+        "relative flex h-full cursor-pointer items-start gap-3 rounded-cx-md border bg-cx-surface p-3.5 pr-10 text-left transition-colors duration-[120ms] disabled:cursor-not-allowed disabled:opacity-50",
+        selected
+          ? "border-cx-brand ring-1 ring-cx-brand"
+          : "border-cx-border not-disabled:hover:border-cx-control",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute right-3 top-3.5 size-4 rounded-full bg-cx-surface",
+          selected
+            ? "border-[4px] border-cx-brand"
+            : "border-2 border-cx-control",
+        )}
+        aria-hidden
+      />
+      {icon}
+      <span className="min-w-0">
+        <span className="block font-semibold leading-5 text-cx-ink">
+          {title}
+        </span>
+        {description && (
+          <span className="mt-0.5 block text-[13px] leading-[19px] text-cx-ink-muted">
+            {description}
+          </span>
+        )}
+        {badge && (
+          <span className="mt-1.5 inline-block rounded-cx-sm bg-cx-sunken px-1.5 text-xs font-bold leading-5 text-cx-ink-muted">
+            {badge}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}

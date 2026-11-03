@@ -17,7 +17,11 @@ import {
 import { useLanguage } from "../contexts/LanguageContext";
 import { DEFAULT_CAMPAIGN_IMAGE_URL } from "../lib/defaultImages";
 import { cn } from "../lib/utils";
-import { campaignDurationDays, gameMeta } from "./campaigns/campaignMeta";
+import {
+  campaignDurationDays,
+  gameMeta,
+  winChanceLabel,
+} from "./campaigns/campaignMeta";
 import {
   ActionMenu,
   CampaignStatusBadge,
@@ -335,16 +339,13 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
               label={`${wonPercent}% of prizes won`}
             />
           </Stat>
-          <Stat
-            label="Win chance"
-            value={
-              campaign.autoPacePrizes ? "Paced" : `${campaign.winProbability}%`
-            }
-          >
+          <Stat label="Win chance" value={winChanceLabel(campaign)}>
             <span className={cxText.caption}>
-              {campaign.autoPacePrizes
-                ? "Dynamic daily quota pacing"
-                : "Server-side win chance"}
+              {campaign.gameLogicConfig?.wizard?.method === "draw"
+                ? "Winners drawn on a set date"
+                : campaign.autoPacePrizes
+                  ? "Dynamic daily quota pacing"
+                  : "Server-side win chance"}
             </span>
           </Stat>
           <Stat

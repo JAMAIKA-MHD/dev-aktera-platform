@@ -16,7 +16,12 @@ import {
 import type { Campaign } from "../../types";
 import { cn } from "../../lib/utils";
 import { formatPeriod } from "../playerStudio/studioCampaignCells";
-import { campaignTimeline, formatCount, gameMeta } from "./campaignMeta";
+import {
+  campaignTimeline,
+  formatCount,
+  gameMeta,
+  winChanceLabel,
+} from "./campaignMeta";
 import {
   ActionMenu,
   CampaignStatusBadge,
@@ -254,9 +259,7 @@ export function CampaignCard({
           />
           <Metric
             label="Win chance"
-            value={
-              campaign.autoPacePrizes ? "Paced" : `${campaign.winProbability}%`
-            }
+            value={winChanceLabel(campaign)}
             divided="pair"
           />
         </div>

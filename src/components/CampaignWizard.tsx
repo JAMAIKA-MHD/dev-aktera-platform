@@ -1,8 +1,16 @@
-// The campaign editor: a medium-size window with the four parts of a campaign (basics,
-// game rules, prizes, review) listed on the left, to create, edit or relaunch a campaign.
-// Each part lives in ./campaignWizard; this file holds the form, the navigation between
-// parts and the save.
-import React, { useEffect, useMemo, useRef, useState } from "react";
+// The campaign editor: a window with the five steps of a campaign listed on the left, to
+// create, edit or relaunch a campaign. The campaign has two decoupled layers — what the
+// player does (Engagement) and how the outcome is decided (Reward) — read from the
+// mechanics library (./wizard/mechanicsRegistry). Each step lives in ./campaignWizard and its
+// rules in ./campaignWizard/wizardForm; this file holds the navigation and the save.
+import React, {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
@@ -11,6 +19,7 @@ import {
   Check,
   Rocket,
   Save,
+  Smartphone,
   X,
 } from "lucide-react";
 
@@ -26,19 +35,37 @@ import {
   cxRoot,
   cxText,
 } from "./campaigns/campaignUi";
-import { StepBasics } from "./campaignWizard/StepBasics";
-import { StepGameRules } from "./campaignWizard/StepGameRules";
+import { StepEngagement } from "./campaignWizard/StepEngagement";
+import { StepFoundation } from "./campaignWizard/StepFoundation";
 import { StepPrizes } from "./campaignWizard/StepPrizes";
-import { StepReview } from "./campaignWizard/StepReview";
+import { listIssues, StepReview } from "./campaignWizard/StepReview";
+import { StepReward } from "./campaignWizard/StepReward";
 import {
-  allocatedPrizeLines,
+  gameTypeOf,
   initialWizardForm,
+  playingGame,
+  previewCampaign,
+  savedAutoPace,
+  savedGameLogic,
+  savedPrizeLines,
+  savedWinProbability,
+  SETTING_STEPS,
+  shownQuestions,
   startingOn,
   validateWizard,
   WIZARD_STEPS,
+  type SaveStatus,
   type StepId,
+  type WizardContext,
   type WizardForm,
 } from "./campaignWizard/wizardForm";
+
+// The Player Experience sandbox, loaded on demand (only the module's index may be imported).
+const CampaignSimulator = lazy(() =>
+  import("../features/player-experience").then((module) => ({
+    default: module.CampaignSimulator,
+  })),
+);
 
 interface CampaignWizardProps {
   prizes: PrizeTemplate[];
@@ -53,18 +80,19 @@ interface CampaignWizardProps {
   onOpenPlayerScreenEditor?: (campaignData: any) => void;
   relaunchDraft?: Campaign | null;
   editingCampaign?: Campaign | null;
-  // Opens on a given step (1 to 4): Basics (1), Game rules and quiz questions (2),
-  // Prizes (3) or Review (4).
-  initialStep?: 1 | 2 | 3 | 4;
+  // Names of the other campaigns of the organization: a new campaign cannot reuse one.
+  existingNames?: string[];
+  // Opens on a given step: Foundation (1), Engagement (2), Reward (3), Prizes (4), Review (5).
+  initialStep?: StepId;
   // A new campaign chosen from a quick-start card opens on that game.
   initialGameType?: Campaign["gameType"];
   // A new campaign chosen from a date on the Overview timeline starts on that day.
   initialStartDate?: string;
 }
 
-type SubmitStatus = "draft" | "active";
 type LeaveTarget = "cancel" | "studio";
 type StepState = "error" | "done" | "current" | "pending";
+type Popup = "sandbox" | "rules" | null;
 
 const DOT_TONE: Record<StepState, string> = {
   error: "border-cx-danger bg-cx-danger text-cx-surface",
@@ -73,6 +101,75 @@ const DOT_TONE: Record<StepState, string> = {
   pending: "border-cx-control bg-cx-surface text-cx-ink-muted",
 };
 
+// A window on top of the editor: the player sandbox or the sweepstake rules.
+function Popover({
+  title,
+  icon,
+  wide = false,
+  onClose,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  wide?: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className={cn(
+        cxRoot,
+        "fixed inset-0 z-50 flex items-center justify-center bg-cx-scrim p-4",
+      )}
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          "flex w-full flex-col overflow-hidden rounded-cx-xl border border-cx-border bg-cx-surface shadow-cx-pop",
+          wide
+            ? "h-[min(92dvh,900px)] max-w-[410px]"
+            : "max-h-[80dvh] max-w-lg",
+        )}
+      >
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-cx-border px-4 py-3">
+          <h3
+            className={cn(
+              cxText.sectionTitle,
+              "flex min-w-0 items-center gap-2 truncate",
+            )}
+          >
+            {icon}
+            <span className="truncate">{title}</span>
+          </h3>
+          <CxButton
+            variant="ghost"
+            size="sm"
+            iconOnly
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <X aria-hidden />
+          </CxButton>
+        </header>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   prizes,
   onSave,
@@ -80,6 +177,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   onOpenPlayerScreenEditor,
   relaunchDraft,
   editingCampaign,
+  existingNames = [],
   initialStep = 1,
   initialGameType,
   initialStartDate,
@@ -98,7 +196,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     const opened = initialWizardForm(editingCampaign, relaunchDraft, prizes);
     if (baseCampaign) return opened;
     const typed = initialGameType
-      ? { ...opened, type: initialGameType }
+      ? playingGame(opened, initialGameType)
       : opened;
     return initialStartDate ? startingOn(typed, initialStartDate) : typed;
   });
@@ -112,13 +210,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   // Steps the user has been through. A new campaign's step only turns green once it has
   // been seen: its default values are valid, but nobody has looked at them yet.
   const [seenSteps, setSeenSteps] = useState<Set<StepId>>(new Set());
-  // In a new campaign the link follows the name until the link is typed by hand.
-  const [slugFollowsName, setSlugFollowsName] = useState(!baseCampaign);
+  // Going live asks for more than a draft (the sweepstake rules, the draw's messages): after
+  // an attempt to publish, the steps are checked as for going live until a draft is saved.
+  const [strictness, setStrictness] = useState<SaveStatus>("draft");
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [confirmLiveSave, setConfirmLiveSave] = useState<SubmitStatus | null>(
+  const [confirmLiveSave, setConfirmLiveSave] = useState<SaveStatus | null>(
     null,
   );
   const [confirmLeave, setConfirmLeave] = useState<LeaveTarget | null>(null);
+  const [popup, setPopup] = useState<Popup>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -136,13 +236,24 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     }
   }, [prizes, baseCampaign]);
 
-  const issues = useMemo(() => validateWizard(form), [form]);
-  const issuesOf = (id: StepId) => issues.filter((issue) => issue.step === id);
+  const context: WizardContext = useMemo(
+    () => ({
+      templates: prizes,
+      editingCampaign: editingCampaign ?? null,
+      existingNames,
+    }),
+    [prizes, editingCampaign, existingNames],
+  );
+  const errorsFor = (status: SaveStatus) =>
+    validateWizard(form, status, context);
+  const errors = useMemo(
+    () => validateWizard(form, strictness, context),
+    [form, strictness, context],
+  );
+  const issues = listIssues(errors);
+  const hasErrors = (id: StepId) => Boolean(errors[id]);
   const errorFor = (field: string) =>
-    checkedSteps.has(step)
-      ? issues.find((issue) => issue.step === step && issue.field === field)
-          ?.message
-      : undefined;
+    checkedSteps.has(step) ? errors[step]?.[field] : undefined;
 
   const scrollToTop = () => contentRef.current?.scrollTo?.({ top: 0 });
   const goToStep = (target: StepId) => {
@@ -155,36 +266,31 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
 
   const next = () => {
     markChecked(step);
-    if (issuesOf(step).length > 0) return;
+    if (hasErrors(step)) return;
     goToStep((step + 1) as StepId);
   };
 
-  // A part is finished when it has nothing left to fix and, in a new campaign, has been
-  // gone through. The review is finished when the three parts before it are.
+  // A step is finished when it has nothing left to fix and, in a new campaign, has been
+  // gone through. The review is finished when the four steps before it are.
   const isStepDone = (id: StepId): boolean =>
-    id === 4
-      ? isStepDone(1) && isStepDone(2) && isStepDone(3)
-      : issuesOf(id).length === 0 &&
-        (Boolean(baseCampaign) || seenSteps.has(id));
+    id === 5
+      ? SETTING_STEPS.every(isStepDone)
+      : !hasErrors(id) && (Boolean(baseCampaign) || seenSteps.has(id));
   const stepState = (id: StepId): StepState => {
-    const revealed = checkedSteps.has(id) || step === 4;
-    if (id !== 4 && issuesOf(id).length > 0 && revealed) return "error";
+    const revealed = checkedSteps.has(id) || step === 5;
+    if (id !== 5 && hasErrors(id) && revealed) return "error";
     if (isStepDone(id)) return "done";
     return id === step ? "current" : "pending";
   };
 
-  const isDirty = () =>
-    JSON.stringify({ ...form, prizes: allocatedPrizeLines(form) }) !==
-    JSON.stringify({
-      ...initialForm,
-      prizes: allocatedPrizeLines(initialForm),
-    });
+  const isDirty = () => JSON.stringify(form) !== JSON.stringify(initialForm);
 
+  const gameType = gameTypeOf(form);
   const openPlayerStudio = () =>
     onOpenPlayerScreenEditor?.({
       id: editingCampaign?.id || "",
       name: form.name,
-      gameType: form.type,
+      gameType,
       playerScreenConfig: baseCampaign?.playerScreenConfig,
     });
   const leave = (target: LeaveTarget) =>
@@ -192,24 +298,24 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   const requestLeave = (target: LeaveTarget) =>
     isDirty() ? setConfirmLeave(target) : leave(target);
 
-  const executeSave = async (submitStatus: SubmitStatus) => {
+  const executeSave = async (submitStatus: SaveStatus) => {
     setSaveError(null);
     setIsSubmitting(true);
     try {
       await onSave({
         id: editingCampaign?.id ?? "",
-        name: form.name,
+        name: form.name.trim(),
         arabicName: form.arabicName,
         heroImageUrl: form.heroImageUrl || undefined,
         slug: form.slug,
-        gameType: form.type,
-        gameLogicConfig: form.gameLogicConfig,
+        gameType,
+        gameLogicConfig: savedGameLogic(form, baseCampaign),
         status: submitStatus,
-        winProbability: form.winProbability,
-        autoPacePrizes: form.autoPacePrizes,
+        winProbability: savedWinProbability(form),
+        autoPacePrizes: savedAutoPace(form),
         maxEntries: form.maxEntries,
-        prizes: allocatedPrizeLines(form),
-        questions: form.type === "quiz" ? form.questions : [],
+        prizes: savedPrizeLines(form),
+        questions: form.w.category === "knowledge" ? shownQuestions(form) : [],
         startDate: form.startDate,
         endDate: form.endDate,
         // The player screens are designed in the Player Experience Studio: the wizard
@@ -231,29 +337,33 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   };
 
   // Saving is possible from any step; what is missing sends the user to where to fix it.
-  const requestSave = (submitStatus: SubmitStatus) => {
+  const requestSave = (submitStatus: SaveStatus) => {
     setSaveError(null);
-    if (issues.length > 0) {
-      markChecked(1, 2, 3);
-      goToStep(issues[0].step);
+    setStrictness(submitStatus);
+    const found = errorsFor(submitStatus);
+    const firstStep = SETTING_STEPS.find((id) => found[id]);
+    if (firstStep) {
+      markChecked(...SETTING_STEPS);
+      goToStep(firstStep);
       return;
     }
     if (isLiveCampaign) setConfirmLiveSave(submitStatus);
     else void executeSave(submitStatus);
   };
 
-  // Escape closes the window, unless a confirmation is open (it handles its own Escape).
-  const dialogOpen = confirmLiveSave !== null || confirmLeave !== null;
+  // Escape closes the window, unless something is open above it (it handles its own Escape).
+  const layerOpen =
+    confirmLiveSave !== null || confirmLeave !== null || popup !== null;
   const requestLeaveRef = useRef(requestLeave);
   requestLeaveRef.current = requestLeave;
   useEffect(() => {
-    if (dialogOpen || isSubmitting) return;
+    if (layerOpen || isSubmitting) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") requestLeaveRef.current("cancel");
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [dialogOpen, isSubmitting]);
+  }, [layerOpen, isSubmitting]);
 
   const title = isEditMode
     ? "Edit campaign"
@@ -265,15 +375,16 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     ? editingCampaign.name
     : isRelaunchMode
       ? `A new campaign that starts from the settings of “${relaunchDraft?.name}”.`
-      : "Four short parts. You can save a draft at any time and finish later.";
+      : "Five short steps. You can save a draft at any time and finish later.";
   const publishLabel = isLiveCampaign
     ? "Save changes"
     : isEditMode
       ? "Publish"
       : "Publish campaign";
-  const stepIssues = issuesOf(step);
+  const stepIssues = issues.filter((issue) => issue.step === step);
   const showStepErrors = checkedSteps.has(step) && stepIssues.length > 0;
-  const doneCount = ([1, 2, 3, 4] as StepId[]).filter(isStepDone).length;
+  const doneCount = WIZARD_STEPS.filter((item) => isStepDone(item.id)).length;
+  const lastStep = WIZARD_STEPS.length as StepId;
 
   return createPortal(
     <div
@@ -287,7 +398,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex h-full max-h-[52rem] w-full max-w-[920px] flex-col overflow-hidden rounded-cx-xl border border-cx-border bg-cx-surface shadow-cx-pop"
+        className="flex h-full max-h-[52rem] w-full max-w-[960px] flex-col overflow-hidden rounded-cx-xl border border-cx-border bg-cx-surface shadow-cx-pop"
       >
         <header className="flex items-start justify-between gap-4 border-b border-cx-border px-6 py-5">
           <div className="min-w-0">
@@ -313,15 +424,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
 
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           <nav
-            aria-label="Parts of the campaign"
+            aria-label="Steps of the campaign"
             className="shrink-0 border-b border-cx-border bg-cx-sunken p-3 md:w-[220px] md:overflow-y-auto md:border-b-0 md:border-r md:px-4 md:py-5"
           >
-            <ol className="grid grid-cols-2 gap-2 md:grid-cols-1">
+            <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-1">
               {WIZARD_STEPS.map((item, index) => {
                 const state = stepState(item.id);
                 const isCurrent = step === item.id;
                 const isLast = index === WIZARD_STEPS.length - 1;
-                // The part being worked on shows its number, unless it has something to fix.
+                // The step being worked on shows its number, unless it has something to fix.
                 const look: StepState =
                   isCurrent && state !== "error" ? "current" : state;
                 return (
@@ -391,17 +502,23 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 "mt-5 hidden border-t border-cx-border px-2 pt-3 tabular-nums md:block",
               )}
             >
-              {doneCount} of 4 parts done
+              {doneCount} of {WIZARD_STEPS.length} steps done
             </p>
           </nav>
 
           <div
             ref={contentRef}
-            className="grid grid-cols-1 min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4 sm:p-6"
+            className="grid min-h-0 flex-1 grid-cols-1 content-start gap-4 overflow-y-auto p-4 sm:p-6"
           >
             {isLiveCampaign && (
               <CxNotice tone="warning" icon={AlertCircle}>
                 This campaign is live. Saved changes reach players immediately.
+              </CxNotice>
+            )}
+            {isLiveCampaign && editingCampaign?.gameType !== gameType && (
+              <CxNotice tone="warning" icon={AlertCircle}>
+                These settings change the game players play. Players in the
+                middle of a session may be affected.
               </CxNotice>
             )}
             {saveError && (
@@ -410,54 +527,54 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 <p className="font-medium">{saveError}</p>
               </CxNotice>
             )}
-            {showStepErrors && step !== 4 && (
+            {showStepErrors && step !== lastStep && (
               <CxNotice tone="danger" icon={AlertCircle} role="alert">
                 {stepIssues.length === 1
                   ? stepIssues[0].message
-                  : `${stepIssues.length} things need your attention in this part.`}
+                  : `${stepIssues.length} things need your attention in this step.`}
               </CxNotice>
             )}
 
             {step === 1 && (
-              <StepBasics
+              <StepFoundation
                 form={form}
                 update={update}
                 errorFor={errorFor}
                 isLiveCampaign={isLiveCampaign}
-                originalType={editingCampaign?.gameType ?? null}
-                slugFollowsName={slugFollowsName}
-                onSlugEdited={() => setSlugFollowsName(false)}
               />
             )}
             {step === 2 && (
-              <StepGameRules
+              <StepEngagement form={form} update={update} errorFor={errorFor} />
+            )}
+            {step === 3 && (
+              <StepReward
                 form={form}
                 update={update}
                 errorFor={errorFor}
                 isLiveCampaign={isLiveCampaign}
                 pacingWasEnabled={Boolean(baseCampaign?.autoPacePrizes)}
+                onPreviewRules={() => setPopup("rules")}
               />
             )}
-            {step === 3 && (
-              <div>
-                <StepPrizes
-                  form={form}
-                  update={update}
-                  errorFor={errorFor}
-                  templates={prizes}
-                  editingCampaign={editingCampaign ?? null}
-                  isLiveCampaign={isLiveCampaign}
-                />
-              </div>
-            )}
             {step === 4 && (
+              <StepPrizes
+                form={form}
+                update={update}
+                errorFor={errorFor}
+                templates={prizes}
+                editingCampaign={editingCampaign ?? null}
+                isLiveCampaign={isLiveCampaign}
+              />
+            )}
+            {step === 5 && (
               <StepReview
                 form={form}
                 issues={issues}
                 templates={prizes}
                 onEdit={goToStep}
+                onOpenSandbox={() => setPopup("sandbox")}
                 onOpenPlayerStudio={
-                  onOpenPlayerScreenEditor
+                  onOpenPlayerScreenEditor && isEditMode
                     ? () => requestLeave("studio")
                     : undefined
                 }
@@ -495,7 +612,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 {isSubmitting ? "Saving…" : "Save draft"}
               </CxButton>
             )}
-            {step < 4 && (
+            {step < lastStep && (
               <CxButton
                 variant={isLiveCampaign ? "secondary" : "primary"}
                 onClick={next}
@@ -505,7 +622,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 <ArrowRight aria-hidden />
               </CxButton>
             )}
-            {(isLiveCampaign || step === 4) && (
+            {(isLiveCampaign || step === lastStep) && (
               <CxButton
                 variant="primary"
                 disabled={isSubmitting}
@@ -518,6 +635,35 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           </div>
         </footer>
       </div>
+
+      {popup === "sandbox" && (
+        <Popover
+          wide
+          title={`Player sandbox: ${form.name.trim() || "Untitled campaign"}`}
+          icon={<Smartphone className="size-4 shrink-0" aria-hidden />}
+          onClose={() => setPopup(null)}
+        >
+          <Suspense fallback={<div className="flex-1" />}>
+            <CampaignSimulator
+              campaigns={[
+                previewCampaign(form, baseCampaign, editingCampaign ?? null),
+              ]}
+              prizeTemplates={prizes}
+              campaignId={editingCampaign?.id ?? "wizard-preview"}
+            />
+          </Suspense>
+        </Popover>
+      )}
+      {popup === "rules" && (
+        <Popover title="Sweepstake rules" onClose={() => setPopup(null)}>
+          <p
+            className="overflow-y-auto whitespace-pre-wrap p-6 text-sm text-cx-ink"
+            dir="auto"
+          >
+            {form.w.draw.rules}
+          </p>
+        </Popover>
+      )}
 
       {confirmLiveSave && editingCampaign && (
         <ConfirmDialog
@@ -533,7 +679,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
             live. Your changes reach players{" "}
             <strong className="text-cx-ink">immediately</strong>.
           </p>
-          {editingCampaign.gameType !== form.type && (
+          {editingCampaign.gameType !== gameType && (
             <CxNotice tone="warning" icon={AlertCircle}>
               You changed the game. Players in the middle of a session may be
               affected.
