@@ -199,6 +199,69 @@ export function timelineScales(now: number): Record<Scale, TimelineScale> {
   };
 }
 
+/** Room left after the last campaign ends, to see it end and to schedule the next one. */
+export const EXTENDED_MARGIN_WEEKS = 4;
+
+/**
+ * The full timeline's range: the usual view, grown to the earliest start and to a few weeks
+ * past the latest end of the campaigns shown, so every campaign can be followed to its end.
+ */
+export function extendedTimelineScale(
+  scale: Scale,
+  base: TimelineScale,
+  campaigns: Pick<TimelineCampaign, "start" | "end">[],
+): TimelineScale {
+  const baseEnd = base.start + base.days * DAY;
+  const earliest = Math.min(base.start, ...campaigns.map((c) => c.start));
+  const latest = Math.max(
+    baseEnd,
+    ...campaigns.map((c) => addDays(c.end, EXTENDED_MARGIN_WEEKS * 7)),
+  );
+
+  if (scale === "weeks") {
+    const day = new Date(earliest);
+    const start = startOfDay(addDays(earliest, -((day.getDay() + 6) % 7)));
+    const weeks = Math.ceil((latest - start) / (7 * DAY));
+    return {
+      ...base,
+      subtitle: `${weeks} weeks`,
+      start,
+      days: weeks * 7,
+      ticks: Array.from({ length: weeks }, (_, index) => {
+        const time = addDays(start, index * 7);
+        return { time, label: dayMonth(time) };
+      }),
+    };
+  }
+
+  const first = new Date(earliest);
+  const last = new Date(latest);
+  const months =
+    (last.getFullYear() - first.getFullYear()) * 12 +
+    last.getMonth() -
+    first.getMonth() +
+    1;
+  const monthStart = (offset: number) =>
+    new Date(first.getFullYear(), first.getMonth() + offset, 1).getTime();
+  const label = (time: number, index: number) => {
+    const month = new Date(time);
+    const name = MONTH_NAMES[month.getMonth()];
+    return index === 0 || month.getMonth() === 0
+      ? `${name} ${month.getFullYear()}`
+      : name;
+  };
+  return {
+    ...base,
+    subtitle: `${months} months`,
+    start: monthStart(0),
+    days: Math.round((monthStart(months) - monthStart(0)) / DAY),
+    ticks: Array.from({ length: months }, (_, index) => {
+      const time = monthStart(index);
+      return { time, label: label(time, index) };
+    }),
+  };
+}
+
 // ── Team activity ────────────────────────────────────────────────────────────
 
 export const ACTIVITY_LIMIT = 6;

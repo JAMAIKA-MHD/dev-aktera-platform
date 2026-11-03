@@ -122,6 +122,23 @@ describe("parsePublicExperience", () => {
     expect(ended.availability).toEqual({ open: false, reason: "CLOSED" });
   });
 
+  it("reads a scheduled campaign as not started, with its start date", () => {
+    const early = ok(
+      answer({
+        availability: {
+          open: false,
+          reason: "NOT_STARTED",
+          starts_at: "2026-12-01T00:00:00+00:00",
+        },
+      }),
+    );
+    expect(early.availability).toEqual({
+      open: false,
+      reason: "NOT_STARTED",
+      startsAt: "2026-12-01T00:00:00+00:00",
+    });
+  });
+
   it("throws on an answer of an unexpected shape", () => {
     expect(() => parsePublicExperience(null)).toThrow(
       "Unexpected public campaign answer",

@@ -141,11 +141,20 @@ describe("the player journey, played end to end (T4.5)", () => {
     expect(request.consent.accepted).toBe(true);
     expect(request.gamePayload).toEqual({ kind: "none" });
 
-    fireEvent.click(screen.getByText("J'ai copié mon code"));
+    // Copying the code records it as copied: there is no separate confirm button.
+    expect(screen.queryByText("J'ai copié mon code")).toBeNull();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    fireEvent.click(
+      screen.getByText(/^DEMO-[A-Z0-9]{4}-[A-Z0-9]{4}$/).closest("button")!,
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0); // confirmCoupon has no artificial latency
     });
     expect(confirmCoupon).toHaveBeenCalledOnce();
+    Reflect.deleteProperty(navigator, "clipboard");
 
     fireEvent.click(screen.getByText("Terminer"));
     expect(screen.getByText("Lancer le jeu")).toBeTruthy(); // back on welcome

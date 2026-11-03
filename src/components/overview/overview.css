@@ -995,7 +995,11 @@
 .ov-tl-labels {
   flex: none;
   width: 196px;
-  padding: 24px 12px 26px 0;
+  padding: 0 12px 26px 0;
+}
+/* Above the names, as high as the axis above the bars. */
+.ov-tl-labels-head {
+  height: 24px;
 }
 .ov-tl-name {
   display: flex;
@@ -1159,29 +1163,11 @@
   line-height: 1;
   font-weight: 700;
 }
-.ov-bar-label {
-  position: absolute;
-  top: 0;
-  left: calc(var(--bar-end) + 12px);
-  z-index: 2;
-  height: 44px;
-  font-size: 12px;
-  line-height: 44px;
-  font-weight: 500;
-  white-space: nowrap;
-  color: var(--ink-muted);
-  pointer-events: none;
-}
 @container ov-tl-chart (max-width: 440px) {
   .ov-tl-axis[data-scale="weeks"] > span:nth-child(even) {
     display: none;
   }
-  .ov-bar-label[data-late] {
-    left: auto;
-    right: calc(100% - var(--bar-end) + 8px);
-  }
 }
-.ov-bar-label,
 .ov-tone {
   &[data-tone="danger"] {
     color: var(--danger);
@@ -1211,6 +1197,16 @@
     font-size: 13px;
     font-weight: 700;
   }
+}
+/* Above the first two rows there is no room (the dates, and in the full timeline its
+   scrolling edge): their tooltip opens below the bar, so it is never hidden. */
+.ov-tl-row:nth-of-type(-n + 2) .ov-tip {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+.ov-bar[data-tip-left] .ov-tip {
+  left: auto;
+  right: 0;
 }
 
 .ov-details {
@@ -1534,5 +1530,94 @@
   }
   .dz-theme * {
     transition: none !important;
+  }
+}
+
+/* ── Full timeline window ─────────────────────────────────────────────────── */
+
+.ov-tl-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+/* Under the last name shown, in the space beside the "Today" mark. */
+.ov-tl-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  margin-bottom: -26px;
+  font-size: 12px;
+  > span {
+    color: var(--ink-subtle);
+    font-weight: 500;
+  }
+}
+.ov-tl-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: color-mix(in srgb, #0f172a 55%, transparent);
+}
+.ov-tl-window {
+  width: min(1180px, 100%);
+  max-height: min(900px, 100%);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-popover);
+}
+.ov-tl-window-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* The chart scrolls both ways: up and down through the campaigns, sideways through the
+   dates. The dates and the names stay in view. */
+.ov-tl-scroll {
+  flex: 1 1 auto;
+  min-height: 160px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding-right: 12px;
+}
+.ov-tl[data-expanded] {
+  /* As wide as the dates it shows, so the names column can stay put the whole way across. */
+  width: max-content;
+  min-width: 100%;
+  .ov-tl-labels {
+    position: sticky;
+    left: 0;
+    z-index: 7;
+    width: 260px;
+    padding-left: 12px;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  .ov-tl-labels-head,
+  .ov-tl-axis {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--surface);
+  }
+  .ov-tl-labels-head {
+    z-index: 8;
+  }
+  .ov-tl-name > span:last-child {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+@media (max-width: 640px) {
+  .ov-tl[data-expanded] .ov-tl-labels {
+    width: 140px;
   }
 }

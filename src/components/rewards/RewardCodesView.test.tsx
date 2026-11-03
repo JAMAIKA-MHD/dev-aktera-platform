@@ -294,7 +294,7 @@ describe("reward codes page, the data table", () => {
       ),
     );
     expect(await screen.findByText("Generated code: GEN-0001")).toBeTruthy();
-    expect(screen.getByText("Empty")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("Empty")).toBeTruthy();
   });
 
   it("searches by code or by number", async () => {
@@ -795,5 +795,102 @@ describe("reward codes page, a physical reward", () => {
     await screen.findByText("Winners & delivery");
     await screen.findByText("Ali");
     expect(screen.queryByLabelText("Delivery status of Ali")).toBeNull();
+  });
+});
+
+describe("reward codes page, filters", () => {
+  const CAMPAIGNS = [
+    {
+      id: "c1",
+      name: "Eid Wheel",
+      prizes: [{ templateId: "t1", quantity: 3, weight: 100 }],
+    },
+    { id: "c2", name: "Summer Quiz", prizes: [] },
+  ];
+  const openWithCampaigns = async () => {
+    state.items = [
+      ...baseItems().map((item) =>
+        item.id === "i3" ? { ...item, campaign_id: "c1" } : item,
+      ),
+      {
+        id: "i4",
+        prize_template_id: "t1",
+        item_index: 4,
+        item_value: null,
+        source_type: "manual",
+      },
+    ];
+    render(
+      <MemoryRouter>
+        <RewardCodesView
+          reward={{ ...voucher, totalStock: 4 }}
+          organizationId="org1"
+          canEdit
+          campaigns={CAMPAIGNS}
+        />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("columnheader", { name: /Unique Code/ });
+  };
+  const chip = (name: RegExp) =>
+    within(
+      screen.getByRole("group", { name: "Filter codes by use" }),
+    ).getByRole("button", { name });
+
+  it("shows the unused codes at once, with a count on each filter", async () => {
+    await openWithCampaigns();
+    expect(chip(/^All/).textContent).toBe("All4");
+    expect(chip(/^Unused/).textContent).toBe("Unused2");
+    expect(chip(/^Used/).textContent).toBe("Used1");
+    expect(chip(/^Empty/).textContent).toBe("Empty1");
+
+    fireEvent.click(chip(/^Unused/));
+    expect(screen.getByLabelText("Code 1")).toBeTruthy();
+    expect(screen.getByLabelText("Code 2")).toBeTruthy();
+    expect(screen.queryByLabelText("Code 3")).toBeNull();
+    expect(screen.queryByLabelText("Code 4")).toBeNull();
+  });
+
+  it("filters by the campaign whose winners received the codes", async () => {
+    await openWithCampaigns();
+    const select = screen.getByRole("combobox", {
+      name: "Filter codes by campaign",
+    });
+    // Only the campaigns that use this reward or gave one of its codes.
+    expect(
+      within(select)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["All campaigns", "Eid Wheel"]);
+
+    fireEvent.change(select, { target: { value: "c1" } });
+    expect(screen.getByLabelText("Code 3")).toBeTruthy();
+    expect(screen.queryByLabelText("Code 1")).toBeNull();
+    expect(chip(/^All/).textContent).toBe("All1");
+
+    fireEvent.click(chip(/^Unused/));
+    expect(screen.getByText("No codes match these filters.")).toBeTruthy();
+  });
+
+  it("generates every empty code in one click", async () => {
+    await openWithCampaigns();
+    fireEvent.click(
+      screen.getByRole("button", { name: /Generate all codes \(1\)/ }),
+    );
+    await waitFor(() =>
+      expect(state.fn.fillEmptySlotsWithRandom).toHaveBeenCalledTimes(1),
+    );
+    expect(
+      await screen.findByText(
+        "Generated a unique 8-character code for every empty slot.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("offers no generation when every slot has a code, or to a viewer", async () => {
+    await open(voucher);
+    expect(
+      screen.queryByRole("button", { name: /Generate all codes/ }),
+    ).toBeNull();
   });
 });

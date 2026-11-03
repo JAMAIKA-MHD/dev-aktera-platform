@@ -7,9 +7,11 @@ import { searchable } from "../lib/searchText";
 import { cn } from "../lib/utils";
 import { CampaignCard } from "./campaigns/CampaignCard";
 import { GameEmblem } from "./campaigns/GameEmblem";
+import { NewCampaignButton } from "./campaigns/NewCampaignButton";
 import {
   GAME_TYPES,
   gameMeta,
+  isScheduled,
   STATUS_META,
   STATUS_ORDER,
   type CampaignStatus,
@@ -45,7 +47,11 @@ interface CampaignsListProps {
   onRetry?: () => void;
 }
 
-type StatusFilter = "all" | CampaignStatus;
+// A published campaign whose first day has not come yet is "scheduled", as its badge says.
+type ListStatus = CampaignStatus | "scheduled";
+type StatusFilter = "all" | ListStatus;
+const listStatusOf = (campaign: Campaign): ListStatus =>
+  isScheduled(campaign) ? "scheduled" : campaign.status;
 type GameFilter = "all" | GameType;
 
 const PAGE_SIZE = 12;
@@ -86,11 +92,12 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
     const counts: Record<StatusFilter, number> = {
       all: campaigns.length,
       active: 0,
+      scheduled: 0,
       paused: 0,
       draft: 0,
       archived: 0,
     };
-    for (const campaign of campaigns) counts[campaign.status] += 1;
+    for (const campaign of campaigns) counts[listStatusOf(campaign)] += 1;
     return counts;
   }, [campaigns]);
 
@@ -98,7 +105,7 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
     // Every word typed must be found in the campaign's name (either language), link or game.
     const words = searchable(searchTerm).split(/\s+/).filter(Boolean);
     return campaigns.filter((campaign) => {
-      if (status !== "all" && campaign.status !== status) return false;
+      if (status !== "all" && listStatusOf(campaign) !== status) return false;
       if (game !== "all" && campaign.gameType !== game) return false;
       if (words.length === 0) return true;
       const meta = gameMeta(campaign.gameType);
@@ -149,10 +156,21 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
   const searchLabel = "Search campaigns…";
   const statusTabs: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "All" },
-    ...STATUS_ORDER.map((value) => ({
-      value,
-      label: t(STATUS_META[value].key, STATUS_META[value].label),
-    })),
+    ...STATUS_ORDER.flatMap((value) => {
+      const tab = {
+        value,
+        label: t(STATUS_META[value].key, STATUS_META[value].label),
+      };
+      return value === "active"
+        ? [
+            tab,
+            {
+              value: "scheduled" as const,
+              label: t("campaigns.scheduled", "Scheduled"),
+            },
+          ]
+        : [tab];
+    }),
   ];
 
   return (
@@ -169,10 +187,13 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
             Create, launch and follow the games you share with your customers.
           </p>
         </div>
-        <CxButton variant="primary" onClick={onOpenWizard}>
-          <Plus aria-hidden />
-          {t("campaigns.createNew", "Create New Campaign")}
-        </CxButton>
+        <NewCampaignButton
+          label={t("campaigns.newCampaign", "New campaign")}
+          onCreate={onOpenWizard}
+          onPickGame={(game) =>
+            onQuickStart ? onQuickStart(game) : onOpenWizard()
+          }
+        />
       </header>
 
       {error && campaigns.length === 0 ? (

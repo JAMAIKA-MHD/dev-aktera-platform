@@ -226,6 +226,9 @@ export const STATUS_TEXT = {
     "Already played",
   ),
   closedTitle: localized("Campagne terminée", "انتهت الحملة", "Campaign ended"),
+  // A scheduled campaign, opened before its start date.
+  upcomingTitle: localized("Bientôt disponible", "قريباً", "Coming soon"),
+  startsOn: localized("Ouverture le", "تنطلق في", "Opens on"),
   errorTitle: localized("Oups !", "عذراً!", "Oops!"),
   retry: localized("Réessayer", "أعد المحاولة", "Try again"),
   back: localized("Retour", "رجوع", "Back"),
@@ -495,12 +498,6 @@ export const RESULT_TEXT = {
     "اعرض هذه الشاشة لأحد المستشارين لاستلام جائزتك.",
     "Show this screen to a staff member to collect your prize.",
   ),
-  confirm: localized(
-    "J'ai copié mon code",
-    "لقد نسخت رمزي",
-    "I've copied my code",
-  ),
-  confirming: localized("Confirmation…", "جارٍ التأكيد…", "Confirming…"),
   confirmed: localized(
     "Merci, c'est noté !",
     "شكراً، تم التسجيل!",

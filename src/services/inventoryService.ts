@@ -14,6 +14,8 @@ export interface TemplateItemRow {
   redeemed_by_player?: boolean;
   /** The deadline fixed when the code was given (reward valid for a period after delivery). */
   redemption_expires_at?: string | null;
+  /** The campaign whose winner received the code; null while nobody has. */
+  campaign_id?: string | null;
 }
 
 export type ImportMode = "append" | "replace";
@@ -116,6 +118,7 @@ export async function fetchTemplateItemsService(
         redeemed_at: string | null;
         redeemed_by_player: boolean;
         expires_at: string | null;
+        campaign_id: string | null;
       }
     >();
 
@@ -125,7 +128,7 @@ export async function fetchTemplateItemsService(
       const { data: redemptionsData, error: redemptionsError } = await supabase
         .from("coupon_redemptions")
         .select(
-          "prize_template_item_id, redeemed_at, redeemed_by_player, expires_at",
+          "prize_template_item_id, redeemed_at, redeemed_by_player, expires_at, entries(campaign_id)",
         )
         .in("prize_template_item_id", chunk);
 
@@ -135,17 +138,24 @@ export async function fetchTemplateItemsService(
             redeemed_at: r.redeemed_at ?? null,
             redeemed_by_player: Boolean(r.redeemed_by_player),
             expires_at: r.expires_at ?? null,
+            // The entry of the winner who received the code says which campaign gave it.
+            campaign_id:
+              (r as { entries?: { campaign_id?: string | null } | null })
+                .entries?.campaign_id ?? null,
           });
         }
       }
     }
 
     // Also query entries table to catch any codes redeemed by winners
-    const redeemedCodesMap = new Map<string, string>();
+    const redeemedCodesMap = new Map<
+      string,
+      { at: string; campaignId: string | null }
+    >();
     try {
       const { data: entriesData } = await supabase
         .from("entries")
-        .select("redeemed_coupon_value, created_at")
+        .select("redeemed_coupon_value, created_at, campaign_id")
         .not("redeemed_coupon_value", "is", null)
         .eq("is_winner", true);
 
@@ -154,7 +164,10 @@ export async function fetchTemplateItemsService(
           if (entry.redeemed_coupon_value) {
             const normalized = entry.redeemed_coupon_value.trim().toLowerCase();
             if (normalized) {
-              redeemedCodesMap.set(normalized, entry.created_at);
+              redeemedCodesMap.set(normalized, {
+                at: entry.created_at,
+                campaignId: entry.campaign_id ?? null,
+              });
             }
           }
         }
@@ -169,9 +182,10 @@ export async function fetchTemplateItemsService(
     for (const row of allRows) {
       const redemption = redemptionMap.get(row.id);
       const codeNormalized = (row.item_value || "").trim().toLowerCase();
-      const entryRedeemedAt = codeNormalized
+      const entryRedeemed = codeNormalized
         ? redeemedCodesMap.get(codeNormalized)
-        : null;
+        : undefined;
+      const entryRedeemedAt = entryRedeemed?.at;
 
       if (
         redemption ||
@@ -182,9 +196,12 @@ export async function fetchTemplateItemsService(
         row.redeemed_at = redemption?.redeemed_at || entryRedeemedAt || null;
         row.redeemed_by_player = redemption?.redeemed_by_player ?? true;
         row.redemption_expires_at = redemption?.expires_at ?? null;
+        row.campaign_id =
+          redemption?.campaign_id ?? entryRedeemed?.campaignId ?? null;
       } else {
         row.is_redeemed = false;
         row.is_used = false;
+        row.campaign_id = null;
       }
     }
   } catch (redemptionErr) {

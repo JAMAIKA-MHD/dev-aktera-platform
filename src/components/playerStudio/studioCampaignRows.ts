@@ -1,11 +1,12 @@
 // Campaign (+ when its Studio design was last saved) → one row of the Player Studio table.
 // Pure: the date is a parameter, so the "ended" rule is testable.
 import type { Campaign } from "../../types";
-import { campaignEndTime } from "../campaigns/campaignMeta";
+import { campaignEndTime, isScheduled } from "../campaigns/campaignMeta";
 
-// What the table shows: an active campaign whose end date is past is "ended" for the brand.
+// What the table shows: an active campaign whose end date is past is "ended" for the brand,
+// one whose first day has not come yet is "scheduled".
 export type StudioDisplayStatus =
-  "active" | "ended" | "paused" | "draft" | "archived";
+  "active" | "scheduled" | "ended" | "paused" | "draft" | "archived";
 
 export interface StudioCampaignRow {
   id: string;
@@ -24,14 +25,16 @@ export interface StudioCampaignRow {
 // Default order of the table: what is running first, then what can still run.
 const STATUS_RANK: Record<StudioDisplayStatus, number> = {
   active: 0,
-  paused: 1,
-  draft: 2,
-  ended: 3,
-  archived: 4,
+  scheduled: 1,
+  paused: 2,
+  draft: 3,
+  ended: 4,
+  archived: 5,
 };
 
 export function displayStatusOf(
-  campaign: Pick<Campaign, "status" | "endDate">,
+  campaign: Pick<Campaign, "status" | "endDate"> &
+    Partial<Pick<Campaign, "startDate">>,
   now: Date,
 ): StudioDisplayStatus {
   const endsAt = campaignEndTime(campaign.endDate);
@@ -41,6 +44,12 @@ export function displayStatusOf(
     endsAt < now.getTime()
   ) {
     return "ended";
+  }
+  if (
+    campaign.startDate &&
+    isScheduled({ status: campaign.status, startDate: campaign.startDate }, now)
+  ) {
+    return "scheduled";
   }
   return campaign.status;
 }
@@ -82,7 +91,8 @@ export function toStudioCampaignRows(
 
 // Status filter of the page. "ended" groups what can no longer be played (past end date,
 // archived).
-export type StatusFilter = "all" | "active" | "paused" | "draft" | "ended";
+export type StatusFilter =
+  "all" | "active" | "scheduled" | "paused" | "draft" | "ended";
 
 export function matchesStatusFilter(
   row: StudioCampaignRow,

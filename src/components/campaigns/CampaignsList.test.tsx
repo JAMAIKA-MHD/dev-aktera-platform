@@ -197,3 +197,69 @@ describe("CampaignsList", () => {
     expect(onOpenWizard).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("CampaignsList, scheduled filter", () => {
+  it("lists the campaigns that have not started yet under Scheduled, not Active", async () => {
+    const future = new Date(Date.now() + 5 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const later = new Date(Date.now() + 40 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const { user } = setup([
+      campaign({}),
+      campaign({
+        id: "c4",
+        name: "Ramadan Spin",
+        slug: "ramadan-spin",
+        startDate: future,
+        endDate: later,
+      }),
+    ]);
+    const filters = within(
+      screen.getByRole("group", { name: "Filter by status" }),
+    );
+    expect(
+      filters.getByRole("button", { name: /^Scheduled/ }).textContent,
+    ).toBe("Scheduled1");
+    expect(filters.getByRole("button", { name: /^Active/ }).textContent).toBe(
+      "Active1",
+    );
+    await user.click(filters.getByRole("button", { name: /^Scheduled/ }));
+    expect(cards()).toHaveLength(1);
+    expect(within(cards()[0]).getByText("Ramadan Spin")).toBeTruthy();
+  });
+});
+
+describe("CampaignsList, new campaign button", () => {
+  it("opens the wizard, or a menu to start from a game type", async () => {
+    const onOpenWizard = vi.fn();
+    const onQuickStart = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <LanguageProvider>
+        <CampaignsList
+          campaigns={CAMPAIGNS}
+          onSelectCampaign={vi.fn()}
+          onRelaunch={vi.fn()}
+          onToggleStatus={vi.fn()}
+          onArchive={vi.fn()}
+          onDelete={vi.fn()}
+          onOpenWizard={onOpenWizard}
+          onQuickStart={onQuickStart}
+        />
+      </LanguageProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "New campaign" }));
+    expect(onOpenWizard).toHaveBeenCalledTimes(1);
+
+    await user.click(
+      screen.getByRole("button", { name: "Choose a game type" }),
+    );
+    const menu = screen.getByRole("menu", { name: "Start from a game type" });
+    expect(within(menu).getAllByRole("menuitem")).toHaveLength(5);
+    await user.click(within(menu).getByRole("menuitem", { name: /^Quiz/ }));
+    expect(onQuickStart).toHaveBeenCalledWith("quiz");
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+});

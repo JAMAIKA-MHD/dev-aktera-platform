@@ -497,6 +497,19 @@ describe("UNAVAILABLE", () => {
     expect(soldOut.error?.message).toContain("won");
   });
 
+  it("says a scheduled campaign has not started yet, with its start date", () => {
+    const early = flowReducer(welcome(), {
+      type: "UNAVAILABLE",
+      reason: "NOT_STARTED",
+      startsAt: "2026-12-01T00:00:00Z",
+    });
+    expect(early.screen).toBe("closed");
+    expect(early.error).toMatchObject({
+      code: "CAMPAIGN_NOT_STARTED",
+      startsAt: "2026-12-01T00:00:00Z",
+    });
+  });
+
   it("changes nothing once the player is playing: the server decides then", () => {
     const state = playing("lucky_wheel");
     expect(flowReducer(state, { type: "UNAVAILABLE", reason: "CLOSED" })).toBe(

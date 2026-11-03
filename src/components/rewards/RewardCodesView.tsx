@@ -28,7 +28,7 @@ import type {
   ImportMode,
   ImportValidationResult,
 } from "../../services/inventoryService";
-import type { PrizeTemplate } from "../../types";
+import type { Campaign, PrizeTemplate } from "../../types";
 import { DataTable } from "../ui/data-table";
 import { ImportFileDialog } from "./ImportFileDialog";
 import { CodeStockSummary } from "./CodeStockSummary";
@@ -36,6 +36,7 @@ import { PhysicalDeliveryPanel } from "./PhysicalDeliveryPanel";
 import {
   RewardCodesContext,
   codeRowClassName,
+  codeRowState,
   matchesCodeSearch,
   physicalCodeColumns,
   voucherCodeColumns,
@@ -49,9 +50,25 @@ interface RewardCodesViewProps {
   /** False for a read-only viewer. */
   canEdit: boolean;
   onRefreshPrizes?: () => void;
+  /** The organization's campaigns, to filter the codes by the campaign that gave them. */
+  campaigns?: Pick<Campaign, "id" | "name" | "prizes">[];
 }
 
 const CODES_PAGE_SIZE = 50;
+
+// Which codes the table shows: unused = written and not given to a winner yet.
+type UsageFilter = "all" | "unused" | "used" | "empty";
+const USAGE_FILTERS: { value: UsageFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "unused", label: "Unused" },
+  { value: "used", label: "Used" },
+  { value: "empty", label: "Empty" },
+];
+const USAGE_OF = {
+  prepared: "unused",
+  redeemed: "used",
+  empty: "empty",
+} as const;
 
 // The codes of one reward, on a page of their own (the address holds the reward's id): what is
 // left to give, the codes themselves, and for a physical reward its winners. How the codes
@@ -61,8 +78,12 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
   organizationId,
   canEdit,
   onRefreshPrizes,
+  campaigns = [],
 }) => {
   const [codesSearch, setCodesSearch] = useState("");
+  const [usage, setUsage] = useState<UsageFilter>("all");
+  // "all", or the id of the campaign whose winners received the codes.
+  const [campaignFilter, setCampaignFilter] = useState("all");
   const [showBulkPaste, setShowBulkPaste] = useState(false);
   const [bulkPasteText, setBulkPasteText] = useState("");
   const [copiedAll, setCopiedAll] = useState(false);
@@ -269,7 +290,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
       if (success) {
         onRefreshPrizes?.();
         showSuccess(
-          "Filled empty slots with collision-free random 8-character uppercase codes.",
+          "Generated a unique 8-character code for every empty slot.",
         );
       }
     } finally {
@@ -294,6 +315,45 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
   const preparedCount = templateItems.filter((item) =>
     Boolean(item.item_value && item.item_value.trim().length > 0),
   ).length;
+  const emptyCount = templateItems.length - preparedCount;
+
+  // The campaigns that use this reward, and any other one that gave one of its codes.
+  const campaignOptions = useMemo(() => {
+    const given = new Set(
+      templateItems.map((item) => item.campaign_id).filter(Boolean),
+    );
+    return campaigns.filter(
+      (campaign) =>
+        given.has(campaign.id) ||
+        campaign.prizes.some((prize) => prize.templateId === reward.id),
+    );
+  }, [campaigns, templateItems, reward.id]);
+
+  const inCampaign = useMemo(
+    () =>
+      campaignFilter === "all"
+        ? templateItems
+        : templateItems.filter((item) => item.campaign_id === campaignFilter),
+    [templateItems, campaignFilter],
+  );
+  const usageCounts = useMemo(() => {
+    const counts: Record<UsageFilter, number> = {
+      all: inCampaign.length,
+      unused: 0,
+      used: 0,
+      empty: 0,
+    };
+    for (const item of inCampaign) counts[USAGE_OF[codeRowState(item)]] += 1;
+    return counts;
+  }, [inCampaign]);
+  const shownItems = useMemo(
+    () =>
+      usage === "all"
+        ? inCampaign
+        : inCampaign.filter((item) => USAGE_OF[codeRowState(item)] === usage),
+    [inCampaign, usage],
+  );
+  const filteringCodes = usage !== "all" || campaignFilter !== "all";
 
   // What the cells of the table need; the columns themselves never change (see the columns file).
   const tableContext = useMemo<RewardCodesContextValue>(
@@ -451,6 +511,53 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
               />
             </div>
 
+            {/* Which codes: the unused ones at once, without scrolling through them all */}
+            <div
+              role="group"
+              aria-label="Filter codes by use"
+              className="flex items-center gap-1 rounded-xl border border-card-border bg-card-bg p-1"
+            >
+              {USAGE_FILTERS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={usage === option.value}
+                  onClick={() => setUsage(option.value)}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                    usage === option.value
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-brand-textMuted hover:text-brand-text"
+                  }`}
+                >
+                  {option.label}
+                  <span
+                    className={`rounded-md px-1.5 text-[10px] tabular-nums ${
+                      usage === option.value
+                        ? "bg-white/20"
+                        : "bg-card-bg-subtle"
+                    }`}
+                  >
+                    {usageCounts[option.value]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* The campaign whose winners received the codes */}
+            <select
+              aria-label="Filter codes by campaign"
+              value={campaignFilter}
+              onChange={(e) => setCampaignFilter(e.target.value)}
+              className="min-w-[160px] max-w-[240px] cursor-pointer rounded-xl border border-card-border bg-card-bg px-3 py-2 text-xs font-bold text-brand-text focus:outline-none focus:border-emerald-500"
+            >
+              <option value="all">All campaigns</option>
+              {campaignOptions.map((campaign) => (
+                <option key={campaign.id} value={campaign.id}>
+                  {campaign.name}
+                </option>
+              ))}
+            </select>
+
             {/* Import Mode Selector + Action Buttons */}
             <div className="flex flex-wrap items-center gap-2">
               {/* Import Mode Selector */}
@@ -481,19 +588,23 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
               </button>
             </div> */}
 
-              {/* Auto-Fill Random Codes */}
-              {/* <button
-              type="button"
-              onClick={handleFillRandomSlots}
-              disabled={isGeneratingRandom || codesSaving}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition-all shadow-sm disabled:opacity-50"
-              title="Auto-fills all empty slots with unique 8-character uppercase alphanumeric codes"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>
-                {isGeneratingRandom ? "Generating..." : "Auto-Fill Empty"}
-              </span>
-            </button> */}
+              {/* Generate every empty code at once */}
+              {canEdit && emptyCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleFillRandomSlots}
+                  disabled={isGeneratingRandom || codesSaving}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition-all shadow-sm disabled:opacity-50"
+                  title="Fills every empty slot with a unique 8-character code"
+                >
+                  <Sparkles className="w-4 h-4" aria-hidden="true" />
+                  <span>
+                    {isGeneratingRandom
+                      ? "Generating..."
+                      : `Generate all codes (${emptyCount})`}
+                  </span>
+                </button>
+              )}
 
               {/* Copy All */}
               {/* <button
@@ -610,7 +721,7 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
                     ? voucherCodeColumns
                     : physicalCodeColumns
                 }
-                data={templateItems}
+                data={shownItems}
                 getRowId={(item) => item.id}
                 loading={codesLoading}
                 pageSize={CODES_PAGE_SIZE}
@@ -619,12 +730,16 @@ export const RewardCodesView: React.FC<RewardCodesViewProps> = ({
                 rowClassName={codeRowClassName}
                 emptyState={
                   <div className="py-16 flex flex-col items-center justify-center text-center text-brand-textMuted text-xs">
-                    This reward has no code slot yet.
+                    {filteringCodes
+                      ? "No codes match these filters."
+                      : "This reward has no code slot yet."}
                   </div>
                 }
                 noResultsState={
                   <div className="py-16 flex flex-col items-center justify-center text-center text-brand-textMuted text-xs">
-                    No codes matching your search query.
+                    {filteringCodes
+                      ? "No codes match these filters."
+                      : "No codes matching your search query."}
                   </div>
                 }
               />

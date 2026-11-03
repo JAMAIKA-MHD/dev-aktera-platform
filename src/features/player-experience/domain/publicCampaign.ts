@@ -62,6 +62,11 @@ const publicExperienceSchema = z.object({
     z.object({ open: z.literal(true) }),
     z.object({
       open: z.literal(false),
+      reason: z.literal("NOT_STARTED"),
+      starts_at: z.string(),
+    }),
+    z.object({
+      open: z.literal(false),
       reason: z.enum(["CLOSED", "SOLD_OUT"]),
     }),
   ]),
@@ -140,7 +145,15 @@ export function parsePublicExperience(raw: unknown): PublicExperience {
     status: "ok",
     slug: data.campaign.slug,
     campaign,
-    availability: data.availability,
+    availability:
+      data.availability.open === false &&
+      data.availability.reason === "NOT_STARTED"
+        ? {
+            open: false,
+            reason: "NOT_STARTED",
+            startsAt: data.availability.starts_at,
+          }
+        : data.availability,
     config,
     configIssues,
   };

@@ -21,7 +21,8 @@ import type { FormConfig, FormFieldKey } from "./types";
 //   play ─INTERACTION_DONE→ resolving      (quiz, mystery box, Hit It: drawn after the player acts)
 //   resolving ─RESOLVED→ revealing ─REVEAL_DONE→ win | lose
 //   resolving ─FAILED→ duplicate | closed | register (invalid input) | error ─RETRY→ resolving
-//   welcome | register ─UNAVAILABLE→ closed (the campaign is closed or sold out before any draw)
+//   welcome | register ─UNAVAILABLE→ closed (the campaign is closed, sold out or not started yet,
+//   before any draw)
 
 export type FlowScreen =
   | "welcome"
@@ -73,7 +74,11 @@ export type FlowEvent =
   | { type: "CONFIRM_COUPON" }
   | { type: "RETRY" }
   | { type: "RESTART" }
-  | { type: "UNAVAILABLE"; reason: "CLOSED" | "SOLD_OUT" };
+  | {
+      type: "UNAVAILABLE";
+      reason: "CLOSED" | "SOLD_OUT" | "NOT_STARTED";
+      startsAt?: string;
+    };
 
 export type FlowCommand = "DRAW" | "CONFIRM";
 
@@ -261,6 +266,17 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
       if (state.screen !== "welcome" && state.screen !== "register") {
         return state;
       }
+      if (event.reason === "NOT_STARTED") {
+        return {
+          ...state,
+          screen: "closed",
+          error: {
+            code: "CAMPAIGN_NOT_STARTED",
+            message: "This campaign has not started yet.",
+            startsAt: event.startsAt,
+          },
+        };
+      }
       return {
         ...state,
         screen: "closed",
@@ -280,6 +296,7 @@ function failed(state: FlowState, error: ParticipationError): FlowState {
     case "ALREADY_PARTICIPATED":
       return { ...state, screen: "duplicate", error };
     case "CAMPAIGN_CLOSED":
+    case "CAMPAIGN_NOT_STARTED":
       return { ...state, screen: "closed", error };
     case "INVALID_INPUT":
       // Back to the form to fix the details; the next SUBMIT starts a new attempt.

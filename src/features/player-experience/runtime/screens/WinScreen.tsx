@@ -14,7 +14,8 @@ import { press, type ScreenProps } from "./screenProps";
 
 // The end of a winning journey (plan §6.3, tasks.md T4.4), from RewardVoucher.tsx: a
 // "ticket" (dashed separator, notches, a sweep of light) with the prize name, the win
-// message and the code — copy, then confirm once (CONFIRM_COUPON, sent only once, T1.10).
+// message and the code. Copying the code records it as copied (CONFIRM_COUPON → confirm-coupon,
+// sent only once, T1.10): there is no separate "I've copied my code" button.
 // A campaign without a code shows how to collect the prize instead: never a fallback code
 // like the prototype's "AKT-DZ-9824X" (B6). Confetti and a win sound, skipped with reduced
 // motion. Sharing is optional, plain WhatsApp/Facebook links, and never grants another try
@@ -63,10 +64,11 @@ export function WinScreen({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Only ever wired to the code button, which only renders when there is a code.
-  const handleCopy = (code: string) => () => {
-    void copy(code);
+  // Only ever wired to the code button, which only renders when there is a code. A code that
+  // reached the clipboard is recorded as copied on the server; the flow sends it once only.
+  const handleCopy = (code: string) => async () => {
     flow.track("coupon_copied");
+    if (await copy(code)) flow.confirmCoupon();
   };
 
   return (
@@ -179,29 +181,6 @@ export function WinScreen({
           )}
         </div>
 
-        {couponCode &&
-          couponStatus !== "confirmed" &&
-          couponStatus !== "failed" && (
-            <button
-              type="button"
-              disabled={couponStatus === "sending"}
-              onClick={() => flow.confirmCoupon()}
-              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[var(--xp-radius-pill)] border px-4 text-sm font-bold text-[var(--xp-text-muted)] transition-colors duration-200 hover:text-[var(--xp-text)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
-              style={{ borderColor: tint("--xp-text", 14) }}
-            >
-              {couponStatus === "sending" && (
-                <span
-                  aria-hidden
-                  className="xp-spin size-4 shrink-0 rounded-full border-2 border-current border-t-transparent"
-                />
-              )}
-              {text(
-                couponStatus === "sending"
-                  ? RESULT_TEXT.confirming
-                  : RESULT_TEXT.confirm,
-              )}
-            </button>
-          )}
         {couponStatus === "confirmed" && (
           <p
             role="status"

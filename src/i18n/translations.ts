@@ -20,6 +20,7 @@ export const resources = {
       campaigns: {
         title: "Campaign Radios",
         createNew: "Create New Campaign",
+        newCampaign: "New campaign",
         filterStatus: "STATUS",
         filterType: "CAMPAIGN TYPE",
         active: "Active",
@@ -198,6 +199,7 @@ export const resources = {
       campaigns: {
         title: "Campagnes",
         createNew: "Créer une Campagne",
+        newCampaign: "Nouvelle campagne",
         filterStatus: "STATUT",
         filterType: "TYPE DE CAMPAGNE",
         active: "Actif",
@@ -322,6 +324,7 @@ export const resources = {
       campaigns: {
         title: "الحملات الترويجية",
         createNew: "إنشاء حملة جديدة",
+        newCampaign: "حملة جديدة",
         filterStatus: "الحالة",
         filterType: "نوع الحملة",
         active: "نشطة",

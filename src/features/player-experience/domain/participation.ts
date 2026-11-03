@@ -43,6 +43,8 @@ export interface DrawRequest {
 export type ParticipationErrorCode =
   | "ALREADY_PARTICIPATED"
   | "CAMPAIGN_CLOSED"
+  // Published but its start date has not come: the page says when it opens, not that it ended.
+  | "CAMPAIGN_NOT_STARTED"
   | "INVALID_INPUT"
   | "NETWORK"
   | "UNKNOWN";
@@ -50,6 +52,8 @@ export type ParticipationErrorCode =
 export interface ParticipationError {
   code: ParticipationErrorCode;
   message: string;
+  /** CAMPAIGN_NOT_STARTED: when the campaign opens (ISO date-time). */
+  startsAt?: string;
 }
 
 export interface DrawPrize {
@@ -66,7 +70,10 @@ export interface DrawOutcome {
 
 // Whether a campaign can still be played, known before any draw (get_public_experience).
 export type Availability =
-  { open: true } | { open: false; reason: "CLOSED" | "SOLD_OUT" };
+  | { open: true }
+  | { open: false; reason: "CLOSED" | "SOLD_OUT" }
+  // A scheduled campaign: open from startsAt.
+  | { open: false; reason: "NOT_STARTED"; startsAt: string };
 
 export type DrawResult =
   | { ok: true; entryId: string; outcome: DrawOutcome }
@@ -93,6 +100,11 @@ export const PARTICIPATION_ERROR_MESSAGES: Readonly<
     fr: "Cette campagne est terminée. Merci de votre intérêt !",
     ar: "انتهت هذه الحملة. شكراً لاهتمامك!",
     en: "This campaign has ended. Thank you for your interest!",
+  },
+  CAMPAIGN_NOT_STARTED: {
+    fr: "Cette campagne n'a pas encore commencé. Revenez à sa date d'ouverture !",
+    ar: "لم تبدأ هذه الحملة بعد. عُد في تاريخ انطلاقها!",
+    en: "This campaign has not started yet. Come back when it opens!",
   },
   INVALID_INPUT: {
     fr: "Certaines informations sont invalides. Vérifiez vos coordonnées et réessayez.",

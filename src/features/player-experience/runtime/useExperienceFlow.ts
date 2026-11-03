@@ -269,7 +269,14 @@ export function useExperienceFlow(
     current.participation.checkAvailability(shown.id).then(
       (availability) => {
         if (active && availability.open === false) {
-          dispatch({ type: "UNAVAILABLE", reason: availability.reason });
+          dispatch({
+            type: "UNAVAILABLE",
+            reason: availability.reason,
+            startsAt:
+              availability.reason === "NOT_STARTED"
+                ? availability.startsAt
+                : undefined,
+          });
         }
       },
       () => {},

@@ -57,8 +57,6 @@ function setup(
 }
 
 const codeButton = () => screen.getByText("DEMO-0000-0000").closest("button")!;
-const confirmButton = () =>
-  screen.queryByText("J'ai copié mon code")?.closest("button") ?? null;
 
 // A win state built directly (not through the reducer), for the outcome shapes no local
 // gateway produces: no coupon code, or an outcome that carries no prize.
@@ -142,18 +140,28 @@ describe("WinScreen", () => {
     );
   });
 
-  it("confirms the coupon once, even with a second click, and never sends it twice", async () => {
-    const { confirm } = setup();
-    expect(confirmButton()).toBeTruthy();
-    fireEvent.click(confirmButton()!);
+  it("has no separate confirm button: copying the code records it, once", async () => {
+    const { user, confirm } = setup();
+    expect(screen.queryByText("J'ai copié mon code")).toBeNull();
+    await user.click(codeButton());
     await vi.waitFor(() =>
       expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
     );
-    expect(confirmButton()).toBeNull(); // spent: no second attempt possible
+    await user.click(codeButton()); // a second copy sends nothing more
     expect(confirm).toHaveBeenCalledOnce();
   });
 
-  it("shows the button waiting while the confirmation is in flight", async () => {
+  it("records nothing when the code could not be copied", async () => {
+    const { user, confirm } = setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(
+      new Error("denied"),
+    );
+    await user.click(codeButton());
+    expect(screen.queryByText("Copié !")).toBeNull();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("shows the thanks only once the server has it", async () => {
     const services = createLocalServices({
       participation: "scripted",
       campaign: createDemoCampaign("lucky_wheel"),
@@ -164,10 +172,10 @@ describe("WinScreen", () => {
         resolveConfirm = resolve;
       }),
     );
-    setup({ services });
-    fireEvent.click(confirmButton()!);
-    const waiting = screen.getByText("Confirmation…").closest("button")!;
-    expect(waiting.hasAttribute("disabled")).toBe(true);
+    const { user } = setup({ services });
+    await user.click(codeButton());
+    expect(screen.getByText("Copié !")).toBeTruthy();
+    expect(screen.queryByText("Merci, c'est noté !")).toBeNull();
     resolveConfirm!({ ok: true });
     await vi.waitFor(() =>
       expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
@@ -183,8 +191,8 @@ describe("WinScreen", () => {
       ok: false,
       error: { code: "NETWORK", message: "offline" },
     });
-    setup({ services });
-    fireEvent.click(confirmButton()!);
+    const { user } = setup({ services });
+    await user.click(codeButton());
     await vi.waitFor(() =>
       expect(
         screen.getByText(
@@ -193,7 +201,7 @@ describe("WinScreen", () => {
       ).toBeTruthy(),
     );
     expect(screen.queryByText("Merci, c'est noté !")).toBeNull();
-    expect(confirmButton()).toBeNull(); // still spent, not alarming
+    expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
   });
 
   it("opens WhatsApp and Facebook with the prize and the page link, and reports each", () => {

@@ -148,3 +148,23 @@ describe("filters", () => {
     expect(matchesStatusFilter(row, "all")).toBe(true);
   });
 });
+
+describe("scheduled campaigns", () => {
+  it("shows a published campaign that has not started yet as scheduled", () => {
+    const row = toStudioCampaignRow(
+      campaign({ startDate: "2026-10-05", endDate: "2026-10-31" }),
+      new Map(),
+      NOW,
+    );
+    expect(row.displayStatus).toBe("scheduled");
+    expect(matchesStatusFilter(row, "scheduled")).toBe(true);
+    expect(matchesStatusFilter(row, "active")).toBe(false);
+    // A draft with a future start is still a draft.
+    expect(
+      displayStatusOf(
+        { status: "draft", startDate: "2026-10-05", endDate: "2026-10-31" },
+        NOW,
+      ),
+    ).toBe("draft");
+  });
+});

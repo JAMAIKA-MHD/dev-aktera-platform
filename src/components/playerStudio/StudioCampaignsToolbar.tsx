@@ -13,6 +13,7 @@ export type GameFilter = "all" | Campaign["gameType"];
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
+  { value: "scheduled", label: "Scheduled" },
   { value: "paused", label: "Paused" },
   { value: "draft", label: "Draft" },
   { value: "ended", label: "Ended" },
