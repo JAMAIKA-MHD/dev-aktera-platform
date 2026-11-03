@@ -46,6 +46,27 @@ export const GAME_TYPES: GameMeta[] = [
     setup: "Number of hits needed to win",
   },
   {
+    id: "memory_match",
+    key: "campaigns.memoryMatch",
+    label: "Memory Match",
+    description: "Players flip cards to find every matching pair in time.",
+    setup: "Number of pairs and the time limit",
+  },
+  {
+    id: "catch_it",
+    key: "campaigns.catchIt",
+    label: "Catch It",
+    description: "Players tap falling items before they leave the screen.",
+    setup: "Items to catch and the time limit",
+  },
+  {
+    id: "spot_difference",
+    key: "campaigns.spotDifference",
+    label: "Spot the Difference",
+    description: "Players find what changed between two pictures in time.",
+    setup: "Number of differences and the time limit",
+  },
+  {
     id: "quiz",
     key: "campaigns.quiz",
     label: "Quiz Challenge",

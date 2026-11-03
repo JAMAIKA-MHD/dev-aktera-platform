@@ -141,6 +141,13 @@ export interface GameSettings {
     translations: Record<string, QuizQuestionTranslation>;
   };
   hitIt?: { targetIcon: IconName; targetImage: AssetRef };
+  catchIt?: { itemIcon: IconName; itemImage: AssetRef };
+  memory?: {
+    backIcon: IconName; // the face-down side of every card
+    backImage: AssetRef; // replaces backIcon
+    faces: IconName[]; // exactly 8: a board of N pairs uses the first N
+  };
+  spot?: { icons: IconName[] }; // 3 to 8 icons the two pictures are drawn with
 }
 
 // How a campaign prize is shown, per language. Empty values fall back to prizes.name and prizes.win_message.

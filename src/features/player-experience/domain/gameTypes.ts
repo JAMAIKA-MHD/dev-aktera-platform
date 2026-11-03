@@ -1,6 +1,13 @@
 // Same union as Campaign["gameType"] in src/types.ts (checked by gameTypes.test.ts).
 export type GameType =
-  "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it";
+  | "lucky_wheel"
+  | "quiz"
+  | "scratch_card"
+  | "mystery_box"
+  | "hit_it"
+  | "memory_match"
+  | "catch_it"
+  | "spot_difference";
 
 // When the server draws the outcome, relative to what the player does:
 // - before-animation: drawn right after registration; the game only animates towards the known result.
@@ -14,6 +21,9 @@ export const OUTCOME_TIMING: Readonly<Record<GameType, OutcomeTiming>> = {
   quiz: "after-interaction",
   mystery_box: "after-interaction",
   hit_it: "after-interaction",
+  memory_match: "after-interaction",
+  catch_it: "after-interaction",
+  spot_difference: "after-interaction",
 };
 
 // Studio labels (English), aligned with the dashboard campaign list.
@@ -23,4 +33,7 @@ export const GAME_LABELS: Readonly<Record<GameType, string>> = {
   scratch_card: "Scratch Card",
   mystery_box: "Mystery Box",
   hit_it: "Hit It",
+  memory_match: "Memory Match",
+  catch_it: "Catch It",
+  spot_difference: "Spot the Difference",
 };

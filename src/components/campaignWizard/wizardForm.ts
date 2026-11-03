@@ -21,7 +21,7 @@ import {
   foundationSchema,
   prizesSchema,
   quizSchema,
-  skillSchema,
+  skillSchemaFor,
   type FieldErrors,
 } from "../wizard/wizardSchemas";
 
@@ -281,7 +281,12 @@ export function validateStep(
     return found;
   }
   if (step === 2 && w.category === "skill") {
-    return fieldErrors(skillSchema.safeParse({ targetScore: w.targetScore }));
+    const setup = mechanicById(w.engagementId)?.skill;
+    return fieldErrors(
+      skillSchemaFor(setup?.scoreMin ?? 1, setup?.scoreMax ?? 500).safeParse({
+        targetScore: w.targetScore,
+      }),
+    );
   }
   if (step === 2 && w.category === "knowledge") {
     return fieldErrors(
@@ -450,7 +455,10 @@ export function engagementLabel(form: WizardForm) {
 export function engagementSettings(form: WizardForm) {
   const { w } = form;
   if (w.category === "skill") {
-    return `${w.durationSeconds} s · ${w.targetScore} points to win`;
+    const setup = mechanicById(w.engagementId)?.skill;
+    return `${w.durationSeconds} s · ${
+      setup?.describe(w.targetScore) ?? `${w.targetScore} points to win`
+    }`;
   }
   if (w.category === "knowledge") {
     return `${form.questionCount} ${form.questionCount === 1 ? "question" : "questions"} · pass at ${w.passPercent}%`;

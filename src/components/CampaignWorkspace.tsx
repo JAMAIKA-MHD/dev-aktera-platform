@@ -58,6 +58,18 @@ const GAME_BACKDROPS: Record<string, { gradient: string; glow: string }> = {
     gradient: "bg-gradient-to-br from-[#330c14] via-[#0B1120] to-[#450e19]",
     glow: "bg-rose-600",
   },
+  memory_match: {
+    gradient: "bg-gradient-to-br from-[#062a30] via-[#0B1120] to-[#083a44]",
+    glow: "bg-cyan-600",
+  },
+  catch_it: {
+    gradient: "bg-gradient-to-br from-[#33190a] via-[#0B1120] to-[#4a2410]",
+    glow: "bg-orange-600",
+  },
+  spot_difference: {
+    gradient: "bg-gradient-to-br from-[#14173a] via-[#0B1120] to-[#1d2150]",
+    glow: "bg-indigo-600",
+  },
   lucky_wheel: {
     gradient: "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26]",
     glow: "bg-emerald-500",

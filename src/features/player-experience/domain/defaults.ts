@@ -15,6 +15,7 @@ import { createDemoCampaign } from "../presets/demoCampaign";
 import { themeFromPreset } from "../presets/themePresets";
 import type { CampaignSnapshot } from "./campaign";
 import type { GameType } from "./gameTypes";
+import type { IconName } from "./icons";
 import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
   ExperienceConfig,
@@ -28,6 +29,27 @@ import { createUuid } from "./uuid";
 // which imports React.
 
 export const DEFAULT_GAME_TYPE: GameType = "lucky_wheel";
+
+// Presentation defaults of the memory and spot-the-difference boards (8 card faces: a board of
+// N pairs uses the first N; 6 scene icons).
+export const DEFAULT_MEMORY_FACES: readonly IconName[] = [
+  "star",
+  "gem",
+  "gift",
+  "trophy",
+  "zap",
+  "crown",
+  "flame",
+  "ticket",
+];
+export const DEFAULT_SPOT_ICONS: readonly IconName[] = [
+  "star",
+  "gem",
+  "gift",
+  "trophy",
+  "crown",
+  "flame",
+];
 export const DEFAULT_POLICY_VERSION = "2026-09-01";
 
 export const MIN_WHEEL_SEGMENTS = 4;
@@ -114,6 +136,19 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
       break;
     case "hit_it":
       settings.hitIt = { targetIcon: "target", targetImage: null };
+      break;
+    case "catch_it":
+      settings.catchIt = { itemIcon: "star", itemImage: null };
+      break;
+    case "memory_match":
+      settings.memory = {
+        backIcon: "help-circle",
+        backImage: null,
+        faces: [...DEFAULT_MEMORY_FACES],
+      };
+      break;
+    case "spot_difference":
+      settings.spot = { icons: [...DEFAULT_SPOT_ICONS] };
       break;
   }
   return settings;

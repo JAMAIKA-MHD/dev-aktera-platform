@@ -79,6 +79,9 @@ describe("registry", () => {
       mystery_box: "boxes",
       quiz: "quiz",
       hit_it: "hitIt",
+      memory_match: "memory",
+      catch_it: "catchIt",
+      spot_difference: "spot",
     };
     for (const gameType of GAME_TYPES) {
       const keys = Object.keys(registry[gameType].defaultSettings);

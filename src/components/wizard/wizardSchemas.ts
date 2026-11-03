@@ -47,6 +47,16 @@ export const skillSchema = z.object({
     .min(1, "The target score must be at least 1."),
 });
 
+// The goal of a skill game, within what its engine can draw and the server accepts.
+export const skillSchemaFor = (min: number, max: number) =>
+  z.object({
+    targetScore: z
+      .number("Enter a target score.")
+      .int("The target score must be a whole number.")
+      .min(min, `The target score must be at least ${min}.`)
+      .max(max, `The target score must be ${max} or fewer.`),
+  });
+
 export const quizSchema = z.object({
   questions: z.array(
     z.object({

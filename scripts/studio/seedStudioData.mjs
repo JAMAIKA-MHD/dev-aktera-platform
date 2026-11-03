@@ -32,6 +32,21 @@ const ROWS = [
   [12, "Spring Wheel 2026", "lucky_wheel", "ended", -200, -150, 51, 120 * DAY, "obsidian-violet"],
   [13, "Old Trivia", "quiz", "ended", -300, -250, 20, null, null],
   [14, "Very long campaign name to check truncation in the table", "scratch_card", "active", -2, 14, 9, null, null],
+  // Memory Match, Catch It and Spot the Difference: four campaigns each (live with a saved
+  // design, live on the default design, paused or draft, ended), so every state of the three
+  // newer games can be tried in the table, the Studio and /play/:slug.
+  [15, "Memory Pairs", "memory_match", "active", -6, 18, 14, 4 * HOUR, "clean-light"],
+  [16, "Memory Brand Cards", "memory_match", "active", -3, 27, 9, null, null],
+  [17, "Memory Weekend", "memory_match", "paused", -9, 12, 5, DAY, "retail-blue"],
+  [18, "Memory Classic", "memory_match", "ended", -120, -90, 28, 40 * DAY, "obsidian-violet"],
+  [19, "Catch the Stars", "catch_it", "active", -4, 22, 11, 3 * HOUR, "midnight-gold"],
+  [20, "Catch Flash Sale", "catch_it", "active", -1, 15, 6, null, null],
+  [21, "Catch Draft", "catch_it", "draft", 10, 40, 0, 2 * DAY, "telecom-red"],
+  [22, "Catch Summer 2026", "catch_it", "ended", -150, -110, 36, 80 * DAY, "clean-light"],
+  [23, "Spot It", "spot_difference", "active", -5, 30, 16, 6 * HOUR, "retail-blue"],
+  [24, "Spot the Offer", "spot_difference", "active", -2, 20, 8, null, null],
+  [25, "Spot Draft", "spot_difference", "draft", 7, 45, 0, 4 * DAY, "obsidian-violet"],
+  [26, "Spot Old Edition", "spot_difference", "paused", -25, 5, 10, null, null],
 ];
 
 export const CAMPAIGNS = ROWS.map(
@@ -50,8 +65,8 @@ export const CAMPAIGNS = ROWS.map(
 );
 
 export const PRIZE_QUANTITY = 20;
-// The database refuses allocating more than the template stock: 14 prizes × 20 ≤ 300.
-export const CODES = 300;
+// The database refuses allocating more than the template stock: 26 prizes × 20 ≤ 600.
+export const CODES = 600;
 export const WINNER_EVERY = 4; // one participant in four won
 // Short: the prize name also labels the wheel segments (14 characters at most).
 export const PRIZE_NAME = "Seed 500 DA";
@@ -68,6 +83,12 @@ export function slugOf(name) {
 export function gameLogicConfig(game) {
   if (game === "quiz") return { pass_threshold_percentage: 100 };
   if (game === "hit_it") return { win_threshold: 5 };
+  if (game === "catch_it")
+    return { win_threshold: 10, hit_it_duration_seconds: 20 };
+  if (game === "memory_match")
+    return { win_threshold: 6, hit_it_duration_seconds: 45 };
+  if (game === "spot_difference")
+    return { win_threshold: 5, hit_it_duration_seconds: 45 };
   if (game !== "lucky_wheel") return {};
   const segment = (label, prize) => ({
     label,

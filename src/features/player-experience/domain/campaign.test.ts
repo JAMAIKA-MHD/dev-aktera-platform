@@ -1,6 +1,10 @@
 import type { Campaign } from "@/src/types";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_RULES, buildCampaignSnapshot } from "./campaign";
+import {
+  DEFAULT_RULES,
+  buildCampaignSnapshot,
+  rulesFromGameLogic,
+} from "./campaign";
 
 const campaign = (overrides: Partial<Campaign> = {}): Campaign => ({
   id: "campaign-1",
@@ -134,7 +138,23 @@ describe("buildCampaignSnapshot", () => {
       expect(DEFAULT_RULES).toEqual({
         quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
         hitIt: { winThreshold: 1, durationSeconds: 10 },
+        catchIt: { winThreshold: 10, durationSeconds: 20 },
+        memory: { pairs: 6, durationSeconds: 45 },
+        spot: { differences: 5, durationSeconds: 45 },
       });
+    });
+
+    it("reads the goal and time limit of the three newer skill games, clamping the boards", () => {
+      const config = { win_threshold: 12, hit_it_duration_seconds: 30 };
+      expect(rulesFromGameLogic("catch_it", config)).toEqual({
+        catchIt: { winThreshold: 12, durationSeconds: 30 },
+      });
+      expect(
+        rulesFromGameLogic("memory_match", { ...config, win_threshold: 99 }),
+      ).toEqual({ memory: { pairs: 8, durationSeconds: 30 } });
+      expect(
+        rulesFromGameLogic("spot_difference", { ...config, win_threshold: 1 }),
+      ).toEqual({ spot: { differences: 3, durationSeconds: 30 } });
     });
 
     it("reads the quiz rules from game_logic_config", () => {

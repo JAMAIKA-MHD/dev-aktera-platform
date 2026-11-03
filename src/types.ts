@@ -169,7 +169,15 @@ export interface Campaign {
   arabicName: string;
   heroImageUrl?: string;
   slug: string;
-  gameType: "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it";
+  gameType:
+    | "lucky_wheel"
+    | "quiz"
+    | "scratch_card"
+    | "mystery_box"
+    | "hit_it"
+    | "memory_match"
+    | "catch_it"
+    | "spot_difference";
   gameLogicConfig?: any;
   status: "active" | "paused" | "draft" | "archived";
   winProbability: number; // Server-enforced winning percentage (0 to 100)

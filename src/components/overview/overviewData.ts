@@ -91,6 +91,12 @@ export const GAME_TYPES = {
     caption: "Pick a box, win what is inside",
   },
   hit_it: { label: "Hit It", caption: "Tap fast to score" },
+  memory_match: { label: "Memory Match", caption: "Find every pair in time" },
+  catch_it: { label: "Catch It", caption: "Tap the falling items" },
+  spot_difference: {
+    label: "Spot the Difference",
+    caption: "Find what changed",
+  },
 } as const satisfies Record<
   Campaign["gameType"],
   { label: string; caption: string }

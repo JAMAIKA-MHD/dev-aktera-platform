@@ -7,6 +7,7 @@ import { cn } from "../../lib/utils";
 import { CxButton, cxFocus } from "../campaigns/campaignUi";
 import { GameEmblem } from "../campaigns/GameEmblem";
 import {
+  mechanicById,
   mechanicsFor,
   type EngagementCategory,
 } from "../wizard/mechanicsRegistry";
@@ -193,6 +194,7 @@ function QuizQuestions({ form, update, errorFor }: StepProps) {
 
 export function StepEngagement({ form, update, errorFor }: StepProps) {
   const { w } = form;
+  const skill = mechanicById(w.engagementId)?.skill;
   const patch = (changes: Partial<typeof w>) =>
     update({ w: { ...w, ...changes } });
 
@@ -263,7 +265,16 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
                     <GameEmblem gameType={mechanic.gameType} size={36} />
                   )
                 }
-                onSelect={() => patch({ engagementId: mechanic.id })}
+                onSelect={() =>
+                  patch({
+                    engagementId: mechanic.id,
+                    // Each game starts from its own goal and time limit.
+                    ...(mechanic.skill && {
+                      targetScore: mechanic.skill.defaultScore,
+                      durationSeconds: mechanic.skill.defaultDuration,
+                    }),
+                  })
+                }
               />
             ))}
           </div>
@@ -279,23 +290,27 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
             <RangeField
               label="Game duration"
               value={w.durationSeconds}
-              min={10}
-              max={60}
+              min={skill?.durationMin ?? 10}
+              max={skill?.durationMax ?? 60}
               step={5}
               unit=" s"
               onChange={(durationSeconds) => patch({ durationSeconds })}
             />
             <Field
-              label="Target score to win"
+              label={skill?.scoreLabel ?? "Target score to win"}
               required
-              hint={`Players reach ${w.targetScore || "…"} points in ${w.durationSeconds} seconds to win.`}
+              hint={
+                skill?.scoreHint ??
+                `Players reach ${w.targetScore || "…"} points in ${w.durationSeconds} seconds to win.`
+              }
               error={errorFor("targetScore")}
             >
               {(props) => (
                 <input
                   {...props}
                   type="number"
-                  min={1}
+                  min={skill?.scoreMin ?? 1}
+                  max={skill?.scoreMax}
                   value={Number.isNaN(w.targetScore) ? "" : w.targetScore}
                   onChange={(event) =>
                     patch({ targetScore: event.target.valueAsNumber })

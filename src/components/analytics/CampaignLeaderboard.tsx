@@ -14,6 +14,9 @@ const GAME_TONE: Record<GameType, KpiTone | "rose"> = {
   quiz: "vio",
   mystery_box: "blue",
   hit_it: "rose",
+  memory_match: "teal",
+  catch_it: "amber",
+  spot_difference: "vio",
 };
 
 const statusLabel = (status: string) =>

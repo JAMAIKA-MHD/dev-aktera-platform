@@ -1,5 +1,9 @@
 import { lazy } from "react";
-import { buildDefaultWheelSegments } from "../../domain/defaults";
+import {
+  DEFAULT_MEMORY_FACES,
+  DEFAULT_SPOT_ICONS,
+  buildDefaultWheelSegments,
+} from "../../domain/defaults";
 import { GAME_LABELS } from "../../domain/gameTypes";
 import { SCRATCH_COVER_TEXT } from "../../presets/contentDefaults";
 import { autoCaption } from "./autoCaption";
@@ -93,6 +97,57 @@ export const registry: GameRegistry = {
     ),
     defaultSettings: { hitIt: { targetIcon: "target", targetImage: null } },
     labels: GAME_LABELS.hit_it,
+    autoCaption,
+  },
+  memory_match: {
+    Engine: lazy(() =>
+      import("./memory/MemoryEngine").then((module) => ({
+        default: module.MemoryEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./memory/MemoryTeaser").then((module) => ({
+        default: module.MemoryTeaser,
+      })),
+    ),
+    defaultSettings: {
+      memory: {
+        backIcon: "help-circle",
+        backImage: null,
+        faces: [...DEFAULT_MEMORY_FACES],
+      },
+    },
+    labels: GAME_LABELS.memory_match,
+    autoCaption,
+  },
+  catch_it: {
+    Engine: lazy(() =>
+      import("./catchIt/CatchEngine").then((module) => ({
+        default: module.CatchEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./catchIt/CatchTeaser").then((module) => ({
+        default: module.CatchTeaser,
+      })),
+    ),
+    defaultSettings: { catchIt: { itemIcon: "star", itemImage: null } },
+    labels: GAME_LABELS.catch_it,
+    autoCaption,
+  },
+  spot_difference: {
+    Engine: lazy(() =>
+      import("./spot/SpotEngine").then((module) => ({
+        default: module.SpotEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./spot/SpotTeaser").then((module) => ({
+        default: module.SpotTeaser,
+      })),
+    ),
+    defaultSettings: { spot: { icons: [...DEFAULT_SPOT_ICONS] } },
+    labels: GAME_LABELS.spot_difference,
     autoCaption,
   },
 };

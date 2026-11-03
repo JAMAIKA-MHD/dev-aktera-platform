@@ -165,7 +165,14 @@ export interface SaveCampaignInput {
     heroImageUrl?: string;
     slug: string;
     gameType:
-      "lucky_wheel" | "quiz" | "scratch_card" | "mystery_box" | "hit_it";
+      | "lucky_wheel"
+      | "quiz"
+      | "scratch_card"
+      | "mystery_box"
+      | "hit_it"
+      | "memory_match"
+      | "catch_it"
+      | "spot_difference";
     gameLogicConfig?: any;
     startDate: string;
     endDate: string;

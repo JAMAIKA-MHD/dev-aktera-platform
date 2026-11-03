@@ -15,7 +15,12 @@ export type GamePayload =
   | { kind: "none" } // wheel, scratch card: drawn before the animation
   | { kind: "quiz"; answers: Record<string, number> } // question id → option index, database order
   | { kind: "boxes"; selectedIndex: number }
-  | { kind: "hitIt"; hits: number };
+  | { kind: "hitIt"; hits: number }
+  // The three newer skill games report what the player did and how long it took; the server
+  // checks the numbers are plausible before it lets them open the prize draw.
+  | { kind: "memory"; pairs: number; moves: number; elapsedMs: number }
+  | { kind: "catch"; caught: number; elapsedMs: number }
+  | { kind: "spot"; found: number; elapsedMs: number };
 
 export interface DrawRequest {
   clientRequestId: string; // reused on retry so the same attempt is never counted twice
