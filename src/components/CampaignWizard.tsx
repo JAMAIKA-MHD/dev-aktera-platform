@@ -22,7 +22,7 @@ import {
   SMS_MAX_LENGTH,
   prizesSchema,
   quizSchema,
-  skillSchema,
+  skillSchemaFor,
 } from "./wizard/wizardSchemas";
 import {
   EngagementCategory,
@@ -428,7 +428,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       : `${w.category === "skill" ? "Skill" : "Knowledge"} · ${engagement?.label ?? ""}`;
   const engagementSettings =
     w.category === "skill"
-      ? `${w.durationSeconds} s · target ${w.targetScore} points`
+      ? `${w.durationSeconds} s · ${
+          engagement?.skill?.describe(w.targetScore) ??
+          `target ${w.targetScore} points`
+        }`
       : w.category === "knowledge"
         ? `${questionCount} questions · pass ${w.passPercent}%`
         : "No game settings";
@@ -466,7 +469,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       return found;
     }
     if (n === 2 && w.category === "skill") {
-      return fieldErrors(skillSchema.safeParse({ targetScore: w.targetScore }));
+      const setup = engagement?.skill;
+      return fieldErrors(
+        skillSchemaFor(setup?.scoreMin ?? 1, setup?.scoreMax ?? 500).safeParse({
+          targetScore: w.targetScore,
+        }),
+      );
     }
     if (n === 2 && w.category === "knowledge") {
       return fieldErrors(quizSchema.safeParse({ questions: shownQuestions }));
@@ -896,7 +904,16 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                           disabled={!m.gameType}
                           badge={m.gameType ? undefined : "Soon"}
                           title={m.label}
-                          onClick={() => patch({ engagementId: m.id })}
+                          onClick={() =>
+                            patch({
+                              engagementId: m.id,
+                              // Each game starts from its own goal and time limit.
+                              ...(m.skill && {
+                                targetScore: m.skill.defaultScore,
+                                durationSeconds: m.skill.defaultDuration,
+                              }),
+                            })
+                          }
                         />
                       ))}
                     </div>
@@ -917,19 +934,24 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                         <Slider
                           label="Game duration"
                           value={w.durationSeconds}
-                          min={10}
-                          max={60}
+                          min={engagement?.skill?.durationMin ?? 10}
+                          max={engagement?.skill?.durationMax ?? 60}
                           step={5}
                           unit=" s"
                           onChange={(v) => patch({ durationSeconds: v })}
                         />
                         <Field
-                          label="Target score to win"
+                          label={
+                            engagement?.skill?.scoreLabel ??
+                            "Target score to win"
+                          }
+                          hint={engagement?.skill?.scoreHint}
                           error={errors.targetScore}
                         >
                           <input
                             type="number"
-                            min={1}
+                            min={engagement?.skill?.scoreMin ?? 1}
+                            max={engagement?.skill?.scoreMax}
                             className={inputCls}
                             value={w.targetScore}
                             onChange={(e) =>

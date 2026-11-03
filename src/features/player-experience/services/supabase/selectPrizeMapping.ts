@@ -36,6 +36,16 @@ function toGamePayload(payload: GamePayload): Record<string, unknown> {
       return { selected_box_index: payload.selectedIndex };
     case "hitIt":
       return { hits: payload.hits };
+    case "memory":
+      return {
+        pairs_matched: payload.pairs,
+        moves: payload.moves,
+        elapsed_ms: payload.elapsedMs,
+      };
+    case "catch":
+      return { caught: payload.caught, elapsed_ms: payload.elapsedMs };
+    case "spot":
+      return { found: payload.found, elapsed_ms: payload.elapsedMs };
     case "none":
       return {};
   }

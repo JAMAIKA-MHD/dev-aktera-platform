@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**OCTOREACH** — Algeria-focused gamification marketing SaaS MVP. B2B brands create game-based campaigns (Wheel of Fortune, Quiz, Scratch Card, Mystery Box, Hit It); players access via public `/play/:slug` link and win prizes. Phase 2 complete, Phase 3 in progress.
+**OCTOREACH** — Algeria-focused gamification marketing SaaS MVP. B2B brands create game-based campaigns (Wheel of Fortune, Quiz, Scratch Card, Mystery Box, Hit It, Memory Match, Catch It, Spot the Difference); players access via public `/play/:slug` link and win prizes. Phase 2 complete, Phase 3 in progress.
 
 ## Commands
 

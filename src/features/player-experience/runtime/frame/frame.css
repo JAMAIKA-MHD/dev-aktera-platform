@@ -469,3 +469,29 @@
     transform: rotate(-14deg);
   }
 }
+
+/* Falling items of Catch It (top is in % of the field) and the wrong-tap shake of the skill games. */
+@keyframes xp-fall {
+  from {
+    top: -22%;
+  }
+  to {
+    top: 108%;
+  }
+}
+@keyframes xp-shake {
+  20%,
+  60% {
+    transform: translateX(-0.2rem);
+  }
+  40%,
+  80% {
+    transform: translateX(0.2rem);
+  }
+}
+@keyframes xp-caught {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}

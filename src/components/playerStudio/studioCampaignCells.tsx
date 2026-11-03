@@ -2,8 +2,11 @@
 import {
   Disc,
   Gift,
+  Hand,
   HelpCircle,
   Layers,
+  LayoutGrid,
+  Search,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -51,6 +54,24 @@ const GAMES: Record<
     label: "Hit It",
     icon: Zap,
     tone: "text-rose-600 dark:text-rose-300",
+  },
+  memory_match: {
+    key: "campaigns.memoryMatch",
+    label: "Memory Match",
+    icon: LayoutGrid,
+    tone: "text-cyan-600 dark:text-cyan-300",
+  },
+  catch_it: {
+    key: "campaigns.catchIt",
+    label: "Catch It",
+    icon: Hand,
+    tone: "text-orange-600 dark:text-orange-300",
+  },
+  spot_difference: {
+    key: "campaigns.spotDifference",
+    label: "Spot the Difference",
+    icon: Search,
+    tone: "text-indigo-600 dark:text-indigo-300",
   },
 };
 

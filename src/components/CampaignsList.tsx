@@ -19,6 +19,8 @@ import {
   Gift,
   Zap,
   Sparkles,
+  Hand,
+  LayoutGrid,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
@@ -66,6 +68,9 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
     "scratch_card",
     "mystery_box",
     "hit_it",
+    "memory_match",
+    "catch_it",
+    "spot_difference",
   ]);
 
   // Toggle status filter checkbox
@@ -138,6 +143,33 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
           badgeColor: isDark
             ? "bg-rose-950/70 border-rose-500/40 text-rose-300"
             : "bg-rose-50 border-rose-200 text-rose-700",
+        };
+      case "memory_match":
+        return {
+          label: t("campaigns.memoryMatch", "Memory Match"),
+          shortLabel: "Memory Match",
+          icon: LayoutGrid,
+          badgeColor: isDark
+            ? "bg-cyan-950/70 border-cyan-500/40 text-cyan-300"
+            : "bg-cyan-50 border-cyan-200 text-cyan-700",
+        };
+      case "catch_it":
+        return {
+          label: t("campaigns.catchIt", "Catch It"),
+          shortLabel: "Catch It",
+          icon: Hand,
+          badgeColor: isDark
+            ? "bg-orange-950/70 border-orange-500/40 text-orange-300"
+            : "bg-orange-50 border-orange-200 text-orange-700",
+        };
+      case "spot_difference":
+        return {
+          label: t("campaigns.spotDifference", "Spot the Difference"),
+          shortLabel: "Spot the Difference",
+          icon: Search,
+          badgeColor: isDark
+            ? "bg-indigo-950/70 border-indigo-500/40 text-indigo-300"
+            : "bg-indigo-50 border-indigo-200 text-indigo-700",
         };
       case "lucky_wheel":
       default:
@@ -285,6 +317,18 @@ export const CampaignsList: React.FC<CampaignsListProps> = ({
                   {
                     id: "hit_it",
                     label: t("campaigns.hitIt", "Hit It"),
+                  },
+                  {
+                    id: "memory_match",
+                    label: t("campaigns.memoryMatch", "Memory Match"),
+                  },
+                  {
+                    id: "catch_it",
+                    label: t("campaigns.catchIt", "Catch It"),
+                  },
+                  {
+                    id: "spot_difference",
+                    label: t("campaigns.spotDifference", "Spot the Difference"),
                   },
                 ].map((item) => {
                   const checked = selectedTypes.includes(item.id);

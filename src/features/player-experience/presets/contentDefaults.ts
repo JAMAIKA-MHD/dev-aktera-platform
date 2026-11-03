@@ -99,6 +99,45 @@ const WELCOME: Record<GameType, ScreenCopy> = {
     ),
     cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
   },
+  memory_match: {
+    title: localized(
+      "Retrouvez toutes les paires",
+      "اعثر على كل الأزواج",
+      "Find every matching pair",
+    ),
+    subtitle: localized(
+      "Retournez les cartes et associez-les avant la fin du temps.",
+      "اقلب البطاقات وطابقها قبل انتهاء الوقت.",
+      "Flip the cards and match them all before time runs out.",
+    ),
+    cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
+  },
+  catch_it: {
+    title: localized(
+      "Attrapez-les au vol",
+      "التقطها قبل أن تسقط",
+      "Catch them before they fall",
+    ),
+    subtitle: localized(
+      "Touchez les objets qui tombent pour en attraper le plus possible.",
+      "المس الأشياء المتساقطة لتلتقط أكبر عدد ممكن.",
+      "Tap the falling items to catch as many as you can.",
+    ),
+    cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
+  },
+  spot_difference: {
+    title: localized(
+      "Trouvez les différences",
+      "اعثر على الاختلافات",
+      "Spot the differences",
+    ),
+    subtitle: localized(
+      "Deux images presque identiques : repérez ce qui a changé avant la fin du temps.",
+      "صورتان متطابقتان تقريباً: اكتشف ما تغيّر قبل انتهاء الوقت.",
+      "Two almost identical pictures: find what changed before time runs out.",
+    ),
+    cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
+  },
 };
 
 const PLAY: Record<GameType, ScreenCopy> = {
@@ -145,6 +184,44 @@ const PLAY: Record<GameType, ScreenCopy> = {
       "Chaque touche compte, le temps file.",
       "كل لمسة تُحتسب، والوقت يمر.",
       "Every hit counts, time is ticking.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+    reinforcement: "timer",
+  },
+  memory_match: {
+    title: localized(
+      "Trouvez les paires",
+      "اعثر على الأزواج",
+      "Find the pairs",
+    ),
+    subtitle: localized(
+      "Touchez deux cartes à la fois. Le temps démarre à la première carte.",
+      "المس بطاقتين في كل مرة. يبدأ الوقت عند أول بطاقة.",
+      "Tap two cards at a time. The clock starts on your first card.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+    reinforcement: "timer",
+  },
+  catch_it: {
+    title: localized("Attrapez-les !", "التقطها!", "Catch them!"),
+    subtitle: localized(
+      "Touchez chaque objet avant qu'il ne disparaisse.",
+      "المس كل شيء قبل أن يختفي.",
+      "Tap each item before it disappears.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+    reinforcement: "timer",
+  },
+  spot_difference: {
+    title: localized(
+      "Quelles différences ?",
+      "ما هي الاختلافات؟",
+      "What changed?",
+    ),
+    subtitle: localized(
+      "Touchez une différence sur l'une des deux images. Une erreur coûte 2 secondes.",
+      "المس اختلافاً في إحدى الصورتين. كل خطأ يكلّف ثانيتين.",
+      "Tap a difference on either picture. A wrong tap costs 2 seconds.",
     ),
     cta: localized("Commencer", "ابدأ", "Start"),
     reinforcement: "timer",
@@ -210,6 +287,9 @@ export const DEFAULT_SCREEN_CONTENT: Readonly<
   scratch_card: defaultScreens("scratch_card"),
   mystery_box: defaultScreens("mystery_box"),
   hit_it: defaultScreens("hit_it"),
+  memory_match: defaultScreens("memory_match"),
+  catch_it: defaultScreens("catch_it"),
+  spot_difference: defaultScreens("spot_difference"),
 };
 
 // Texts of the waiting and status screens, which brands do not edit (see ScreenKey).
@@ -450,6 +530,21 @@ export const TEASER_CAPTIONS: Readonly<Record<GameType, LocalizedText>> = {
     "{threshold} touches en {duration} s",
     "{threshold} لمسات في {duration} ثانية",
     "{threshold} hits in {duration}s",
+  ),
+  memory_match: localized(
+    "{count} paires en {duration} s",
+    "{count} أزواج في {duration} ثانية",
+    "{count} pairs in {duration}s",
+  ),
+  catch_it: localized(
+    "{threshold} objets en {duration} s",
+    "{threshold} أشياء في {duration} ثانية",
+    "{threshold} items in {duration}s",
+  ),
+  spot_difference: localized(
+    "{count} différences en {duration} s",
+    "{count} اختلافات في {duration} ثانية",
+    "{count} differences in {duration}s",
   ),
 };
 

@@ -21,6 +21,9 @@ import {
   FlaskConical,
   Layers,
   Zap,
+  Hand,
+  LayoutGrid,
+  Search,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
@@ -176,6 +179,45 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
             "bg-rose-600/25 border-rose-500/50 text-rose-400 shadow-rose-500/20",
           badgeBorder: "border-rose-500/30 bg-rose-500/20 text-rose-300",
           emblemBorder: "border-rose-500 bg-[#3a1019] text-rose-400",
+        };
+      case "memory_match":
+        return {
+          title: "Memory Match Challenge",
+          desc: "Card-flipping memory game: find every pair before the timer ends",
+          icon: LayoutGrid,
+          bgGradient:
+            "bg-gradient-to-br from-[#062a30] via-[#0B1120] to-[#083a44] text-white",
+          glowColor: "bg-cyan-600",
+          iconBg:
+            "bg-cyan-600/25 border-cyan-500/50 text-cyan-400 shadow-cyan-500/20",
+          badgeBorder: "border-cyan-500/30 bg-cyan-500/20 text-cyan-300",
+          emblemBorder: "border-cyan-500 bg-[#0a3038] text-cyan-400",
+        };
+      case "catch_it":
+        return {
+          title: "Catch It Challenge",
+          desc: "Fast tap game: catch the falling items before they disappear",
+          icon: Hand,
+          bgGradient:
+            "bg-gradient-to-br from-[#33190a] via-[#0B1120] to-[#4a2410] text-white",
+          glowColor: "bg-orange-600",
+          iconBg:
+            "bg-orange-600/25 border-orange-500/50 text-orange-400 shadow-orange-500/20",
+          badgeBorder: "border-orange-500/30 bg-orange-500/20 text-orange-300",
+          emblemBorder: "border-orange-500 bg-[#3a1e0c] text-orange-400",
+        };
+      case "spot_difference":
+        return {
+          title: "Spot the Difference",
+          desc: "Observation game: find what changed between two pictures in time",
+          icon: Search,
+          bgGradient:
+            "bg-gradient-to-br from-[#14173a] via-[#0B1120] to-[#1d2150] text-white",
+          glowColor: "bg-indigo-600",
+          iconBg:
+            "bg-indigo-600/25 border-indigo-500/50 text-indigo-400 shadow-indigo-500/20",
+          badgeBorder: "border-indigo-500/30 bg-indigo-500/20 text-indigo-300",
+          emblemBorder: "border-indigo-500 bg-[#181c42] text-indigo-400",
         };
       case "lucky_wheel":
       default:

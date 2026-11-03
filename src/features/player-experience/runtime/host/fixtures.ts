@@ -179,7 +179,7 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
   ),
   "all-games": fixture(
     "all-games",
-    "The five pregame teasers on one page, one per mechanic (T5.7)",
+    "Every pregame teaser on one page, one per mechanic (T5.7)",
   ),
   "feedback-debug": fixture(
     "feedback-debug",
@@ -437,6 +437,72 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
     "The welcome screen of a Hit It campaign: the target hopping, marked Démo (T5.6)",
     {
       gameType: "hit_it",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
+  "memory-play": fixture(
+    "flow",
+    "Memory Match in play: face-down cards, the pair count and the campaign's own clock",
+    {
+      gameType: "memory_match",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "memory-welcome": fixture(
+    "flow",
+    "The welcome screen of a Memory Match campaign: six cards finding their twins, marked Démo",
+    {
+      gameType: "memory_match",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
+  "catch-play": fixture(
+    "flow",
+    "Catch It in play: the countdown, then items falling through the field",
+    {
+      gameType: "catch_it",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "catch-welcome": fixture(
+    "flow",
+    "The welcome screen of a Catch It campaign: the brand's own item falling, marked Démo",
+    {
+      gameType: "catch_it",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
+  "spot-play": fixture(
+    "flow",
+    "Spot the Difference in play: two pictures, the difference count and the clock",
+    {
+      gameType: "spot_difference",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "spot-welcome": fixture(
+    "flow",
+    "The welcome screen of a Spot the Difference campaign: two pictures and a ring, marked Démo",
+    {
+      gameType: "spot_difference",
       customize: zetaMarket,
       flow: { gateway: "scripted", scenario: "lose" },
     },

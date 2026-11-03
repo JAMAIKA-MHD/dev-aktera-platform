@@ -34,6 +34,18 @@ export function passesSkillGate(
     const hits = payload.kind === "hitIt" ? payload.hits : 0;
     return hits >= rules.hitIt.winThreshold;
   }
+  if (rules.catchIt) {
+    const caught = payload.kind === "catch" ? payload.caught : 0;
+    return caught >= rules.catchIt.winThreshold;
+  }
+  if (rules.memory) {
+    const pairs = payload.kind === "memory" ? payload.pairs : 0;
+    return pairs >= rules.memory.pairs;
+  }
+  if (rules.spot) {
+    const found = payload.kind === "spot" ? payload.found : 0;
+    return found >= rules.spot.differences;
+  }
   return true; // wheel, scratch card, mystery box: the draw alone decides
 }
 

@@ -19,6 +19,9 @@ const gameTypeSchema = z.enum([
   "scratch_card",
   "mystery_box",
   "hit_it",
+  "memory_match",
+  "catch_it",
+  "spot_difference",
 ]);
 
 const localizedTextSchema = z.object({
@@ -215,6 +218,17 @@ const gameSchema = z
     hitIt: z
       .object({ targetIcon: iconNameSchema, targetImage: assetRefSchema })
       .optional(),
+    catchIt: z
+      .object({ itemIcon: iconNameSchema, itemImage: assetRefSchema })
+      .optional(),
+    memory: z
+      .object({
+        backIcon: iconNameSchema,
+        backImage: assetRefSchema,
+        faces: z.array(iconNameSchema).length(8),
+      })
+      .optional(),
+    spot: z.object({ icons: z.array(iconNameSchema).min(3).max(8) }).optional(),
   })
   .superRefine((game, ctx) => {
     const block = {
@@ -223,6 +237,9 @@ const gameSchema = z
       mystery_box: game.boxes,
       quiz: game.quiz,
       hit_it: game.hitIt,
+      catch_it: game.catchIt,
+      memory_match: game.memory,
+      spot_difference: game.spot,
     }[game.type];
     if (!block) {
       ctx.addIssue({

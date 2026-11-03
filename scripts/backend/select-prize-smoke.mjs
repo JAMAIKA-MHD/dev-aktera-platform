@@ -173,6 +173,31 @@ async function setup() {
     { game_type: "hit_it", game_logic_config: { win_threshold: 8 } },
     5,
   );
+  // The three newer skill games: goal and time limit are the two numbers the Wizard writes.
+  const catchIt = await campaign(
+    "catchit",
+    {
+      game_type: "catch_it",
+      game_logic_config: { win_threshold: 10, hit_it_duration_seconds: 20 },
+    },
+    5,
+  );
+  const memory = await campaign(
+    "memory",
+    {
+      game_type: "memory_match",
+      game_logic_config: { win_threshold: 6, hit_it_duration_seconds: 45 },
+    },
+    5,
+  );
+  const spot = await campaign(
+    "spot",
+    {
+      game_type: "spot_difference",
+      game_logic_config: { win_threshold: 5, hit_it_duration_seconds: 45 },
+    },
+    5,
+  );
   const quiz = await campaign(
     "quiz",
     {
@@ -300,6 +325,9 @@ async function setup() {
     paused,
     ended,
     hitIt,
+    catchIt,
+    memory,
+    spot,
     quiz,
     soldOut,
     noCode,
@@ -487,6 +515,42 @@ function scenarios(f) {
             stock.remaining === 5 &&
             Boolean(success.body?.prize),
           detail: `${winners}/20 failed games won, stock ${stock.remaining}/5, 9 hits → ${success.body?.prize ? "winner" : "loser"}`,
+        };
+      },
+    },
+    {
+      name: "T7b Catch It / Memory Match / Spot the Difference: implausible report → loser, plausible → winner",
+      run: async () => {
+        const cases = [
+          [
+            f.catchIt,
+            { caught: 10, elapsed_ms: 8000 },
+            { caught: 10, elapsed_ms: 100 },
+          ],
+          [
+            f.memory,
+            { pairs_matched: 6, moves: 9, elapsed_ms: 20000 },
+            { pairs_matched: 6, moves: 9, elapsed_ms: 50 },
+          ],
+          [
+            f.spot,
+            { found: 5, elapsed_ms: 15000 },
+            { found: 5, elapsed_ms: 50 },
+          ],
+        ];
+        const results = [];
+        for (const [game, plausible, implausible] of cases) {
+          const fake = await play(game.id, { game_payload: implausible });
+          const real = await play(game.id, { game_payload: plausible });
+          results.push(!fake.body?.prize && Boolean(real.body?.prize));
+        }
+        // A payload that is not a number never makes the server fail.
+        const garbage = await play(f.catchIt.id, {
+          game_payload: { caught: "lots", elapsed_ms: {} },
+        });
+        return {
+          ok: results.every(Boolean) && garbage.status === 200,
+          detail: `catch/memory/spot ok: ${results.join(", ")}; garbage payload → ${garbage.status}`,
         };
       },
     },
