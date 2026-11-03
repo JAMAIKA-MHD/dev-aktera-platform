@@ -86,6 +86,11 @@ export interface WizardConfig {
     winners: number;
     ticketPrefix: string;
     rules: string;
+    // SMS texts of a draw: one for the winners, one for everybody else.
+    smsWinner: string;
+    smsLoser: string;
+    // Does Aktera manage the prize stock and the messages? null = not answered yet.
+    manageStock: boolean | null;
   };
 }
 
@@ -100,7 +105,15 @@ export const DEFAULT_WIZARD: WizardConfig = {
   revealId: "wheel",
   consolation: false,
   consolationPrizes: [],
-  draw: { at: "", winners: 3, ticketPrefix: "", rules: "" },
+  draw: {
+    at: "",
+    winners: 3,
+    ticketPrefix: "",
+    rules: "",
+    smsWinner: "",
+    smsLoser: "",
+    manageStock: null,
+  },
 };
 
 // The player engine a configuration plays. Luck has no game of its own: the reveal is the game.
@@ -117,7 +130,16 @@ export function resolveGameType(w: WizardConfig): GameType {
 export function wizardFromCampaign(c: Campaign | null): WizardConfig {
   if (!c) return DEFAULT_WIZARD;
   const saved = c.gameLogicConfig?.wizard as Partial<WizardConfig> | undefined;
-  if (saved) return { ...DEFAULT_WIZARD, ...saved };
+  if (saved) {
+    const draw = { ...DEFAULT_WIZARD.draw, ...saved.draw };
+    // Draws saved before the question existed: prizes or messages mean "yes".
+    if (draw.manageStock == null && saved.method === "draw") {
+      const used =
+        c.prizes.length > 0 || Boolean(draw.smsWinner || draw.smsLoser);
+      draw.manageStock = used ? true : null;
+    }
+    return { ...DEFAULT_WIZARD, ...saved, draw };
+  }
   const base: WizardConfig = {
     ...DEFAULT_WIZARD,
     targetScore: Number(c.gameLogicConfig?.win_threshold) || 8,

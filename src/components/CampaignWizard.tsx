@@ -19,6 +19,7 @@ import {
   drawSchema,
   fieldErrors,
   foundationSchema,
+  SMS_MAX_LENGTH,
   prizesSchema,
   quizSchema,
   skillSchema,
@@ -52,6 +53,8 @@ interface CampaignWizardProps {
   onOpenPlayerScreenEditor?: (campaignData: any) => void;
   relaunchDraft?: Campaign | null;
   editingCampaign?: Campaign | null;
+  // Names of the other campaigns of the organization: a new campaign cannot reuse one.
+  existingNames?: string[];
   initialStep?: 1 | 2 | 3 | 4 | 5;
 }
 
@@ -121,7 +124,11 @@ function Field({
         {children}
       </div>
       {error ? (
-        <p role="alert" className="text-[11px] font-semibold text-rose-500">
+        <p
+          role="alert"
+          className="flex items-start gap-1 text-[11px] font-semibold text-rose-500"
+        >
+          <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
           {error}
         </p>
       ) : (
@@ -291,6 +298,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   onOpenPlayerScreenEditor,
   relaunchDraft,
   editingCampaign,
+  existingNames = [],
   initialStep = 1,
 }) => {
   const [step, setStep] = useState<number>(initialStep);
@@ -404,6 +412,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       ),
     });
 
+  const allocatedTotal = allocatedPrizes.reduce(
+    (sum, p) => sum + (p.templateId ? p.quantity || 0 : 0),
+    0,
+  );
   const gameType = resolveGameType(w);
   const engagement = mechanicById(w.engagementId);
   const reveal = mechanicById(w.revealId);
@@ -441,9 +453,17 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   // go live, not for a draft.
   const validateStep = (n: number, status: "draft" | "active"): FieldErrors => {
     if (n === 1) {
-      return fieldErrors(
+      const found = fieldErrors(
         foundationSchema.safeParse({ name, brandName, startDate, endDate }),
       );
+      const wanted = name.trim().toLowerCase();
+      if (
+        !found.name &&
+        existingNames.some((other) => other.trim().toLowerCase() === wanted)
+      ) {
+        found.name = "A campaign with this name already exists.";
+      }
+      return found;
     }
     if (n === 2 && w.category === "skill") {
       return fieldErrors(skillSchema.safeParse({ targetScore: w.targetScore }));
@@ -456,20 +476,44 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         drawSchema(status === "active").safeParse({ draw: w.draw }),
       );
     }
+    if (n === 4 && isDraw && w.draw.manageStock !== true) {
+      return w.draw.manageStock === null
+        ? { manageStock: "Choose yes or no to continue." }
+        : {};
+    }
     if (n === 4) {
       const stockOf = (id: string) => {
         const template = prizes.find((p) => p.id === id);
         return template ? getEffectiveAvailableStock(template) : undefined;
       };
-      return fieldErrors(
-        prizesSchema(
+      const found = fieldErrors(
+        prizesSchema({
           stockOf,
-          !isDraw && !guaranteed && w.consolation,
-        ).safeParse({
+          requireConsolation: !isDraw && !guaranteed && w.consolation,
+          draw: isDraw
+            ? { winners: w.draw.winners, requireSms: status === "active" }
+            : undefined,
+        }).safeParse({
           prizes: allocatedPrizes,
           consolationPrizes: w.consolationPrizes,
+          sms: { winner: w.draw.smsWinner, loser: w.draw.smsLoser },
         }),
       );
+      // Aktera manages the stock: every row needs a reward and a quantity.
+      if (isDraw) {
+        if (allocatedPrizes.length === 0) {
+          found.prizes ??= "Add at least one reward.";
+        }
+        allocatedPrizes.forEach((p, i) => {
+          if (!p.templateId) {
+            found[`prizes.${i}.templateId`] ??= "Select a reward.";
+          }
+          if (!(p.quantity >= 1)) {
+            found[`prizes.${i}.quantity`] ??= "At least 1.";
+          }
+        });
+      }
+      return found;
     }
     return {};
   };
@@ -518,7 +562,13 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     }
     setFormError(null);
 
-    const validPrizes = allocatedPrizes.filter((p) => p.templateId);
+    // A draw that Aktera does not manage keeps no prizes and no messages.
+    const validPrizes = (
+      isDraw && w.draw.manageStock !== true ? [] : allocatedPrizes
+    )
+      .filter((p) => p.templateId && (!isDraw || p.quantity > 0))
+      // A draw has no weights: every reward is for the winners.
+      .map((p) => (isDraw ? { ...p, weight: 100 } : p));
     const gameLogicConfig = {
       ...(baseCampaign?.gameLogicConfig ?? {}),
       brand_name: brandName.trim(),
@@ -529,7 +579,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
       ...(w.category === "knowledge" && {
         pass_threshold_percentage: w.passPercent,
       }),
-      wizard: w,
+      wizard:
+        isDraw && w.draw.manageStock !== true
+          ? { ...w, draw: { ...w.draw, smsWinner: "", smsLoser: "" } }
+          : w,
     };
 
     setIsSubmitting(true);
@@ -590,7 +643,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     maxEntries,
     // Unsaved prizes have no id yet; the sandbox ignores prizes without one.
     prizes: allocatedPrizes
-      .filter((p) => p.templateId)
+      .filter((p) => p.templateId && p.quantity > 0)
       .map((p, i) => ({ ...p, id: `draft-${i}` })),
     questions: w.category === "knowledge" ? shownQuestions : [],
     participantsCount: 0,
@@ -614,7 +667,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     [
       "Prizes",
       step >= 4
-        ? `${allocatedPrizes.filter((p) => p.templateId).length} rewards`
+        ? isDraw && w.draw.manageStock !== true
+          ? "Handled by you"
+          : `${allocatedPrizes.filter((p) => p.templateId && p.quantity > 0).length} rewards`
         : null,
     ],
   ];
@@ -766,32 +821,26 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                   />
                 </Field>
               </div>
-              <Field label="Campaign image">
-                <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-stretch">
-                  <ImageUploader
-                    value={heroImageUrl}
-                    onChange={setHeroImageUrl}
-                    folder="campaigns"
-                    label="Upload an image"
-                  />
-                  <div className="flex items-center gap-3 rounded-2xl bg-card-bg-subtle p-4 text-xs text-brand-textMuted">
-                    <span className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 overflow-hidden">
-                      {heroImageUrl ? (
-                        <img
-                          src={heroImageUrl}
-                          alt="Campaign"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon className="w-6 h-6" />
-                      )}
-                    </span>
-                    {heroImageUrl
-                      ? "Image uploaded."
-                      : "No image? This generic icon is used."}
-                  </div>
-                </div>
+              <Field label="Plays per phone number">
+                <select
+                  className={`${inputCls} max-w-xs cursor-pointer`}
+                  value={maxEntries}
+                  onChange={(e) => setMaxEntries(e.target.value)}
+                >
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={String(n)}>
+                      {n} {n === 1 ? "play" : "plays"}
+                    </option>
+                  ))}
+                  <option value="unlimited">Unlimited</option>
+                </select>
               </Field>
+              <ImageUploader
+                value={heroImageUrl}
+                onChange={setHeroImageUrl}
+                folder="campaigns"
+                label=""
+              />
             </Card>
           )}
 
@@ -1193,21 +1242,6 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                       appear here automatically.
                     </p>
                   </div>
-
-                  <Field label="Plays per phone number">
-                    <select
-                      className={`${inputCls} max-w-xs cursor-pointer`}
-                      value={maxEntries}
-                      onChange={(e) => setMaxEntries(e.target.value)}
-                    >
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={String(n)}>
-                          {n} {n === 1 ? "play" : "plays"}
-                        </option>
-                      ))}
-                      <option value="unlimited">Unlimited</option>
-                    </select>
-                  </Field>
                 </>
               ) : (
                 <div className="rounded-2xl border border-card-border bg-card-bg-subtle p-5 space-y-4">
@@ -1309,142 +1343,276 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
               title="Prizes"
               subtitle={
                 isDraw
-                  ? "The rewards the draw winners receive."
+                  ? "Let Aktera track your prize stock and tell your players the result."
                   : "Allocate stock from your reward library and set the weights."
               }
             >
-              <div className="space-y-3">
-                {allocatedPrizes.map((ap, idx) => {
-                  const selected = prizes.find((p) => p.id === ap.templateId);
-                  const won =
-                    editingCampaign?.prizes?.find(
-                      (p) => p.templateId === ap.templateId,
-                    )?.quantity_won ?? 0;
-                  const locked = isLiveCampaign && won > 0;
-                  return (
-                    <div
-                      key={idx}
-                      className="rounded-2xl p-4 grid md:grid-cols-12 gap-3 items-end border bg-card-bg-subtle border-card-border"
-                    >
-                      <div className="md:col-span-5">
-                        <Field
-                          label="Reward"
-                          error={errors[`prizes.${idx}.templateId`]}
-                        >
-                          <select
-                            className={inputCls}
-                            value={ap.templateId}
-                            onChange={(e) =>
-                              updatePrize(idx, { templateId: e.target.value })
-                            }
-                          >
-                            {prizes.length === 0 && (
-                              <option value="">Create rewards first</option>
-                            )}
-                            {prizes.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} (stock {getEffectiveAvailableStock(p)})
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                        {selected?.category === "voucher" &&
-                          (selected.filledValuesCount ?? 0) < ap.quantity && (
-                            <p className="text-[10px] text-amber-500 font-bold flex items-center gap-1 mt-1">
-                              <AlertTriangle className="w-3 h-3 shrink-0" />
-                              {selected.filledValuesCount ?? 0} codes ready,
-                              need {ap.quantity}.
-                            </p>
-                          )}
-                      </div>
-                      <div className="md:col-span-3">
-                        <Field
-                          label={locked ? `Quantity (min ${won})` : "Quantity"}
-                          error={errors[`prizes.${idx}.quantity`]}
-                        >
-                          <input
-                            type="number"
-                            className={inputCls}
-                            min={locked ? won : 1}
-                            max={
-                              selected
-                                ? getEffectiveAvailableStock(selected)
-                                : undefined
-                            }
-                            value={ap.quantity}
-                            onChange={(e) =>
-                              updatePrize(idx, {
-                                quantity: Number(e.target.value),
-                              })
-                            }
-                          />
-                        </Field>
-                      </div>
-                      <div className="md:col-span-3">
-                        <Field
-                          label="Weight %"
-                          error={errors[`prizes.${idx}.weight`]}
-                        >
-                          <input
-                            type="number"
-                            className={inputCls}
-                            min={1}
-                            max={100}
-                            value={ap.weight}
-                            onChange={(e) =>
-                              updatePrize(idx, {
-                                weight: Number(e.target.value),
-                              })
-                            }
-                          />
-                        </Field>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={allocatedPrizes.length <= 1 || won > 0}
-                        onClick={() =>
-                          setAllocatedPrizes((prev) =>
-                            prev.filter((_, i) => i !== idx),
-                          )
-                        }
-                        title={
-                          won > 0
-                            ? `${won} already won: set the weight to 0 to stop wins.`
-                            : "Remove"
-                        }
-                        className="md:col-span-1 p-3 rounded-2xl text-rose-500 bg-rose-500/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer justify-self-end"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setAllocatedPrizes((prev) => [
-                      ...prev,
-                      {
-                        templateId: prizes[0]?.id || "",
-                        quantity: 50,
-                        weight: 50,
-                      },
-                    ])
-                  }
-                  className="px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 bg-emerald-600 text-white cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> Add reward
-                </button>
-                {errors.prizes && (
-                  <p
-                    role="alert"
-                    data-error="true"
-                    className="text-[11px] font-semibold text-rose-500"
-                  >
-                    {errors.prizes}
+              {isDraw && (
+                <div className="space-y-3">
+                  <p className="font-black">
+                    Do you want Aktera to manage this campaign&apos;s prizes?
                   </p>
-                )}
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(
+                      [
+                        [true, "Yes", "Track stock and message players."],
+                        [false, "No", "I handle prizes myself."],
+                      ] as const
+                    ).map(([value, label, desc]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          patch({ draw: { ...w.draw, manageStock: value } });
+                          if (value) {
+                            setAllocatedPrizes((prev) =>
+                              prev.length === 0
+                                ? [
+                                    {
+                                      templateId: prizes[0]?.id || "",
+                                      quantity: w.draw.winners,
+                                      weight: 100,
+                                    },
+                                  ]
+                                : prev.map((p) => ({
+                                    ...p,
+                                    quantity: Math.min(
+                                      p.quantity || w.draw.winners,
+                                      w.draw.winners,
+                                    ),
+                                  })),
+                            );
+                          }
+                        }}
+                        className={`rounded-2xl border p-4 text-left cursor-pointer ${
+                          w.draw.manageStock === value
+                            ? "border-emerald-500 bg-emerald-500/10"
+                            : "border-card-border bg-card-bg-subtle"
+                        }`}
+                      >
+                        <p className="font-black">{label}</p>
+                        <p className="text-xs text-brand-textMuted">{desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                  {errors.manageStock && (
+                    <p
+                      role="alert"
+                      data-error="true"
+                      className="text-[11px] font-semibold text-rose-500"
+                    >
+                      {errors.manageStock}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {(!isDraw || w.draw.manageStock === true) && (
+                <div className="space-y-3">
+                  {allocatedPrizes.map((ap, idx) => {
+                    const selected = prizes.find((p) => p.id === ap.templateId);
+                    const won =
+                      editingCampaign?.prizes?.find(
+                        (p) => p.templateId === ap.templateId,
+                      )?.quantity_won ?? 0;
+                    const locked = isLiveCampaign && won > 0;
+                    return (
+                      <div
+                        key={idx}
+                        className="rounded-2xl p-4 grid md:grid-cols-12 gap-3 items-start border bg-card-bg-subtle border-card-border"
+                      >
+                        <div
+                          className={isDraw ? "md:col-span-7" : "md:col-span-5"}
+                        >
+                          <Field
+                            label="Reward"
+                            error={errors[`prizes.${idx}.templateId`]}
+                          >
+                            <select
+                              className={inputCls}
+                              value={ap.templateId}
+                              onChange={(e) =>
+                                updatePrize(
+                                  idx,
+                                  e.target.value
+                                    ? { templateId: e.target.value }
+                                    : { templateId: "", quantity: 0 },
+                                )
+                              }
+                            >
+                              {(prizes.length === 0 ||
+                                (isDraw && !ap.templateId)) && (
+                                <option value="">
+                                  {prizes.length === 0
+                                    ? "Create rewards first"
+                                    : "Select a reward"}
+                                </option>
+                              )}
+                              {prizes.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} (
+                                  {getEffectiveAvailableStock(p) === 0
+                                    ? "out of stock"
+                                    : `stock ${getEffectiveAvailableStock(p)}`}
+                                  )
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          {selected?.category === "voucher" &&
+                            (selected.filledValuesCount ?? 0) < ap.quantity && (
+                              <p className="text-[10px] text-amber-500 font-bold flex items-center gap-1 mt-1">
+                                <AlertTriangle className="w-3 h-3 shrink-0" />
+                                {selected.filledValuesCount ?? 0} codes ready,
+                                need {ap.quantity}.
+                              </p>
+                            )}
+                        </div>
+                        <div
+                          className={isDraw ? "md:col-span-4" : "md:col-span-3"}
+                        >
+                          <Field
+                            label={
+                              locked ? `Quantity (min ${won})` : "Quantity"
+                            }
+                            error={errors[`prizes.${idx}.quantity`]}
+                          >
+                            <input
+                              type="number"
+                              className={inputCls}
+                              min={locked ? won : 1}
+                              max={
+                                selected
+                                  ? getEffectiveAvailableStock(selected)
+                                  : undefined
+                              }
+                              value={ap.quantity || ""}
+                              onChange={(e) =>
+                                updatePrize(idx, {
+                                  quantity: Number(e.target.value),
+                                })
+                              }
+                            />
+                          </Field>
+                        </div>
+                        {!isDraw && (
+                          <div className="md:col-span-3">
+                            <Field
+                              label="Weight %"
+                              error={errors[`prizes.${idx}.weight`]}
+                            >
+                              <input
+                                type="number"
+                                className={inputCls}
+                                min={1}
+                                max={100}
+                                value={ap.weight}
+                                onChange={(e) =>
+                                  updatePrize(idx, {
+                                    weight: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </Field>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          disabled={allocatedPrizes.length <= 1 || won > 0}
+                          onClick={() =>
+                            setAllocatedPrizes((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                          title={
+                            won > 0
+                              ? `${won} already won: set the weight to 0 to stop wins.`
+                              : "Remove"
+                          }
+                          className="md:col-span-1 md:mt-[22px] p-3 rounded-2xl text-rose-500 bg-rose-500/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer justify-self-end"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAllocatedPrizes((prev) => [
+                        ...prev,
+                        {
+                          templateId: prizes[0]?.id || "",
+                          quantity: isDraw ? 1 : 50,
+                          weight: isDraw ? 100 : 50,
+                        },
+                      ])
+                    }
+                    className="px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 bg-emerald-600 text-white cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add reward
+                  </button>
+                  {isDraw && (
+                    <p
+                      className={`text-xs font-bold ${
+                        allocatedTotal > w.draw.winners
+                          ? "text-rose-500"
+                          : "text-brand-textMuted"
+                      }`}
+                    >
+                      {allocatedTotal} of {w.draw.winners} winner
+                      {w.draw.winners === 1 ? "" : "s"} have a reward.
+                    </p>
+                  )}
+                  {errors.prizes && (
+                    <div
+                      role="alert"
+                      data-error="true"
+                      className="flex items-start gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-500"
+                    >
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {errors.prizes}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isDraw && w.draw.manageStock === true && (
+                <div className="space-y-4 pt-2 border-t border-card-border">
+                  {(
+                    [
+                      ["smsWinner", "sms.winner", "Message for the winners"],
+                      [
+                        "smsLoser",
+                        "sms.loser",
+                        "Message for the other players",
+                      ],
+                    ] as const
+                  ).map(([key, errKey, label]) => (
+                    <Field
+                      key={key}
+                      label={label}
+                      error={errors[errKey]}
+                      hint={`${w.draw[key].length}/${SMS_MAX_LENGTH} characters`}
+                    >
+                      <textarea
+                        rows={3}
+                        maxLength={SMS_MAX_LENGTH}
+                        className={inputCls}
+                        value={w.draw[key]}
+                        placeholder={
+                          key === "smsWinner"
+                            ? "Congratulations, you won! We will contact you shortly."
+                            : "Thanks for playing. You were not picked this time."
+                        }
+                        onChange={(e) =>
+                          patch({ draw: { ...w.draw, [key]: e.target.value } })
+                        }
+                      />
+                    </Field>
+                  ))}
+                </div>
+              )}
 
               {!isDraw && !guaranteed && w.consolation && (
                 <div className="space-y-3 pt-2 border-t border-card-border">
@@ -1608,7 +1776,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                     [
                       [
                         "For winners",
-                        `${allocatedPrizes.filter((p) => p.templateId).length} rewards`,
+                        isDraw && w.draw.manageStock !== true
+                          ? "Handled by you"
+                          : `${allocatedPrizes.filter((p) => p.templateId && p.quantity > 0).length} rewards`,
                       ],
                       ...(w.consolation && !isDraw && !guaranteed
                         ? [
@@ -1728,6 +1898,16 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 </span>
               </div>
             ))}
+            {heroImageUrl && (
+              <div className="flex justify-between items-center gap-3 py-2.5 border-t border-card-border text-xs">
+                <span className="text-brand-textMuted">Image</span>
+                <img
+                  src={heroImageUrl}
+                  alt="Campaign"
+                  className="w-12 h-12 rounded-2xl object-cover"
+                />
+              </div>
+            )}
           </aside>
         ) : (
           <aside className="rounded-[28px] p-6 border bg-card-bg border-card-border lg:sticky lg:top-2 text-center space-y-4">

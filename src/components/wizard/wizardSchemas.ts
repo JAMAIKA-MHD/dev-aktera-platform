@@ -83,46 +83,119 @@ export const drawSchema = (requireRules: boolean) =>
     }),
   });
 
-export const prizesSchema = (
-  stockOf: (templateId: string) => number | undefined,
-  requireConsolation: boolean,
-) => {
+export const SMS_MAX_LENGTH = 320;
+
+export interface PrizesRules {
+  stockOf: (templateId: string) => number | undefined;
+  requireConsolation: boolean;
+  // A draw: rewards and quantities are optional, the total cannot pass the number of winners,
+  // and two SMS texts (winners, others) are written here.
+  draw?: { winners: number; requireSms: boolean };
+}
+
+const smsText = (required: boolean, who: string) => {
+  const base = z
+    .string()
+    .trim()
+    .max(SMS_MAX_LENGTH, `Keep it under ${SMS_MAX_LENGTH} characters.`);
+  return required
+    ? base.min(1, `Write the message ${who} will receive before going live.`)
+    : base;
+};
+
+export const prizesSchema = ({
+  stockOf,
+  requireConsolation,
+  draw,
+}: PrizesRules) => {
+  const isDraw = Boolean(draw);
   const quantity = (message: string) =>
     z.number(message).int("Use a whole number.").min(1, "At least 1.");
-  return z.object({
-    prizes: z
+  // In a draw a row may stay empty: no reward chosen, or no quantity.
+  const drawQuantity = z
+    .number("Use a whole number.")
+    .int("Use a whole number.")
+    .min(0, "The quantity cannot be negative.");
+
+  const row = z
+    .object({
+      templateId: isDraw ? z.string() : z.string().min(1, "Select a reward."),
+      quantity: isDraw ? drawQuantity : quantity("Enter a quantity."),
+      weight: isDraw
+        ? z.number().optional()
+        : z
+            .number("Enter a weight.")
+            .min(0, "The weight cannot be negative.")
+            .max(100, "The weight cannot exceed 100."),
+    })
+    .refine((p) => !p.templateId || stockOf(p.templateId) !== 0, {
+      path: ["templateId"],
+      message: "This reward is out of stock. Pick another one or restock it.",
+    })
+    .refine(
+      (p) => {
+        const stock = p.templateId ? stockOf(p.templateId) : undefined;
+        return stock === undefined || stock === 0 || p.quantity <= stock;
+      },
+      {
+        path: ["quantity"],
+        message: "More than the stock available for this reward.",
+      },
+    )
+    .refine(
+      (p) => {
+        const stock = p.templateId ? stockOf(p.templateId) : undefined;
+        return (
+          !draw || stock === undefined || stock === 0 || stock >= draw.winners
+        );
+      },
+      {
+        path: ["templateId"],
+        message: `The stock of this reward is lower than the ${draw?.winners ?? 0} winners of the draw. Pick another reward or restock it.`,
+      },
+    );
+
+  const prizes = z.array(row);
+  const schema = {
+    prizes: isDraw
+      ? prizes.refine(
+          (rows) => {
+            const total = rows.reduce(
+              (sum, p) => sum + (p.templateId ? p.quantity : 0),
+              0,
+            );
+            return total <= (draw?.winners ?? Infinity);
+          },
+          {
+            message: `The total quantity cannot be more than the ${draw?.winners ?? 0} winner${draw?.winners === 1 ? "" : "s"} of the draw.`,
+          },
+        )
+      : prizes
+          .min(1, "Add at least one reward.")
+          .refine(
+            (rows) => rows.reduce((sum, p) => sum + (p.weight ?? 0), 0) > 0,
+            { message: "At least one reward needs a weight above 0." },
+          ),
+    consolationPrizes: z
       .array(
         z
           .object({
             templateId: z.string().min(1, "Select a reward."),
             quantity: quantity("Enter a quantity."),
-            weight: z
-              .number("Enter a weight.")
-              .min(0, "The weight cannot be negative.")
-              .max(100, "The weight cannot exceed 100."),
           })
-          .refine(
-            (p) => {
-              const stock = stockOf(p.templateId);
-              return stock === undefined || p.quantity <= stock;
-            },
-            {
-              path: ["quantity"],
-              message: "More than the stock available for this reward.",
-            },
-          ),
-      )
-      .min(1, "Add at least one reward.")
-      .refine((rows) => rows.reduce((sum, p) => sum + p.weight, 0) > 0, {
-        message: "At least one reward needs a weight above 0.",
-      }),
-    consolationPrizes: z
-      .array(
-        z.object({
-          templateId: z.string().min(1, "Select a reward."),
-          quantity: quantity("Enter a quantity."),
-        }),
+          .refine((p) => !p.templateId || stockOf(p.templateId) !== 0, {
+            path: ["templateId"],
+            message:
+              "This reward is out of stock. Pick another one or restock it.",
+          }),
       )
       .min(requireConsolation ? 1 : 0, "Add at least one consolation prize."),
+  };
+  return z.object({
+    ...schema,
+    sms: z.object({
+      winner: smsText(Boolean(draw?.requireSms), "the winners"),
+      loser: smsText(Boolean(draw?.requireSms), "the other players"),
+    }),
   });
 };

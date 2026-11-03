@@ -67,9 +67,11 @@ export function ImageUploader({
 
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-        {label}
-      </label>
+      {label ? (
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+          {label}
+        </label>
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
