@@ -40,6 +40,8 @@ const publicExperienceSchema = z.object({
     name: z.string(),
     game_type: z.enum(GAME_TYPES),
     status: z.string(),
+    brand_name: z.string().nullish(),
+    image_url: z.string().nullish(),
     rules: z.unknown().optional(),
   }),
   prizes: z.array(
@@ -109,6 +111,8 @@ export function parsePublicExperience(raw: unknown): PublicExperience {
       options: [...question.options],
     })),
     rules: rulesFromGameLogic(gameType, data.campaign.rules),
+    brandName: data.campaign.brand_name || undefined,
+    imageUrl: data.campaign.image_url || undefined,
   };
 
   // No design yet (the Studio was never opened): the default experience of the campaign.
