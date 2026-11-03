@@ -1,5 +1,5 @@
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Campaign, PrizeTemplate } from "@/src/types";
 import {
   buildCampaignSnapshot,
@@ -30,6 +30,11 @@ export interface CampaignSimulatorProps {
   services?: ExperienceServices; // default: the backend's services, else the local ones
   backend?: StudioBackend;
   bare?: boolean; // only the phone, to sit on the host's own background
+  // No sound at all, and no sound button in the frame: a preview that plays on its own page
+  // (the campaign's details), where a sound would never be expected.
+  silent?: boolean;
+  // Replaces the "Play again" bar under the phone (the details page puts its own action there).
+  footer?: ReactNode;
 }
 
 export function CampaignSimulator({
@@ -39,6 +44,8 @@ export function CampaignSimulator({
   services: injected,
   backend,
   bare = false,
+  silent = false,
+  footer,
 }: CampaignSimulatorProps) {
   const campaign = campaigns.find((item) => item.id === campaignId) ?? null;
   const rules = useMemo(
@@ -61,6 +68,8 @@ export function CampaignSimulator({
       snapshot={snapshot}
       services={services}
       bare={bare}
+      silent={silent}
+      footer={footer}
     />
   );
 }
@@ -69,10 +78,14 @@ function SimulatorSession({
   snapshot,
   services,
   bare,
+  silent,
+  footer,
 }: {
   snapshot: CampaignSnapshot | null;
   services: ExperienceServices;
   bare: boolean;
+  silent: boolean;
+  footer?: ReactNode;
 }) {
   // The Studio's store, only for what the preview reads: always the same phone, never the
   // device remembered by the Studio, and nothing is ever saved from here.
@@ -89,7 +102,14 @@ function SimulatorSession({
     setLoadFailed(false);
     loadIntoStudio(store, services.repository).then(
       () => {
-        if (active) setLoaded(true);
+        if (!active) return;
+        // The design's own sound is turned off here only: nothing is ever saved from the
+        // simulator, so the saved design keeps it. Without sound, the frame shows no button.
+        if (silent) {
+          const { config, updateConfig } = store.getState();
+          updateConfig({ features: { ...config.features, sound: false } });
+        }
+        setLoaded(true);
       },
       () => {
         if (active) setLoadFailed(true);
@@ -98,7 +118,7 @@ function SimulatorSession({
     return () => {
       active = false;
     };
-  }, [store, services, loadAttempt]);
+  }, [store, services, loadAttempt, silent]);
 
   // The campaign refetched while the drawer is open: same journey, new data.
   useEffect(() => {
@@ -145,14 +165,16 @@ function SimulatorSession({
     <StudioProvider value={value}>
       <div className="flex min-h-0 flex-1 flex-col" data-xp-simulator>
         <PreviewViewport restartKey={restartKey} bare={bare} />
-        <button
-          type="button"
-          onClick={() => setRestartKey((key) => key + 1)}
-          className="flex min-h-10 items-center justify-center gap-1.5 border-t border-card-border bg-card-bg text-xs font-bold text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text active:scale-95"
-        >
-          <RotateCcw className="size-3.5" aria-hidden />
-          Play again
-        </button>
+        {footer ?? (
+          <button
+            type="button"
+            onClick={() => setRestartKey((key) => key + 1)}
+            className="flex min-h-10 items-center justify-center gap-1.5 border-t border-card-border bg-card-bg text-xs font-bold text-brand-text-muted transition hover:bg-card-hover hover:text-brand-text active:scale-95"
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+            Play again
+          </button>
+        )}
       </div>
     </StudioProvider>
   );

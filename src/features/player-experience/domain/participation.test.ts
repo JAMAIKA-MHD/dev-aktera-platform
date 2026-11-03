@@ -81,6 +81,7 @@ describe("server contract", () => {
     expect(serverCodes).toEqual([
       "ALREADY_PARTICIPATED",
       "CAMPAIGN_CLOSED",
+      "CAMPAIGN_NOT_STARTED",
       "CONSENT_REQUIRED",
       "DRAW_FAILED",
       "INVALID_INPUT",

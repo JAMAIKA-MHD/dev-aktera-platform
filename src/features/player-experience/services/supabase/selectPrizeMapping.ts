@@ -68,6 +68,7 @@ export function toSelectPrizeBody(request: DrawRequest): SelectPrizeBody {
 const SERVER_CODES: Readonly<Record<string, ParticipationErrorCode>> = {
   ALREADY_PARTICIPATED: "ALREADY_PARTICIPATED",
   CAMPAIGN_CLOSED: "CAMPAIGN_CLOSED",
+  CAMPAIGN_NOT_STARTED: "CAMPAIGN_NOT_STARTED", // with starts_at: the page says when it opens
   INVALID_INPUT: "INVALID_INPUT",
   CONSENT_REQUIRED: "INVALID_INPUT", // the form must be sent again with the consent
   DRAW_FAILED: "NETWORK", // server-side failure: worth retrying
@@ -88,9 +89,10 @@ const LEGACY_MESSAGES: ReadonlyArray<[RegExp, ParticipationErrorCode]> = [
 const failure = (
   code: ParticipationErrorCode,
   message: string,
+  startsAt?: string,
 ): DrawResult => ({
   ok: false,
-  error: { code, message },
+  error: startsAt ? { code, message, startsAt } : { code, message },
 });
 
 function readObject(value: unknown): Record<string, unknown> | null {
@@ -136,7 +138,13 @@ export function toDrawResult(result: SelectPrizeHttpResult): DrawResult {
       : `select-prize answered HTTP ${result.status}.`;
   const code =
     typeof body?.code === "string" ? SERVER_CODES[body.code] : undefined;
-  if (code) return failure(code, message);
+  if (code) {
+    const startsAt =
+      code === "CAMPAIGN_NOT_STARTED" && typeof body?.starts_at === "string"
+        ? body.starts_at
+        : undefined;
+    return failure(code, message, startsAt);
+  }
   if (result.status >= 500) return failure("NETWORK", message);
   for (const [pattern, legacyCode] of LEGACY_MESSAGES) {
     if (typeof body?.error === "string" && pattern.test(body.error)) {

@@ -11,7 +11,8 @@ import {
 //   2. consent (Law 18-07)                → 400 CONSENT_REQUIRED
 //   3. same attempt replayed              → the same answer, nothing written
 //   4. impression (analytics, never blocking)
-//   5. campaign found, active, in period  → 404/400 CAMPAIGN_CLOSED
+//   5. campaign found, active, in period  → 404/400 CAMPAIGN_CLOSED, or 400 CAMPAIGN_NOT_STARTED
+//      (with starts_at) before its start date: the page says when it opens, not that it ended
 //   6. duplicate participation            → 400 ALREADY_PARTICIPATED
 //   7. stock left                         → 400 CAMPAIGN_CLOSED
 //   8. game outcome (resolve_game_outcome: scoring + atomic draw) → 500 DRAW_FAILED
@@ -31,6 +32,7 @@ type ErrorCode =
   | "INVALID_INPUT"
   | "CONSENT_REQUIRED"
   | "CAMPAIGN_CLOSED"
+  | "CAMPAIGN_NOT_STARTED"
   | "ALREADY_PARTICIPATED"
   | "DRAW_FAILED"
   | "SERVER_ERROR";
@@ -69,8 +71,12 @@ const json = (status: number, body: Record<string, unknown>) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const fail = (status: number, code: ErrorCode, error: string) =>
-  json(status, { ok: false, code, error });
+const fail = (
+  status: number,
+  code: ErrorCode,
+  error: string,
+  extra: Record<string, unknown> = {},
+) => json(status, { ok: false, code, error, ...extra });
 
 const normalizeDzPhone = (rawPhone: string): string => {
   const digitsOnly = rawPhone.replace(/\D/g, "");
@@ -353,10 +359,17 @@ serve(async (req) => {
       ? Date.parse(campaign.start_date)
       : NaN;
     const endsAt = campaign.end_date ? Date.parse(campaign.end_date) : NaN;
-    if (
-      (Number.isFinite(startsAt) && now < startsAt) ||
-      (Number.isFinite(endsAt) && now > endsAt)
-    ) {
+    if (Number.isFinite(startsAt) && now < startsAt) {
+      return fail(
+        400,
+        "CAMPAIGN_NOT_STARTED",
+        "Campaign has not started yet.",
+        {
+          starts_at: campaign.start_date,
+        },
+      );
+    }
+    if (Number.isFinite(endsAt) && now > endsAt) {
       return fail(400, "CAMPAIGN_CLOSED", "Campaign is not running.");
     }
 

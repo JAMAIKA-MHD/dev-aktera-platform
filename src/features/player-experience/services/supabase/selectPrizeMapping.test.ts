@@ -165,6 +165,29 @@ describe("toDrawResult — errors with a code (select-prize since B2.1)", () => 
   });
 });
 
+describe("toDrawResult — a campaign that has not started", () => {
+  it("keeps the start date, so the page says when it opens", () => {
+    expect(
+      toDrawResult({
+        status: 400,
+        body: {
+          ok: false,
+          code: "CAMPAIGN_NOT_STARTED",
+          error: "Campaign has not started yet.",
+          starts_at: "2026-12-01T00:00:00+00:00",
+        },
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        code: "CAMPAIGN_NOT_STARTED",
+        message: "Campaign has not started yet.",
+        startsAt: "2026-12-01T00:00:00+00:00",
+      },
+    });
+  });
+});
+
 describe("toDrawResult — messages of a select-prize deployed before B2.1 (no code)", () => {
   // One line per message of the old function: a change of wording must break a test.
   it.each([

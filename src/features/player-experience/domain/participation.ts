@@ -37,7 +37,8 @@ export interface DrawRequest {
   };
 }
 
-// select-prize returns ALREADY_PARTICIPATED, CAMPAIGN_CLOSED and INVALID_INPUT as they are;
+// select-prize returns ALREADY_PARTICIPATED, CAMPAIGN_CLOSED, CAMPAIGN_NOT_STARTED and
+// INVALID_INPUT as they are;
 // its server-only codes (CONSENT_REQUIRED, DRAW_FAILED, SERVER_ERROR) are mapped onto these by
 // the live gateway. NETWORK and UNKNOWN are produced on the client side.
 export type ParticipationErrorCode =

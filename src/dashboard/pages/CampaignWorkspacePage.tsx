@@ -1,13 +1,16 @@
 import { Suspense, lazy } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Palette } from "lucide-react";
 
 import { CampaignWorkspace } from "../../components/CampaignWorkspace";
+import { CxButton } from "../../components/campaigns/campaignUi";
 import { useDashboard } from "../DashboardContext";
 import { PageSpinner } from "../DashboardShell";
 import { FROM_CAMPAIGN_DETAILS, PATHS } from "../paths";
 import { STUDIO_BACKEND } from "../studioBackend";
 
 // The real runtime in a phone-sized frame, with the design saved in the Studio (demo gateway).
+// Silent on this page, and its bar leads to the Player Studio instead of "Play again".
 const CampaignSimulator = lazy(() =>
   import("../../features/player-experience").then((module) => ({
     default: module.CampaignSimulator,
@@ -52,6 +55,19 @@ export default function CampaignWorkspacePage() {
             prizeTemplates={prizes}
             campaignId={campaign.id}
             backend={STUDIO_BACKEND}
+            silent
+            footer={
+              <div className="p-3">
+                <CxButton
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => navigate(PATHS.studioFor(campaign.id))}
+                >
+                  <Palette aria-hidden />
+                  Customize player screens
+                </CxButton>
+              </div>
+            }
           />
         </Suspense>
       }
