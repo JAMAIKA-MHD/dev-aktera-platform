@@ -49,7 +49,7 @@ function fakeContext(state: AudioContext["state"] = "running") {
     }),
     createBiquadFilter: vi.fn(() => ({
       type: "",
-      frequency: { value: 0 },
+      frequency: param(),
       Q: { value: 0 },
       connect: vi.fn(),
     })),
@@ -282,5 +282,88 @@ describe("haptics", () => {
       },
     });
     expect(vibrate("win")).toBe(false);
+  });
+});
+
+describe("music and the sound button", () => {
+  // A recording that remembers whether it is playing.
+  function fakeRecording() {
+    const audio = {
+      loop: false,
+      volume: 1,
+      paused: true,
+      currentTime: 0,
+      play: vi.fn(() => {
+        audio.paused = false;
+        return Promise.resolve();
+      }),
+      pause: vi.fn(() => {
+        audio.paused = true;
+      }),
+    };
+    return audio;
+  }
+
+  it("loops the music once a gesture unlocks the page, and pauses it when muted or hidden", () => {
+    const recording = fakeRecording();
+    const audio = createAudioFeedback(
+      () => fakeContext().context,
+      () => recording as unknown as HTMLAudioElement,
+    );
+    audio.setMusic("/music.mp3");
+    // Before any gesture: nothing plays (autoplay rules).
+    expect(recording.play).not.toHaveBeenCalled();
+    audio.unlock();
+    expect(recording.play).toHaveBeenCalledTimes(1);
+    expect(recording.loop).toBe(true);
+    expect(recording.volume).toBeLessThan(0.5);
+    audio.setMuted(true);
+    expect(recording.paused).toBe(true);
+    audio.setMuted(false);
+    expect(recording.paused).toBe(false);
+    audio.setHidden(true);
+    expect(recording.paused).toBe(true);
+    audio.setHidden(false);
+    audio.setEnabled(false); // features.sound off
+    expect(recording.paused).toBe(true);
+  });
+
+  it("silences the sounds while muted, and tells the button", () => {
+    const { context, raw, sources } = fakeContext();
+    const audio = createAudioFeedback(() => context);
+    const listener = vi.fn();
+    const stop = audio.subscribe(listener);
+    audio.unlock();
+    expect(listener).toHaveBeenCalledTimes(1); // unlocked
+    audio.setMuted(true);
+    expect(audio.muted).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(2);
+    audio.play("click");
+    expect(raw.createOscillator).not.toHaveBeenCalled();
+    stop();
+    audio.setMuted(false);
+    expect(listener).toHaveBeenCalledTimes(2);
+    audio.play("swoosh");
+    expect(sources).toHaveLength(1);
+    expect((sources[0] as { start: () => void }).start).toHaveBeenCalled();
+  });
+});
+
+describe("chiptune", () => {
+  it("plays the synthesized sounds in square waves, and a jingle for a win", () => {
+    const { context, oscillators } = fakeContext();
+    const audio = createAudioFeedback(() => context);
+    audio.unlock();
+    audio.setChiptune(true);
+    audio.play("click");
+    expect(oscillators.map((oscillator) => oscillator.type)).toEqual([
+      "square",
+    ]);
+    audio.play("win");
+    // The jingle: six notes, every one square.
+    expect(oscillators).toHaveLength(7);
+    expect(new Set(oscillators.map((oscillator) => oscillator.type))).toEqual(
+      new Set(["square"]),
+    );
   });
 });

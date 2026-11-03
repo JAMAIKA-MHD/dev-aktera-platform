@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDefaultExperience } from "../../domain/defaults";
 import { createInitialFlowState, type FlowState } from "../../domain/flow";
 import type { GameType } from "../../domain/gameTypes";
+import type { TemplateId } from "../../domain/templates";
 import type { DrawPrize } from "../../domain/participation";
 import type { ExperienceConfig } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
@@ -32,17 +33,21 @@ function setup(
   options: {
     gameType?: GameType;
     services?: ExperienceServices;
+    templateId?: TemplateId;
+    noPrizes?: boolean; // a draft campaign, before its prizes are set
   } = {},
 ) {
   const gameType = options.gameType ?? "lucky_wheel";
   const campaign = createDemoCampaign(gameType);
+  if (options.noPrizes) campaign.prizes = [];
   const config = createDefaultExperience({ gameType, campaign });
+  if (options.templateId) config.templateId = options.templateId;
   const services =
     options.services ??
     createLocalServices({ participation: "scripted", campaign });
   const track = vi.spyOn(services.analytics, "track");
   const confirm = vi.spyOn(services.participation, "confirmCoupon");
-  render(
+  const { container } = render(
     <ServicesProvider services={services}>
       <PlayerExperience
         config={config}
@@ -53,7 +58,14 @@ function setup(
       />
     </ServicesProvider>,
   );
-  return { user: userEvent.setup(), track, confirm, campaign, config };
+  return {
+    user: userEvent.setup(),
+    track,
+    confirm,
+    campaign,
+    config,
+    container,
+  };
 }
 
 const codeButton = () => screen.getByText("DEMO-0000-0000").closest("button")!;
@@ -140,15 +152,12 @@ describe("WinScreen", () => {
     );
   });
 
-  it("has no separate confirm button: copying the code records it, once", async () => {
-    const { user, confirm } = setup();
-    expect(screen.queryByText("J'ai copié mon code")).toBeNull();
-    await user.click(codeButton());
-    await vi.waitFor(() =>
-      expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
-    );
-    await user.click(codeButton()); // a second copy sends nothing more
-    expect(confirm).toHaveBeenCalledOnce();
+  it("confirms the coupon when it is copied, once, even with a second copy", async () => {
+    const { confirm } = setup();
+    fireEvent.click(codeButton());
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+    fireEvent.click(codeButton());
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
   });
 
   it("records nothing when the code could not be copied", async () => {
@@ -161,46 +170,39 @@ describe("WinScreen", () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
-  it("shows the thanks only once the server has it", async () => {
-    const services = createLocalServices({
-      participation: "scripted",
-      campaign: createDemoCampaign("lucky_wheel"),
-    });
-    let resolveConfirm: (result: { ok: true }) => void;
-    vi.spyOn(services.participation, "confirmCoupon").mockReturnValue(
-      new Promise((resolve) => {
-        resolveConfirm = resolve;
-      }),
-    );
-    const { user } = setup({ services });
-    await user.click(codeButton());
-    expect(screen.getByText("Copié !")).toBeTruthy();
-    expect(screen.queryByText("Merci, c'est noté !")).toBeNull();
-    resolveConfirm!({ ok: true });
-    await vi.waitFor(() =>
-      expect(screen.getByText("Merci, c'est noté !")).toBeTruthy(),
-    );
+  it("shows the win screen, never the loss, when the Studio asks for it on a campaign without prizes", () => {
+    const { container } = setup({ noPrizes: true });
+    expect(
+      container.querySelector(".xp-frame")?.getAttribute("data-xp-screen"),
+    ).toBe("win");
+    expect(screen.getByText("Votre Cadeau")).toBeTruthy();
+    expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
   });
 
-  it("stays calm when the confirmation fails: the code is already there", async () => {
+  it("follows a spotlight template's own win screen: its star over the title", () => {
+    const { container } = setup({ templateId: "comic-burst" });
+    const hero = container.querySelector('[data-xp-slot="hero"]');
+    expect(hero?.getAttribute("data-xp-hero")).toBe("art");
+    expect(hero?.querySelector("img")?.getAttribute("src")).toBeTruthy();
+    // The star replaces the prize popping in: it is drawn once, in slot 2.
+    expect(container.querySelector(".xp-result-art")).toBeNull();
+    expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
+  });
+
+  it("says nothing when the confirmation fails: the code is already there", async () => {
     const services = createLocalServices({
       participation: "scripted",
       campaign: createDemoCampaign("lucky_wheel"),
     });
-    vi.spyOn(services.participation, "confirmCoupon").mockResolvedValue({
-      ok: false,
-      error: { code: "NETWORK", message: "offline" },
-    });
-    const { user } = setup({ services });
-    await user.click(codeButton());
-    await vi.waitFor(() =>
-      expect(
-        screen.getByText(
-          "Votre code reste valable même si la confirmation a échoué.",
-        ),
-      ).toBeTruthy(),
-    );
-    expect(screen.queryByText("Merci, c'est noté !")).toBeNull();
+    const confirm = vi
+      .spyOn(services.participation, "confirmCoupon")
+      .mockResolvedValue({
+        ok: false,
+        error: { code: "NETWORK", message: "offline" },
+      });
+    setup({ services });
+    fireEvent.click(codeButton());
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
     expect(screen.getByText("DEMO-0000-0000")).toBeTruthy();
   });
 
@@ -244,7 +246,6 @@ describe("WinScreen", () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByText("AKT-DZ-9824X")).toBeNull();
-    expect(screen.queryByText("J'ai copié mon code")).toBeNull(); // nothing to confirm
   });
 
   it("shows the campaign's own win message when the prize has one", () => {

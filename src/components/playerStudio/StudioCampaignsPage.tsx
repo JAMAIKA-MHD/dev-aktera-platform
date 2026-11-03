@@ -53,7 +53,7 @@ export function StudioCampaignsPage({
   onOpenSandbox,
 }: StudioCampaignsPageProps) {
   const { t } = useLanguage();
-  const { savedAt } = useExperienceSummaries(organizationId);
+  const { savedAt, templates } = useExperienceSummaries(organizationId);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [game, setGame] = useState<GameFilter>("all");
@@ -61,8 +61,8 @@ export function StudioCampaignsPage({
   // "Now" for the ended rule and the "saved … ago" labels, refreshed with the data.
   const now = useMemo(() => new Date(), [campaigns, savedAt]);
   const rows = useMemo(
-    () => toStudioCampaignRows(campaigns, savedAt, now),
-    [campaigns, savedAt, now],
+    () => toStudioCampaignRows(campaigns, savedAt, now, templates),
+    [campaigns, savedAt, now, templates],
   );
   const columns = useMemo(
     () =>

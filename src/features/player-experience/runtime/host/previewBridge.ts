@@ -21,6 +21,10 @@ export type ToFrameMessage =
       scenario?: ScriptedScenario;
       safeArea?: SafeAreaInsets;
       restartKey: number; // incremented to restart the journey
+      sound?: boolean; // the Studio's sound button; absent, the frame's audio is left alone
+      // The visible preview shows the template's scene before its Win screen; the hidden frame
+      // of "Check all sizes" does not ask for it, and measures the page at once.
+      winIntro?: boolean;
     };
 
 // Frame → Studio

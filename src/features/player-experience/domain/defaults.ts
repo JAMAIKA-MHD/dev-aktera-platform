@@ -15,6 +15,7 @@ import { createDemoCampaign } from "../presets/demoCampaign";
 import { themeFromPreset } from "../presets/themePresets";
 import type { CampaignSnapshot } from "./campaign";
 import type { GameType } from "./gameTypes";
+import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
   ExperienceConfig,
   FormField,
@@ -132,7 +133,7 @@ export function createDefaultExperience(
     schemaVersion: 1,
     id: createUuid(),
     campaignId: input.campaign?.id ?? null,
-    templateId: "eight-slot",
+    templateId: DEFAULT_TEMPLATE_ID,
     updatedAt: new Date().toISOString(),
     locales: { default: "fr", enabled: ["fr", "ar", "en"] },
     theme: themeFromPreset(input.presetId),
@@ -174,9 +175,71 @@ export function createDefaultExperience(
     },
     game: defaultGameSettings(campaign),
     prizeDisplay: {}, // empty = the campaign prize names and messages
-    features: { sound: true, animations: true, shareBonus: false },
+    features: {
+      sound: true,
+      animations: true,
+      winIntro: true,
+      shareBonus: false,
+    },
   };
   // Deep copy: the configuration shares no object with the presets, so editing it
   // in the Studio can never alter the defaults.
   return structuredClone(config);
+}
+
+// The screens of a design made for another game (the game changed in the Wizard after it was
+// made): the texts of the game's own screens that still hold that game's defaults follow the
+// new game, a brand's own wording is kept. Without it a Hit It campaign keeps "Tournez la
+// roue !" over its target.
+const GAME_SCREENS = ["welcome", "play"] as const;
+
+export function screensForGame(
+  screens: ExperienceConfig["screens"],
+  from: GameType,
+  to: GameType,
+): ExperienceConfig["screens"] {
+  if (from === to) return screens;
+  const before = defaultScreens(from);
+  const after = defaultScreens(to);
+  const next = { ...screens };
+  for (const key of GAME_SCREENS) {
+    const screen = screens[key];
+    const old = before[key];
+    const fresh = after[key];
+    const keep = <T>(value: T, oldValue: T, freshValue: T): T =>
+      sameValue(value, oldValue) ? structuredClone(freshValue) : value;
+    next[key] = {
+      ...screen,
+      title: keep(screen.title, old.title, fresh.title),
+      subtitle: keep(screen.subtitle, old.subtitle, fresh.subtitle),
+      primaryCta: keep(screen.primaryCta, old.primaryCta, fresh.primaryCta),
+      reinforcement: keep(
+        screen.reinforcement,
+        old.reinforcement,
+        fresh.reinforcement,
+      ),
+    };
+  }
+  return next;
+}
+
+// Equal whatever the order of their keys (a stored text may list its locales in another).
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== "object" || typeof b !== "object" || !a || !b) return false;
+  const keysA = Object.keys(a).filter(
+    (key) => (a as Record<string, unknown>)[key] !== undefined,
+  );
+  const keysB = Object.keys(b).filter(
+    (key) => (b as Record<string, unknown>)[key] !== undefined,
+  );
+  return (
+    keysA.length === keysB.length &&
+    keysA.every((key) =>
+      sameValue(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+      ),
+    )
+  );
 }

@@ -1,4 +1,5 @@
 // Labels, formats and cell contents of the Player Studio campaigns table.
+import { templateLabel } from "../../features/player-experience";
 import { GameEmblem } from "../campaigns/GameEmblem";
 import { Badge } from "../ui/badge";
 import type { Campaign } from "../../types";
@@ -173,6 +174,14 @@ export function DesignCell({
       <span className="text-xs text-muted-foreground" title={row.designSavedAt}>
         {formatSavedAgo(row.designSavedAt, now)}
       </span>
+      {row.designTemplate && (
+        <span className="text-xs text-muted-foreground">
+          {t("playerStudio.design.template", "Theme: {name}").replace(
+            "{name}",
+            templateLabel(row.designTemplate),
+          )}
+        </span>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { getDirection, resolveText, type Locale } from "../../../domain/locale";
 import type { ExperienceConfig, IconName } from "../../../domain/types";
 import { ICON_COMPONENTS } from "../../../presets/icons";
@@ -17,6 +17,7 @@ export interface BrandHeaderSlotProps {
   logoUrl: string | null; // resolved by the caller (AssetStorage.resolveUrl)
   live: boolean;
   badge: string | null;
+  soundToggle?: ReactNode; // the player's sound button, at the end
 }
 
 function BrandMark({
@@ -87,6 +88,7 @@ export function BrandHeaderSlot({
   logoUrl,
   live,
   badge,
+  soundToggle = null,
 }: BrandHeaderSlotProps) {
   const name = brand.name.trim();
   const tagline = resolveText(brand.tagline, locale, fallbackLocale);
@@ -124,6 +126,7 @@ export function BrandHeaderSlot({
       </div>
       {badge && <StatusBadge label={badge} />}
       {live && <LiveDot />}
+      {soundToggle}
     </header>
   );
 }

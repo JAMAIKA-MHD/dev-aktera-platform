@@ -1,8 +1,10 @@
 -- A published campaign whose start date has not come yet is scheduled, not over: the public
 -- page says when it opens instead of "Campaign ended". get_public_experience answers it as
--- availability { open: false, reason: NOT_STARTED, starts_at }. Same function as
--- 20261030120000_public_experience_brand_and_image.sql otherwise, with its grants re-applied
--- (CREATE OR REPLACE keeps them, the REVOKE / GRANT below only restate them).
+-- availability { open: false, reason: NOT_STARTED, starts_at }.
+-- Otherwise the union of the two versions before it, which each replaced the whole function:
+-- 20261028120000_public_experience_organizer_name.sql (organization_name, for the templates'
+-- header) and 20261030120000_public_experience_brand_and_image.sql (brand_name, image_url).
+-- Grants re-applied (CREATE OR REPLACE keeps them, the REVOKE / GRANT below restate them).
 -- select-prize still refuses a participation before the start date (CAMPAIGN_CLOSED).
 
 CREATE OR REPLACE FUNCTION public.get_public_experience(p_slug text)
@@ -17,12 +19,16 @@ DECLARE
   v_reason text;
   v_allocated int;
   v_winners int;
+  v_organizer text;
 BEGIN
   SELECT * INTO v_c FROM public.campaigns WHERE slug = p_slug;
   -- Drafts and archived campaigns are not published.
   IF NOT FOUND OR v_c.status IN ('draft', 'archived') THEN
     RETURN jsonb_build_object('found', false);
   END IF;
+
+  -- The organizer's name only: players already read it in the footer ("Organisé par …").
+  SELECT o.name INTO v_organizer FROM public.organizations o WHERE o.id = v_c.organization_id;
 
   IF v_c.status = 'active' AND now() < v_c.start_date THEN
     v_reason := 'NOT_STARTED';
@@ -49,6 +55,7 @@ BEGIN
       'status', v_c.status,
       'brand_name', v_c.game_logic_config->>'brand_name',
       'image_url', v_c.hero_image_url,
+      'organization_name', v_organizer,
       'rules', jsonb_build_object(
         'pass_threshold_percentage', v_c.game_logic_config->'pass_threshold_percentage',
         'quiz_seconds_per_question', v_c.game_logic_config->'quiz_seconds_per_question',

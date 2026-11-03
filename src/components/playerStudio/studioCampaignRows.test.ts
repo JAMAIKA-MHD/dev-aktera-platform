@@ -36,6 +36,7 @@ describe("toStudioCampaignRow", () => {
       campaign(),
       new Map([["c1", "2026-09-30T10:00:00Z"]]),
       NOW,
+      new Map([["c1", "pixel-quest"]]),
     );
     expect(row).toEqual({
       id: "c1",
@@ -49,6 +50,7 @@ describe("toStudioCampaignRow", () => {
       endDate: "2026-10-31T00:00:00Z",
       players: 42,
       designSavedAt: "2026-09-30T10:00:00Z",
+      designTemplate: "pixel-quest",
     });
   });
 

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" width="240" height="300">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a45d8"/><stop offset="1" stop-color="#3a2290"/></linearGradient></defs>
+<path fill-rule="evenodd" fill="url(#g)" stroke="#8a7ad8" stroke-width="4" d="M20 40Q20 20 40 20H200Q220 20 220 40V270Q220 290 200 290H40Q20 290 20 270Z M40 96h48v64h-48z M96 96h48v64h-48z M152 96h48v64h-48z"/>
+<rect x="34" y="30" width="172" height="48" rx="9" fill="#1a0b4d" stroke="#ffd24a" stroke-width="3"/>
+<g fill="#ffd24a"><circle cx="50" cy="40" r="4"/><circle cx="76" cy="40" r="4"/><circle cx="102" cy="40" r="4"/><circle cx="128" cy="40" r="4"/><circle cx="154" cy="40" r="4"/><circle cx="180" cy="40" r="4"/><circle cx="50" cy="68" r="4"/><circle cx="76" cy="68" r="4"/><circle cx="102" cy="68" r="4"/><circle cx="128" cy="68" r="4"/><circle cx="154" cy="68" r="4"/><circle cx="180" cy="68" r="4"/></g>
+<polygon points="120,44 125,54 136,55 128,62 130,73 120,67 110,73 112,62 104,55 115,54" fill="#ff6fb5" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+<g fill="none" stroke="#ffd24a" stroke-width="4"><rect x="40" y="96" width="48" height="64" rx="3"/><rect x="96" y="96" width="48" height="64" rx="3"/><rect x="152" y="96" width="48" height="64" rx="3"/></g>
+<g fill="none" stroke="#0f0630" stroke-opacity=".5" stroke-width="6"><rect x="43" y="99" width="42" height="58"/><rect x="99" y="99" width="42" height="58"/><rect x="155" y="99" width="42" height="58"/></g>
+<rect x="34" y="176" width="172" height="52" rx="8" fill="#241466" stroke="#8a7ad8" stroke-width="2"/>
+<circle cx="66" cy="202" r="13" fill="#ff3b5c" stroke="#fff" stroke-width="2"/><circle cx="120" cy="202" r="13" fill="#ffd24a" stroke="#fff" stroke-width="2"/><circle cx="174" cy="202" r="13" fill="#7ad7ff" stroke="#fff" stroke-width="2"/>
+<rect x="96" y="238" width="48" height="10" rx="3" fill="#0f0630" stroke="#ffd24a" stroke-width="2"/>
+<rect x="46" y="256" width="148" height="26" rx="6" fill="#0f0630" stroke="#ffd24a" stroke-width="3"/>
+<g fill="#ffd24a"><circle cx="28" cy="110" r="3.5"/><circle cx="28" cy="140" r="3.5"/><circle cx="28" cy="170" r="3.5"/><circle cx="212" cy="110" r="3.5"/><circle cx="212" cy="140" r="3.5"/><circle cx="212" cy="170" r="3.5"/></g>
+</svg>

@@ -81,7 +81,7 @@ describe("PublicPlayPage", () => {
     expect(load).toHaveBeenCalledWith(expect.anything(), "zeta");
     // No demo badge: the live gateway is used, and accepted.
     expect(screen.queryByText("Demo")).toBeNull();
-    // Set just after the page appears: checked once it has had the time to.
+    // Set by an effect, after the runtime's first render.
     await waitFor(() => expect(document.title).toBe("Zeta Wheel"));
   });
 

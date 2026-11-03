@@ -1,0 +1,537 @@
+/*
+ * The neon scene: 10 seconds, so one percent is 0.1 s. The machine stands at 50% / 46% of the
+ * screen; so do the gift box and everything that flies out of the machine.
+ */
+
+.xp-intro[data-xp-scene="jackpot"] {
+  background-color: var(--xp-ink);
+  animation: xp-j-out var(--xp-intro-seconds) linear both;
+}
+.xp-intro .xp-j-sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: xp-j-sky var(--xp-intro-seconds) linear both;
+}
+
+/* The light that bursts out of the gift. */
+.xp-j-rays {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 260cqmax;
+  height: 260cqmax;
+  translate: -50% -50%;
+  mask: radial-gradient(closest-side, currentColor 20%, transparent 70%);
+  -webkit-mask: radial-gradient(
+    closest-side,
+    currentColor 20%,
+    transparent 70%
+  );
+  animation: xp-j-rays var(--xp-intro-seconds) linear both;
+  span {
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(
+      var(--xp-intro-gold) 0 6deg,
+      transparent 6deg 12deg
+    );
+  }
+}
+
+.xp-j-machine {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 36cqmin;
+  height: 45cqmin;
+  translate: -50% -50%;
+  animation: xp-j-machine var(--xp-intro-seconds) linear both;
+}
+.xp-intro .xp-j-cabinet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* The windows of the reels, behind the machine: it has see-through holes. */
+.xp-j-reel {
+  position: absolute;
+  top: 32%;
+  width: 20%;
+  height: 21.33%;
+  overflow: hidden;
+  img {
+    width: 100%;
+    height: 600%;
+    animation-name: xp-j-reel;
+    animation-duration: 0.2s;
+    animation-timing-function: linear;
+    animation-delay: 2s;
+    animation-fill-mode: both;
+  }
+  &[data-xp-reel="1"] {
+    left: 16.67%;
+    img {
+      animation-iteration-count: 8;
+    }
+  }
+  &[data-xp-reel="2"] {
+    left: 40%;
+    img {
+      animation-iteration-count: 11;
+    }
+  }
+  &[data-xp-reel="3"] {
+    left: 63.33%;
+    img {
+      animation-iteration-count: 14;
+    }
+  }
+}
+.xp-intro .xp-j-lever {
+  position: absolute;
+  left: calc(100% + 0.6cqmin);
+  top: 18%;
+  width: 6cqmin;
+  height: 18cqmin;
+  transform-origin: 50% 90%;
+  animation: xp-j-lever var(--xp-intro-seconds) linear both;
+}
+
+/* Nixo: one frame of the sheet shown through a box, swapped in hard steps. */
+.xp-j-nixo {
+  position: absolute;
+  left: 52%;
+  top: calc(100% + 1.5cqmin);
+  width: 20cqmin;
+  height: 20cqmin;
+  animation: xp-j-nixo-in var(--xp-intro-seconds) linear both;
+}
+.xp-j-nixo-hop {
+  width: 100%;
+  height: 100%;
+  animation: xp-j-nixo-hop var(--xp-intro-seconds) linear both;
+}
+.xp-j-nixo-frame {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  img {
+    width: 400%;
+    height: 100%;
+    animation: xp-j-nixo-frames var(--xp-intro-seconds) steps(1, end) both;
+  }
+}
+
+.xp-intro .xp-j-coin {
+  position: absolute;
+  top: -8cqmin;
+  width: 6cqmin;
+  height: 6cqmin;
+  animation: xp-j-coin 1.8s linear var(--at) both;
+}
+.xp-intro .xp-j-prize {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 14cqmin;
+  height: 14cqmin;
+  margin: -7cqmin 0 0 -7cqmin;
+  object-fit: contain;
+  /* The second one starts from wherever the first one left it. */
+  animation:
+    xp-j-prize 1.2s cubic-bezier(0.2, 0.9, 0.3, 1.25) var(--at) both,
+    xp-j-suck 0.55s ease-in 7s forwards;
+}
+
+.xp-j-glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 70cqmin;
+  height: 70cqmin;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--xp-intro-gold) 70%, transparent),
+    transparent
+  );
+  animation: xp-j-glow var(--xp-intro-seconds) linear both;
+}
+.xp-j-gift {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 30cqmin;
+  height: 36cqmin;
+  translate: -50% -50%;
+  animation: xp-j-gift var(--xp-intro-seconds) linear both;
+}
+.xp-j-gift-shake {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  animation: xp-j-gift-shake var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-intro .xp-j-gift-box {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: auto;
+}
+.xp-intro .xp-j-gift-lid {
+  position: absolute;
+  left: -6%;
+  bottom: 54%;
+  width: 112%;
+  height: auto;
+  transform-origin: 80% 100%;
+  animation: xp-j-gift-lid var(--xp-intro-seconds) linear both;
+}
+
+.xp-j-jackpot,
+.xp-j-all {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  line-height: 1;
+}
+.xp-j-jackpot {
+  top: 8%;
+  font-family: var(--xp-intro-font);
+  font-size: 6cqmin;
+  color: var(--xp-intro-gold);
+  text-shadow:
+    0.08em 0.08em 0 var(--xp-intro-gold-deep),
+    0 0 0.5em var(--xp-intro-gold);
+  animation: xp-j-jackpot var(--xp-intro-seconds) linear both;
+}
+.xp-j-all {
+  top: calc(8% + 8cqmin);
+  font-family: var(--xp-intro-font-ui);
+  font-size: 3cqmin;
+  color: var(--xp-intro-light);
+  text-shadow: 0 0 0.5em var(--xp-intro-cyan);
+  animation: xp-j-all var(--xp-intro-seconds) linear both;
+}
+
+.xp-j-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    transparent 0 3px,
+    color-mix(in srgb, var(--xp-intro-dark) 16%, transparent) 3px 4px
+  );
+}
+.xp-j-flash {
+  animation: xp-j-flash var(--xp-intro-seconds) linear both;
+}
+
+@keyframes xp-j-out {
+  0%,
+  94% {
+    opacity: 1;
+    visibility: visible;
+  }
+  99.99% {
+    opacity: 0;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes xp-j-sky {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  6% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes xp-j-rays {
+  0%,
+  86% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  86.1% {
+    opacity: 1;
+    transform: scale(0) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.2) rotate(70deg);
+  }
+}
+@keyframes xp-j-machine {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  6%,
+  48% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  49.5% {
+    transform: scale(1.06);
+  }
+  51% {
+    transform: scale(0.98);
+  }
+  52.5%,
+  69% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  73%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+@keyframes xp-j-reel {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-83.333%);
+  }
+}
+@keyframes xp-j-lever {
+  0%,
+  19% {
+    transform: scaleY(1);
+  }
+  21% {
+    transform: scaleY(0.45);
+  }
+  25%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+@keyframes xp-j-nixo-in {
+  0% {
+    transform: translateX(-90cqmin);
+  }
+  10%,
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes xp-j-nixo-hop {
+  0%,
+  19.5%,
+  22%,
+  48%,
+  51.6%,
+  55.2%,
+  59%,
+  100% {
+    transform: translateY(0);
+  }
+  20.8% {
+    transform: translateY(-7cqmin);
+  }
+  49.8%,
+  53.4%,
+  57.2% {
+    transform: translateY(-8cqmin);
+  }
+}
+@keyframes xp-j-nixo-frames {
+  0% {
+    transform: translateX(0);
+  }
+  18% {
+    transform: translateX(-25%);
+  }
+  19.5% {
+    transform: translateX(-50%);
+  }
+  22% {
+    transform: translateX(0);
+  }
+  48%,
+  100% {
+    transform: translateX(-75%);
+  }
+}
+@keyframes xp-j-coin {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(130cqh) rotate(540deg);
+  }
+}
+@keyframes xp-j-prize {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) scale(1) rotate(var(--tilt));
+  }
+}
+@keyframes xp-j-suck {
+  to {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+}
+@keyframes xp-j-glow {
+  0%,
+  72% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  76%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes xp-j-gift {
+  0%,
+  71.9% {
+    opacity: 0;
+    transform: translateY(-60cqmin) scale(1.4);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-60cqmin) scale(1.4);
+    animation-timing-function: ease-in;
+  }
+  74% {
+    transform: translateY(0) scale(1);
+  }
+  75% {
+    transform: translateY(2cqmin) scale(1);
+  }
+  76.2% {
+    transform: translateY(-3cqmin) scale(1);
+  }
+  77.5%,
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes xp-j-gift-shake {
+  0%,
+  80%,
+  87%,
+  100% {
+    transform: rotate(0deg);
+  }
+  81.1%,
+  83.4%,
+  85.7% {
+    transform: rotate(-6deg);
+  }
+  82.2%,
+  84.5%,
+  86% {
+    transform: rotate(6deg);
+  }
+}
+@keyframes xp-j-gift-lid {
+  0%,
+  86% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  92% {
+    opacity: 1;
+    transform: translateY(-30cqmin) rotate(28deg);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(-30cqmin) rotate(28deg);
+  }
+}
+@keyframes xp-j-jackpot {
+  0%,
+  47.9% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  48% {
+    opacity: 1;
+    transform: scale(0.3);
+    animation-timing-function: ease-out;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  52%,
+  58% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  60%,
+  64%,
+  68% {
+    opacity: 0.3;
+  }
+  62%,
+  66%,
+  70% {
+    opacity: 1;
+  }
+  73%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes xp-j-all {
+  0%,
+  47.9% {
+    opacity: 0;
+  }
+  48%,
+  58%,
+  62%,
+  66%,
+  70% {
+    opacity: 1;
+  }
+  60%,
+  64%,
+  68% {
+    opacity: 0.3;
+  }
+  73%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-j-flash {
+  0%,
+  89% {
+    opacity: 0;
+  }
+  94%,
+  100% {
+    opacity: 1;
+  }
+}

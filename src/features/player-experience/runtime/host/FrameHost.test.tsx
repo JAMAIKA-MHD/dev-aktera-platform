@@ -472,6 +472,40 @@ describe("BridgeFrame", () => {
     expect(screen.getByText("Lancer le jeu")).toBeTruthy();
   });
 
+  describe("the scene before the Win screen", () => {
+    const openWin = (extra: { winIntro?: boolean }) => {
+      const { bridge, send } = fakeBridge();
+      render(<BridgeFrame bridge={bridge} />);
+      const config = createDefaultExperience({ gameType: "lucky_wheel" });
+      config.templateId = "comic-burst";
+      send({
+        type: "xp:config",
+        config,
+        campaign: createDemoCampaign("lucky_wheel"),
+      });
+      send({
+        type: "xp:ui",
+        screen: "win",
+        locale: "fr",
+        mode: "static",
+        restartKey: 1,
+        ...extra,
+      });
+    };
+
+    it("plays in the visible preview, and its skip button is the one control that works", () => {
+      openWin({ winIntro: true });
+      expect(document.querySelector(".xp-intro")).not.toBeNull();
+      fireEvent.click(screen.getByText("PASSER L'INTRO"));
+      expect(document.querySelector(".xp-intro")).toBeNull();
+    });
+
+    it("stays out of a frame that does not ask for it (Check all sizes)", () => {
+      openWin({});
+      expect(document.querySelector(".xp-intro")).toBeNull();
+    });
+  });
+
   it("stops listening when unmounted", () => {
     const subscribe = vi.fn(() => vi.fn());
     const bridge = { post: vi.fn(), subscribe } as unknown as Bridge<

@@ -39,7 +39,7 @@ export default function StudioPage() {
           campaigns={campaigns}
           prizeTemplates={prizes}
           campaignId={standalone ? null : campaignId}
-          onClose={() => navigate(PATHS.home)}
+          onClose={() => navigate(PATHS.studio)}
           backend={STUDIO_BACKEND}
         />
       </Suspense>

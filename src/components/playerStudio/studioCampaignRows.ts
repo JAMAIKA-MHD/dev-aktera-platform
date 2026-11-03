@@ -20,6 +20,7 @@ export interface StudioCampaignRow {
   endDate: string;
   players: number;
   designSavedAt: string | null; // null: the Studio design was never saved (default design)
+  designTemplate: string | null; // templateId of the saved design (template library)
 }
 
 // Default order of the table: what is running first, then what can still run.
@@ -58,6 +59,7 @@ export function toStudioCampaignRow(
   campaign: Campaign,
   designSavedAt: ReadonlyMap<string, string>,
   now: Date,
+  designTemplates: ReadonlyMap<string, string> = new Map(),
 ): StudioCampaignRow {
   return {
     id: campaign.id,
@@ -71,6 +73,7 @@ export function toStudioCampaignRow(
     endDate: campaign.endDate,
     players: campaign.participantsCount ?? 0,
     designSavedAt: designSavedAt.get(campaign.id) ?? null,
+    designTemplate: designTemplates.get(campaign.id) ?? null,
   };
 }
 
@@ -79,9 +82,12 @@ export function toStudioCampaignRows(
   campaigns: readonly Campaign[],
   designSavedAt: ReadonlyMap<string, string>,
   now: Date,
+  designTemplates: ReadonlyMap<string, string> = new Map(),
 ): StudioCampaignRow[] {
   return campaigns
-    .map((campaign) => toStudioCampaignRow(campaign, designSavedAt, now))
+    .map((campaign) =>
+      toStudioCampaignRow(campaign, designSavedAt, now, designTemplates),
+    )
     .sort(
       (a, b) =>
         STATUS_RANK[a.displayStatus] - STATUS_RANK[b.displayStatus] ||

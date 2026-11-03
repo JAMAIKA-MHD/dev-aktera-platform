@@ -84,6 +84,49 @@ describe("parsePublicExperience", () => {
     ).toBe(true);
   });
 
+  it("gives the new game its own screen texts, and keeps a brand's own wording", () => {
+    const wheelDesign = createDefaultExperience({ gameType: "lucky_wheel" });
+    const hitIt = (experience: unknown) =>
+      ok(
+        answer({
+          campaign: { ...answer().campaign, game_type: "hit_it" },
+          experience,
+        }),
+      ).config.screens;
+    // Still the wheel's defaults: the Hit It ones instead.
+    expect(hitIt(wheelDesign).play.title.fr).toBe("Touchez la cible !");
+    expect(hitIt(wheelDesign).play.reinforcement.kind).toBe("timer");
+    expect(hitIt(wheelDesign).welcome.title.fr).not.toMatch(/roue/i);
+    // Written by the brand: kept.
+    const written = structuredClone(wheelDesign);
+    written.screens.play.title = { fr: "À vous !" };
+    expect(hitIt(written).play.title).toEqual({ fr: "À vous !" });
+    expect(hitIt(written).play.subtitle.fr).toBe(
+      "Chaque touche compte, le temps file.",
+    );
+  });
+
+  it("names the brand after the organization when the design has no name", () => {
+    const withOrganizer = (experience: unknown) =>
+      ok(
+        answer({
+          campaign: {
+            ...answer().campaign,
+            organization_name: " Zeta Market ",
+          },
+          experience,
+        }),
+      ).config;
+    expect(withOrganizer(null).brand.name).toBe("Zeta Market");
+    expect(withOrganizer(null).legal.organizerName).toBe("Zeta Market");
+    const unnamed = createDefaultExperience({ gameType: "lucky_wheel" });
+    expect(withOrganizer(unnamed).brand.name).toBe("Zeta Market");
+    const named = { ...unnamed, brand: { ...unnamed.brand, name: "Zeta" } };
+    expect(withOrganizer(named).brand.name).toBe("Zeta");
+    // Before the migration the field is absent: nothing changes.
+    expect(ok(answer()).config.brand.name).toBe("");
+  });
+
   it("reads the public rules like the dashboard (numbers or numeric strings)", () => {
     const hitIt = ok(
       answer({

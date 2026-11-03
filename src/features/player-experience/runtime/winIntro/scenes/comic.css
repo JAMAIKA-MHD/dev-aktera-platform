@@ -1,0 +1,691 @@
+/*
+ * The comic scene: 10.4 seconds, so one percent is 0.104 s. Each time in a comment is in
+ * seconds. A rays layer, a burst and a word each hold a whole act of the story; the rings,
+ * streaks and stars are short shots fired at their own moment (--at).
+ */
+
+.xp-intro[data-xp-scene="comic"] {
+  background-color: var(--xp-intro-night);
+  animation: xp-c-out var(--xp-intro-seconds) linear both;
+}
+.xp-c-shake {
+  position: absolute;
+  inset: 0;
+  animation: xp-c-shake var(--xp-intro-seconds) linear both;
+}
+
+/* The rays: a cut in at each impact, turning slowly behind everything. */
+.xp-c-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 320cqmax;
+  height: 320cqmax;
+  translate: -50% -50%;
+  animation: xp-c-rays-red var(--xp-intro-seconds) linear both;
+  img {
+    width: 100%;
+    height: 100%;
+    will-change: rotate;
+    animation: xp-c-turn 40s linear infinite;
+  }
+}
+.xp-c-rays-blue {
+  animation-name: xp-c-rays-blue;
+}
+
+/* Halftone dots, on the edges only. */
+.xp-c-dots {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background: radial-gradient(
+      circle,
+      var(--xp-intro-ink) 0 32%,
+      transparent 34%
+    )
+    0 0 / 2.4cqmin 2.4cqmin;
+  mask: radial-gradient(circle at center, transparent 42%, currentColor 100%);
+  -webkit-mask: radial-gradient(
+    circle at center,
+    transparent 42%,
+    currentColor 100%
+  );
+  animation: xp-c-seen var(--xp-intro-seconds) linear both;
+}
+
+/* The lit fuse. */
+.xp-c-fuse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6cqmin;
+  height: 6cqmin;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background-color: var(--xp-intro-yellow);
+  box-shadow:
+    0 0 3cqmin 1cqmin var(--xp-intro-yellow),
+    0 0 8cqmin 2cqmin var(--xp-intro-orange);
+  animation: xp-c-fuse var(--xp-intro-seconds) linear both;
+}
+
+/* The bursts. */
+.xp-c-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140cqmax;
+  height: 140cqmax;
+  translate: -50% -50%;
+  img {
+    width: 100%;
+    height: 100%;
+    animation: xp-c-breathe 0.9s ease-in-out infinite alternate;
+  }
+}
+.xp-c-burst-red {
+  animation: xp-c-burst-red var(--xp-intro-seconds) linear both;
+}
+.xp-c-burst-blue {
+  animation: xp-c-burst-blue var(--xp-intro-seconds) linear both;
+}
+
+/* White light turning behind the trophy. */
+.xp-c-lights {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 150cqmin;
+  height: 150cqmin;
+  translate: -50% -50%;
+  animation: xp-c-lights var(--xp-intro-seconds) linear both;
+  span {
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(
+      color-mix(in srgb, var(--xp-intro-light) 60%, transparent) 0 10deg,
+      transparent 10deg 30deg
+    );
+    mask: radial-gradient(closest-side, currentColor 20%, transparent);
+    -webkit-mask: radial-gradient(closest-side, currentColor 20%, transparent);
+    animation: xp-c-turn 14s linear infinite;
+  }
+}
+
+/* The shots of an impact. */
+.xp-c-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30cqmin;
+  height: 30cqmin;
+  margin: -15cqmin 0 0 -15cqmin;
+  border: 2.4cqmin solid var(--xp-intro-light);
+  border-radius: 50%;
+  /* Off until its moment, off again after it. */
+  opacity: 0;
+  animation: xp-c-ring 0.7s ease-out var(--at) forwards;
+  &:nth-of-type(even) {
+    border-color: var(--xp-intro-yellow);
+  }
+}
+.xp-c-streak {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.4cqmin;
+  height: 18cqmin;
+  margin: -9cqmin 0 0 -1.2cqmin;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background-color: var(--xp-intro-yellow);
+  /* Off until its moment, off again after it. */
+  opacity: 0;
+  animation: xp-c-streak 1.2s ease-out var(--at) forwards;
+  &:nth-of-type(even) {
+    background-color: var(--xp-intro-red);
+  }
+}
+.xp-c-star {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6cqmin;
+  height: 6cqmin;
+  margin: -3cqmin 0 0 -3cqmin;
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  background-color: var(--xp-intro-light);
+  /* Off until its moment, off again after it. */
+  opacity: 0;
+  animation: xp-c-star 1.5s ease-out var(--at) forwards;
+  &:nth-of-type(3n + 1) {
+    background-color: var(--xp-intro-yellow);
+  }
+  &:nth-of-type(3n + 2) {
+    background-color: var(--xp-intro-orange);
+  }
+}
+
+/* The trophy: it falls, squashes, rebounds, bobs, then rushes to the camera. */
+.xp-c-trophy {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 52cqmin;
+  margin: -22.75cqmin 0 0 -26cqmin;
+  transform-origin: 50% 100%;
+  animation: xp-c-trophy var(--xp-intro-seconds) linear both;
+  img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(1.2cqmin 1.2cqmin 0 var(--xp-intro-ink));
+    animation: xp-c-bob 1.5s ease-in-out 6.4s infinite alternate;
+  }
+}
+
+/* The words: a black outline, a white one, the fill. */
+.xp-c-word {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
+  font-family: var(--xp-intro-font);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  filter: drop-shadow(
+    0.05em 0.07em 0 color-mix(in srgb, var(--xp-intro-ink) 45%, transparent)
+  );
+  span {
+    display: block;
+  }
+}
+.xp-c-word-ink,
+.xp-c-word-edge {
+  position: absolute;
+  inset: 0;
+}
+.xp-c-word-ink {
+  color: var(--xp-intro-ink);
+  -webkit-text-stroke: 0.3em var(--xp-intro-ink);
+}
+.xp-c-word-edge {
+  color: var(--xp-intro-light);
+  -webkit-text-stroke: 0.15em var(--xp-intro-light);
+}
+.xp-c-word-fill {
+  position: relative;
+  color: transparent;
+  background:
+    radial-gradient(
+        circle,
+        color-mix(in srgb, var(--xp-intro-light) 35%, transparent) 0 30%,
+        transparent 32%
+      )
+      0 0 / 0.1em 0.1em,
+    linear-gradient(var(--xp-intro-word-from), var(--xp-intro-word-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.xp-c-boom {
+  font-size: 24cqmin;
+  animation: xp-c-boom var(--xp-intro-seconds) linear both;
+}
+.xp-c-bravo {
+  font-size: 22cqmin;
+  animation: xp-c-bravo var(--xp-intro-seconds) linear both;
+}
+.xp-c-victory {
+  top: auto;
+  bottom: max(7cqmin, 3.75rem); /* clear of the skip button on a phone */
+  translate: -50% 0;
+  font-size: 14cqmin;
+  animation: xp-c-victory var(--xp-intro-seconds) linear both;
+}
+
+.xp-c-flash {
+  animation: xp-c-flash var(--xp-intro-seconds) linear both;
+}
+
+@keyframes xp-c-out {
+  0%,
+  90.38% {
+    opacity: 1;
+    visibility: visible;
+  }
+  99.99% {
+    opacity: 0;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes xp-c-turn {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes xp-c-breathe {
+  to {
+    scale: 1.035;
+  }
+}
+@keyframes xp-c-bob {
+  from {
+    transform: translateY(0) rotate(-2deg);
+  }
+  to {
+    transform: translateY(-2.4cqmin) rotate(2deg);
+  }
+}
+
+/* One jolt per impact: 0.85, 3.2 (the small one), 5.6. */
+@keyframes xp-c-shake {
+  0%,
+  8.17%,
+  13.94%,
+  30.77%,
+  35.58%,
+  53.85%,
+  59.62%,
+  100% {
+    transform: translate(0, 0);
+  }
+  9.33% {
+    transform: translate(2cqmin, -2cqmin);
+  }
+  10.77% {
+    transform: translate(-2cqmin, 1.4cqmin);
+  }
+  12.31% {
+    transform: translate(1.2cqmin, -1cqmin);
+  }
+  31.73% {
+    transform: translate(-1.2cqmin, 1cqmin);
+  }
+  33.17% {
+    transform: translate(1cqmin, -0.8cqmin);
+  }
+  34.62% {
+    transform: translate(-0.6cqmin, 0.4cqmin);
+  }
+  55% {
+    transform: translate(-2cqmin, 2cqmin);
+  }
+  56.44% {
+    transform: translate(2cqmin, -1.4cqmin);
+  }
+  57.98% {
+    transform: translate(-1.2cqmin, 1cqmin);
+  }
+}
+
+@keyframes xp-c-rays-red {
+  0%,
+  7.6% {
+    opacity: 0;
+  }
+  7.69%,
+  52.88% {
+    opacity: 1;
+  }
+  54.81%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-c-rays-blue {
+  0%,
+  52.88% {
+    opacity: 0;
+  }
+  54.81%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes xp-c-seen {
+  0%,
+  7.6% {
+    opacity: 0;
+  }
+  7.69%,
+  100% {
+    opacity: 0.35;
+  }
+}
+
+/* It pulses bigger and faster, like a fuse burning down, then goes off. */
+@keyframes xp-c-fuse {
+  0% {
+    opacity: 1;
+    transform: scale(0.1);
+  }
+  1.92% {
+    transform: scale(0.25);
+  }
+  4.04% {
+    transform: scale(0.6);
+  }
+  5.38% {
+    transform: scale(0.5);
+  }
+  7.5% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  9.62% {
+    opacity: 0;
+    transform: scale(12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(12);
+  }
+}
+
+@keyframes xp-c-burst-red {
+  0%,
+  7.6% {
+    opacity: 0;
+    transform: scale(0) rotate(-30deg);
+  }
+  7.69% {
+    opacity: 1;
+    transform: scale(0) rotate(-30deg);
+    animation-timing-function: cubic-bezier(0.2, 1.5, 0.4, 1);
+  }
+  13.46%,
+  29.81% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  31.73% {
+    opacity: 1;
+    transform: scale(1.22) rotate(3deg);
+  }
+  34.62%,
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    animation-timing-function: ease-in;
+  }
+  53.85%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6) rotate(8deg);
+  }
+}
+@keyframes xp-c-burst-blue {
+  0%,
+  53.27% {
+    opacity: 0;
+    transform: scale(0.2) rotate(20deg);
+  }
+  53.37% {
+    opacity: 1;
+    transform: scale(0.2) rotate(20deg);
+    animation-timing-function: cubic-bezier(0.2, 1.5, 0.4, 1);
+  }
+  59.62%,
+  79.81% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    animation-timing-function: ease-in;
+  }
+  90.38%,
+  100% {
+    opacity: 1;
+    transform: scale(7) rotate(-6deg);
+  }
+}
+
+@keyframes xp-c-lights {
+  0%,
+  55.77% {
+    opacity: 0;
+  }
+  59.62%,
+  79.81% {
+    opacity: 1;
+  }
+  87.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes xp-c-ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(9);
+  }
+}
+@keyframes xp-c-streak {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(-20cqmin);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(-90cqmin);
+  }
+}
+@keyframes xp-c-star {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(0) rotate(0deg);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--reach) * -1))
+      rotate(540deg);
+  }
+}
+
+@keyframes xp-c-trophy {
+  0%,
+  53.75% {
+    opacity: 0;
+    transform: translateY(-130cqh) scale(0.6) rotate(-25deg);
+  }
+  53.85% {
+    opacity: 1;
+    transform: translateY(-130cqh) scale(0.6) rotate(-25deg);
+    animation-timing-function: ease-in;
+  }
+  57.69% {
+    transform: translateY(0) scale(1.12, 0.88) rotate(0deg);
+    animation-timing-function: ease-out;
+  }
+  59.62% {
+    transform: translateY(-4cqmin) scale(0.96, 1.05) rotate(0deg);
+    animation-timing-function: ease-in-out;
+  }
+  61.54%,
+  79.81% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+    animation-timing-function: ease-in;
+  }
+  89.42% {
+    opacity: 1;
+    transform: translateY(0) scale(5) rotate(0deg);
+  }
+  90.38%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(5) rotate(0deg);
+  }
+}
+
+/* The slam: huge and tilted, too small, a bounce, then a wobble until the next word. */
+@keyframes xp-c-boom {
+  0%,
+  7.6% {
+    opacity: 0;
+    transform: scale(4) rotate(-14deg);
+  }
+  7.69% {
+    opacity: 1;
+    transform: scale(4) rotate(-14deg);
+    animation-timing-function: ease-in;
+  }
+  9.62% {
+    transform: scale(0.9) rotate(-3deg);
+  }
+  11.06% {
+    transform: scale(1.06) rotate(-3deg);
+  }
+  12.5% {
+    transform: scale(1) rotate(-3deg);
+  }
+  16.35% {
+    transform: scale(1.04) rotate(-2deg);
+  }
+  20.19% {
+    transform: scale(0.98) rotate(-4deg);
+  }
+  24.04% {
+    transform: scale(1.04) rotate(-2deg);
+  }
+  29.33% {
+    opacity: 1;
+    transform: scale(1) rotate(-3deg);
+  }
+  29.81%,
+  100% {
+    opacity: 0;
+    transform: scale(1.4) rotate(-3deg);
+  }
+}
+@keyframes xp-c-bravo {
+  0%,
+  29.71% {
+    opacity: 0;
+    transform: scale(4) rotate(14deg);
+  }
+  29.81% {
+    opacity: 1;
+    transform: scale(4) rotate(14deg);
+    animation-timing-function: ease-in;
+  }
+  31.73% {
+    transform: scale(0.9) rotate(3deg);
+  }
+  33.17% {
+    transform: scale(1.06) rotate(3deg);
+  }
+  34.62% {
+    transform: scale(1) rotate(3deg);
+  }
+  38.46% {
+    transform: scale(1.04) rotate(4deg);
+  }
+  42.31% {
+    transform: scale(0.98) rotate(2deg);
+  }
+  46.15% {
+    transform: scale(1.04) rotate(4deg);
+  }
+  52.4% {
+    opacity: 1;
+    transform: scale(1) rotate(3deg);
+  }
+  52.88%,
+  100% {
+    opacity: 0;
+    transform: scale(1.4) rotate(3deg);
+  }
+}
+@keyframes xp-c-victory {
+  0%,
+  53.75% {
+    opacity: 0;
+    transform: scale(4) rotate(-14deg);
+  }
+  53.85% {
+    opacity: 1;
+    transform: scale(4) rotate(-14deg);
+    animation-timing-function: ease-in;
+  }
+  55.77% {
+    transform: scale(0.9) rotate(-3deg);
+  }
+  57.21% {
+    transform: scale(1.06) rotate(-3deg);
+  }
+  58.65%,
+  79.81% {
+    transform: scale(1) rotate(-3deg);
+  }
+  80.77% {
+    opacity: 1;
+    transform: scale(1.1) rotate(-3deg);
+    animation-timing-function: ease-in;
+  }
+  90.38%,
+  100% {
+    opacity: 1;
+    transform: scale(7) rotate(-6deg);
+  }
+}
+
+/* A flash per impact, far under three a second, then the white that ends the scene. */
+@keyframes xp-c-flash {
+  0%,
+  7.6% {
+    opacity: 0;
+  }
+  7.69% {
+    opacity: 0.95;
+  }
+  13.46%,
+  30.67% {
+    opacity: 0;
+  }
+  30.77% {
+    opacity: 0.7;
+  }
+  34.62%,
+  53.75% {
+    opacity: 0;
+  }
+  53.85% {
+    opacity: 0.7;
+  }
+  57.69%,
+  84.62% {
+    opacity: 0;
+  }
+  89.42% {
+    opacity: 0.95;
+  }
+  90.38%,
+  100% {
+    opacity: 1;
+  }
+}

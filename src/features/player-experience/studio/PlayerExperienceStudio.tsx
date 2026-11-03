@@ -16,7 +16,7 @@ export interface PlayerExperienceStudioProps {
   // The campaign being dressed; null or absent = standalone, on the demo campaign.
   campaign?: CampaignSnapshot | null;
   services?: ExperienceServices; // default: the local services of the MVP
-  onClose?: () => void; // a "Back to dashboard" button in the top bar
+  onClose?: () => void; // a "Back to Player Studio" button in the top bar
   className?: string;
 }
 

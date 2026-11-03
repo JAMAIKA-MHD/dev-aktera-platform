@@ -183,6 +183,23 @@ describe("layoutAudit", () => {
     expect(layoutAudit(root)).toEqual([]);
   });
 
+  it("lets the glyphs of a tight line-height reach past their box, unless it clips them", () => {
+    const { root, $ } = cleanFrame();
+    const title = $('[data-xp-slot="title"]');
+    title.style.lineHeight = "26px"; // two lines of a display font at line-height 1
+    measure(title, { scrollHeight: 56 }); // its ink, 2 px over each edge: drawn in full
+    expect(layoutAudit(root)).toEqual([]);
+    title.style.overflowY = "hidden"; // the same ink, cut
+    expect(layoutAudit(root).map((issue) => issue.kind)).toEqual([
+      "text-clipped",
+    ]);
+    title.style.overflowY = "visible";
+    measure(title, { scrollHeight: 78 }); // a third line: half a line or more is lost
+    expect(layoutAudit(root).map((issue) => issue.kind)).toEqual([
+      "text-clipped",
+    ]);
+  });
+
   it("skips inline boxes, which have no size of their own", () => {
     const { root, $ } = cleanFrame();
     const inline = document.createElement("span");
@@ -287,6 +304,31 @@ describe("layoutAudit", () => {
         selector: '[data-xp-slot="interaction"] div',
         editPath: "game",
         detail: "300 x 296 px",
+      },
+    ]);
+  });
+
+  it("keeps the game's area clear of decorations drawn over the frame", () => {
+    const { root, $ } = cleanFrame();
+    const game = document.createElement("div");
+    game.setAttribute("data-xp-game", "quiz");
+    $('[data-xp-slot="interaction"]').appendChild(game);
+    place(game, { left: 30, top: 150, width: 300, height: 300 });
+    const front = document.createElement("div");
+    front.className = "xp-stage-front";
+    const star = document.createElement("img");
+    star.className = "xp-decor";
+    front.appendChild(star);
+    root.appendChild(front);
+    place(star, { left: 0, top: 0, width: 20, height: 20 }); // in a corner of the stage
+    expect(layoutAudit(root)).toEqual([]);
+    place(star, { left: 300, top: 400, width: 60, height: 60 });
+    expect(layoutAudit(root)).toEqual([
+      {
+        kind: "game-covered",
+        selector: "img.xp-decor",
+        editPath: null,
+        detail: "covers 30 x 50 px of the game",
       },
     ]);
   });

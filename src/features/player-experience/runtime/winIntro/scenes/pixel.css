@@ -1,0 +1,591 @@
+/*
+ * The 8-bit scene: 10 seconds, so one percent is 0.1 s. Everything moves in steps(): no easing
+ * anywhere, it must feel like a low frame rate.
+ */
+
+.xp-intro[data-xp-scene="pixel"] {
+  background-color: var(--xp-intro-night);
+  animation: xp-p-iris var(--xp-intro-seconds) steps(1, end) both;
+}
+
+.xp-p-sky {
+  position: absolute;
+  inset: 0;
+  background-color: var(--xp-intro-blue);
+  animation: xp-p-boom var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-p-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300cqmax;
+  height: 300cqmax;
+  translate: -50% -50%;
+  animation: xp-p-boom var(--xp-intro-seconds) steps(1, end) both;
+  mask: radial-gradient(closest-side, currentColor 30%, transparent 62%);
+  -webkit-mask: radial-gradient(
+    closest-side,
+    currentColor 30%,
+    transparent 62%
+  );
+  span {
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(
+      var(--xp-intro-gold) 0 8deg,
+      transparent 8deg 20deg
+    );
+    animation: xp-p-turn 24s steps(48, end) infinite;
+  }
+}
+.xp-p-shake {
+  position: absolute;
+  inset: 0;
+  animation: xp-p-shake var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-p-ground {
+  position: absolute;
+  inset: auto 0 0;
+  height: 12cqmin;
+  box-sizing: border-box;
+  border-top: 3cqmin solid var(--xp-intro-grass);
+  background-color: var(--xp-intro-brick);
+  animation: xp-p-boom var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-intro .xp-p-sparkle {
+  position: absolute;
+  width: 6cqmin;
+  height: 6cqmin;
+  image-rendering: pixelated;
+  animation: xp-p-twinkle 1.2s steps(1, end) var(--delay) infinite;
+}
+
+/* The block, and the words of the countdown over it. */
+.xp-p-ready,
+.xp-p-count,
+.xp-p-banner {
+  position: absolute;
+  left: 50%;
+  font-family: var(--xp-intro-font);
+  line-height: 1;
+  translate: -50% 0;
+}
+.xp-p-ready {
+  top: calc(50% - 22cqmin);
+  font-size: 6cqmin;
+  color: var(--xp-intro-gold);
+  animation: xp-p-ready var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-p-block {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26cqmin;
+  height: 26cqmin;
+  translate: -50% -50%;
+  animation: xp-p-block var(--xp-intro-seconds) steps(1, end) both;
+  img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+}
+.xp-p-count {
+  top: calc(50% - 38cqmin);
+  font-size: 20cqmin;
+  color: var(--xp-intro-light);
+  text-shadow: 0.08em 0.08em 0 var(--xp-intro-blue);
+}
+.xp-p-count-3 {
+  animation: xp-p-count-3 var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-p-count-2 {
+  animation: xp-p-count-2 var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-p-count-1 {
+  color: var(--xp-intro-coral);
+  animation: xp-p-count-1 var(--xp-intro-seconds) steps(1, end) both;
+}
+
+/* An explosion: a clipped box, the sprite sheet sliding through it frame by frame. Each one
+   only shows during its own run. */
+.xp-p-explosion {
+  position: absolute;
+  left: calc(50% + var(--x));
+  top: calc(50% + var(--y));
+  width: var(--size);
+  height: var(--size);
+  translate: -50% -50%;
+  overflow: hidden;
+  visibility: hidden;
+  animation: xp-p-shown var(--run) steps(1, end) var(--at);
+  img {
+    width: 800%;
+    height: 100%;
+    image-rendering: pixelated;
+    animation: xp-p-frames var(--run) steps(8, jump-none) var(--at) both;
+  }
+}
+
+.xp-p-debris {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.2cqmin;
+  height: 2.2cqmin;
+  margin: -1.1cqmin 0 0 -1.1cqmin;
+  background-color: var(--xp-intro-gold);
+  /* Off until its moment, off again after it. */
+  opacity: 0;
+  animation: xp-p-debris 1.6s steps(12, end) 4s forwards;
+  &:nth-of-type(3n + 1) {
+    background-color: var(--xp-intro-orange);
+  }
+  &:nth-of-type(3n + 2) {
+    background-color: var(--xp-intro-cream);
+  }
+}
+
+.xp-p-trophy {
+  position: absolute;
+  left: 50%;
+  top: 46%; /* just clear of the banner on a landscape screen */
+  width: 34cqmin;
+  height: 34cqmin;
+  margin: -17cqmin 0 0 -17cqmin;
+  animation: xp-p-trophy var(--xp-intro-seconds) linear both;
+  img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+}
+
+.xp-p-coin {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 6cqmin;
+  height: 6cqmin;
+  margin-left: -3cqmin;
+  /* Off until its moment, off again after it. */
+  opacity: 0;
+  animation: xp-p-coin 2.4s steps(24, end) var(--at) forwards;
+  img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    animation: xp-p-spin 0.48s steps(1, end) infinite;
+  }
+}
+
+.xp-p-banner {
+  bottom: 15cqmin;
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+  font-size: 8cqmin;
+  color: var(--xp-intro-gold);
+  /* A dark edge round the letters: gold on gold rays would not read. */
+  text-shadow:
+    0.1em 0.1em 0 var(--xp-intro-orange-deep),
+    -0.06em 0 0 var(--xp-intro-night),
+    0.06em 0 0 var(--xp-intro-night),
+    0 -0.06em 0 var(--xp-intro-night),
+    0 0.06em 0 var(--xp-intro-night);
+  animation: xp-p-banner var(--xp-intro-seconds) steps(1, end) both;
+}
+
+.xp-p-flash {
+  animation: xp-p-flash var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-p-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    transparent 0 2px,
+    color-mix(in srgb, var(--xp-intro-dark) 16%, transparent) 2px 3px
+  );
+}
+
+/* The classic level end: a circle closing in 14 hard steps, from 8.8 to 10 s. */
+@keyframes xp-p-iris {
+  0%,
+  88% {
+    clip-path: circle(75%);
+    visibility: visible;
+  }
+  88.86% {
+    clip-path: circle(69.64%);
+  }
+  89.71% {
+    clip-path: circle(64.29%);
+  }
+  90.57% {
+    clip-path: circle(58.93%);
+  }
+  91.43% {
+    clip-path: circle(53.57%);
+  }
+  92.29% {
+    clip-path: circle(48.21%);
+  }
+  93.14% {
+    clip-path: circle(42.86%);
+  }
+  94% {
+    clip-path: circle(37.5%);
+  }
+  94.86% {
+    clip-path: circle(32.14%);
+  }
+  95.71% {
+    clip-path: circle(26.79%);
+  }
+  96.57% {
+    clip-path: circle(21.43%);
+  }
+  97.43% {
+    clip-path: circle(16.07%);
+  }
+  98.29% {
+    clip-path: circle(10.71%);
+  }
+  99.14% {
+    clip-path: circle(5.36%);
+  }
+  100% {
+    clip-path: circle(0%);
+    visibility: hidden;
+  }
+}
+@keyframes xp-p-turn {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* Off until the 4 s BOOM, in one step. */
+@keyframes xp-p-boom {
+  0% {
+    opacity: 0;
+  }
+  40%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes xp-p-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes xp-p-ready {
+  0%,
+  6%,
+  8%,
+  10%,
+  100% {
+    opacity: 0;
+  }
+  4%,
+  9% {
+    opacity: 1;
+  }
+}
+
+/* It pops in, then shakes harder with each number, and it is gone at the BOOM. */
+@keyframes xp-p-block {
+  0%,
+  1.9% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  2% {
+    opacity: 1;
+    transform: scale(0.7);
+  }
+  3% {
+    transform: scale(1.35);
+  }
+  4%,
+  10% {
+    transform: scale(1);
+  }
+  11%,
+  13% {
+    transform: translateX(0.8cqmin);
+  }
+  12%,
+  14% {
+    transform: translateX(-0.8cqmin);
+  }
+  15%,
+  20% {
+    transform: none;
+  }
+  21%,
+  23% {
+    transform: translateX(1.2cqmin);
+  }
+  22%,
+  24% {
+    transform: translateX(-1.2cqmin);
+  }
+  25%,
+  30% {
+    transform: none;
+  }
+  31%,
+  33%,
+  35%,
+  37%,
+  39% {
+    opacity: 1;
+    transform: translate(2cqmin, -0.8cqmin);
+  }
+  32%,
+  36% {
+    opacity: 0.45;
+    transform: translate(-2cqmin, 0.8cqmin);
+  }
+  34%,
+  38% {
+    opacity: 1;
+    transform: translate(-2cqmin, 0.8cqmin);
+  }
+  40%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-p-count-3 {
+  0%,
+  9.9% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  11.5% {
+    transform: scale(1.2);
+  }
+  13%,
+  19.9% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  20%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-p-count-2 {
+  0%,
+  19.9% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  21.5% {
+    transform: scale(1.2);
+  }
+  23%,
+  29.9% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  30%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-p-count-1 {
+  0%,
+  29.9% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  31.5% {
+    transform: scale(1.2);
+  }
+  33%,
+  39.9% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  40%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ±3 until 4.7 s, then a small one with each firework. */
+@keyframes xp-p-shake {
+  0%,
+  47%,
+  60%,
+  61.5%,
+  65%,
+  66.5%,
+  70%,
+  71.5%,
+  100% {
+    transform: none;
+  }
+  40%,
+  44% {
+    transform: translate(3cqmin, -3cqmin);
+  }
+  41%,
+  45% {
+    transform: translate(-3cqmin, 2cqmin);
+  }
+  42%,
+  46% {
+    transform: translate(2cqmin, 3cqmin);
+  }
+  43% {
+    transform: translate(-2cqmin, -2cqmin);
+  }
+  60.5%,
+  65.5%,
+  70.5% {
+    transform: translate(1cqmin, -1cqmin);
+  }
+  61%,
+  66%,
+  71% {
+    transform: translate(-1cqmin, 1cqmin);
+  }
+}
+@keyframes xp-p-shown {
+  from,
+  to {
+    visibility: visible;
+  }
+}
+@keyframes xp-p-frames {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-87.5%);
+  }
+}
+@keyframes xp-p-debris {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(calc(var(--x) * 0.6), calc(var(--y) * 0.6 - 12cqmin));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), calc(var(--y) + 18cqmin));
+  }
+}
+
+/* Up from below in stepped jumps, with an overshoot. */
+@keyframes xp-p-trophy {
+  0%,
+  43.9% {
+    opacity: 0;
+    transform: translateY(40cqh) scale(0.4);
+  }
+  44% {
+    opacity: 1;
+    transform: translateY(40cqh) scale(0.4);
+    animation-timing-function: steps(4, end);
+  }
+  48% {
+    transform: translateY(0) scale(1.2);
+    animation-timing-function: steps(2, end);
+  }
+  50%,
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes xp-p-coin {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+    animation-timing-function: steps(12, end);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(calc(var(--drift) * 0.6), -55cqmin);
+    animation-timing-function: steps(12, end);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), -33cqmin);
+  }
+}
+@keyframes xp-p-spin {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  25%,
+  75% {
+    transform: scaleX(0.5);
+  }
+  50% {
+    transform: scaleX(0.15);
+  }
+}
+@keyframes xp-p-banner {
+  0%,
+  51.9% {
+    opacity: 0;
+    transform: translateY(4cqmin);
+  }
+  52% {
+    opacity: 1;
+    transform: translateY(4cqmin);
+  }
+  53%,
+  54.9% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  55% {
+    opacity: 0;
+  }
+  56%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes xp-p-flash {
+  0%,
+  39.9% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  42% {
+    opacity: 0.55;
+  }
+  44%,
+  100% {
+    opacity: 0;
+  }
+}

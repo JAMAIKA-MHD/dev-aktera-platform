@@ -172,7 +172,12 @@ const sampleConfig: ExperienceConfig = {
       image: null,
     },
   },
-  features: { sound: true, animations: true, shareBonus: false },
+  features: {
+    sound: true,
+    animations: true,
+    winIntro: true,
+    shareBonus: false,
+  },
 };
 
 const sampleSnapshot: CampaignSnapshot = {

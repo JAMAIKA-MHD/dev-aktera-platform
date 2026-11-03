@@ -17,11 +17,12 @@ export function ScreenMedallion({
   return (
     <div className="flex flex-col items-center justify-center gap-3 p-4 text-center">
       <div
-        className="xp-pop relative grid size-[clamp(4.5rem,34cqmin,7.5rem)] place-items-center rounded-full border"
+        className="xp-pop xp-medallion relative grid size-[clamp(4.5rem,34cqmin,7.5rem)] place-items-center rounded-full border"
         style={{
-          background: `radial-gradient(circle at 50% 30%, ${tint("--xp-primary", 30)}, ${tint("--xp-primary", 8)} 72%)`,
-          borderColor: tint("--xp-primary", 40),
-          boxShadow: `inset 0 0.3rem 0.8rem ${tint("--xp-surface", 45)}, 0 0 3rem ${tint("--xp-primary", 30)}`,
+          background: `var(--xp-medallion-bg, radial-gradient(circle at 50% 30%, ${tint("--xp-primary", 30)}, ${tint("--xp-primary", 8)} 72%))`,
+          borderColor: `var(--xp-card-border, ${tint("--xp-primary", 40)})`,
+          borderWidth: "var(--xp-card-border-width, 1px)",
+          boxShadow: `var(--xp-card-shadow, inset 0 0.3rem 0.8rem ${tint("--xp-surface", 45)}, 0 0 3rem ${tint("--xp-primary", 30)})`,
         }}
       >
         {waiting && (

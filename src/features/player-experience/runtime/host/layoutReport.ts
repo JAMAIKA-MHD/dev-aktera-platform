@@ -40,10 +40,12 @@ export function useLayoutReport(
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const schedule = useCallback(() => {
     clearTimeout(timer.current);
-    timer.current = setTimeout(
-      () => latest.current?.(layoutReport(runtimeRoot(document))),
-      REPORT_DELAY_MS,
-    );
+    timer.current = setTimeout(() => {
+      // A win page held behind its intro waits at the start of its entrances: measured there,
+      // it is all false alarms. Its entrances end once it is let go, and report then.
+      if (document.querySelector("[data-xp-held]")) return;
+      latest.current?.(layoutReport(runtimeRoot(document)));
+    }, REPORT_DELAY_MS);
   }, []);
 
   // After every render: the configuration, the language or the screen may have changed.

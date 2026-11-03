@@ -141,8 +141,7 @@ describe("the player journey, played end to end (T4.5)", () => {
     expect(request.consent.accepted).toBe(true);
     expect(request.gamePayload).toEqual({ kind: "none" });
 
-    // Copying the code records it as copied: there is no separate confirm button.
-    expect(screen.queryByText("J'ai copié mon code")).toBeNull();
+    // Copying the code records it as copied, once it reached the clipboard.
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
