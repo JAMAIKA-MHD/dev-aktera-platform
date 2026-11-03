@@ -46,6 +46,9 @@ export default function CreatorPage({
     <CampaignWizard
       key={`${mode}-${source?.id ?? "new"}`}
       prizes={prizes}
+      existingNames={campaigns
+        .filter((item) => item.id !== source?.id || mode === "relaunch")
+        .map((item) => item.name)}
       onSave={save}
       onOpenPlayerScreenEditor={(camp: { id?: string }) =>
         navigate(camp?.id ? PATHS.studioFor(camp.id) : PATHS.studio)

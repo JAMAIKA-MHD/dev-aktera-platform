@@ -72,7 +72,7 @@ function mapToUi(
     autoPacePrizes: Boolean(row.auto_pace_prizes),
     autoPaceEnabledAt: row.auto_pace_enabled_at ?? null,
     maxEntries:
-      row.max_entries === 2 ? "2" : row.max_entries === 0 ? "unlimited" : "1",
+      row.max_entries === 0 ? "unlimited" : String(row.max_entries ?? 1),
     prizes: (row.prizes ?? [])
       .filter((p) => p.is_active)
       .map((p) => ({
