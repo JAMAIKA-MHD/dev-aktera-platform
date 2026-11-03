@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 240 210" width="480" height="420">
+<defs><pattern id="ihp" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#ffd91f"/><circle cx="6" cy="6" r="2.6" fill="#ffb300"/></pattern></defs>
+<g stroke="#111" stroke-width="7" stroke-linejoin="round" fill="url(#ihp)">
+<path d="M62 38C18 26 2 62 28 94C44 112 70 118 92 122L94 102C76 98 56 86 62 62Z"/>
+<path d="M158 38C202 26 218 62 192 94C176 112 150 118 128 122L126 102C144 98 164 86 158 62Z"/>
+<path d="M56 8H164L158 54C154 96 132 120 118 126V148H142L150 176H70L78 148H102V126C88 120 66 96 62 54Z"/>
+<polygon points="110,34 120,58 146,60 126,76 133,102 110,88 87,102 94,76 74,60 100,58" fill="#fff200"/>
+</g></svg>

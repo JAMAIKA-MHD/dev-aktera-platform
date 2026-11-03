@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 
 import { StudioCampaignsPage } from "../../components/playerStudio/StudioCampaignsPage";
 import { useDashboard } from "../DashboardContext";
+import { useShellActions } from "../DashboardShell";
 import { PATHS } from "../paths";
 
 export default function StudioCampaignsRoute() {
   const navigate = useNavigate();
+  const { openSandbox } = useShellActions();
   const { campaigns, campLoading, campError, orgId, refetchCampaigns } =
     useDashboard();
   return (
@@ -18,6 +20,7 @@ export default function StudioCampaignsRoute() {
       onOpenCampaign={(id) => navigate(PATHS.studioFor(id))}
       onCreateCampaign={() => navigate(PATHS.create)}
       onRetry={() => void refetchCampaigns()}
+      onOpenSandbox={openSandbox}
     />
   );
 }

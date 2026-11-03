@@ -1,0 +1,550 @@
+{
+  "version": 1,
+  "id": "quiz-show",
+  "label": "Quiz Show",
+  "description": "A TV quiz show: spotlights over the stage, glowing LED walls, question-mark podiums and a marquee board lit with bulbs.",
+  "source": "style4-quiz-style",
+  "credits": null,
+  "mode": "dark",
+  "palette": {
+    "primary": "#FFB020",
+    "secondary": "#7A2FE0",
+    "accent": "#3DDC84",
+    "surface": "#050508",
+    "text": "#FFFFFF",
+    "ink": "#05061A"
+  },
+  "radius": "pill",
+  "font": "poppins",
+  "fonts": {
+    "display": "Outfit",
+    "ui": "Outfit",
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800;900&display=swap"
+  },
+  "tokens": {
+    "radius": {
+      "sm": "0.5rem",
+      "md": "0.875rem",
+      "lg": "1.25rem",
+      "pill": "9999px"
+    },
+    "space": {
+      "xs": "0.375rem",
+      "sm": "0.625rem",
+      "md": "1rem",
+      "lg": "1.5rem"
+    },
+    "fontSize": {
+      "display": "clamp(1.5rem, 7cqw, 2.5rem)",
+      "title": "1.05",
+      "body": "0.95rem",
+      "label": "0.75rem"
+    },
+    "shadow": {
+      "panel": "none",
+      "card": "none",
+      "pop": "0 0 2rem #FFB02059"
+    }
+  },
+  "panel": {
+    "bg": "#050508",
+    "text": "@text",
+    "border": "@primary",
+    "borderWidth": "0",
+    "frame": {
+      "src": "assets/frames/marquee.svg",
+      "slice": "100",
+      "width": "clamp(2.4rem, 6vw, 4.75rem)",
+      "outset": "0",
+      "repeat": "round"
+    },
+    "shape": null,
+    "frameScreens": {
+      "win": "assets/frames/marquee-win.svg",
+      "lose": "assets/frames/marquee-lose.svg"
+    },
+    "glow": "0 0 1.75rem #6E5AFF73",
+    "room": {
+      "inline": "clamp(2rem, 15.6vw, 13rem)",
+      "block": "clamp(1rem, 4svh, 3.5rem)",
+      "columnMax": "25rem"
+    }
+  },
+  "card": {
+    "bg": "#0E1030",
+    "border": "#2E2F7A",
+    "borderWidth": "0.125rem",
+    "frame": null
+  },
+  "hud": {
+    "bg": "#0A0B33D9",
+    "text": "@text",
+    "border": "#4630C4"
+  },
+  "button": {
+    "primary": {
+      "bg": "@primary",
+      "text": "#9A3D06",
+      "border": "#FF7A00",
+      "borderWidth": "0.5rem",
+      "shadow": "none",
+      "shadowPressed": "none",
+      "textShadow": "0 0.06em 0 #FFE9A8",
+      "frame": {
+        "src": "assets/buttons/button-gold.svg",
+        "slice": "56 70",
+        "width": "calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 56) calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 70)",
+        "outset": "0",
+        "repeat": "stretch",
+        "pixelated": false
+      }
+    },
+    "secondary": {
+      "bg": "#FF9A1F",
+      "text": "#FFFFFF",
+      "border": "#FF7A00",
+      "borderWidth": "0.5rem",
+      "shadow": "none",
+      "shadowPressed": "none",
+      "textShadow": "0 0.06em 0 #C2561A",
+      "frame": {
+        "src": "assets/buttons/button-gold-inset.png",
+        "slice": "56 70",
+        "width": "calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 56) calc(clamp(0.019rem, 0.013rem + 0.05vw, 0.026rem) * 70)",
+        "outset": "0",
+        "repeat": "stretch",
+        "pixelated": false
+      }
+    },
+    "screens": {},
+    "share": {
+      "height": "2.375rem",
+      "bg": "linear-gradient(#FFC24A, #FF8A00)",
+      "text": "#4A2000",
+      "border": "0.0625rem solid #FFF3B8",
+      "radius": "999px",
+      "shadow": "0 0.1875rem 0 #A84A00",
+      "font": "Outfit",
+      "size": "0.65625rem",
+      "weight": 800,
+      "tracking": "0.01875rem",
+      "icon": "0.875rem",
+      "hoverFilter": "brightness(1.08)",
+      "active": "translateY(0.125rem) scale(0.99)"
+    }
+  },
+  "field": {
+    "bg": "#0E1030",
+    "text": "#FFFFFF",
+    "border": "#2E2F7A",
+    "borderWidth": "0.125rem",
+    "shadow": "none",
+    "label": "#B8B2E6",
+    "labelFont": "ui",
+    "labelCase": "uppercase",
+    "labelTracking": "0.16em"
+  },
+  "title": {
+    "color": "#FFFFFF",
+    "stroke": null,
+    "strokeWidth": "0",
+    "shadow": "0 0.05em 0 #00000080",
+    "transform": "uppercase",
+    "letterSpacing": "0",
+    "weight": 900,
+    "screens": {
+      "win": "#FFC93A"
+    },
+    "shadows": {
+      "win": "0 0.05em 0 #B86E00, 0 0 0.45em #FFB020CC",
+      "lose": "0 0 0.45em #FF3B4ACC"
+    },
+    "backdrop": null
+  },
+  "stage": {
+    "color": "#05061A",
+    "overlay": "@ink",
+    "overlayOpacity": 0,
+    "backgrounds": {
+      "default": "assets/backgrounds/bg-stage.svg",
+      "games": {
+        "quiz": "assets/backgrounds/bg-grid.svg"
+      },
+      "screens": {
+        "win": "assets/backgrounds/bg-stage-win.svg",
+        "lose": "assets/backgrounds/bg-stage-lose.svg"
+      }
+    },
+    "decor": [
+      {
+        "src": "assets/fx/haze.svg",
+        "left": "0%",
+        "top": "58%",
+        "width": "120vmax",
+        "motion": "wind",
+        "seconds": 95,
+        "opacity": 0.9
+      },
+      {
+        "src": "assets/fx/haze.svg",
+        "left": "40%",
+        "top": "30%",
+        "width": "90vmax",
+        "motion": "wind",
+        "seconds": 120,
+        "reverse": true,
+        "opacity": 0.55
+      },
+      {
+        "src": "assets/decor/led-left.svg",
+        "left": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/decor/led-left-win.svg",
+        "left": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/led-left-lose.svg",
+        "left": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/led-right.svg",
+        "right": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/decor/led-right-win.svg",
+        "right": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/led-right-lose.svg",
+        "right": "0",
+        "top": "16.667%",
+        "width": "calc((50vw + 50vh) * 0.23)",
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/pedestal-left.svg",
+        "left": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "duplicate",
+          "closed",
+          "error",
+          "play",
+          "resolving",
+          "revealing",
+          "win"
+        ]
+      },
+      {
+        "src": "assets/decor/pedestal-right.svg",
+        "right": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "motion": "float",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "duplicate",
+          "closed",
+          "error",
+          "play",
+          "resolving",
+          "revealing",
+          "win"
+        ]
+      },
+      {
+        "src": "assets/decor/pedestal-left.svg",
+        "left": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "opacity": 0.45,
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      },
+      {
+        "src": "assets/decor/pedestal-right.svg",
+        "right": "1.72%",
+        "top": "46.944%",
+        "width": "calc((50vw + 50vh) * 0.15)",
+        "opacity": 0.45,
+        "hideWhenLow": true,
+        "screens": ["lose"]
+      }
+    ],
+    "moods": true
+  },
+  "wheel": {
+    "segments": ["@primary", "#7A2FE0", "#1A2E9E", "#F4F1FF"],
+    "blank": "#3B2C8F",
+    "rim": "#1A1560",
+    "rimInk": "@primary",
+    "bulbs": "#FFD54A",
+    "pointer": "@primary",
+    "pointerInk": "@ink",
+    "hub": "@primary",
+    "hubText": "@ink"
+  },
+  "games": {
+    "quiz": {
+      "question": "#FFFFFF",
+      "questionFont": "display",
+      "option": {
+        "bg": "#1A1C5C",
+        "text": "#FFFFFF",
+        "border": "@primary",
+        "borderWidth": "0.15rem",
+        "radius": "9999px",
+        "shadow": "0 0 0.9rem #FFB02040",
+        "font": "ui"
+      },
+      "optionHover": "#7A2FE0",
+      "counter": {
+        "bg": "@primary",
+        "text": "#05061A",
+        "border": "#FFD84A",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#2E2F7A",
+        "low": "#FF3B4A"
+      }
+    },
+    "scratch": {
+      "foil": ["#FFD84A", "#FF9A1F", "#FFD84A"],
+      "coverText": "#7A2A04",
+      "border": "#FFB020",
+      "borderWidth": "0.2rem",
+      "radius": "1.25rem",
+      "shadow": "0 0 1.75rem #FFB02059"
+    },
+    "boxes": {
+      "body": "#7A2FE0",
+      "lid": "#9B59F0",
+      "ribbon": "@primary",
+      "icon": "#FFFFFF",
+      "border": "#FFD84A",
+      "borderWidth": "0.15rem",
+      "radius": "0.5rem",
+      "shadow": "0 0 1rem #7A2FE080",
+      "glow": "@primary"
+    },
+    "hitIt": {
+      "art": "assets/prizes/star.svg",
+      "glow": "@primary",
+      "field": "#0E1030",
+      "fieldEdge": "#4630C4",
+      "fieldEdgeStyle": "solid",
+      "score": {
+        "bg": "#0E1030",
+        "text": "#FFFFFF",
+        "border": "@primary",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@primary",
+        "track": "#2E2F7A",
+        "low": "#FF3B4A"
+      },
+      "burst": "@primary"
+    }
+  },
+  "prizes": {
+    "gift": "assets/prizes/gift.svg",
+    "ticket": "assets/prizes/ticket.svg",
+    "coin": "assets/prizes/coin.svg",
+    "star": "assets/prizes/star.svg",
+    "gem": "assets/prizes/gem.svg",
+    "trophy": "assets/prizes/trophy.svg",
+    "crown": "assets/prizes/crown.svg",
+    "medal": "assets/prizes/medal.svg"
+  },
+  "characters": {
+    "happy": "assets/characters/mascot-happy.svg",
+    "sad": "assets/characters/mascot-sad.svg"
+  },
+  "sounds": {
+    "click": "assets/sounds/click.mp3",
+    "tick": "assets/sounds/tick.mp3",
+    "win": "assets/sounds/win.mp3",
+    "lose": "assets/sounds/lose.mp3",
+    "reward": "assets/sounds/reward.mp3"
+  },
+  "layout": {
+    "kind": "spotlight",
+    "welcomeTeaser": false,
+    "playCta": "round-below",
+    "rewardCard": "flat",
+    "characters": "hero"
+  },
+  "heroes": {
+    "win": {
+      "src": "assets/heroes/trophy.svg",
+      "width": "clamp(3.5rem, min(7.5vw, 13svh), 6rem)"
+    },
+    "lose": {
+      "src": "assets/heroes/cross.svg",
+      "width": "clamp(3.25rem, min(9.5vw, 17svh), 7.5rem)"
+    }
+  },
+  "copy": {
+    "color": "#C9C3F2",
+    "font": "ui",
+    "transform": "none"
+  },
+  "motion": {
+    "feel": "show",
+    "skyFade": true,
+    "flash": "#FFE7A3",
+    "curtain": "#B01E3A",
+    "flip": false,
+    "flyers": [
+      {
+        "src": "assets/fx/mote.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 1,
+        "width": "clamp(0.45rem, 1.2vmin, 0.9rem)",
+        "path": "rise",
+        "band": [6, 94],
+        "every": [1.2, 2.6],
+        "cross": [9, 16],
+        "flock": 1,
+        "max": 8,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/fx/balloon-gold.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 0.55,
+        "width": "clamp(1.6rem, 4vmin, 2.6rem)",
+        "path": "rise",
+        "band": [3, 97],
+        "every": [20, 30],
+        "cross": [10, 14],
+        "flock": 2,
+        "max": 4,
+        "onWin": true,
+        "screens": ["welcome", "win"]
+      },
+      {
+        "src": "assets/fx/balloon-purple.svg",
+        "frames": 1,
+        "fps": 1,
+        "aspect": 0.55,
+        "width": "clamp(1.6rem, 4vmin, 2.6rem)",
+        "path": "rise",
+        "band": [3, 97],
+        "every": [22, 32],
+        "cross": [10, 14],
+        "flock": 1,
+        "max": 3,
+        "onWin": true,
+        "screens": ["welcome", "win"]
+      }
+    ],
+    "countdown": true,
+    "entrance": "pop",
+    "buttons": "squish",
+    "fields": "lively",
+    "wipe": {
+      "kind": "curtain",
+      "color": "#B01E3A",
+      "ink": "#05061A"
+    },
+    "impact": true,
+    "confetti": "cartoon",
+    "games": "lively",
+    "pressStart": false,
+    "words": {
+      "start": "C'EST PARTI !",
+      "open": "GAGNÉ !",
+      "win": "GAGNÉ !",
+      "lose": "PERDU !"
+    },
+    "winIntro": {
+      "scene": "show",
+      "seconds": 10,
+      "handoff": 9.4,
+      "font": "Outfit",
+      "colors": {
+        "indigo": "#04041A",
+        "indigo-soft": "#0A0A3A",
+        "violet": "#5B2BD6",
+        "violet-soft": "#7A4BE0",
+        "gold": "#FFC83A",
+        "gold-soft": "#FFE08A",
+        "cream": "#D9D3FF",
+        "pink": "#FF5FA2",
+        "cyan": "#7AD7FF",
+        "light": "#FFFFFF"
+      },
+      "art": {
+        "stage-scene": "assets/win-intro/stage-scene.svg",
+        "audience-1": "assets/win-intro/audience-1.svg",
+        "audience-2": "assets/win-intro/audience-2.svg",
+        "audience-3": "assets/win-intro/audience-3.svg",
+        "host": "assets/win-intro/host.svg",
+        "trophy": "assets/win-intro/trophy.svg"
+      }
+    }
+  }
+}

@@ -226,6 +226,9 @@ export const STATUS_TEXT = {
     "Already played",
   ),
   closedTitle: localized("Campagne terminée", "انتهت الحملة", "Campaign ended"),
+  // A scheduled campaign, opened before its start date.
+  upcomingTitle: localized("Bientôt disponible", "قريباً", "Coming soon"),
+  startsOn: localized("Ouverture le", "تنطلق في", "Opens on"),
   errorTitle: localized("Oups !", "عذراً!", "Oops!"),
   retry: localized("Réessayer", "أعد المحاولة", "Try again"),
   back: localized("Retour", "رجوع", "Back"),
@@ -256,6 +259,8 @@ export const FRAME_TEXT = {
     "تنظيم {name}",
     "Organized by {name}",
   ),
+  soundOn: localized("Activer le son", "تشغيل الصوت", "Turn the sound on"),
+  soundOff: localized("Couper le son", "كتم الصوت", "Turn the sound off"),
 } as const satisfies Record<string, LocalizedText>;
 
 export function defaultJackpot(): JackpotSection {
@@ -486,7 +491,8 @@ export const SCRATCH_COVER_TEXT = localized(
 // Texts of the win and loss screens that brands do not edit (tasks.md T4.4). Placeholders:
 // {prize}, {brand}.
 export const RESULT_TEXT = {
-  codeLabel: localized("Votre code", "رمزك", "Your code"),
+  // A prize without a name of its own (a placeholder in the Studio's preview).
+  prizeFallback: localized("Votre Cadeau", "هديتك", "Your Gift"),
   copy: localized("Copier", "نسخ", "Copy"),
   copied: localized("Copié !", "تم النسخ!", "Copied!"),
   // No code was issued: never invent one (B6), show how to collect the prize instead.
@@ -495,24 +501,9 @@ export const RESULT_TEXT = {
     "اعرض هذه الشاشة لأحد المستشارين لاستلام جائزتك.",
     "Show this screen to a staff member to collect your prize.",
   ),
-  confirm: localized(
-    "J'ai copié mon code",
-    "لقد نسخت رمزي",
-    "I've copied my code",
-  ),
-  confirming: localized("Confirmation…", "جارٍ التأكيد…", "Confirming…"),
-  confirmed: localized(
-    "Merci, c'est noté !",
-    "شكراً، تم التسجيل!",
-    "Thanks, noted!",
-  ),
   // The code stays valid whether or not this background ping succeeds: never alarming.
-  confirmFailed: localized(
-    "Votre code reste valable même si la confirmation a échoué.",
-    "يبقى رمزك صالحاً حتى لو فشل التأكيد.",
-    "Your code stays valid even though the confirmation failed.",
-  ),
   reveal: localized("Révéler", "اكشف", "Reveal"),
+  skipIntro: localized("PASSER L'INTRO", "تخطي المقدمة", "SKIP INTRO"),
   shareWhatsapp: localized(
     "Partager sur WhatsApp",
     "شارك عبر واتساب",
@@ -524,6 +515,12 @@ export const RESULT_TEXT = {
     "Share on Facebook",
   ),
   share: localized("Partager", "شارك", "Share"),
+  // An arcade loss counts down (motion.countdown): "{n}" is the seconds left.
+  continueCountdown: localized(
+    "Continuer ? {n}",
+    "متابعة؟ {n}",
+    "Continue? {n}",
+  ),
   shareWinText: localized(
     "J'ai gagné {prize} chez {brand} ! Tentez votre chance :",
     "لقد ربحت {prize} من {brand}! جرب حظك:",

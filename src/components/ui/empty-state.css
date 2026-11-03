@@ -1,0 +1,157 @@
+/*
+ * The empty, error and loading states shared by every dashboard section. Colors are the
+ * console's tokens (overview.css), read from the page's theme through .dz-theme-auto.
+ */
+
+.es {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: center;
+  animation: esRise 0.24s ease-out both;
+  & *,
+  & *::before,
+  & *::after {
+    box-sizing: border-box;
+  }
+  & :where(p, h2, h3) {
+    margin: 0;
+  }
+  & :where(button, a):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  & .ov-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+.es[data-variant="page"] {
+  padding: 56px 24px;
+  border: 1px dashed var(--border-control);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.es[data-variant="bare"] {
+  padding: 56px 24px;
+}
+.es[data-variant="card"] {
+  padding: 32px 20px;
+}
+.es[data-variant="inline"] {
+  padding: 16px;
+}
+.es-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-text);
+}
+.es[data-tone="danger"] .es-icon {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.es-title {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+}
+.es[data-variant="inline"] .es-title {
+  font-size: 15px;
+  line-height: 22px;
+}
+.es-description {
+  max-width: 60ch;
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+.es-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.es-hint {
+  max-width: 60ch;
+  color: var(--ink-subtle);
+  font-size: 12px;
+  line-height: 16px;
+}
+.es-extra {
+  width: 100%;
+  max-width: 860px;
+  margin-top: 12px;
+}
+/* The next step as plain text: for a notice that sits above a working page. */
+.es-link {
+  color: var(--brand-text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* A greyed chart that stands for data to come. Always carries a visible label. */
+.es-ghost {
+  position: relative;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  & svg {
+    display: block;
+    width: 100%;
+    height: 96px;
+    color: var(--border-control);
+    opacity: 0.6;
+  }
+}
+.es-ghost-label {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-subtle);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.es-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+@keyframes esRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .es {
+    animation: none;
+  }
+}

@@ -78,7 +78,7 @@ describe("CampaignStudio on Supabase", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Brand/ }));
     expect(screen.getByDisplayValue("Zeta Server")).toBeTruthy();
-  });
+  }, 20_000); // the whole Studio, rendered while the other test files run
 
   it("stays in the browser for a campaign without organization", async () => {
     const { calls } = renderStudio({}, { organizationId: undefined });

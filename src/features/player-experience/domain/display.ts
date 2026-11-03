@@ -5,6 +5,7 @@ import {
   type Locale,
   type LocalizedText,
 } from "./locale";
+import type { DrawPrize } from "./participation";
 import type { AssetRef, ExperienceConfig, IconName } from "./types";
 
 // What the player sees for a prize or a quiz question: the brand's display settings first,
@@ -17,20 +18,28 @@ export interface ResolvedPrizeDisplay {
   image: AssetRef;
 }
 
+// `drawn`: the prize the draw gave back (select-prize names it), the last word when the
+// campaign's list does not hold it (a prize switched off since the page loaded).
 export function resolvePrizeDisplay(
   prizeId: string,
   config: ExperienceConfig,
   campaign: CampaignSnapshot,
   locale: Locale,
+  drawn?: Pick<DrawPrize, "name" | "winMessage"> | null,
 ): ResolvedPrizeDisplay {
   const display = config.prizeDisplay[prizeId];
   const prize = campaign.prizes.find((candidate) => candidate.id === prizeId);
   const fallback = config.locales.default;
   return {
-    label: resolveText(display?.label, locale, fallback) || prize?.name || "",
+    label:
+      resolveText(display?.label, locale, fallback) ||
+      prize?.name ||
+      drawn?.name.trim() ||
+      "",
     winMessage:
       resolveText(display?.winMessage, locale, fallback) ||
       prize?.winMessage ||
+      drawn?.winMessage ||
       null,
     icon: display?.icon ?? null,
     image: display?.image ?? null,

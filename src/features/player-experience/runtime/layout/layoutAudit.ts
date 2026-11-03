@@ -13,6 +13,8 @@ export type LayoutIssueKind =
   | "cta-unreachable"
   | "game-below-floor"
   | "wheel-not-square"
+  // A decoration drawn over the frame covers the game being played (its safe region).
+  | "game-covered"
   // Not a defect of the layout: a text cut on purpose (data-xp-clamp) that is actually cut
   // at this size. Only in the report's `truncated` list, for the Studio (T6.10).
   | "text-truncated";
@@ -140,9 +142,16 @@ export function layoutAudit(root: HTMLElement): LayoutIssue[] {
     );
     if (!ownText || element.closest("[data-xp-clamp]")) continue;
     if (element.clientWidth === 0 && element.clientHeight === 0) continue; // inline box
+    // Under a tight line-height (a display font at 1) the glyphs reach past their line box:
+    // drawn in full when the element does not clip, less than half a line, and no line lost.
+    const style = view.getComputedStyle(element);
+    const extraHeight = element.scrollHeight - element.clientHeight;
+    const inkOnly =
+      style.overflowY === "visible" &&
+      extraHeight < toPixels(style.lineHeight, view) / 2;
     if (
       element.scrollWidth > element.clientWidth + 1 ||
-      element.scrollHeight > element.clientHeight + 1
+      (extraHeight > 1 && !inkOnly)
     ) {
       add(
         "text-clipped",
@@ -231,6 +240,28 @@ export function layoutAudit(root: HTMLElement): LayoutIssue[] {
         wheel,
         `${Math.round(box.width)} x ${Math.round(box.height)} px`,
       );
+    }
+  }
+
+  // 8. The game's own area is a safe region: no decoration drawn over the frame may cover
+  // it (those behind the frame never do). A part of a pixel's width is rounding.
+  const game = root.querySelector("[data-xp-game]");
+  if (game) {
+    const area = game.getBoundingClientRect();
+    for (const decor of root.querySelectorAll(".xp-stage-front .xp-decor")) {
+      if (view.getComputedStyle(decor).display === "none") continue;
+      const box = decor.getBoundingClientRect();
+      const width =
+        Math.min(box.right, area.right) - Math.max(box.left, area.left);
+      const height =
+        Math.min(box.bottom, area.bottom) - Math.max(box.top, area.top);
+      if (width > 1 && height > 1) {
+        add(
+          "game-covered",
+          decor,
+          `covers ${Math.round(width)} x ${Math.round(height)} px of the game`,
+        );
+      }
     }
   }
 

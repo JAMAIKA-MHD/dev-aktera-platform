@@ -13,6 +13,7 @@ import { Navigate, Outlet, Route } from "react-router-dom";
 
 import { DashboardProvider } from "./DashboardContext";
 import { DashboardShell, PageSpinner } from "./DashboardShell";
+import { OnboardingProvider } from "./onboarding/OnboardingContext";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const CampaignsPage = lazy(() => import("./pages/CampaignsPage"));
@@ -34,7 +35,9 @@ export const dashboardRoutes = (
   <Route
     element={
       <DashboardProvider>
-        <Outlet />
+        <OnboardingProvider>
+          <Outlet />
+        </OnboardingProvider>
       </DashboardProvider>
     }
   >

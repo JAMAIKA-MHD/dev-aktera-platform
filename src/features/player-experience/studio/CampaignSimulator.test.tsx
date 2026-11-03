@@ -53,6 +53,23 @@ describe("CampaignSimulator", () => {
     expect(screen.getByRole("button", { name: "Play again" })).toBeTruthy();
   });
 
+  it("puts the host's own action under the phone instead of Play again", async () => {
+    render(
+      <CampaignSimulator
+        campaigns={[campaign]}
+        prizeTemplates={[{ id: "t1", name: "Bon 2000 DA" }]}
+        campaignId="c-wheel"
+        silent
+        footer={<button type="button">Customize player screens</button>}
+      />,
+    );
+    await frame();
+    expect(
+      screen.getByRole("button", { name: "Customize player screens" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Play again" })).toBeNull();
+  });
+
   it("falls back on the default experience without a campaign", async () => {
     render(
       <CampaignSimulator

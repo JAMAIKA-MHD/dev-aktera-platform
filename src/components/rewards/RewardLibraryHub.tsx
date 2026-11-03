@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Clock,
+  Gift,
   Globe,
   Library,
   Mail,
@@ -16,6 +17,7 @@ import { PATHS } from "../../dashboard/paths";
 import { useRewardPartners } from "../../hooks/useRewardPartners";
 import { REWARD_TYPE_NAME_PLURAL } from "../../lib/rewardTypes";
 import type { PrizeTemplate, RewardPartner } from "../../types";
+import { EmptyState, ErrorState, LoadingState } from "../ui/EmptyState";
 import { AddPartnerDialog, REWARD_PARTNER_OPTIONS } from "./AddPartnerDialog";
 
 // The entry of the Reward Library: where the rewards come from. "Local" is the brand's own
@@ -35,6 +37,9 @@ interface RewardLibraryHubProps {
   organizationId?: string | null;
   /** False for a read-only viewer: the list stays visible, nothing can be added or removed. */
   canManage?: boolean;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 const hostOf = (url: string) => {
@@ -205,6 +210,9 @@ export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
   prizes,
   organizationId = null,
   canManage = false,
+  loading = false,
+  error = null,
+  onRetry,
 }) => {
   const {
     partners,
@@ -237,58 +245,86 @@ export const RewardLibraryHub: React.FC<RewardLibraryHubProps> = ({
           Your library
         </h3>
 
-        <Link
-          to={PATHS.prizesLocal}
-          aria-label="Local Library: open your own rewards"
-          className="group relative block overflow-hidden rounded-3xl border border-card-border bg-card-bg p-6 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:p-8"
-        >
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl transition-opacity group-hover:opacity-100"
+        {error && prizes.length === 0 ? (
+          <ErrorState
+            title="Your rewards could not be loaded"
+            message={error}
+            onRetry={() => onRetry?.()}
           />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/25">
-                <Library className="h-7 w-7" aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-xl font-black sm:text-2xl">
-                    Local Library
-                  </h4>
+        ) : loading && prizes.length === 0 ? (
+          <LoadingState rows={2} label="Loading rewards" />
+        ) : prizes.length === 0 ? (
+          <EmptyState
+            icon={Gift}
+            headingLevel={3}
+            title="Your reward library is empty"
+            description="Add the Digital Items and Physical Items that players can win. You control stock and expiry."
+            primaryAction={
+              canManage
+                ? {
+                    label: "Add a reward",
+                    icon: Plus,
+                    to: PATHS.prizesLocal,
+                    state: { createReward: true },
+                  }
+                : undefined
+            }
+            hint="Tip: add rewards before creating a campaign so you can attach them as prizes. CSV codes are imported from a reward's own page."
+          />
+        ) : (
+          <Link
+            to={PATHS.prizesLocal}
+            aria-label="Local Library: open your own rewards"
+            className="group relative block overflow-hidden rounded-3xl border border-card-border bg-card-bg p-6 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:p-8"
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl transition-opacity group-hover:opacity-100"
+            />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/25">
+                  <Library className="h-7 w-7" aria-hidden="true" />
                 </div>
-                <p className="mt-1 max-w-xl text-sm text-brand-textMuted">
-                  Your own Digital Items and Physical Items: upload codes, set
-                  expiry dates, follow the stock and the delivery of what you
-                  give away.
-                </p>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-xl font-black sm:text-2xl">
+                      Local Library
+                    </h4>
+                  </div>
+                  <p className="mt-1 max-w-xl text-sm text-brand-textMuted">
+                    Your own Digital Items and Physical Items: upload codes, set
+                    expiry dates, follow the stock and the delivery of what you
+                    give away.
+                  </p>
+                </div>
               </div>
+
+              <span className="inline-flex shrink-0 items-center gap-2 self-start rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-emerald-600/25 transition-all group-hover:bg-emerald-700 lg:self-center">
+                Open Local Library
+                <ArrowRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </span>
             </div>
 
-            <span className="inline-flex shrink-0 items-center gap-2 self-start rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-emerald-600/25 transition-all group-hover:bg-emerald-700 lg:self-center">
-              Open Local Library
-              <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                aria-hidden="true"
+            <dl className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Stat label="Rewards" value={prizes.length} />
+              <Stat
+                label={REWARD_TYPE_NAME_PLURAL.voucher}
+                value={digital}
+                icon={<Ticket className="h-3 w-3" aria-hidden="true" />}
               />
-            </span>
-          </div>
-
-          <dl className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat label="Rewards" value={prizes.length} />
-            <Stat
-              label={REWARD_TYPE_NAME_PLURAL.voucher}
-              value={digital}
-              icon={<Ticket className="h-3 w-3" aria-hidden="true" />}
-            />
-            <Stat
-              label={REWARD_TYPE_NAME_PLURAL.physical}
-              value={physical}
-              icon={<Package className="h-3 w-3" aria-hidden="true" />}
-            />
-            <Stat label="In stock" value={available} />
-          </dl>
-        </Link>
+              <Stat
+                label={REWARD_TYPE_NAME_PLURAL.physical}
+                value={physical}
+                icon={<Package className="h-3 w-3" aria-hidden="true" />}
+              />
+              <Stat label="In stock" value={available} />
+            </dl>
+          </Link>
+        )}
       </section>
 
       <section aria-labelledby="partner-libraries-title" className="space-y-4">

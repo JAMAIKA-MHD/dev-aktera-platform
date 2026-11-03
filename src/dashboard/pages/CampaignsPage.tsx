@@ -6,11 +6,24 @@ import { PATHS } from "../paths";
 
 export default function CampaignsPage() {
   const navigate = useNavigate();
-  const { campaigns, toggleCampaignStatus, archiveCampaign, deleteCampaign } =
-    useDashboard();
+  const {
+    campaigns,
+    campLoading,
+    campError,
+    refetchCampaigns,
+    toggleCampaignStatus,
+    archiveCampaign,
+    deleteCampaign,
+  } = useDashboard();
   return (
     <CampaignsList
       campaigns={campaigns}
+      loading={campLoading}
+      error={campError}
+      onRetry={() => void refetchCampaigns()}
+      onQuickStart={(gameType) =>
+        navigate(PATHS.create, { state: { gameType } })
+      }
       onSelectCampaign={(id) => navigate(PATHS.campaign(id))}
       onEditCampaign={(camp) => navigate(PATHS.edit(camp.id))}
       onCustomizePlayerScreen={(camp) => navigate(PATHS.studioFor(camp.id))}

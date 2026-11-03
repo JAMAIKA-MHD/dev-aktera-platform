@@ -582,10 +582,6 @@
     sans-serif;
   color: var(--kx-mu);
 }
-.kx-lb-sub > svg {
-  color: var(--kx-ink);
-  flex: none;
-}
 .kx-lb-dot {
   width: 9px;
   height: 9px;

@@ -1,17 +1,13 @@
 import { X } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useRef,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
-import { primaryButtonStyle, tint } from "../../theme/recipes";
+import { useId, useRef } from "react";
+import { tint } from "../../theme/recipes";
+import { GameButton } from "../shell/GameButton";
+import { Modal } from "../shell/Modal";
 
 // The legal sheet (prototype terms modal of App.tsx): the rules and the data notice of the
 // campaign, a tap away from every screen (B9). A bottom sheet on a phone, a centred dialog
-// from the wide tier. Modal: Escape and a tap outside close it, the focus stays inside and
-// goes back to the opener. position: fixed is fine: it stays in the runtime's own document.
+// from the wide tier, on the shell's Modal (Escape, a tap outside, the focus kept inside and
+// given back to the opener).
 
 export interface TermsSheetProps {
   title: string;
@@ -23,9 +19,6 @@ export interface TermsSheetProps {
   returnFocusTo: HTMLElement;
   onClose: () => void;
 }
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 // Lines starting with "•" are grouped into lists, in their original order.
 function Body({ body }: { body: string }) {
@@ -72,111 +65,56 @@ export function TermsSheet({
   onClose,
 }: TermsSheetProps) {
   const titleId = useId();
-  const sheetRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    const overflow = root.style.overflow;
-    root.style.overflow = "hidden"; // the page behind does not scroll under the sheet
-    closeRef.current?.focus();
-    return () => {
-      root.style.overflow = overflow;
-      returnFocusTo.focus();
-    };
-    // Mounted once per opening: the opener is read when the sheet opens.
-  }, []);
-
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      onClose();
-      return;
-    }
-    if (event.key !== "Tab" || !sheetRef.current) return;
-    const focusable = [
-      ...sheetRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-    ];
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
-  // Only a tap on the backdrop itself closes: not a tap inside the sheet.
-  const onBackdrop = (event: MouseEvent) => {
-    if (event.target === event.currentTarget) onClose();
-  };
-
   return (
-    <div
-      data-xp-sheet
-      onClick={onBackdrop}
-      onKeyDown={onKeyDown}
-      className="xp-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center wide:items-center wide:p-6"
+    <Modal
+      data-xp-sheet=""
+      labelledBy={titleId}
+      onClose={onClose}
+      returnFocusTo={returnFocusTo}
+      initialFocus={closeRef}
+      scrimClassName="xp-sheet-backdrop"
+      className="xp-sheet xp-card flex max-h-[85dvh] w-full max-w-[36rem] flex-col rounded-t-[var(--xp-radius-lg)] wide:rounded-[var(--xp-radius-lg)]"
       style={{
-        backgroundColor: tint("--xp-surface", 70),
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
+        boxShadow: `0 -0.5rem 2.5rem -0.75rem ${tint("--xp-primary", 35)}`,
       }}
     >
-      <div
-        ref={sheetRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="xp-sheet flex max-h-[85dvh] w-full max-w-[36rem] flex-col rounded-t-[var(--xp-radius-lg)] border wide:rounded-[var(--xp-radius-lg)]"
-        style={{
-          backgroundColor:
-            "color-mix(in srgb, var(--xp-text) 6%, var(--xp-surface))",
-          borderColor: tint("--xp-text", 12),
-          boxShadow: `0 -0.5rem 2.5rem -0.75rem ${tint("--xp-primary", 35)}`,
-        }}
-      >
-        <div className="flex items-start gap-3 ps-5 pe-2 pt-2">
-          <div className="flex min-w-0 flex-1 flex-col gap-1 pt-3">
-            <h2
-              id={titleId}
-              dir="auto"
-              className="text-lg font-extrabold leading-tight wrap-anywhere"
-            >
-              {title}
-            </h2>
-            {organizer && (
-              <p dir="auto" className="text-xs text-[var(--xp-text-muted)]">
-                {organizer}
-              </p>
-            )}
-          </div>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            aria-label={closeLabel}
-            className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full text-[var(--xp-text-muted)] transition-colors hover:text-[var(--xp-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
+      <div className="flex items-start gap-3 ps-5 pe-2 pt-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 pt-3">
+          <h2
+            id={titleId}
+            dir="auto"
+            className="xp-display text-lg font-extrabold leading-tight wrap-anywhere"
           >
-            <X aria-hidden className="size-5" strokeWidth={2.25} />
-          </button>
+            {title}
+          </h2>
+          {organizer && (
+            <p dir="auto" className="text-xs text-[var(--xp-text-muted)]">
+              {organizer}
+            </p>
+          )}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
-          <Body body={body} />
-        </div>
-        <div className="px-5 pt-2 pb-[calc(var(--xp-safe-bottom)+1rem)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-[48px] w-full px-5 text-sm font-extrabold transition-transform duration-200 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--xp-primary)]"
-            style={primaryButtonStyle}
-          >
-            <span dir="auto">{closeLabel}</span>
-          </button>
-        </div>
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          aria-label={closeLabel}
+          className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full text-[var(--xp-text-muted)] transition-colors hover:text-[var(--xp-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
+        >
+          <X aria-hidden className="size-5" strokeWidth={2.25} />
+        </button>
       </div>
-    </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+        <Body body={body} />
+      </div>
+      <div className="px-5 pt-2 pb-[calc(var(--xp-safe-bottom)+1rem)]">
+        <GameButton
+          label={closeLabel}
+          onClick={onClose}
+          className="min-h-[48px] w-full px-5 text-sm font-extrabold"
+        />
+      </div>
+    </Modal>
   );
 }

@@ -26,8 +26,9 @@ export function JackpotCard({
       className="xp-breathe flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[var(--xp-radius-lg)] border px-3 py-2"
       style={{
         background: `linear-gradient(135deg, ${tint("--xp-primary", 18)}, ${tint("--xp-primary", 6)})`,
-        borderColor: tint("--xp-primary", 45),
-        boxShadow: `0 0.5rem 1.25rem -0.4rem ${tint("--xp-primary", 35)}`,
+        borderColor: `var(--xp-card-border, ${tint("--xp-primary", 45)})`,
+        borderWidth: "var(--xp-card-border-width, 1px)",
+        boxShadow: `var(--xp-card-shadow, 0 0.5rem 1.25rem -0.4rem ${tint("--xp-primary", 35)})`,
       }}
     >
       <span

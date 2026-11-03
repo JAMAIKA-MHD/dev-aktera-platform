@@ -36,6 +36,7 @@ describe("toStudioCampaignRow", () => {
       campaign(),
       new Map([["c1", "2026-09-30T10:00:00Z"]]),
       NOW,
+      new Map([["c1", "pixel-quest"]]),
     );
     expect(row).toEqual({
       id: "c1",
@@ -49,6 +50,7 @@ describe("toStudioCampaignRow", () => {
       endDate: "2026-10-31T00:00:00Z",
       players: 42,
       designSavedAt: "2026-09-30T10:00:00Z",
+      designTemplate: "pixel-quest",
     });
   });
 
@@ -146,5 +148,25 @@ describe("filters", () => {
     expect(matchesStatusFilter(row, "ended")).toBe(false);
     expect(matchesStatusFilter(row, "active")).toBe(true);
     expect(matchesStatusFilter(row, "all")).toBe(true);
+  });
+});
+
+describe("scheduled campaigns", () => {
+  it("shows a published campaign that has not started yet as scheduled", () => {
+    const row = toStudioCampaignRow(
+      campaign({ startDate: "2026-10-05", endDate: "2026-10-31" }),
+      new Map(),
+      NOW,
+    );
+    expect(row.displayStatus).toBe("scheduled");
+    expect(matchesStatusFilter(row, "scheduled")).toBe(true);
+    expect(matchesStatusFilter(row, "active")).toBe(false);
+    // A draft with a future start is still a draft.
+    expect(
+      displayStatusOf(
+        { status: "draft", startDate: "2026-10-05", endDate: "2026-10-31" },
+        NOW,
+      ),
+    ).toBe("draft");
   });
 });

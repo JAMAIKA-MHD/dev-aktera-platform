@@ -1,0 +1,473 @@
+/*
+ * The game-show scene: 10 seconds, so one percent is 0.1 s. The stage covers the screen, a
+ * phone or a desktop; the crowd stands on the screen's own bottom edge, with its back to us.
+ */
+
+.xp-intro[data-xp-scene="show"] {
+  background: linear-gradient(
+    var(--xp-intro-indigo),
+    var(--xp-intro-indigo-soft)
+  );
+  animation: xp-s-out var(--xp-intro-seconds) linear both;
+}
+
+/* A box of its own: what is on the marquee is sized on the stage, not on the screen. */
+.xp-s-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100cqw, 150cqh);
+  aspect-ratio: 3 / 2;
+  translate: -50% -50%;
+  container-type: inline-size;
+  animation: xp-s-dolly var(--xp-intro-seconds) linear both;
+  > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+.xp-s-marquee {
+  position: absolute;
+  left: 34.4%;
+  top: 16.25%;
+  width: 31.25%;
+  height: 35.9%;
+  font-family: var(--xp-intro-font);
+  font-weight: 800;
+  text-align: center;
+  p {
+    position: absolute;
+    left: 0;
+    right: 0;
+    line-height: 1;
+  }
+}
+.xp-s-question {
+  top: 10%;
+  font-size: 2.2cqw;
+  color: var(--xp-intro-cream);
+  animation: xp-s-question var(--xp-intro-seconds) steps(1, end) both;
+}
+.xp-s-mystery {
+  top: 30%;
+  font-size: 11cqw;
+  color: var(--xp-intro-gold);
+  animation: xp-s-mystery var(--xp-intro-seconds) linear both;
+}
+.xp-s-reveal {
+  top: 38%;
+  font-size: 3.6cqw;
+  color: var(--xp-intro-gold);
+  text-shadow: 0 0 0.4em var(--xp-intro-gold);
+  animation: xp-s-reveal var(--xp-intro-seconds) linear both;
+}
+.xp-s-confetti {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 2cqmin;
+  height: 3cqmin;
+  background-color: var(--xp-intro-gold);
+  /* Off until its moment, off again after it. */
+  opacity: 0;
+  animation: xp-s-confetti 2s ease-out var(--at) forwards;
+  &:nth-of-type(5n + 1) {
+    background-color: var(--xp-intro-violet-soft);
+  }
+  &:nth-of-type(5n + 2) {
+    background-color: var(--xp-intro-pink);
+  }
+  &:nth-of-type(5n + 3) {
+    background-color: var(--xp-intro-cyan);
+  }
+  &:nth-of-type(5n + 4) {
+    background-color: var(--xp-intro-light);
+  }
+}
+
+.xp-s-spot {
+  position: absolute;
+  top: -6cqh;
+  width: 46cqmin;
+  height: 96cqh;
+  clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 0;
+  opacity: 0.22;
+  pointer-events: none;
+  animation: xp-s-sway 2.6s ease-in-out infinite alternate;
+  &[data-xp-side="left"] {
+    left: 12%;
+    background: linear-gradient(var(--xp-intro-gold), transparent);
+  }
+  &[data-xp-side="right"] {
+    right: 12%;
+    background: linear-gradient(var(--xp-intro-violet-soft), transparent);
+    animation-direction: alternate-reverse;
+  }
+}
+
+.xp-s-host {
+  position: absolute;
+  left: calc(50% + 2cqmin);
+  bottom: 14cqmin;
+  width: 30cqmin;
+  height: 45cqmin;
+  overflow: hidden;
+  animation: xp-s-host var(--xp-intro-seconds) linear both;
+  img {
+    width: 200%;
+    height: 100%;
+    animation: xp-s-host-frame var(--xp-intro-seconds) steps(1, end) both;
+  }
+}
+
+/* The crowd: it rises, then claps ten times, a person bobbing up on each beat. */
+.xp-s-person {
+  position: absolute;
+  width: 30cqmin;
+  bottom: var(--bottom, 0);
+  animation: xp-s-rise 0.9s cubic-bezier(0.2, 1.2, 0.4, 1) var(--delay) both;
+  &[data-xp-row="back"] {
+    width: 24cqmin;
+    bottom: 9cqmin;
+    filter: brightness(0.72);
+  }
+}
+.xp-s-person-bob {
+  animation: xp-s-bob 0.5s step-end 2.6s 10;
+}
+.xp-s-person-frame {
+  aspect-ratio: 180 / 220;
+  overflow: hidden;
+  img {
+    width: 200%;
+    height: 100%;
+    animation: xp-s-clap 0.5s step-end 2.6s 10;
+  }
+}
+
+.xp-s-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260cqmax;
+  height: 260cqmax;
+  translate: -50% -50%;
+  mask: radial-gradient(closest-side, currentColor 15%, transparent 70%);
+  -webkit-mask: radial-gradient(
+    closest-side,
+    currentColor 15%,
+    transparent 70%
+  );
+  animation: xp-s-rays var(--xp-intro-seconds) linear both;
+  span {
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(
+      var(--xp-intro-gold) 0 8deg,
+      transparent 8deg 16deg
+    );
+    animation: xp-s-turn 20s linear infinite;
+  }
+}
+
+/* At the host's hands, at first. */
+.xp-s-trophy {
+  position: absolute;
+  left: calc(50% + 17cqmin);
+  top: calc(100% - 31.7cqmin);
+  width: 16cqmin;
+  height: 18.4cqmin;
+  translate: -50% -50%;
+  animation: xp-s-trophy var(--xp-intro-seconds) linear both;
+  img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+}
+.xp-s-trophy-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--xp-intro-gold) 75%, transparent),
+    transparent
+  );
+}
+
+.xp-s-flash {
+  animation: xp-s-flash var(--xp-intro-seconds) linear both;
+}
+
+@keyframes xp-s-out {
+  0%,
+  94% {
+    opacity: 1;
+    visibility: visible;
+  }
+  99.99% {
+    opacity: 0;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes xp-s-turn {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes xp-s-dolly {
+  0% {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes xp-s-question {
+  0% {
+    opacity: 0;
+  }
+  16% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-s-mystery {
+  0%,
+  14% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  20%,
+  28%,
+  36%,
+  44%,
+  52% {
+    transform: scale(1);
+  }
+  24%,
+  32%,
+  40%,
+  48%,
+  56% {
+    transform: scale(1.08);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  60%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes xp-s-reveal {
+  0%,
+  58.9% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  59% {
+    opacity: 1;
+    transform: scale(0.3);
+    animation-timing-function: ease-out;
+  }
+  61.5% {
+    transform: scale(1.2);
+  }
+  63%,
+  89.9% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes xp-s-confetti {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) rotate(var(--turn));
+    animation-timing-function: ease-in;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--x) * 1.25), calc(var(--y) + 55cqmin))
+      rotate(calc(var(--turn) * 3));
+  }
+}
+@keyframes xp-s-sway {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(12deg);
+  }
+}
+
+/* Walks in between 4 and 4.7 s, bouncing four times, 0.3 s each, from 4 to 5.2 s. */
+@keyframes xp-s-host {
+  0%,
+  39.9% {
+    opacity: 0;
+    transform: translate(70cqmin, 0);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(70cqmin, 0);
+  }
+  41.5% {
+    transform: translate(55cqmin, -1.5cqmin);
+  }
+  43% {
+    transform: translate(40cqmin, 0);
+  }
+  44.5% {
+    transform: translate(25cqmin, -1.5cqmin);
+  }
+  46% {
+    transform: translate(10cqmin, 0);
+  }
+  47% {
+    transform: translate(0, -1cqmin);
+  }
+  49% {
+    transform: translate(0, 0);
+  }
+  50.5% {
+    transform: translate(0, -1.5cqmin);
+  }
+  52%,
+  86% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+}
+@keyframes xp-s-host-frame {
+  0% {
+    transform: translateX(0);
+  }
+  60%,
+  100% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes xp-s-rise {
+  from {
+    transform: translateY(115%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes xp-s-bob {
+  50% {
+    transform: translateY(-1.2cqmin);
+  }
+}
+@keyframes xp-s-clap {
+  50% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes xp-s-rays {
+  0%,
+  80% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  80.1% {
+    opacity: 1;
+    transform: scale(0);
+  }
+  92%,
+  100% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+/* It stays huge in the middle of the screen, into the flash. */
+@keyframes xp-s-trophy {
+  0%,
+  59.9% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.3);
+    animation-timing-function: ease-out;
+  }
+  61.5% {
+    transform: translate(0, 0) scale(1.15);
+  }
+  63%,
+  65% {
+    transform: translate(0, 0) scale(1);
+  }
+  68% {
+    transform: translate(0, -1.5cqmin) scale(1);
+  }
+  71% {
+    transform: translate(0, 1.5cqmin) scale(1);
+  }
+  74% {
+    transform: translate(0, 0) scale(1);
+  }
+  76% {
+    transform: translate(0, 2cqmin) scale(0.95);
+    animation-timing-function: ease-in;
+  }
+  88%,
+  100% {
+    opacity: 1;
+    transform: translate(-17cqmin, calc(-50cqh + 31.7cqmin)) scale(5);
+  }
+}
+@keyframes xp-s-flash {
+  0%,
+  86% {
+    opacity: 0;
+  }
+  91%,
+  100% {
+    opacity: 1;
+  }
+}

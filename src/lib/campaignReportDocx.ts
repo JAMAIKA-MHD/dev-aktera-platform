@@ -253,6 +253,72 @@ function kpiTable(
 
 type Block = Paragraph | Table;
 
+/** A day as the report writes it ("4 Nov 2026"), in the analytics timezone. */
+const reportDate = (iso: string | null, timeZone: string): string => {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  return isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone,
+      });
+};
+
+const metaLine = (label: string, value: string): Paragraph =>
+  new Paragraph({
+    spacing: { after: 20 },
+    children: [
+      text(`${label}  `, { size: 18, color: MUTED }),
+      text(value, { size: 18, bold: true }),
+    ],
+  });
+
+const eyebrow = (value: string): Paragraph =>
+  new Paragraph({
+    children: [text(value, { bold: true, size: 16, color: MUTED })],
+  });
+
+/**
+ * The title of one campaign: its name, then its status and period. In the all-campaigns
+ * report each campaign starts on a new page, under the same heading.
+ */
+function campaignCover(
+  report: CampaignAnalyticsReport,
+  options: { eyebrow: string; newPage?: boolean; withGenerated?: boolean },
+): Block[] {
+  const a = report.analytics;
+  const blocks: Block[] = [
+    new Paragraph({
+      pageBreakBefore: options.newPage,
+      children: [text(options.eyebrow, { bold: true, size: 16, color: MUTED })],
+    }),
+    new Paragraph({
+      spacing: { before: 60, after: 160 },
+      children: [text(a.campaign.name, { bold: true, size: 44 })],
+    }),
+  ];
+  if (report.organization && options.withGenerated) {
+    blocks.push(metaLine("Organization", report.organization.name));
+  }
+  blocks.push(
+    metaLine("Status", a.campaign.status),
+    metaLine(
+      "Campaign period",
+      `${reportDate(a.campaign.start_date, a.timezone)} – ${reportDate(a.campaign.end_date, a.timezone)}`,
+    ),
+  );
+  if (options.withGenerated) {
+    blocks.push(
+      metaLine("Generated", `${report.generated_at} (${a.timezone})`),
+    );
+  }
+  blocks.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+  return blocks;
+}
+
 /**
  * Builds the complete report document for one campaign as a .docx blob.
  * Runs in the browser (charts are rasterised on a canvas).
@@ -260,59 +326,26 @@ type Block = Paragraph | Table;
 export async function buildCampaignReportDocx(
   report: CampaignAnalyticsReport,
 ): Promise<Blob> {
+  const blocks: Block[] = [
+    ...campaignCover(report, {
+      eyebrow: "CAMPAIGN ANALYTICS REPORT",
+      withGenerated: true,
+    }),
+    ...(await campaignBody(report)),
+  ];
+  return packReport({
+    title: `${report.analytics.campaign.name} — Campaign analytics report`,
+    creator: report.organization?.name ?? "Campaign analytics",
+    portrait: blocks,
+    landscape: participantSection(report, "Participants"),
+  });
+}
+
+/** Key metrics, every chart and its data table, for one campaign. */
+async function campaignBody(report: CampaignAnalyticsReport): Promise<Block[]> {
   const a = report.analytics;
   const series0 = SERIES_COLORS_LIGHT[0];
   const blocks: Block[] = [];
-
-  const formatDate = (iso: string | null): string => {
-    if (!iso) return "—";
-    const date = new Date(iso);
-    return isNaN(date.getTime())
-      ? "—"
-      : date.toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          timeZone: a.timezone,
-        });
-  };
-
-  // --- Cover block ---------------------------------------------------------
-  const metaLine = (label: string, value: string): Paragraph =>
-    new Paragraph({
-      spacing: { after: 20 },
-      children: [
-        text(`${label}  `, { size: 18, color: MUTED }),
-        text(value, { size: 18, bold: true }),
-      ],
-    });
-  blocks.push(
-    new Paragraph({
-      children: [
-        text("CAMPAIGN ANALYTICS REPORT", {
-          bold: true,
-          size: 16,
-          color: MUTED,
-        }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { before: 60, after: 160 },
-      children: [text(a.campaign.name, { bold: true, size: 44 })],
-    }),
-  );
-  if (report.organization) {
-    blocks.push(metaLine("Organization", report.organization.name));
-  }
-  blocks.push(
-    metaLine("Status", a.campaign.status),
-    metaLine(
-      "Campaign period",
-      `${formatDate(a.campaign.start_date)} – ${formatDate(a.campaign.end_date)}`,
-    ),
-    metaLine("Generated", `${report.generated_at} (${a.timezone})`),
-    new Paragraph({ spacing: { after: 200 }, children: [] }),
-  );
 
   // --- Key metrics ---------------------------------------------------------
   const burn = a.prize_burn_rate;
@@ -559,12 +592,18 @@ export async function buildCampaignReportDocx(
   if (notOnMap.length > 0) {
     blocks.push(note(`Not on the map: ${notOnMap.join(", ")}.`));
   }
+  return blocks;
+}
 
-  // --- Participants (landscape pages) -------------------------------------
+/** The participant list of one campaign, for the landscape pages. */
+function participantSection(
+  report: CampaignAnalyticsReport,
+  title: string,
+): Block[] {
   const truncated = report.participants_total > report.participants.length;
   const participantBlocks: Block[] = [
     ...sectionHeading(
-      "Participants",
+      title,
       truncated
         ? `Showing the ${num(report.participants.length)} most recent of ${num(report.participants_total)} participants.`
         : `All ${num(report.participants_total)} participants, most recent first.`,
@@ -608,7 +647,21 @@ export async function buildCampaignReportDocx(
       ),
     );
   }
+  return participantBlocks;
+}
 
+/** The document: the portrait pages, then the participant tables on landscape pages. */
+function packReport({
+  title,
+  creator,
+  portrait,
+  landscape,
+}: {
+  title: string;
+  creator: string;
+  portrait: Block[];
+  landscape: Block[];
+}): Promise<Blob> {
   const margin = {
     top: PAGE_MARGIN,
     bottom: PAGE_MARGIN,
@@ -616,15 +669,15 @@ export async function buildCampaignReportDocx(
     right: PAGE_MARGIN,
   };
   const document = new Document({
-    title: `${a.campaign.name} — Campaign analytics report`,
-    creator: report.organization?.name ?? "Campaign analytics",
+    title,
+    creator,
     styles: { default: { document: { run: { font: FONT, size: 20 } } } },
     sections: [
       {
         properties: {
           page: { size: { width: PAGE_WIDTH, height: PAGE_HEIGHT }, margin },
         },
-        children: blocks,
+        children: portrait,
       },
       {
         properties: {
@@ -637,12 +690,227 @@ export async function buildCampaignReportDocx(
             margin,
           },
         },
-        children: participantBlocks,
+        children: landscape,
       },
     ],
   });
 
   return Packer.toBlob(document);
+}
+
+// ── The report of every campaign ─────────────────────────────────────────────
+
+/**
+ * Builds the report of all the organization's campaigns as one .docx: totals and a
+ * comparison of the campaigns first, the entries of all of them per day, then every
+ * campaign's own section (the same metrics, charts and tables as its single report), and the
+ * participants of each campaign on landscape pages.
+ */
+export async function buildAllCampaignsReportDocx(
+  reports: CampaignAnalyticsReport[],
+): Promise<Blob> {
+  const first = reports[0];
+  const timezone = first?.analytics.timezone ?? "Africa/Algiers";
+  const organization = reports.find((r) => r.organization)?.organization;
+  const generatedAt = first?.generated_at ?? "";
+  const series0 = SERIES_COLORS_LIGHT[0];
+  const blocks: Block[] = [];
+
+  // --- Cover ---------------------------------------------------------------
+  blocks.push(
+    eyebrow("ALL CAMPAIGNS ANALYTICS REPORT"),
+    new Paragraph({
+      spacing: { before: 60, after: 160 },
+      children: [
+        text(organization?.name ?? "All campaigns", { bold: true, size: 44 }),
+      ],
+    }),
+    metaLine("Campaigns", num(reports.length)),
+  );
+  if (generatedAt) {
+    blocks.push(metaLine("Generated", `${generatedAt} (${timezone})`));
+  }
+  blocks.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+
+  // --- Totals --------------------------------------------------------------
+  const sum = (pick: (r: CampaignAnalyticsReport) => number) =>
+    reports.reduce((total, r) => total + pick(r), 0);
+  const entries = sum((r) => r.analytics.total_entries);
+  const wins = sum((r) => r.analytics.total_wins);
+  const impressions = sum((r) => r.analytics.total_impressions);
+  const completed = sum((r) => r.analytics.completed_impressions);
+  const prizesWon = sum((r) => r.analytics.prize_burn_rate.total_won);
+  const prizesAllocated = sum(
+    (r) => r.analytics.prize_burn_rate.total_quantity,
+  );
+  const rate = (part: number, whole: number) =>
+    whole > 0 ? (part / whole) * 100 : null;
+  blocks.push(
+    kpiTable([
+      {
+        label: "Campaigns",
+        value: num(reports.length),
+        caption: "In this report",
+      },
+      {
+        label: "Total entries",
+        value: num(entries),
+        caption: "Participations recorded",
+      },
+      {
+        label: "Win rate",
+        value: formatRate(rate(wins, entries)),
+        caption: `${num(wins)} winners of ${num(entries)} entries`,
+      },
+      {
+        label: "Completion rate",
+        value: formatRate(rate(completed, impressions)),
+        caption:
+          impressions === 0
+            ? "No visitor sessions tracked yet"
+            : `${num(completed)} of ${num(impressions)} visitors completed the form`,
+      },
+      {
+        label: "Prize burn rate",
+        value: formatRate(rate(prizesWon, prizesAllocated)),
+        caption:
+          prizesAllocated === 0
+            ? "No prize stock allocated"
+            : `${num(prizesWon)} of ${num(prizesAllocated)} prizes won`,
+      },
+    ]),
+  );
+
+  // --- Comparison ----------------------------------------------------------
+  // Bars are numbered: the table under the chart gives each number its campaign.
+  blocks.push(
+    ...sectionHeading(
+      "Campaigns compared",
+      "Entries per campaign; the number of each bar is its row in the table.",
+    ),
+  );
+  if (reports.length === 0) {
+    blocks.push(note("No campaign to report on."));
+  } else {
+    if (entries > 0) {
+      blocks.push(
+        await chartImage(
+          barChartSvg(
+            reports.map((_, index) => `#${index + 1}`),
+            reports.map((r) => r.analytics.total_entries),
+            series0,
+          ),
+        ),
+      );
+    }
+    blocks.push(
+      dataTable(
+        [
+          { header: "#", weight: 0.5 },
+          { header: "Campaign", weight: 3 },
+          { header: "Status", weight: 1.2 },
+          { header: "Period", weight: 2.6 },
+          { header: "Entries", weight: 1, align: "right" },
+          { header: "Winners", weight: 1, align: "right" },
+          { header: "Win rate", weight: 1, align: "right" },
+          { header: "Prizes won", weight: 1.4, align: "right" },
+        ],
+        reports.map((r, index) => {
+          const a = r.analytics;
+          return [
+            String(index + 1),
+            a.campaign.name,
+            a.campaign.status,
+            `${reportDate(a.campaign.start_date, a.timezone)} – ${reportDate(a.campaign.end_date, a.timezone)}`,
+            num(a.total_entries),
+            num(a.total_wins),
+            formatRate(a.win_rate),
+            `${num(a.prize_burn_rate.total_won)} / ${num(a.prize_burn_rate.total_quantity)}`,
+          ];
+        }),
+        PORTRAIT_CONTENT,
+        16,
+      ),
+    );
+  }
+
+  // --- All campaigns over time --------------------------------------------
+  const byDay = new Map<string, { entries: number; winners: number }>();
+  for (const r of reports) {
+    for (const day of r.analytics.participants_over_time) {
+      const current = byDay.get(day.date) ?? { entries: 0, winners: 0 };
+      current.entries += day.entries;
+      current.winners += day.winners;
+      byDay.set(day.date, current);
+    }
+  }
+  const days = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b));
+  blocks.push(
+    ...sectionHeading(
+      "Participants over time",
+      "Entries of all campaigns per day.",
+    ),
+  );
+  if (days.length === 0) {
+    blocks.push(note("No participants recorded yet."));
+  } else {
+    blocks.push(
+      await chartImage(
+        lineChartSvg(
+          days.map(([date]) => formatDayLabel(date)),
+          days.map(([, day]) => day.entries),
+          series0,
+        ),
+      ),
+      dataTable(
+        [
+          { header: "Date", weight: 2 },
+          { header: "Entries", weight: 1, align: "right" },
+          { header: "Winners", weight: 1, align: "right" },
+        ],
+        days.map(([date, day]) => [date, num(day.entries), num(day.winners)]),
+        PORTRAIT_CONTENT,
+      ),
+    );
+  }
+
+  // --- Each campaign -------------------------------------------------------
+  const landscape: Block[] = [];
+  for (const [index, report] of reports.entries()) {
+    blocks.push(
+      ...campaignCover(report, {
+        eyebrow: `CAMPAIGN ${index + 1} OF ${reports.length}`,
+        newPage: true,
+      }),
+      ...(await campaignBody(report)),
+    );
+    landscape.push(
+      ...participantSection(
+        report,
+        `Participants — ${report.analytics.campaign.name}`,
+      ),
+    );
+  }
+  if (landscape.length === 0) {
+    landscape.push(...sectionHeading("Participants", "No campaign."));
+  }
+
+  return packReport({
+    title: `${organization?.name ?? "All campaigns"} — Campaigns analytics report`,
+    creator: organization?.name ?? "Campaign analytics",
+    portrait: blocks,
+    landscape,
+  });
+}
+
+/** File name (without extension) of the all-campaigns report. */
+export function allCampaignsReportFilename(
+  reports: CampaignAnalyticsReport[],
+): string {
+  const date =
+    reports[0]?.generated_at.slice(0, 10) ??
+    new Date().toISOString().slice(0, 10);
+  return `octoreach_report_all_campaigns_${date}`;
 }
 
 /** Color key for a chart: a colored square followed by the series name. */

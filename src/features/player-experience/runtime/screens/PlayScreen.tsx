@@ -8,6 +8,7 @@ import { registry } from "../games/registry";
 import type { GamePhase } from "../games/types";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { ScreenMedallion } from "./ScreenMedallion";
+import { ComicWord, useComicWord } from "../shell/ComicWord";
 import { press, type ScreenProps } from "./screenProps";
 
 // The game on stage (plan §8.5, tasks.md T5.2). One screen for the three moments a game is
@@ -15,7 +16,7 @@ import { press, type ScreenProps } from "./screenProps";
 // moment for the player: the engine stays mounted across all three and keeps whatever it was
 // doing (a wheel goes on turning while the server answers, rather than being swapped out for
 // a spinner). Which moment it is, is read from the journey, never kept by the engine.
-function enginePhase(state: FlowState): GamePhase {
+export function enginePhase(state: FlowState): GamePhase {
   if (state.screen === "resolving") return "awaiting-outcome";
   if (state.screen === "revealing") return "revealing";
   // The play screen itself: a game drawn before its animation waits for a tap, one played
@@ -47,6 +48,8 @@ export function PlayScreen({
   chrome,
 }: ScreenProps) {
   const reducedMotion = useReducedMotion(config.features.animations);
+  // The theme's word as the game opens ("GO!"), once, over the game.
+  const startWord = useComicWord("start");
   const { state } = flow;
   const Engine = registry[campaign.gameType].Engine;
   const onStage =
@@ -74,6 +77,9 @@ export function PlayScreen({
       live={chrome.live}
       cta={cta}
     >
+      {startWord && !reducedMotion && state.screen === "play" && (
+        <ComicWord word={startWord} y={45} tilt={0} />
+      )}
       <Suspense fallback={<WaitingForEngine config={config} locale={locale} />}>
         <Engine
           settings={config.game}

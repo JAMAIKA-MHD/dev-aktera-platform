@@ -5,6 +5,7 @@ import {
   canSubmit,
   createInitialFlowState,
   createPreviewFlowState,
+  PREVIEW_PRIZE_ID,
   formErrors,
   flowReducer,
   nextCommand,
@@ -497,6 +498,19 @@ describe("UNAVAILABLE", () => {
     expect(soldOut.error?.message).toContain("won");
   });
 
+  it("says a scheduled campaign has not started yet, with its start date", () => {
+    const early = flowReducer(welcome(), {
+      type: "UNAVAILABLE",
+      reason: "NOT_STARTED",
+      startsAt: "2026-12-01T00:00:00Z",
+    });
+    expect(early.screen).toBe("closed");
+    expect(early.error).toMatchObject({
+      code: "CAMPAIGN_NOT_STARTED",
+      startsAt: "2026-12-01T00:00:00Z",
+    });
+  });
+
   it("changes nothing once the player is playing: the server decides then", () => {
     const state = playing("lucky_wheel");
     expect(flowReducer(state, { type: "UNAVAILABLE", reason: "CLOSED" })).toBe(
@@ -705,12 +719,25 @@ describe("createPreviewFlowState", () => {
     expect(PREVIEW_COUPON_CODE).toMatch(/^DEMO-\w{4}-\w{4}$/);
   });
 
-  it("shows a loss, and a campaign without prizes can only lose", () => {
+  it("shows a loss when the loss is asked for", () => {
     const loss = { isWinner: false, prize: null, couponCode: null };
     expect(at("lose")).toMatchObject({ screen: "lose", outcome: loss });
-    expect(at("win", { ...campaign, prizes: [] })).toMatchObject({
-      screen: "lose",
-      outcome: loss,
+  });
+
+  it("always shows a win when the win is asked for, even before the campaign has prizes", () => {
+    const noPrizes = { ...campaign, prizes: [] };
+    expect(at("win", noPrizes)).toMatchObject({
+      screen: "win",
+      outcome: {
+        isWinner: true,
+        prize: { id: PREVIEW_PRIZE_ID, name: "", winMessage: null },
+        couponCode: PREVIEW_COUPON_CODE, // a DEMO code: never a real one
+      },
+    });
+    // A reveal is a draw seen from the player's side: without a prize there is no win.
+    expect(at("revealing", noPrizes)).toMatchObject({
+      screen: "revealing",
+      outcome: { isWinner: false, prize: null, couponCode: null },
     });
   });
 

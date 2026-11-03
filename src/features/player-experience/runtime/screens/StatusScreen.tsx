@@ -1,5 +1,11 @@
-import { CalendarX, UserCheck, WifiOff, type LucideIcon } from "lucide-react";
-import type { LocalizedText } from "../../domain/locale";
+import {
+  CalendarClock,
+  CalendarX,
+  UserCheck,
+  WifiOff,
+  type LucideIcon,
+} from "lucide-react";
+import type { Locale, LocalizedText } from "../../domain/locale";
 import {
   PARTICIPATION_ERROR_MESSAGES,
   type ParticipationErrorCode,
@@ -38,14 +44,49 @@ const VARIANTS: Readonly<
   error: { icon: WifiOff, title: STATUS_TEXT.errorTitle, code: "NETWORK" },
 };
 
+// A scheduled campaign opened early: "Coming soon", and the day it opens in each language.
+const DATE_LOCALES: Record<Locale, string> = {
+  fr: "fr-DZ",
+  ar: "ar-DZ",
+  en: "en-GB",
+};
+
+function withStartDate(message: LocalizedText, startsAt: string | undefined) {
+  const time = startsAt ? Date.parse(startsAt) : NaN;
+  if (Number.isNaN(time)) return message;
+  const out: LocalizedText = {};
+  for (const locale of Object.keys(DATE_LOCALES) as Locale[]) {
+    const date = new Intl.DateTimeFormat(DATE_LOCALES[locale], {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(time);
+    out[locale] =
+      `${message[locale] ?? ""} ${STATUS_TEXT.startsOn[locale] ?? ""} ${date}.`.trim();
+  }
+  return out;
+}
+
 export function StatusScreen({ flow, config, locale, chrome }: ScreenProps) {
   const { state } = flow;
   const status = state.screen as Status;
-  const variant = VARIANTS[status];
+  const upcoming = state.error?.code === "CAMPAIGN_NOT_STARTED";
+  const variant = upcoming
+    ? {
+        icon: CalendarClock,
+        title: STATUS_TEXT.upcomingTitle,
+        code: "CAMPAIGN_NOT_STARTED" as const,
+      }
+    : VARIANTS[status];
   // The error the gateway gave, when there is one; its default code otherwise (a status
   // forced by the Studio preview, domain/flow.ts createPreviewFlowState).
-  const message =
+  const baseMessage =
     PARTICIPATION_ERROR_MESSAGES[state.error?.code ?? variant.code];
+  const message = upcoming
+    ? withStartDate(baseMessage, state.error?.startsAt)
+    : baseMessage;
   const retryable = status === "error";
   const restart = press(flow, flow.restart, "primary");
 
@@ -71,7 +112,10 @@ export function StatusScreen({ flow, config, locale, chrome }: ScreenProps) {
           : { onPrimary: restart }
       }
     >
-      <ScreenMedallion icon={variant.icon} />
+      {/* Which status it is, for a theme's own motion of it (motion.css). */}
+      <div data-xp-status={status} className="contents">
+        <ScreenMedallion icon={variant.icon} />
+      </div>
     </ExperienceFrame>
   );
 }

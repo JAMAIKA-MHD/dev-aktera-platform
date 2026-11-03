@@ -3,7 +3,11 @@ import { resolveText } from "../../../domain/locale";
 import { tint } from "../../../theme/recipes";
 import { TeaserShell } from "../TeaserShell";
 import type { GameTeaserProps } from "../types";
-import { ScratchCardFace, scratchCoverStyle } from "./ScratchCardFace";
+import {
+  SCRATCH_COVER_TEXT,
+  ScratchCardFace,
+  scratchCoverStyle,
+} from "./ScratchCardFace";
 
 // Pregame teaser of the scratch card (plan §8.7): the brand's own ticket, with a coin that
 // scratches a small window and lets nothing but a glint through — no prize is passed to the
@@ -83,7 +87,7 @@ export function ScratchTeaser(props: GameTeaserProps) {
             <p
               dir="auto"
               className="pointer-events-none absolute inset-0 grid place-items-center p-4 text-center text-[clamp(0.9rem,4.5cqmin,1.25rem)] font-extrabold uppercase tracking-[0.12em]"
-              style={{ color: "var(--xp-on-primary)" }}
+              style={{ color: SCRATCH_COVER_TEXT }}
             >
               {coverText}
             </p>

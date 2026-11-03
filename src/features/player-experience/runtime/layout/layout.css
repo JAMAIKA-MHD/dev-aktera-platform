@@ -9,6 +9,18 @@
 
 /* The 8-slot frame's grid: imported here so that it can use the variants below. */
 @import "../frame/frame.css";
+/* The shell (stage, panel, buttons, cards, modal, result), painted from the theme tokens. */
+@import "../shell/shell.css";
+/* The play screen of each game, in the template's look (games.* of a theme.json). */
+@import "../games/games.css";
+/* A theme's motion: ambient stage, entrances, wipes, lively buttons, fields and games. */
+@import "../shell/motion.css";
+/* The scene a template plays once before a win, and its four timelines. */
+@import "../winIntro/winIntro.css";
+@import "../winIntro/scenes/comic.css";
+@import "../winIntro/scenes/pixel.css";
+@import "../winIntro/scenes/jackpot.css";
+@import "../winIntro/scenes/show.css";
 
 @custom-variant compact (@media (max-width: 359px));
 @custom-variant wide (@media (min-width: 600px));

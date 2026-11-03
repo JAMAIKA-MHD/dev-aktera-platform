@@ -4,7 +4,7 @@ import {
   type CampaignSnapshot,
   type CampaignStatus,
 } from "./campaign";
-import { createDefaultExperience } from "./defaults";
+import { createDefaultExperience, screensForGame } from "./defaults";
 import type { GameType } from "./gameTypes";
 import type { Availability } from "./participation";
 import { parseExperienceConfig } from "./schema";
@@ -43,6 +43,8 @@ const publicExperienceSchema = z.object({
     brand_name: z.string().nullish(),
     image_url: z.string().nullish(),
     rules: z.unknown().optional(),
+    // Absent before migration 20261028120000: the page then keeps the design's own name.
+    organization_name: z.string().nullish(),
   }),
   prizes: z.array(
     z.object({
@@ -60,6 +62,11 @@ const publicExperienceSchema = z.object({
   ),
   availability: z.union([
     z.object({ open: z.literal(true) }),
+    z.object({
+      open: z.literal(false),
+      reason: z.literal("NOT_STARTED"),
+      starts_at: z.string(),
+    }),
     z.object({
       open: z.literal(false),
       reason: z.enum(["CLOSED", "SOLD_OUT"]),
@@ -115,8 +122,15 @@ export function parsePublicExperience(raw: unknown): PublicExperience {
     imageUrl: data.campaign.image_url || undefined,
   };
 
-  // No design yet (the Studio was never opened): the default experience of the campaign.
-  const defaults = () => createDefaultExperience({ gameType, campaign });
+  // No design yet (the Studio was never opened): the default experience of the campaign,
+  // under the organizer's name.
+  const organizer = data.campaign.organization_name?.trim() ?? "";
+  const defaults = () =>
+    createDefaultExperience({
+      gameType,
+      campaign,
+      brandName: organizer || undefined,
+    });
   let config: ExperienceConfig;
   let configIssues: string[] = [];
   if (data.experience === null || data.experience === undefined) {
@@ -128,11 +142,26 @@ export function parsePublicExperience(raw: unknown): PublicExperience {
     // The game was changed in the Wizard after the design was made: its presentation no
     // longer fits, the campaign's default one is used (the Studio flags the same mismatch).
     if (config.game.type !== gameType) {
-      config = { ...config, game: defaults().game };
+      config = {
+        ...config,
+        game: defaults().game,
+        screens: screensForGame(config.screens, config.game.type, gameType),
+      };
       configIssues = [
         ...configIssues,
         `game.type: "${stored.config.game.type}" does not match the campaign's "${gameType}", default game settings used`,
       ];
+    }
+    // A design saved without a brand name (or an organizer): the organization's, never an
+    // empty header capsule.
+    if (organizer && !config.brand.name.trim()) {
+      config = { ...config, brand: { ...config.brand, name: organizer } };
+    }
+    if (organizer && !config.legal.organizerName.trim()) {
+      config = {
+        ...config,
+        legal: { ...config.legal, organizerName: organizer },
+      };
     }
   }
 
@@ -140,7 +169,15 @@ export function parsePublicExperience(raw: unknown): PublicExperience {
     status: "ok",
     slug: data.campaign.slug,
     campaign,
-    availability: data.availability,
+    availability:
+      data.availability.open === false &&
+      data.availability.reason === "NOT_STARTED"
+        ? {
+            open: false,
+            reason: "NOT_STARTED",
+            startsAt: data.availability.starts_at,
+          }
+        : data.availability,
     config,
     configIssues,
   };

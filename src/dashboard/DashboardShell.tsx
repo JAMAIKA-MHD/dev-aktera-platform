@@ -1,19 +1,24 @@
 // The dashboard frame shared by every page: sidebar (real links), top bar, the action-error
 // banner and the Portal Simulator drawer. The page itself comes from the router (<Outlet />).
 import React, { Suspense, lazy, useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Smartphone, X } from "lucide-react";
+import { Outlet, useLocation, useOutletContext } from "react-router-dom";
+import { Moon, Smartphone, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import "../components/overview/overview.css";
 import { useDashboard } from "./DashboardContext";
 import {
   DashboardMenuToggle,
   DashboardSidebar,
   useDashboardMenu,
 } from "./DashboardSidebar";
-import { PATHS, STANDALONE_STUDIO } from "./paths";
+import { GlobalSearch } from "./GlobalSearch";
+import { useOnboarding } from "./onboarding/OnboardingContext";
+import { STANDALONE_STUDIO } from "./paths";
 import { STUDIO_BACKEND } from "./studioBackend";
+import { AccountMenu, NotificationsMenu } from "./TopbarMenus";
 
 // The Portal Simulator (T7.2): the real runtime in a phone-sized frame, loaded on demand.
 const CampaignSimulator = lazy(() =>
@@ -21,6 +26,22 @@ const CampaignSimulator = lazy(() =>
     default: module.CampaignSimulator,
   })),
 );
+
+// The product tour: only the people who see it download it.
+const OnboardingTour = lazy(() => import("./onboarding/OnboardingTour"));
+
+/** What the shell offers the pages inside it. */
+export interface ShellActions {
+  openSandbox: () => void;
+}
+export const useShellActions = () => useOutletContext<ShellActions>();
+
+const TOPBAR_ICON = {
+  size: 18,
+  strokeWidth: 1.75,
+  className: "dz-icon",
+  "aria-hidden": true,
+} as const;
 
 export function PageSpinner({ className = "h-40" }: { className?: string }) {
   return (
@@ -32,10 +53,9 @@ export function PageSpinner({ className = "h-40" }: { className?: string }) {
 
 export function DashboardShell() {
   const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { campaigns, prizes, avatarUrl, actionError, setActionError } =
-    useDashboard();
+  const { campaigns, prizes, actionError, setActionError } = useDashboard();
+  const { tourRun, markSandboxTested } = useOnboarding();
 
   // Portal Simulator drawer and the campaign it plays: its own, never the Studio's.
   const [showSandbox, setShowSandbox] = useState(false);
@@ -47,73 +67,68 @@ export function DashboardShell() {
   }, [campaigns, sandboxCampaignId]);
 
   const menu = useDashboardMenu();
+
+  // The account pill shows the signed-in person's initial.
+  const { profile } = useAuth();
+  const initial = (profile?.full_name?.trim()[0] ?? "M").toUpperCase();
+
   const currentSection = pathname.split("/")[1] ?? "";
+
+  const openSandbox = () => {
+    setShowSandbox(true);
+    markSandboxTested();
+  };
 
   return (
     <div
       id="saas-app-root"
-      className="h-screen flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
+      className="h-dvh flex overflow-hidden bg-brand-dark font-sans text-brand-text text-sm select-none"
     >
       <DashboardSidebar menu={menu} />
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* TOPBAR */}
-        <header className="h-18 sm:h-20 flex items-center justify-between px-7 z-40 shrink-0 border-b border-brand-border/20 relative">
-          <div className="flex items-center gap-3">
+        {/* TOPBAR: search, the player sandbox, theme, notifications, account. */}
+        <header
+          className="dz-topbar dz-theme"
+          data-theme={theme === "dark" ? "dark" : "light"}
+        >
+          <div className="dz-topbar-start">
             <DashboardMenuToggle menu={menu} />
-            <button
-              onClick={() =>
-                document
-                  .getElementById("mobile-nav-bar")
-                  ?.classList.toggle("hidden")
-              }
-              className="lg:hidden w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-colors shadow-sm"
-            >
-              <i className="fa-solid fa-bars"></i>
-            </button>
+            <GlobalSearch />
           </div>
-          <div className="flex items-center gap-4 ml-auto">
-            {/* Interactive Player Sandbox Pill button */}
+          <div className="dz-topbar-end">
             <button
-              onClick={() => setShowSandbox(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:scale-105 cursor-pointer"
+              type="button"
+              onClick={openSandbox}
+              className="sbx"
+              data-tour="topbar-sandbox"
+              title="Try your campaigns as a player would see them"
             >
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 animate-pulse"></div>
-              <span>Interactive Player Sandbox</span>
+              <span aria-hidden className="sbx-play">
+                <svg width="12" height="12" viewBox="0 0 12 12">
+                  <path d="M3 1.8v8.4L10 6z" fill="currentColor" />
+                </svg>
+              </span>
+              <span className="sbx-label">Open player sandbox</span>
             </button>
 
-            {/* Theme toggle circular button */}
             <button
+              type="button"
               onClick={toggleTheme}
-              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              className="dz-icon-btn"
+              aria-label="Switch theme"
+              title="Switch theme"
             >
-              <i
-                className={`fa-solid ${theme === "dark" ? "fa-sun text-amber-400 text-base" : "fa-moon text-slate-700 text-base"}`}
-              ></i>
+              {theme === "dark" ? (
+                <Sun {...TOPBAR_ICON} />
+              ) : (
+                <Moon {...TOPBAR_ICON} />
+              )}
             </button>
 
-            {/* Notifications circular button */}
-            <button
-              className="w-10 h-10 rounded-full bg-card-bg border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-text cursor-pointer transition-all shadow-sm hover:scale-105"
-              title="Notifications"
-            >
-              <i className="fa-regular fa-bell text-base"></i>
-            </button>
-
-            {/* User Avatar */}
-            <div
-              onClick={() => navigate(PATHS.account)}
-              className="relative cursor-pointer hover:opacity-90 transition-opacity"
-              title="Account Settings"
-            >
-              <img
-                alt="User profile"
-                className="w-10 h-10 rounded-full object-cover border border-brand-border shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                src={avatarUrl}
-              />
-            </div>
+            <NotificationsMenu />
+            <AccountMenu initial={initial} />
           </div>
         </header>
 
@@ -134,14 +149,19 @@ export function DashboardShell() {
         )}
 
         {/* PAGE: the route decides what shows here */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 z-10 scroll-smooth">
+        <div
+          className={`flex-1 overflow-y-auto z-10 scroll-smooth ${
+            currentSection === "" ? "dz-page dz-theme" : "p-4 sm:p-6 pt-2"
+          }`}
+          data-theme={theme === "dark" ? "dark" : "light"}
+        >
           <motion.div
             key={currentSection}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
             <Suspense fallback={<PageSpinner />}>
-              <Outlet />
+              <Outlet context={{ openSandbox } satisfies ShellActions} />
             </Suspense>
           </motion.div>
         </div>
@@ -203,6 +223,12 @@ export function DashboardShell() {
           </div>
         )}
       </AnimatePresence>
+
+      {tourRun && (
+        <Suspense fallback={null}>
+          <OnboardingTour key={tourRun.id} run={tourRun} menu={menu} />
+        </Suspense>
+      )}
     </div>
   );
 }

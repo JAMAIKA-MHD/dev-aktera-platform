@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PrizesManager } from "../../components/PrizesManager";
 import { useDashboard } from "../DashboardContext";
 import { PATHS } from "../paths";
@@ -7,8 +7,17 @@ import { PATHS } from "../paths";
 // The Local Library: the brand's own rewards (digital codes and physical rewards).
 export default function PrizesLocalPage() {
   const navigate = useNavigate();
-  const { prizes, campaigns, addPrize, updatePrize, deletePrize } =
-    useDashboard();
+  const location = useLocation();
+  const {
+    prizes,
+    prizeLoading,
+    prizeError,
+    refetchPrizes,
+    campaigns,
+    addPrize,
+    updatePrize,
+    deletePrize,
+  } = useDashboard();
   return (
     <div className="space-y-5">
       <nav aria-label="Breadcrumb" className="max-w-[1800px] mx-auto">
@@ -22,6 +31,10 @@ export default function PrizesLocalPage() {
       </nav>
       <PrizesManager
         prizes={prizes}
+        loading={prizeLoading}
+        error={prizeError}
+        onRetry={() => void refetchPrizes()}
+        startCreating={Boolean(location.state?.createReward)}
         campaigns={campaigns}
         onAddPrize={addPrize}
         onUpdatePrize={updatePrize}

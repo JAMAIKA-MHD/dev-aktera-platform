@@ -200,3 +200,37 @@ describe("RETRY, played end to end", () => {
     vi.useRealTimers();
   });
 });
+
+describe("StatusScreen: a scheduled campaign", () => {
+  it("says it opens soon and when, never that it ended", () => {
+    const state: FlowState = {
+      ...createInitialFlowState("lucky_wheel", { startedAt: 0 }),
+      screen: "closed",
+      error: {
+        code: "CAMPAIGN_NOT_STARTED",
+        message: "This campaign has not started yet.",
+        startsAt: "2026-12-01T09:00:00Z",
+      },
+    };
+    const flow = {
+      state,
+      retry: vi.fn(),
+      restart: vi.fn(),
+      track: vi.fn(),
+    } as unknown as ExperienceFlow;
+    render(
+      <StatusScreen
+        flow={flow}
+        config={createDefaultExperience({ gameType: "lucky_wheel" })}
+        campaign={createDemoCampaign("lucky_wheel")}
+        locale="en"
+        chrome={{ logoUrl: null, statusBadge: null, live: true }}
+      />,
+    );
+    expect(screen.getByText("Coming soon")).toBeTruthy();
+    expect(screen.queryByText("Campaign ended")).toBeNull();
+    expect(
+      screen.getByText(/has not started yet.*Opens on 1 December 2026/),
+    ).toBeTruthy();
+  });
+});

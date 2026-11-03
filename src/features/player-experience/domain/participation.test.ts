@@ -47,13 +47,15 @@ describe("isRetryable", () => {
     expect(isRetryable("UNKNOWN")).toBe(true);
     expect(isRetryable("ALREADY_PARTICIPATED")).toBe(false);
     expect(isRetryable("CAMPAIGN_CLOSED")).toBe(false);
+    expect(isRetryable("CAMPAIGN_NOT_STARTED")).toBe(false);
     expect(isRetryable("INVALID_INPUT")).toBe(false);
   });
 });
 
 describe("PARTICIPATION_ERROR_MESSAGES", () => {
   it("has a message for every code in every player language", () => {
-    expect(ALL_CODES).toHaveLength(5);
+    // CAMPAIGN_NOT_STARTED comes from get_public_experience, before any draw.
+    expect(ALL_CODES).toHaveLength(6);
     for (const code of ALL_CODES) {
       for (const locale of LOCALES) {
         expect(hasText(PARTICIPATION_ERROR_MESSAGES[code], locale)).toBe(true);
@@ -79,6 +81,7 @@ describe("server contract", () => {
     expect(serverCodes).toEqual([
       "ALREADY_PARTICIPATED",
       "CAMPAIGN_CLOSED",
+      "CAMPAIGN_NOT_STARTED",
       "CONSENT_REQUIRED",
       "DRAW_FAILED",
       "INVALID_INPUT",
