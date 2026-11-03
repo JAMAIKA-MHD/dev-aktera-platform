@@ -25,10 +25,14 @@ export const PATHS = {
     section === "campaigns" ? "/analytics" : `/analytics?section=${section}`,
   billing: "/billing",
   account: "/account",
+  accountTeam: "/account?tab=Team",
   support: "/support",
   studio: "/studio",
   studioFor: (id: string) => `/studio/${id}`,
 } as const;
+
+/** Router state sent with `PATHS.edit` / `PATHS.relaunch` when the wizard opens from a campaign's detail page. */
+export const FROM_CAMPAIGN_DETAILS = { from: "details" } as const;
 
 /** The URL a legacy `TabType` stands for (components that still name a tab). */
 export function tabPath(tab: TabType): string {

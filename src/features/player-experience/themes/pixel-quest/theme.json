@@ -1,0 +1,691 @@
+{
+  "version": 1,
+  "id": "pixel-quest",
+  "label": "Pixel Quest",
+  "description": "An 8-bit adventure: pale sky, blocky clouds, bushes and trees on a grassy ground, chunky golden buttons and a pixel wheel.",
+  "source": "style2-pixel-style",
+  "credits": null,
+  "mode": "light",
+  "palette": {
+    "primary": "#F2B544",
+    "secondary": "#1747A8",
+    "accent": "#4AB52E",
+    "surface": "#E6FAF9",
+    "text": "#0F2A66",
+    "ink": "#1747A8"
+  },
+  "radius": "sharp",
+  "font": "poppins",
+  "fonts": {
+    "display": "Press Start 2P",
+    "ui": "VT323",
+    "stylesheet": "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap"
+  },
+  "tokens": {
+    "radius": {
+      "sm": "0",
+      "md": "0",
+      "lg": "0",
+      "pill": "0"
+    },
+    "space": {
+      "xs": "0.375rem",
+      "sm": "0.625rem",
+      "md": "1rem",
+      "lg": "1.5rem"
+    },
+    "fontSize": {
+      "display": "clamp(0.95rem, 4.2cqw, 1.5rem)",
+      "title": "0.85",
+      "body": "0.95rem",
+      "label": "0.8rem"
+    },
+    "shadow": {
+      "panel": "none",
+      "card": "none",
+      "pop": "0.5rem 0.5rem 0 #8FD0EE"
+    }
+  },
+  "panel": {
+    "bg": "transparent",
+    "text": "@text",
+    "border": "@ink",
+    "borderWidth": "0",
+    "frame": null,
+    "shape": null
+  },
+  "card": {
+    "bg": "#FFF4C2",
+    "border": "@ink",
+    "borderWidth": "0.2rem",
+    "frame": {
+      "src": "assets/frames/card.svg",
+      "slice": "18",
+      "width": "1rem"
+    }
+  },
+  "hud": {
+    "bg": "#FFFFFF",
+    "text": "@text",
+    "border": "@ink"
+  },
+  "button": {
+    "primary": {
+      "bg": "@primary",
+      "text": "#5A2410",
+      "border": "#5A2410",
+      "borderWidth": "calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 2) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 9) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7)",
+      "shadow": "none",
+      "shadowPressed": "none",
+      "textShadow": "0 0.1em 0 #F6CA9F80",
+      "frame": {
+        "src": "assets/buttons/button-gold.png",
+        "slice": "12 7 11 7",
+        "width": "calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 12) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 11) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7)",
+        "outset": "0",
+        "repeat": "stretch",
+        "pixelated": true
+      }
+    },
+    "secondary": {
+      "bg": "#C7CFDD",
+      "text": "#0F2A66",
+      "border": "#0F2A66",
+      "borderWidth": "calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 2) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 9) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7)",
+      "shadow": "none",
+      "shadowPressed": "none",
+      "frame": {
+        "src": "assets/buttons/button-silver.png",
+        "slice": "12 7 11 7",
+        "width": "calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 12) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 11) calc(clamp(0.13rem, 0.08rem + 0.22vw, 0.2rem) * 7)",
+        "outset": "0",
+        "repeat": "stretch",
+        "pixelated": true
+      }
+    },
+    "share": {
+      "height": "2.25rem",
+      "bg": "#C9D3E6",
+      "text": "#1D3FAE",
+      "border": "0 none",
+      "radius": "0",
+      "shadow": "0 0 0 0.1875rem #1D3FAE, inset -0.25rem -0.25rem 0 #8E9BB8, inset 0.25rem 0.25rem 0 #FFFFFF",
+      "font": "Silkscreen",
+      "size": "0.65625rem",
+      "weight": 700,
+      "icon": "0.875rem",
+      "active": "translateY(0.25rem)"
+    }
+  },
+  "field": {
+    "bg": "#FFFFFF",
+    "text": "#0F2A66",
+    "border": "@ink",
+    "borderWidth": "0.2rem",
+    "shadow": "0.3rem 0.3rem 0 #8FD0EE",
+    "label": "@ink",
+    "labelFont": "display"
+  },
+  "title": {
+    "color": "@ink",
+    "stroke": null,
+    "strokeWidth": "0",
+    "shadow": "0.09em 0.09em 0 #8FD0EE",
+    "transform": "uppercase",
+    "letterSpacing": "0.02em",
+    "screens": {
+      "lose": "#C0321F"
+    },
+    "backdrop": null
+  },
+  "layout": {
+    "kind": "spotlight",
+    "welcomeTeaser": false,
+    "playCta": "block",
+    "footerGap": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5)"
+  },
+  "stage": {
+    "color": "#E6FAF9",
+    "overlay": "#8C9DAD",
+    "overlayOpacity": 0,
+    "fit": "cover",
+    "moods": true,
+    "footerText": "#F6C04A",
+    "backgrounds": {
+      "default": "assets/backgrounds/sky.svg",
+      "games": {},
+      "screens": {}
+    },
+    "decor": [
+      {
+        "src": "assets/decor/ground.png",
+        "left": "0",
+        "bottom": "0",
+        "width": "100%",
+        "height": "clamp(4.5rem, 17svh, 11rem)",
+        "repeatX": true
+      },
+      {
+        "src": "assets/decor/cloud.svg",
+        "left": "3.125%",
+        "top": "5.5556%",
+        "width": "calc((50vw + 50vh) * 0.192)",
+        "motion": "wind",
+        "seconds": 55
+      },
+      {
+        "src": "assets/decor/cloud-2.svg",
+        "left": "23.4375%",
+        "top": "2.7778%",
+        "width": "calc((50vw + 50vh) * 0.096)",
+        "motion": "wind",
+        "seconds": 120
+      },
+      {
+        "src": "assets/decor/cloud-3.svg",
+        "left": "9.375%",
+        "top": "19.4444%",
+        "width": "calc((50vw + 50vh) * 0.144)",
+        "motion": "wind",
+        "seconds": 85
+      },
+      {
+        "src": "assets/decor/cloud-4.svg",
+        "right": "3.125%",
+        "top": "4.1667%",
+        "width": "calc((50vw + 50vh) * 0.24)",
+        "motion": "wind",
+        "seconds": 50
+      },
+      {
+        "src": "assets/decor/cloud-2.svg",
+        "right": "20.9375%",
+        "top": "14.4444%",
+        "width": "calc((50vw + 50vh) * 0.112)",
+        "motion": "wind",
+        "seconds": 115
+      },
+      {
+        "src": "assets/decor/cloud-6.svg",
+        "right": "2.3438%",
+        "top": "23.6111%",
+        "width": "calc((50vw + 50vh) * 0.12)",
+        "motion": "wind",
+        "seconds": 90
+      },
+      {
+        "src": "assets/decor/cloud-2.svg",
+        "left": "32.8125%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 1.2381)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/cloud-6.svg",
+        "right": "25.3125%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 1.1548)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 1)",
+        "hideWhenLow": true
+      },
+      {
+        "src": "assets/decor/bush.svg",
+        "left": "1.25%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
+        "motion": "sway",
+        "seconds": 3.2
+      },
+      {
+        "src": "assets/decor/bush-2.svg",
+        "left": "7.8125%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)",
+        "motion": "sway",
+        "seconds": 2.8
+      },
+      {
+        "src": "assets/decor/bush.svg",
+        "right": "1.25%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.5714)",
+        "motion": "sway",
+        "seconds": 2.8
+      },
+      {
+        "src": "assets/decor/bush-2.svg",
+        "right": "7.8125%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8571)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.4857)",
+        "motion": "sway",
+        "seconds": 2.8
+      },
+      {
+        "src": "assets/decor/tree.svg",
+        "left": "23.4375%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8333)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.381)",
+        "motion": "sway",
+        "seconds": 3.2
+      },
+      {
+        "src": "assets/decor/tree.svg",
+        "right": "21.0938%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8214)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.3883)",
+        "motion": "sway",
+        "seconds": 2.8
+      },
+      {
+        "src": "assets/decor/bush-5.svg",
+        "left": "18.75%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8204)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.2381)",
+        "hideWhenLow": true,
+        "motion": "sway",
+        "seconds": 2.8
+      },
+      {
+        "src": "assets/decor/bush-5.svg",
+        "right": "18.75%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 0.8204)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.295)",
+        "hideWhenLow": true,
+        "motion": "sway",
+        "seconds": 2.8
+      },
+      {
+        "src": "assets/decor/confetti-red.svg",
+        "left": "25.7813%",
+        "top": "31.9444%",
+        "width": "calc((50vw + 50vh) * 0.016)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-green.svg",
+        "left": "31.25%",
+        "top": "45.8333%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-blue.svg",
+        "left": "19.5313%",
+        "top": "47.2222%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-orange.svg",
+        "left": "35.9375%",
+        "top": "19.4444%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-red.svg",
+        "left": "68.75%",
+        "top": "20%",
+        "width": "calc((50vw + 50vh) * 0.032)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-green.svg",
+        "left": "74.2188%",
+        "top": "36.1111%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-blue.svg",
+        "left": "78.9063%",
+        "top": "48.6111%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-orange.svg",
+        "left": "67.1875%",
+        "top": "47.2222%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-red.svg",
+        "left": "23.4375%",
+        "top": "18.0556%",
+        "width": "calc((50vw + 50vh) * 0.012)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/decor/confetti-green.svg",
+        "left": "82.0313%",
+        "top": "29.1667%",
+        "width": "calc((50vw + 50vh) * 0.016)",
+        "motion": "twinkle",
+        "hideWhenLow": true,
+        "screens": ["win"]
+      },
+      {
+        "src": "assets/sprites/sun.svg",
+        "right": "5%",
+        "top": "7%",
+        "width": "calc((50vw + 50vh) * 0.075)",
+        "sprite": {
+          "frames": 2,
+          "fps": 2,
+          "aspect": 1
+        },
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/sprites/sparkle.svg",
+        "left": "14%",
+        "top": "12%",
+        "width": "calc((50vw + 50vh) * 0.018)",
+        "sprite": {
+          "frames": 3,
+          "fps": 5,
+          "aspect": 1
+        },
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/sprites/sparkle.svg",
+        "right": "22%",
+        "top": "30%",
+        "width": "calc((50vw + 50vh) * 0.014)",
+        "sprite": {
+          "frames": 3,
+          "fps": 4,
+          "aspect": 1
+        },
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      },
+      {
+        "src": "assets/sprites/coin.svg",
+        "left": "13%",
+        "bottom": "calc(clamp(4.5rem, 17svh, 11rem) * 1.2)",
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.2)",
+        "sprite": {
+          "frames": 4,
+          "fps": 8,
+          "aspect": 1
+        },
+        "motion": "hover",
+        "hideWhenLow": true,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "win",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      }
+    ]
+  },
+  "wheel": {
+    "segments": ["#FFC61A", "#4AB52E", "#C93A22"],
+    "blank": "#1A4AA8",
+    "rim": "#FFFFFF",
+    "rimInk": "#0F2A66",
+    "bulbs": "#FFC61A",
+    "bulbsPerSlice": 1,
+    "bulbInk": "#0F2A66",
+    "bulbShape": "square",
+    "pointer": "#C93A22",
+    "pointerInk": "#0F2A66",
+    "pointerArt": "assets/wheel/pointer.svg",
+    "pointerSize": {
+      "width": 38,
+      "height": 33,
+      "overlap": 13
+    },
+    "hub": "#FFC61A",
+    "hubText": "#0F2A66",
+    "hubShine": false,
+    "hubShape": "square",
+    "shadow": "1.6cqmin 1.6cqmin 0 #8FD0EE"
+  },
+  "games": {
+    "quiz": {
+      "question": "@text",
+      "questionFont": "ui",
+      "option": {
+        "bg": "#FFFFFF",
+        "text": "#0F2A66",
+        "border": "@ink",
+        "borderWidth": "0.2rem",
+        "radius": "0",
+        "shadow": "0.25rem 0.25rem 0 #8FD0EE",
+        "font": "ui"
+      },
+      "optionHover": "#FFF4C2",
+      "counter": {
+        "bg": "@primary",
+        "text": "#5A2410",
+        "border": "#5A2410",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#C7CFDD",
+        "low": "#D9412B"
+      }
+    },
+    "scratch": {
+      "foil": ["#DDE3EE", "#9AA6BD", "#DDE3EE"],
+      "coverText": "#0F2A66",
+      "border": "@ink",
+      "borderWidth": "0.25rem",
+      "radius": "0",
+      "shadow": "0.4rem 0.4rem 0 #8FD0EE"
+    },
+    "boxes": {
+      "body": "#A0522D",
+      "lid": "#C0703A",
+      "ribbon": "@primary",
+      "icon": "@primary",
+      "border": "#5A2410",
+      "borderWidth": "0.2rem",
+      "radius": "0",
+      "shadow": "0.3rem 0.3rem 0 #8FD0EE",
+      "glow": "@primary"
+    },
+    "hitIt": {
+      "art": "assets/heroes/trophy-small.svg",
+      "glow": "@primary",
+      "fieldEdge": "@ink",
+      "fieldEdgeStyle": "solid",
+      "score": {
+        "bg": "#FFFFFF",
+        "text": "#0F2A66",
+        "border": "@ink",
+        "font": "display"
+      },
+      "timer": {
+        "fill": "@accent",
+        "track": "#FFFFFF",
+        "low": "#D9412B"
+      },
+      "burst": "@primary"
+    }
+  },
+  "prizes": {},
+  "characters": {},
+  "heroes": {
+    "welcome": {
+      "src": "assets/heroes/trophy-small.svg",
+      "width": "clamp(2.5rem, min(5.6vw, 7.5svh), 4.75rem)"
+    },
+    "register": {
+      "src": "assets/heroes/trophy-small.svg",
+      "width": "clamp(2.5rem, min(5.6vw, 7.5svh), 4.75rem)"
+    },
+    "win": {
+      "src": "assets/heroes/trophy.svg",
+      "width": "clamp(4rem, min(13vw, 15svh), 10.5rem)"
+    },
+    "lose": {
+      "src": "assets/heroes/sad-face.svg",
+      "width": "clamp(3.5rem, min(10.3vw, 13svh), 8.25rem)"
+    }
+  },
+  "copy": {
+    "color": "#D9771B",
+    "font": "display",
+    "size": "clamp(0.6rem, 0.45rem + 0.45vw, 0.85rem)",
+    "transform": "uppercase",
+    "rule": "#F2A31B",
+    "screens": {
+      "lose": "@ink"
+    }
+  },
+  "sounds": {},
+  "motion": {
+    "feel": "stepped",
+    "chiptune": true,
+    "flyers": [
+      {
+        "src": "assets/sprites/bird.svg",
+        "frames": 3,
+        "fps": 7,
+        "aspect": 1.333,
+        "width": "clamp(2rem, 5vmin, 3.25rem)",
+        "lane": "sky",
+        "band": [4, 38],
+        "every": [6, 15],
+        "cross": [15, 30],
+        "flock": 3,
+        "max": 5,
+        "onWin": true
+      },
+      {
+        "src": "assets/sprites/snail.svg",
+        "frames": 2,
+        "fps": 3,
+        "aspect": 1.333,
+        "width": "calc(clamp(4.5rem, 17svh, 11rem) * 0.3)",
+        "lane": "ground",
+        "ground": "calc(clamp(4.5rem, 17svh, 11rem) * 0.84)",
+        "every": [20, 40],
+        "cross": [40, 60],
+        "flock": 1,
+        "max": 1,
+        "screens": [
+          "welcome",
+          "register",
+          "play",
+          "resolving",
+          "revealing",
+          "duplicate",
+          "closed",
+          "error"
+        ]
+      }
+    ],
+    "rain": "#E6FAF9",
+    "countdown": true,
+    "pipe": true,
+    "entrance": "pop",
+    "buttons": "squish",
+    "fields": "lively",
+    "wipe": {
+      "kind": "iris",
+      "color": "@primary",
+      "ink": "#0F2A66"
+    },
+    "impact": true,
+    "confetti": "pixel",
+    "games": "lively",
+    "words": {
+      "start": "GO!",
+      "hit": "COMBO!",
+      "open": "BONUS!",
+      "win": "LEVEL CLEAR!",
+      "lose": "GAME OVER"
+    },
+    "pressStart": true,
+    "winIntro": {
+      "scene": "pixel",
+      "seconds": 10,
+      "handoff": 9.4,
+      "font": "Press Start 2P",
+      "fontUi": "Silkscreen",
+      "colors": {
+        "night": "#0B1030",
+        "blue": "#1D3FAE",
+        "gold": "#FFC928",
+        "orange": "#FF7A1A",
+        "orange-deep": "#C26A00",
+        "cream": "#FFF8D6",
+        "brick": "#A8452D",
+        "grass": "#58C02A",
+        "coral": "#FF6A4F",
+        "light": "#FFFFFF",
+        "dark": "#000000"
+      },
+      "art": {
+        "question-block": "assets/win-intro/question-block.svg",
+        "explosion-sprite": "assets/win-intro/explosion-sprite.svg",
+        "trophy": "assets/win-intro/trophy.svg",
+        "coin": "assets/win-intro/coin.svg",
+        "sparkle": "assets/win-intro/sparkle.svg"
+      }
+    }
+  }
+}

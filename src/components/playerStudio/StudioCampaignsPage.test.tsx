@@ -182,7 +182,7 @@ describe("StudioCampaignsPage", () => {
     expect(screen.getAllByTestId("data-table-skeleton").length).toBeGreaterThan(
       0,
     );
-    expect(screen.queryByText("No campaigns yet")).toBeNull();
+    expect(screen.queryByText("Design your player experience")).toBeNull();
   });
 
   it("shows the error with Retry", async () => {
@@ -197,7 +197,7 @@ describe("StudioCampaignsPage", () => {
   it("invites to create a campaign when there is none", async () => {
     const user = userEvent.setup();
     const { onCreateCampaign } = renderPage({ campaigns: [] });
-    expect(screen.getByText("No campaigns yet")).toBeTruthy();
+    expect(screen.getByText("Design your player experience")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Create a campaign" }));
     expect(onCreateCampaign).toHaveBeenCalled();
   });

@@ -3,6 +3,7 @@ import { ChevronRight, Trophy } from "lucide-react";
 import { formatRate } from "../../lib/campaignAnalyticsTransforms";
 import { ProgramLeaderboardRow } from "../../types";
 import { gameMeta, type GameType } from "../campaigns/campaignMeta";
+import { GameEmblem } from "../campaigns/GameEmblem";
 import { type KpiTone } from "./KpiCards";
 import "./kpiCards.css";
 
@@ -64,7 +65,6 @@ export const CampaignLeaderboard: React.FC<CampaignLeaderboardProps> = ({
 
             {rows.map((row, index) => {
               const game = gameMeta(row.game_type);
-              const GameIcon = game.icon;
               const share = (row.entries / maxEntries) * 100;
               return (
                 <button
@@ -89,11 +89,7 @@ export const CampaignLeaderboard: React.FC<CampaignLeaderboardProps> = ({
                       {row.campaign_name}
                     </b>
                     <span className="kx-lb-sub">
-                      <GameIcon
-                        className="h-3.5 w-3.5"
-                        strokeWidth={1.75}
-                        aria-hidden
-                      />
+                      <GameEmblem gameType={row.game_type} size={20} />
                       <span>{game.label}</span>
                       <i className={`kx-lb-dot is-${row.status}`} />
                       <span>{statusLabel(row.status)}</span>

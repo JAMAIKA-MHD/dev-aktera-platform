@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { Locale } from "../../domain/locale";
-import { THEME_PRESETS, themeFromPreset } from "../../presets/themePresets";
+import { STYLE_PRESETS, themeFromPreset } from "../../presets/themePresets";
 import { cardStyle, primaryButtonStyle, tint } from "../../theme/recipes";
 import { ThemeScope } from "../../theme/ThemeScope";
 import { describeLayoutMode } from "../layout/layoutMode";
@@ -103,7 +103,7 @@ export function ThemePresetsView({ locale }: { locale: Locale }) {
         </h1>
       </header>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4">
-        {THEME_PRESETS.map((preset) => (
+        {STYLE_PRESETS.map((preset) => (
           <ThemeScope
             key={preset.id}
             theme={themeFromPreset(preset.id)}

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="400" height="100">
+<defs>
+<g id="nb">
+<ellipse cx="38" cy="91" rx="11" ry="5.5" fill="#5fd3ae" stroke="#0f5c4d" stroke-width="3"/>
+<ellipse cx="62" cy="91" rx="11" ry="5.5" fill="#5fd3ae" stroke="#0f5c4d" stroke-width="3"/>
+<path d="M27 44C14 22 18 6 30 8C40 12 42 30 40 42Z" fill="#7ee8c4" stroke="#0f5c4d" stroke-width="3" stroke-linejoin="round"/>
+<path d="M28 36C22 22 24 14 30 15C35 18 36 28 35 36Z" fill="#ff9fcb"/>
+<g transform="matrix(-1 0 0 1 100 0)"><path d="M27 44C14 22 18 6 30 8C40 12 42 30 40 42Z" fill="#7ee8c4" stroke="#0f5c4d" stroke-width="3" stroke-linejoin="round"/><path d="M28 36C22 22 24 14 30 15C35 18 36 28 35 36Z" fill="#ff9fcb"/></g>
+<ellipse cx="50" cy="62" rx="31" ry="29" fill="#7ee8c4" stroke="#0f5c4d" stroke-width="3"/>
+<ellipse cx="50" cy="73" rx="18" ry="14" fill="#d9fff1"/>
+<circle cx="30" cy="66" r="4.5" fill="#ff8fb8"/><circle cx="70" cy="66" r="4.5" fill="#ff8fb8"/>
+<polygon points="50,33 52.5,39 58,39.5 54,43.5 55.5,49 50,46 44.5,49 46,43.5 42,39.5 47.5,39" fill="#ffd24a" stroke="#b8841a" stroke-width="1.2" stroke-linejoin="round"/>
+</g>
+<g id="arm"><ellipse cx="0" cy="0" rx="6" ry="10" fill="#7ee8c4" stroke="#0f5c4d" stroke-width="3"/></g>
+</defs>
+<!-- 1 idle -->
+<g transform="translate(0 0)">
+<use href="#nb"/>
+<use href="#arm" transform="translate(21 72) rotate(22)"/><use href="#arm" transform="translate(79 72) rotate(-22)"/>
+<ellipse cx="40" cy="57" rx="4.5" ry="6" fill="#102a3a"/><circle cx="41.6" cy="54.5" r="1.8" fill="#fff"/>
+<ellipse cx="60" cy="57" rx="4.5" ry="6" fill="#102a3a"/><circle cx="61.6" cy="54.5" r="1.8" fill="#fff"/>
+<path d="M44 66Q50 72 56 66" fill="none" stroke="#0f5c4d" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+<!-- 2 crouch -->
+<g transform="translate(100 0)">
+<g transform="translate(50 98) scale(1.1 .84) translate(-50 -98)">
+<use href="#nb"/>
+<use href="#arm" transform="translate(19 74) rotate(40)"/><use href="#arm" transform="translate(81 74) rotate(-40)"/>
+</g>
+<path d="M35 62Q40 58 45 62M55 62Q60 58 65 62" fill="none" stroke="#102a3a" stroke-width="3" stroke-linecap="round" transform="translate(0 6)"/>
+<path d="M45 73Q50 76 55 73" fill="none" stroke="#0f5c4d" stroke-width="2.5" stroke-linecap="round" transform="translate(0 4)"/>
+</g>
+<!-- 3 jump -->
+<g transform="translate(200 -8)">
+<use href="#nb"/>
+<use href="#arm" transform="translate(17 50) rotate(-35)"/><use href="#arm" transform="translate(83 50) rotate(35)"/>
+<ellipse cx="40" cy="57" rx="4.5" ry="6" fill="#102a3a"/><circle cx="41.6" cy="54.5" r="1.8" fill="#fff"/>
+<ellipse cx="60" cy="57" rx="4.5" ry="6" fill="#102a3a"/><circle cx="61.6" cy="54.5" r="1.8" fill="#fff"/>
+<ellipse cx="50" cy="69" rx="5" ry="6" fill="#7a1f3d"/>
+</g>
+<!-- 4 cheer -->
+<g transform="translate(300 -4)">
+<use href="#nb"/>
+<use href="#arm" transform="translate(15 40) rotate(-20)"/><use href="#arm" transform="translate(85 40) rotate(20)"/>
+<path d="M34 58Q40 50 46 58M54 58Q60 50 66 58" fill="none" stroke="#102a3a" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M40 65Q50 82 60 65Z" fill="#7a1f3d" stroke="#0f5c4d" stroke-width="2" stroke-linejoin="round"/>
+<ellipse cx="50" cy="73" rx="4.5" ry="2.6" fill="#ff8fb8"/>
+<polygon points="8,16 10,21 15,21 11,24 12.5,29 8,26 3.5,29 5,24 1,21 6,21" fill="#ffd24a"/>
+<polygon points="90,12 91.6,16 96,16 92.5,18.6 93.7,23 90,20.5 86.3,23 87.5,18.6 84,16 88.4,16" fill="#ff9fcb"/>
+</g>
+</svg>

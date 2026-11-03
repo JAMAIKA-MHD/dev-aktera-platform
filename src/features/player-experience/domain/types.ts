@@ -1,6 +1,7 @@
 import type { GameType } from "./gameTypes";
 import type { IconName } from "./icons";
 import type { Locale, LocalizedText } from "./locale";
+import type { TemplateId } from "./templates";
 
 // Everything in this file is plain JSON: no functions, no React nodes, no Date objects
 // (types.test.ts fails otherwise). Behavior lives in the flow state machine, not here.
@@ -154,7 +155,7 @@ export interface ExperienceConfig {
   schemaVersion: 1;
   id: string; // UUID
   campaignId: string | null; // null = standalone (demo campaign)
-  templateId: "eight-slot"; // single template in the MVP
+  templateId: TemplateId; // picked from the template library (domain/templates.ts)
   updatedAt: string; // ISO 8601
   locales: { default: Locale; enabled: Locale[] };
   theme: ThemeTokens;
@@ -173,6 +174,7 @@ export interface ExperienceConfig {
   features: {
     sound: boolean;
     animations: boolean;
+    winIntro: boolean; // the template's scene before a win (motion.winIntro in its theme.json)
     shareBonus: false; // locked: "+1 try for a share" stays off until the server can verify shares
   };
 }

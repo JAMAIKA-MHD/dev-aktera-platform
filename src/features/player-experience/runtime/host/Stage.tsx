@@ -5,10 +5,11 @@ import type { ExperienceConfig, ScreenKey } from "../../domain/types";
 import { createLocalServices } from "../../services/createLocalServices";
 import type { ExperienceServices } from "../../services/ports";
 import { resolveAppStorage } from "../../services/storageUrl";
-import { ensureFontStylesheet } from "../../theme/fonts";
+import { ensureFontStylesheet, ensureTemplateFonts } from "../../theme/fonts";
 import { ThemeScope } from "../../theme/ThemeScope";
 import { StatusBadge } from "../frame/StatusBadge";
 import { safeAreaStyle, type SafeAreaInsets } from "../layout/safeArea";
+import { GameFrame } from "../shell/GameFrame";
 import { LayoutDebugView, ThemePresetsView } from "./DebugViews";
 import { FeedbackDebugView } from "./FeedbackDebugView";
 import { FramePreview, type FramePreviewState } from "./FramePreview";
@@ -49,14 +50,24 @@ export function Stage({ content }: { content: FrameContent }) {
   useEffect(() => {
     ensureFontStylesheet(document, config.theme.font);
   }, [config.theme.font]);
+  useEffect(() => {
+    ensureTemplateFonts(document, config.templateId);
+  }, [config.templateId]);
   return (
     <div style={safeAreaStyle(safeArea ?? null)}>
       <ThemeScope
         theme={config.theme}
         locale={locale}
+        templateId={view === "frame" ? config.templateId : undefined}
         imageUrl={imageUrl}
         className="xp-runtime flex flex-col"
       >
+        {view === "frame" && (
+          <GameFrame
+            gameType={content.campaign.gameType}
+            screen={content.screen}
+          />
+        )}
         {view === "frame" ? (
           <FramePreview
             config={config}

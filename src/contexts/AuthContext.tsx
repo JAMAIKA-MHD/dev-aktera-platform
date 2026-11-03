@@ -8,8 +8,23 @@ import React, {
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import type { NotificationSettings } from "../types";
 
 // ── DB row shapes (snake_case, 1:1 with Postgres) ──────────────────────────
+
+export type OnboardingStatus =
+  "not_started" | "in_progress" | "skipped" | "completed";
+
+/** What the checklist cannot read from the data. */
+export interface OnboardingChecklistState {
+  sandbox_tested_at?: string;
+  /** Set for accounts that were here before the setup section: they never see it. */
+  dismissed_at?: string;
+  /** "guide" or "own": how this person chose to start. */
+  setup_style?: "guide" | "own";
+  /** Closed the "You're live" message: the Overview is back to normal. */
+  setup_finished_at?: string;
+}
 
 export interface DbProfile {
   id: string;
@@ -20,6 +35,14 @@ export interface DbProfile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  /** Missing until the onboarding migration is applied: nothing starts on its own then. */
+  onboarding_status?: OnboardingStatus;
+  onboarding_step?: number;
+  onboarding_completed_at?: string | null;
+  onboarding_checklist?: OnboardingChecklistState;
+  job_title?: string | null;
+  invited_at?: string | null;
+  joined_at?: string | null;
 }
 
 export interface DbOrganization {
@@ -33,6 +56,20 @@ export interface DbOrganization {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  nif?: string | null;
+  nis?: string | null;
+  rc?: string | null;
+  ai?: string | null;
+  address?: string | null;
+  wilaya?: string | null;
+  commune?: string | null;
+  postal_code?: string | null;
+  website?: string | null;
+  industry?: string | null;
+  language?: string;
+  time_zone?: string;
+  currency?: string;
+  notification_settings?: Partial<NotificationSettings>;
 }
 
 // ── Context shape ───────────────────────────────────────────────────────────
@@ -48,6 +85,9 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Puts what was just saved in place, without reloading the screen. */
+  patchProfile: (patch: Partial<DbProfile>) => void;
+  patchOrganization: (patch: Partial<DbOrganization>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -186,6 +226,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(false);
   };
 
+  const patchProfile = useCallback(
+    (patch: Partial<DbProfile>) =>
+      setProfile((current) => (current ? { ...current, ...patch } : current)),
+    [],
+  );
+  const patchOrganization = useCallback(
+    (patch: Partial<DbOrganization>) =>
+      setOrganization((current) =>
+        current ? { ...current, ...patch } : current,
+      ),
+    [],
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -199,6 +252,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         signIn,
         signOut,
         refreshProfile,
+        patchProfile,
+        patchOrganization,
       }}
     >
       {children}

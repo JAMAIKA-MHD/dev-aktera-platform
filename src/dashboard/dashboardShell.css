@@ -1,0 +1,285 @@
+/*
+ * The frame around every dashboard page: the sidebar and its drawer, and the menus of the top bar.
+ *
+ * The sidebar never scrolls and leaves no empty block. Every size below is read from the
+ * viewport's height, and the entries are a grid of seven equal rows sharing all the height
+ * between the logo and the footer, so they always end exactly at the footer. Text, icons and
+ * rows grow with the height, so a tall screen gets larger entries rather than wider gaps.
+ * Touch screens keep 40px targets; there the footer folds into a row of icons on short screens,
+ * and a landscape phone's drawer lists its entries on two columns.
+ */
+
+.dz-side {
+  --side-brand: clamp(48px, 11vh, 120px);
+  --side-brand: clamp(48px, 11dvh, 120px);
+  --side-logo: clamp(30px, 6.5vh, 44px);
+  --side-logo: clamp(30px, 6.5dvh, 44px);
+  --side-item: clamp(30px, 7.5vh, 104px);
+  --side-item: clamp(30px, 7.5dvh, 104px);
+  --side-gap: clamp(1px, 0.8vh, 8px);
+  --side-gap: clamp(1px, 0.8dvh, 8px);
+  --side-foot-item: clamp(28px, 5vh, 64px);
+  --side-foot-item: clamp(28px, 5dvh, 64px);
+  --side-font: clamp(13px, 2.1vh, 20px);
+  --side-font: clamp(13px, 2.1dvh, 20px);
+  --side-icon: clamp(15px, 2.4vh, 24px);
+  --side-icon: clamp(15px, 2.4dvh, 24px);
+  --side-foot-font: clamp(12px, 1.8vh, 15px);
+  --side-foot-font: clamp(12px, 1.8dvh, 15px);
+  --side-rail: 80px;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+@media (pointer: coarse) {
+  .dz-side {
+    --side-item: clamp(40px, 7.5vh, 104px);
+    --side-item: clamp(40px, 7.5dvh, 104px);
+    --side-foot-item: clamp(40px, 5vh, 64px);
+    --side-foot-item: clamp(40px, 5dvh, 64px);
+    --side-gap: clamp(1px, 0.4vh, 8px);
+    --side-gap: clamp(1px, 0.4dvh, 8px);
+  }
+}
+
+.dz-side-brand {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  height: var(--side-brand);
+  padding-inline: calc((var(--side-rail) - var(--side-logo)) / 2);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dz-side-logo {
+  width: var(--side-logo);
+  height: var(--side-logo);
+}
+.dz-side-close {
+  margin-inline-start: auto;
+  margin-inline-end: -12px;
+}
+
+.dz-side-nav {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: minmax(0, 1fr);
+  /* Equal shares of all the height there is: no scrolling, and no empty block before the footer. */
+  grid-template-rows: repeat(7, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--side-gap);
+  min-height: 0;
+  padding: clamp(4px, 1.4dvh, 16px) 10px;
+  overflow: hidden;
+}
+.dz-side-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+  height: 100%;
+  max-height: var(--side-item);
+  padding-inline: 14px;
+  overflow: hidden;
+  font-size: var(--side-font);
+  white-space: nowrap;
+  & i {
+    font-size: var(--side-icon);
+  }
+}
+
+.dz-side-foot {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: clamp(4px, 1dvh, 12px) 12px;
+  padding-bottom: calc(clamp(4px, 1dvh, 12px) + env(safe-area-inset-bottom));
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dz-side-foot-link {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: var(--side-foot-item);
+  padding-inline: 12px;
+  overflow: hidden;
+  font-size: var(--side-foot-font);
+}
+.dz-side-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Short touch screens: the footer folds into a row of icons (their names stay for assistive
+   technology and in the tooltips). Open menus only: a rail has no width for a row. */
+@media (pointer: coarse) and (max-height: 540px) {
+  .dz-side[data-expanded="true"] .dz-side-foot {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  .dz-side[data-expanded="true"] .dz-side-foot-link {
+    justify-content: center;
+    width: 44px;
+    padding-inline: 0;
+    & .dz-side-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      clip-path: inset(50%);
+    }
+  }
+}
+
+/* ── Drawer (under 1024px) ────────────────────────────────────────────────── */
+
+.dz-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+.dz-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+}
+.dz-drawer-panel {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: min(280px, 86vw);
+  height: 100vh;
+  height: 100dvh;
+}
+/* A phone on its side: too short for one column. */
+@media (max-height: 479.98px) {
+  .dz-drawer-panel {
+    width: min(520px, 92vw);
+  }
+  .dz-drawer-panel .dz-side-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+  }
+  .dz-drawer-panel .dz-side-foot {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  .dz-drawer-panel .dz-side-foot-link {
+    justify-content: center;
+    width: 44px;
+    padding-inline: 0;
+    & .dz-side-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      clip-path: inset(50%);
+    }
+  }
+}
+
+/* ── Top bar: search results and menus ────────────────────────────────────── */
+
+.dz-pop-root {
+  position: relative;
+  flex: none;
+}
+.dz-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  z-index: 45;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  color: var(--ink);
+}
+.dz-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  &:hover,
+  &[data-active] {
+    background: var(--surface-hover);
+  }
+}
+.dz-pop-who {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  & p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.dz-pop-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 12px;
+  text-align: center;
+}
+.dz-pop-check {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.dz-search-pop {
+  inset-inline: 0;
+  width: auto;
+  max-height: min(420px, 60dvh);
+  overflow-y: auto;
+}
+.dz-search-group {
+  padding: 8px 10px 4px;
+}
+.dz-search-suggest {
+  padding: 4px 10px 8px;
+}
+
+@media (max-width: 767.98px) {
+  .dz-topbar {
+    padding: 10px 16px;
+  }
+}
+@media (max-width: 559.98px) {
+  .sbx-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sbx {
+    padding-inline: 6px;
+  }
+}

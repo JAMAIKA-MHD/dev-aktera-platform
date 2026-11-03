@@ -21,7 +21,8 @@ import type { FormConfig, FormFieldKey } from "./types";
 //   play ─INTERACTION_DONE→ resolving      (quiz, mystery box, Hit It: drawn after the player acts)
 //   resolving ─RESOLVED→ revealing ─REVEAL_DONE→ win | lose
 //   resolving ─FAILED→ duplicate | closed | register (invalid input) | error ─RETRY→ resolving
-//   welcome | register ─UNAVAILABLE→ closed (the campaign is closed or sold out before any draw)
+//   welcome | register ─UNAVAILABLE→ closed (the campaign is closed, sold out or not started yet,
+//   before any draw)
 
 export type FlowScreen =
   | "welcome"
@@ -73,7 +74,11 @@ export type FlowEvent =
   | { type: "CONFIRM_COUPON" }
   | { type: "RETRY" }
   | { type: "RESTART" }
-  | { type: "UNAVAILABLE"; reason: "CLOSED" | "SOLD_OUT" };
+  | {
+      type: "UNAVAILABLE";
+      reason: "CLOSED" | "SOLD_OUT" | "NOT_STARTED";
+      startsAt?: string;
+    };
 
 export type FlowCommand = "DRAW" | "CONFIRM";
 
@@ -261,6 +266,17 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
       if (state.screen !== "welcome" && state.screen !== "register") {
         return state;
       }
+      if (event.reason === "NOT_STARTED") {
+        return {
+          ...state,
+          screen: "closed",
+          error: {
+            code: "CAMPAIGN_NOT_STARTED",
+            message: "This campaign has not started yet.",
+            startsAt: event.startsAt,
+          },
+        };
+      }
       return {
         ...state,
         screen: "closed",
@@ -280,6 +296,7 @@ function failed(state: FlowState, error: ParticipationError): FlowState {
     case "ALREADY_PARTICIPATED":
       return { ...state, screen: "duplicate", error };
     case "CAMPAIGN_CLOSED":
+    case "CAMPAIGN_NOT_STARTED":
       return { ...state, screen: "closed", error };
     case "INVALID_INPUT":
       // Back to the form to fix the details; the next SUBMIT starts a new attempt.
@@ -360,6 +377,10 @@ export function buildDrawRequest(
 
 // Code shown by a forced win screen: a DEMO code, so it can never pass for a real one (B6).
 export const PREVIEW_COUPON_CODE = "DEMO-0000-0000";
+// The prize a forced win shows on a campaign that has none yet (a draft): the brand asked to
+// see its win screen, never the loss. It has no name, so the screen shows its generic label
+// (RESULT_TEXT.prizeFallback), and the DEMO code: it can never pass for a real prize.
+export const PREVIEW_PRIZE_ID = "preview-prize";
 
 const PREVIEW_ERRORS: Partial<Record<FlowScreen, ParticipationErrorCode>> = {
   duplicate: "ALREADY_PARTICIPATED",
@@ -369,7 +390,7 @@ const PREVIEW_ERRORS: Partial<Record<FlowScreen, ParticipationErrorCode>> = {
 
 // Starting state of a screen forced by the Studio preview (PlayerExperience initialScreen).
 // Nothing is drawn: a win shows the first prize of the campaign with a DEMO code (a campaign
-// without prizes can only lose), and the player has given no details nor consent, so a draw
+// without prizes yet shows a placeholder prize: a forced win is always a win), and the player has given no details nor consent, so a draw
 // started from here goes back to the form (buildDrawRequest). The runtime refuses forced
 // screens with a live gateway.
 export function createPreviewFlowState(
@@ -396,8 +417,14 @@ export function createPreviewFlowState(
     };
   }
   if (screen === "play" || screen === "resolving") return attempt;
-  const prize = campaign.prizes[0];
-  const isWinner = screen !== "lose" && prize !== undefined;
+  const prize = campaign.prizes[0] ?? {
+    id: PREVIEW_PRIZE_ID,
+    name: "",
+    winMessage: null,
+  };
+  // "revealing" stays a draw seen from the player's side: a win when there is a prize.
+  const isWinner =
+    screen === "win" || (screen === "revealing" && campaign.prizes.length > 0);
   return {
     ...attempt,
     screen: screen === "revealing" ? "revealing" : isWinner ? "win" : "lose",

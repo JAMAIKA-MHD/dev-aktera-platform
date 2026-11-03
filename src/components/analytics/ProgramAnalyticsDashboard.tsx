@@ -9,6 +9,7 @@ import {
 } from "../../lib/programAnalyticsTransforms";
 import { ProgramAnalytics, ProgramCampaignStatusCounts } from "../../types";
 import { gameMeta } from "../campaigns/campaignMeta";
+import { GameEmblem } from "../campaigns/GameEmblem";
 import { AlgeriaWilayaMap } from "./AlgeriaWilayaMap";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { SectionTitle } from "./AnalyticsControls";
@@ -132,16 +133,11 @@ const MechanicsPanel: React.FC<SectionProps> = ({ analytics }) => (
         <tbody className="divide-y divide-brand-border/30">
           {analytics.mechanics.map((row) => {
             const game = gameMeta(row.game_type);
-            const Icon = game.icon;
             return (
               <tr key={row.game_type}>
                 <td className="py-1.5 px-2">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`flex h-6 w-6 items-center justify-center rounded-lg ${game.tile}`}
-                    >
-                      <Icon className="h-3 w-3" />
-                    </span>
+                    <GameEmblem gameType={row.game_type} size={24} />
                     <div>
                       <div className="font-semibold text-brand-text">
                         {game.label}

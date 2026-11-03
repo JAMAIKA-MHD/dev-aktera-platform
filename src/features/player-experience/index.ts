@@ -27,5 +27,9 @@ export { ServicesProvider } from "./services/ServicesProvider";
 // Document of its own for the runtime (/xp-frame): loaded lazily by AppRouter.
 export { FrameHost } from "./runtime/host/FrameHost";
 
+// The template library (Studio campaigns table: the template each saved design uses).
+export { templateLabel } from "./presets/templates";
+export type { TemplateId } from "./domain/templates";
+
 export type { ExperienceConfig } from "./domain/types";
 export type { CampaignSnapshot } from "./domain/campaign";

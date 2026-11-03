@@ -741,3 +741,58 @@ export interface SupportTicketComment {
   body: string;
   createdAt: string;
 }
+
+// ── Overview ─────────────────────────────────────────────────────────────────
+
+export interface OverviewSnapshot {
+  days: number;
+  /** Every participation the account has ever had: 0 means the empty state. */
+  totalParticipants: number;
+  participants: number;
+  previousParticipants: number;
+  claimed: number;
+  redeemed: number;
+  previousClaimed: number;
+  previousRedeemed: number;
+  available: number;
+  /** Participations per day, oldest first. */
+  daily: number[];
+}
+
+export interface ActivityEntry {
+  id: string;
+  actorName: string;
+  category: "campaign" | "reward" | "team";
+  verb: string;
+  objectName: string;
+  objectId: string | null;
+  detail: string | null;
+  createdAt: string;
+}
+
+// ── Organization ─────────────────────────────────────────────────────────────
+
+export type TeamRole = "admin" | "manager" | "viewer";
+
+export interface TeamMember {
+  id: string;
+  fullName: string;
+  email: string;
+  role: "owner" | TeamRole;
+  /** Invited, and has not opened the invitation yet. */
+  pending: boolean;
+}
+
+export type NotificationAlertId =
+  "surge" | "milestone" | "stock" | "winner" | "redeemed";
+
+export interface NotificationSettings {
+  alerts: Record<NotificationAlertId, { email: boolean; inApp: boolean }>;
+  stockThreshold: string;
+  digestEnabled: boolean;
+  digestFrequency: string;
+  digestDay: string;
+  digestMonthDay: string;
+  digestTime: string;
+  recipients: string[];
+}

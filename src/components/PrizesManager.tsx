@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Gift,
   PackageSearch,
   Pencil,
   Plus,
@@ -15,6 +16,7 @@ import {
   X,
   Droplet,
 } from "lucide-react";
+import { EmptyState, ErrorState, LoadingState } from "./ui/EmptyState";
 import { motion, AnimatePresence } from "motion/react";
 import { Campaign, PrizeTemplate } from "../types";
 import { ImageUploader } from "./common/ImageUploader";
@@ -59,6 +61,11 @@ interface PrizesManagerProps {
   onDeletePrize: (id: string) => Promise<void>;
   /** A reward was clicked: open its codes (the page of the reward). */
   onOpenReward: (reward: PrizeTemplate) => void;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  /** Opens on the new-reward form: the page was reached from a "create" button. */
+  startCreating?: boolean;
 }
 
 const defaultForm = {
@@ -77,13 +84,17 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
   onUpdatePrize,
   onDeletePrize,
   onOpenReward,
+  loading = false,
+  error = null,
+  onRetry,
+  startCreating = false,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<RewardTypeFilterValue>("all");
-  const [showCreator, setShowCreator] = useState(false);
+  const [showCreator, setShowCreator] = useState(startCreating);
   const [expandedPrizeId, setExpandedPrizeId] = useState<string | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<PrizeTemplate | null>(
     null,
@@ -625,7 +636,7 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
       </div>
 
       {/* TICKET CARDS GRID (Scaled 25% smaller) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5 sm:gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         {filteredPrizes.map((prize) => {
           const isDeleteBlocked = (prize.campaignUsageCount ?? 0) > 0;
           const isExpanded = expandedPrizeId === prize.id;
@@ -1064,15 +1075,42 @@ export const PrizesManager: React.FC<PrizesManagerProps> = ({
 
         {/* Empty state */}
         {filteredPrizes.length === 0 && !showCreator && (
-          <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-card-bg rounded-3xl border border-dashed border-card-border p-8">
-            <PackageSearch className="w-10 h-10 text-brand-textMuted/50 mb-3" />
-            <h4 className="text-base font-bold text-brand-text">
-              No matching reward templates found
-            </h4>
-            <p className="text-xs sm:text-sm text-brand-textMuted mt-1">
-              Try refining your search terms or create a new custom reward
-              template.
-            </p>
+          <div className="col-span-full">
+            {error && prizes.length === 0 ? (
+              <ErrorState
+                title="Your rewards could not be loaded"
+                message={error}
+                onRetry={() => onRetry?.()}
+              />
+            ) : loading && prizes.length === 0 ? (
+              <LoadingState rows={3} label="Loading rewards" />
+            ) : prizes.length === 0 ? (
+              <EmptyState
+                icon={Gift}
+                headingLevel={3}
+                title="Your reward library is empty"
+                description="Add the Digital Items and Physical Items that players can win. You control stock and expiry."
+                primaryAction={{
+                  label: "Add a reward",
+                  onClick: () => openCreator(),
+                }}
+                hint="Tip: add rewards before creating a campaign so you can attach them as prizes."
+              />
+            ) : (
+              <EmptyState
+                icon={PackageSearch}
+                headingLevel={3}
+                title="No results for these filters"
+                description="Try another type, or search for a different name."
+                primaryAction={{
+                  label: "Clear filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setTypeFilter("all");
+                  },
+                }}
+              />
+            )}
           </div>
         )}
       </div>

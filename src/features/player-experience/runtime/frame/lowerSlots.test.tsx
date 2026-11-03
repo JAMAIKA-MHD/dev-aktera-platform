@@ -514,11 +514,16 @@ describe("keyboard", () => {
       cta: { onPrimary: () => {}, onSecondary: () => {} },
     });
     const reached: string[] = [];
-    for (let step = 0; step < 6; step++) {
+    for (let step = 0; step < 7; step++) {
       await user.tab();
-      reached.push(document.activeElement?.textContent ?? "");
+      const active = document.activeElement;
+      reached.push(
+        active?.getAttribute("aria-label") ?? active?.textContent ?? "",
+      );
     }
     expect(reached).toEqual([
+      // The player's sound button, in the header.
+      "Activer le son",
       "Lancer le jeu",
       "Voir les lots",
       "Jeu gratuit sans obligation d'achat • Une participation par numéro",

@@ -1,9 +1,14 @@
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 import { temporal, type TemporalState } from "zundo";
 import type { CampaignSnapshot } from "../domain/campaign";
-import { createDefaultExperience, DEFAULT_GAME_TYPE } from "../domain/defaults";
+import {
+  createDefaultExperience,
+  DEFAULT_GAME_TYPE,
+  screensForGame,
+} from "../domain/defaults";
 import type { GameType } from "../domain/gameTypes";
 import type { Locale } from "../domain/locale";
+import type { TemplateId } from "../domain/templates";
 import type {
   ExperienceConfig,
   FormConfig,
@@ -16,7 +21,8 @@ import type {
 import { validateExperience, type DesignIssue } from "../domain/validation";
 import { defaultScreens } from "../presets/contentDefaults";
 import { createDemoCampaign } from "../presets/demoCampaign";
-import { themeFromPreset } from "../presets/themePresets";
+import { getTemplate } from "../presets/templates";
+import { findPreset, themeFromPreset } from "../presets/themePresets";
 import type { LayoutIssue } from "../runtime/layout/layoutAudit";
 import type { ScriptedScenario } from "../services/createLocalServices";
 import { screenForPath } from "./screenForPath";
@@ -67,6 +73,9 @@ export interface StudioUi {
   mode: PreviewFlowMode;
   scenario: ScriptedScenario;
   viewport: ViewportState;
+  // The device bar's sound button: for the brand's ears only, never part of the configuration.
+  // Off until asked for, so editing stays silent.
+  previewSound: boolean;
   // A field to bring into view, set when the preview or the validation panel points at one.
   focusPath: string | null;
 }
@@ -106,6 +115,8 @@ export interface StudioState {
   updateLegal(patch: Partial<LegalConfig>): void;
   updateConfig(patch: Partial<ExperienceConfig>): void; // locales, prizeDisplay, features
   applyPreset(presetId: string): void;
+  // A template of the library, with its own palette: the only way to change templateId.
+  applyTemplate(templateId: TemplateId): void;
   // The game presentation rebuilt from the campaign (after its game changed in the Wizard).
   resetGame(): void;
   // Without a campaign only: another game for the demo campaign.
@@ -122,6 +133,7 @@ export interface StudioState {
   setLocale(locale: Locale): void;
   setMode(mode: PreviewFlowMode, scenario?: ScriptedScenario): void;
   setViewport(patch: Partial<ViewportState>): void;
+  setPreviewSound(previewSound: boolean): void;
   setSaveStatus(status: SaveStatus): void;
   setLayoutIssues(
     issues: LayoutIssue[],
@@ -191,6 +203,7 @@ export function createStudioStore(
             mode: "static", // the preview is a still picture; the journey plays in "Open in window"
             scenario: "lose",
             viewport: options.viewport ?? DEFAULT_VIEWPORT,
+            previewSound: false,
             focusPath: null,
           },
           saveStatus: "idle",
@@ -244,14 +257,43 @@ export function createStudioStore(
               ...current,
               theme: themeFromPreset(presetId),
             })),
+          // Like a preset, a template changes the look only: texts, form, legal block and
+          // game stay. Back to the classic layout, the classic style the brand had, or the
+          // default one.
+          applyTemplate: (templateId) =>
+            edit((current) => {
+              const { presetId } = getTemplate(templateId);
+              const classic = findPreset(current.theme.presetId)?.template
+                ? undefined
+                : (current.theme.presetId ?? undefined);
+              return {
+                ...current,
+                templateId,
+                theme:
+                  presetId !== null
+                    ? themeFromPreset(presetId)
+                    : current.templateId === templateId
+                      ? current.theme
+                      : themeFromPreset(classic),
+              };
+            }),
+          // The game's own screens follow, where they still hold the old game's texts.
           resetGame: () =>
-            edit((current) => ({
-              ...current,
-              game: createDefaultExperience({
-                gameType: get().campaign?.gameType ?? current.game.type,
-                campaign: get().campaign ?? undefined,
-              }).game,
-            })),
+            edit((current) => {
+              const gameType = get().campaign?.gameType ?? current.game.type;
+              return {
+                ...current,
+                game: createDefaultExperience({
+                  gameType,
+                  campaign: get().campaign ?? undefined,
+                }).game,
+                screens: screensForGame(
+                  current.screens,
+                  current.game.type,
+                  gameType,
+                ),
+              };
+            }),
           // The screens follow the new game only while they still hold the old game's
           // default texts: a brand's own wording is never replaced.
           setStandaloneGameType: (type) => {
@@ -285,6 +327,8 @@ export function createStudioStore(
                 presetId: current.theme.presetId ?? undefined,
                 brandName: current.legal.organizerName || undefined,
               }),
+              // The template is the brand's choice from the library, like its preset.
+              templateId: current.templateId,
               id: current.id,
               campaignId: current.campaignId,
             })),
@@ -335,6 +379,8 @@ export function createStudioStore(
             set((state) => ({
               ui: { ...state.ui, viewport: { ...state.ui.viewport, ...patch } },
             })),
+          setPreviewSound: (previewSound) =>
+            set((state) => ({ ui: { ...state.ui, previewSound } })),
           setSaveStatus: (saveStatus) => set({ saveStatus }),
           setLayoutIssues: (layoutIssues, layoutSize = null) =>
             set({ layoutIssues, layoutSize }),

@@ -1,0 +1,150 @@
+/* The product tour. Colors are the console's tokens. */
+
+.ot-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.ot-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: rgba(15, 23, 42, 0.62);
+}
+.ot-ring {
+  position: absolute;
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px var(--brand-soft);
+  pointer-events: none;
+}
+.ot-card {
+  position: absolute;
+  transition:
+    top 0.25s ease-out,
+    left 0.25s ease-out;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  & *,
+  & *::before,
+  & *::after {
+    box-sizing: border-box;
+  }
+  & :where(p, h2) {
+    margin: 0;
+  }
+  & :where(button, a):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+.ot-card[data-centered] {
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ot-card {
+    transition: none;
+  }
+}
+.ot-card-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: inherit;
+  padding: 16px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+}
+.ot-card[data-side] .ot-card-inner {
+  overflow: visible;
+}
+.ot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+.ot-title {
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+}
+.ot-body {
+  color: var(--ink-muted);
+}
+.ot-progress {
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--brand) var(--ot-done),
+    var(--surface-hover) var(--ot-done)
+  );
+}
+[dir="rtl"] .ot-progress {
+  background: linear-gradient(
+    to left,
+    var(--brand) var(--ot-done),
+    var(--surface-hover) var(--ot-done)
+  );
+}
+.ot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ot-skip {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ot-arrow {
+  display: none;
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: solid var(--border);
+  border-width: 1px 0 0 1px;
+  background: var(--surface);
+}
+.ot-card[data-side] .ot-arrow {
+  display: block;
+}
+.ot-card[data-side="bottom"] .ot-arrow {
+  top: -7px;
+  left: calc(var(--ot-arrow) - 6px);
+  rotate: 45deg;
+}
+.ot-card[data-side="top"] .ot-arrow {
+  bottom: -7px;
+  left: calc(var(--ot-arrow) - 6px);
+  rotate: 225deg;
+}
+.ot-card[data-side="right"] .ot-arrow {
+  left: -7px;
+  top: calc(var(--ot-arrow) - 6px);
+  rotate: -45deg;
+}
+.ot-card[data-side="left"] .ot-arrow {
+  right: -7px;
+  top: calc(var(--ot-arrow) - 6px);
+  rotate: 135deg;
+}

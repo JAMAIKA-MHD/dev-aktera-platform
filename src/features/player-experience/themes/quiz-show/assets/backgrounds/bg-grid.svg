@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04051a"/><stop offset="1" stop-color="#2b1a7a"/></linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1060"/><stop offset="1" stop-color="#05061a"/></linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7ad9" stop-opacity=".55"/><stop offset="1" stop-color="#ff7ad9" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#sky)"/>
+  <circle cx="640" cy="330" r="150" fill="#ffb020" fill-opacity=".9"/>
+  <rect y="330" width="1280" height="390" fill="url(#floor)"/>
+  <rect y="300" width="1280" height="60" fill="url(#glow)"/>
+  <g stroke="#7a5cff" stroke-width="2" stroke-opacity=".8" fill="none">
+    <line x1="640" y1="360" x2="-600" y2="720"/><line x1="640" y1="360" x2="-300" y2="720"/>
+    <line x1="640" y1="360" x2="0" y2="720"/><line x1="640" y1="360" x2="213" y2="720"/>
+    <line x1="640" y1="360" x2="426" y2="720"/><line x1="640" y1="360" x2="640" y2="720"/>
+    <line x1="640" y1="360" x2="854" y2="720"/><line x1="640" y1="360" x2="1067" y2="720"/>
+    <line x1="640" y1="360" x2="1280" y2="720"/><line x1="640" y1="360" x2="1580" y2="720"/>
+    <line x1="640" y1="360" x2="1880" y2="720"/>
+    <line x1="0" y1="372" x2="1280" y2="372"/><line x1="0" y1="392" x2="1280" y2="392"/>
+    <line x1="0" y1="420" x2="1280" y2="420"/><line x1="0" y1="458" x2="1280" y2="458"/>
+    <line x1="0" y1="510" x2="1280" y2="510"/><line x1="0" y1="582" x2="1280" y2="582"/>
+    <line x1="0" y1="680" x2="1280" y2="680"/>
+  </g>
+</svg>

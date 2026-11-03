@@ -3,6 +3,7 @@ import { DEFAULT_GAME_TYPE, createDefaultExperience } from "./defaults";
 import type { GameType } from "./gameTypes";
 import { ICON_NAMES } from "./icons";
 import { migrateExperienceConfig } from "./migrations";
+import { TEMPLATE_IDS } from "./templates";
 import type { ExperienceConfig } from "./types";
 
 // Structural validation: can this configuration be loaded and rendered safely?
@@ -237,7 +238,7 @@ export const experienceConfigSchema = z.object({
   schemaVersion: z.literal(1),
   id: idSchema,
   campaignId: idSchema.nullable(),
-  templateId: z.literal("eight-slot"),
+  templateId: z.enum(TEMPLATE_IDS),
   updatedAt: z.iso.datetime(),
   locales: z
     .object({
@@ -290,6 +291,8 @@ export const experienceConfigSchema = z.object({
   features: z.object({
     sound: z.boolean(),
     animations: z.boolean(),
+    // A design saved before it existed keeps a valid shape, with the intro on.
+    winIntro: z.boolean().default(true),
     shareBonus: z.literal(false),
   }),
 });

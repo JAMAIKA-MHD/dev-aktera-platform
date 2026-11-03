@@ -10,7 +10,8 @@ import { PATHS } from "../paths";
 // every change (expiry, stock) shows here at once.
 export default function RewardCodesPage() {
   const { rewardId = "" } = useParams();
-  const { prizes, prizeLoading, orgId, refetchPrizes } = useDashboard();
+  const { prizes, prizeLoading, orgId, refetchPrizes, campaigns } =
+    useDashboard();
   const { profile } = useAuth();
 
   const reward = prizes.find((item) => item.id === rewardId);
@@ -29,6 +30,7 @@ export default function RewardCodesPage() {
       organizationId={orgId}
       canEdit={profile?.role !== "viewer"}
       onRefreshPrizes={refetchPrizes}
+      campaigns={campaigns}
     />
   );
 }

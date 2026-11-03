@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { resolvePrizeDisplay } from "../../../domain/display";
 import { resolveText } from "../../../domain/locale";
 import { runtimeAudio } from "../../feedback/audio";
 import { vibrate } from "../../feedback/haptics";
+import { useGameTheme } from "../../../theme/GameTheme";
+import { ComicWord, useComicWord } from "../../shell/ComicWord";
 import type { GameEngineProps } from "../types";
 import { BoxFace, type BoxState } from "./BoxFace";
 
@@ -29,6 +31,12 @@ export function BoxesEngine({
   const icon = settings.boxes?.icon ?? "gift";
   const color = settings.boxes?.color ?? null;
   const fallback = config.locales.default;
+  // A lively theme (motion.games): a box leans toward the finger, the picked one bursts
+  // open with the theme's word ("BOOM!"), a losing one goes "boing" in a puff of smoke.
+  // The other boxes stay closed: what they held is not known, and is never made up.
+  const lively =
+    useGameTheme().manifest?.motion.games === "lively" && !reducedMotion;
+  const openWord = useComicWord("open");
 
   const revealComplete = useRef(onRevealComplete);
   useEffect(() => {
@@ -55,8 +63,27 @@ export function BoxesEngine({
   };
 
   const display = outcome?.prize
-    ? resolvePrizeDisplay(outcome.prize.id, config, campaign, locale)
+    ? resolvePrizeDisplay(
+        outcome.prize.id,
+        config,
+        campaign,
+        locale,
+        outcome.prize,
+      )
     : null;
+
+  const lean = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!lively || event.pointerType === "touch") return;
+    const box = event.currentTarget.getBoundingClientRect();
+    if (box.width === 0) return;
+    const side = (event.clientX - box.left) / box.width - 0.5;
+    event.currentTarget.style.setProperty(
+      "--xp-box-lean",
+      `${(side * 14).toFixed(1)}deg`,
+    );
+  };
+  const unlean = (event: PointerEvent<HTMLButtonElement>) =>
+    event.currentTarget.style.removeProperty("--xp-box-lean");
 
   const stateOf = (index: number): BoxState => {
     if (phase === "revealing") return index === picked ? "open" : "dimmed";
@@ -85,9 +112,21 @@ export function BoxesEngine({
               type="button"
               disabled={phase !== "interacting" || picked !== null}
               onClick={() => pick(index)}
+              onPointerMove={lean}
+              onPointerLeave={unlean}
+              data-xp-box-outcome={
+                open && outcome
+                  ? outcome.isWinner
+                    ? "win"
+                    : "lose"
+                  : undefined
+              }
               aria-label={`${resolveText(config.screens.play.primaryCta, locale, fallback)} ${index + 1}`}
-              className="min-h-[44px] min-w-[44px] cursor-pointer rounded-[var(--xp-radius-md)] transition-transform duration-200 ease-out enabled:hover:-translate-y-1 enabled:active:scale-[0.97] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--xp-primary)]"
+              className="relative min-h-[44px] min-w-[44px] cursor-pointer rounded-[var(--xp-radius-md)] transition-transform duration-200 ease-out enabled:hover:-translate-y-1 enabled:active:scale-[0.97] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--xp-primary)]"
             >
+              {open && lively && openWord && outcome?.isWinner && (
+                <ComicWord word={openWord} x={50} y={-6} tilt={-10} />
+              )}
               <BoxFace
                 icon={icon}
                 color={color}

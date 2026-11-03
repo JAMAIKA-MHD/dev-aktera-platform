@@ -4,9 +4,16 @@ import { createDefaultExperience } from "../../domain/defaults";
 import type { Locale } from "../../domain/locale";
 import type { ExperienceConfig } from "../../domain/types";
 import { createDemoCampaign } from "../../presets/demoCampaign";
+import { runtimeAudio } from "../feedback/audio";
 import { ensureViewportFitCover } from "../layout/safeArea";
 import { FrameExperience, frameScreen } from "./FrameExperience";
-import { FIXTURE_NAMES, getFixture, readFixtureLocale } from "./fixtures";
+import {
+  FIXTURE_NAMES,
+  getFixture,
+  readFixtureLocale,
+  readFixtureTemplate,
+} from "./fixtures";
+import type { TemplateId } from "../../domain/templates";
 import { exposeLayoutAudit, useLayoutReport } from "./layoutReport";
 import { openPopoutChannel } from "./popoutChannel";
 import {
@@ -22,11 +29,23 @@ import { frameServices, Message, Stage } from "./Stage";
 //   ?source=bridge (default)        the Studio preview sends it with postMessage
 //   ?source=popout&campaignId=…     a separate tab, fed live by the Studio that opened it
 //   ?source=local&campaignId=…      a separate tab reads it from the local repository, live
-//   ?fixture=<name>[&locale=ar]     control pages for the responsive sweep (fixtures.ts)
+//   ?fixture=<name>[&locale=ar][&template=comic-burst]
+//                                   control pages for the responsive sweep (fixtures.ts)
 // The route reads no server data and always runs on demo services (DEMO badge).
 
-function FixtureFrame({ name, locale }: { name: string; locale: Locale }) {
-  const fixture = useMemo(() => getFixture(name), [name]);
+function FixtureFrame({
+  name,
+  locale,
+  templateId,
+}: {
+  name: string;
+  locale: Locale;
+  templateId?: TemplateId;
+}) {
+  const fixture = useMemo(
+    () => getFixture(name, templateId),
+    [name, templateId],
+  );
   if (!fixture) {
     return (
       <Message title={`Unknown fixture "${name}"`}>
@@ -105,6 +124,16 @@ export function BridgeFrame({
     return unsubscribe;
   }, [bridge]);
 
+  // The Studio's sound button rules the audio here: the runtime's own button is part of the
+  // still picture. The click happened in the Studio, a parent of the same origin, so the browser
+  // lets this document unlock its audio without a gesture of its own.
+  const { sound } = ui;
+  useEffect(() => {
+    if (sound === undefined) return;
+    if (sound) runtimeAudio.unlock();
+    runtimeAudio.setMuted(!sound);
+  }, [sound]);
+
   // The preview is a picture: every gesture is stopped on its way down, before the screen
   // can hear it. A click on an editable element opens the matching field in the Studio.
   const root = useRef<HTMLDivElement>(null);
@@ -118,6 +147,8 @@ export function BridgeFrame({
     };
     const stopTouch = (event: Event) => event.stopPropagation();
     const onClick = (event: MouseEvent) => {
+      // The one control that works here: a brand editing its win need not wait for the scene.
+      if ((event.target as Element).closest(".xp-intro-skip")) return;
       const target = (event.target as Element).closest("[data-xp-edit]");
       const path = target?.getAttribute("data-xp-edit");
       if (path) bridge.post({ type: "xp:edit-target", path });
@@ -161,6 +192,7 @@ export function BridgeFrame({
           ui.mode === "static" ? (ui.screen ?? "welcome") : ui.screen,
           ui.scenario,
         )}
+        previewWinIntro={ui.winIntro}
         onFlowEvent={(screen) => bridge.post({ type: "xp:flow-event", screen })}
       />
     </div>
@@ -292,6 +324,7 @@ export function FrameHost() {
       <FixtureFrame
         name={fixture}
         locale={readFixtureLocale(params.get("locale"))}
+        templateId={readFixtureTemplate(params.get("template"))}
       />
     );
   }

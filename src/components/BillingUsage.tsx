@@ -1,6 +1,8 @@
 import React from "react";
 import {
   CheckCircle2,
+  Gauge,
+  Plus,
   Users,
   Cpu,
   Download,
@@ -13,11 +15,14 @@ import {
   Building,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useDashboard } from "../dashboard/DashboardContext";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useBilling, BillingRecord } from "../hooks/useBilling";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { PATHS } from "../dashboard/paths";
 import { PLAN_ALLOWANCES } from "../lib/planAllowances";
+import { EmptyState, ErrorState, LoadingState } from "./ui/EmptyState";
 
 const PLAN_LABELS: Record<BillingRecord["plan"], string> = {
   free: "Free Plan",
@@ -81,7 +86,7 @@ const PLAN_PRICES: Record<
 };
 
 const formatDate = (value: string | null | undefined) => {
-  if (!value) return "11 Aug 2027";
+  if (!value) return "Not scheduled yet";
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
@@ -92,7 +97,8 @@ const formatDate = (value: string | null | undefined) => {
 export const BillingUsage: React.FC = () => {
   const { organization } = useAuth();
   const { analytics } = useAnalytics();
-  const { records, loading, error } = useBilling(organization?.id);
+  const { prizes, prizeLoading } = useDashboard();
+  const { records, loading, error, refetch } = useBilling(organization?.id);
   const { theme } = useTheme();
   const { t } = useLanguage();
   const isDark = theme === "dark";
@@ -133,24 +139,24 @@ export const BillingUsage: React.FC = () => {
   const currentPlanKey = organization?.plan ?? "free";
   const currentPlan = PLAN_PRICES[currentPlanKey];
   const totalEntries = analytics?.total_entries ?? 0;
+  // A first voucher means the account has started: the prompt to begin has done its job.
+  const notStarted = totalEntries === 0 && !prizeLoading && prizes.length === 0;
   const usagePercent = Math.min(
     100,
     currentPlan.quota > 0 ? (totalEntries / currentPlan.quota) * 100 : 0,
   );
 
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-      </div>
-    );
+    return <LoadingState rows={4} label="Loading billing" />;
   }
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700 font-bold text-base">
-        {error}
-      </div>
+      <ErrorState
+        title="Your billing could not be loaded"
+        message={error}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -189,6 +195,25 @@ export const BillingUsage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {notStarted && (
+        <EmptyState
+          icon={Gauge}
+          variant="card"
+          title="You haven't used any quota yet"
+          description="Your quota starts counting once players take part in a campaign."
+          primaryAction={{
+            label: "Create a campaign",
+            icon: Plus,
+            to: PATHS.create,
+          }}
+          secondaryAction={{
+            label: "Add a voucher",
+            to: PATHS.prizesLocal,
+            state: { createReward: true },
+          }}
+        />
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
@@ -385,75 +410,75 @@ export const BillingUsage: React.FC = () => {
               </button>
             </div>
 
-            <div className="w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[500px]">
-                <thead>
-                  <tr className="border-b border-card-border text-[10px] text-brand-textMuted uppercase font-mono font-black tracking-wider">
-                    <th className="pb-3 px-2.5">Date</th>
-                    <th className="pb-3 px-2.5">Invoice #</th>
-                    <th className="pb-3 px-2.5">Amount</th>
-                    <th className="pb-3 px-2.5">Status</th>
-                    <th className="pb-3 px-2.5 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-card-border text-xs sm:text-sm font-semibold">
-                  {records.slice(0, 3).map((record) => (
-                    <tr
-                      key={record.id}
-                      className="hover:bg-card-bg-subtle transition-colors"
-                    >
-                      <td className="py-3 px-2.5 text-brand-textMuted whitespace-nowrap">
-                        {formatDate(record.period_start)}
-                      </td>
-                      <td className="py-3 px-2.5 font-mono font-bold whitespace-nowrap">
-                        INV-
-                        {new Date(record.period_start).getFullYear()}-
-                        {String(
-                          new Date(record.period_start).getMonth() + 1,
-                        ).padStart(2, "0")}
-                        -{record.id.slice(0, 3).toUpperCase()}
-                      </td>
-                      <td className="py-3 px-2.5 font-black whitespace-nowrap">
-                        {record.amount} DZD
-                      </td>
-                      <td className="py-3 px-2.5 whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            record.status === "paid"
-                              ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
-                              : "bg-amber-500/15 text-amber-500 border border-amber-500/30"
-                          }`}
-                        >
-                          {record.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2.5 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          className={`p-1.5 rounded-lg transition-colors inline-flex cursor-pointer border ${
-                            isDark
-                              ? "bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200"
-                          }`}
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
-                      </td>
+            {records.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                variant="inline"
+                headingLevel={3}
+                title="No invoices yet"
+                description="Your invoices will appear after your first billing cycle."
+              />
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[500px]">
+                  <thead>
+                    <tr className="border-b border-card-border text-[10px] text-brand-textMuted uppercase font-mono font-black tracking-wider">
+                      <th className="pb-3 px-2.5">Date</th>
+                      <th className="pb-3 px-2.5">Invoice #</th>
+                      <th className="pb-3 px-2.5">Amount</th>
+                      <th className="pb-3 px-2.5">Status</th>
+                      <th className="pb-3 px-2.5 text-right">Action</th>
                     </tr>
-                  ))}
-                  {records.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="py-8 text-center text-brand-textMuted text-xs sm:text-sm font-semibold"
+                  </thead>
+                  <tbody className="divide-y divide-card-border text-xs sm:text-sm font-semibold">
+                    {records.slice(0, 3).map((record) => (
+                      <tr
+                        key={record.id}
+                        className="hover:bg-card-bg-subtle transition-colors"
                       >
-                        No invoices found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        <td className="py-3 px-2.5 text-brand-textMuted whitespace-nowrap">
+                          {formatDate(record.period_start)}
+                        </td>
+                        <td className="py-3 px-2.5 font-mono font-bold whitespace-nowrap">
+                          INV-
+                          {new Date(record.period_start).getFullYear()}-
+                          {String(
+                            new Date(record.period_start).getMonth() + 1,
+                          ).padStart(2, "0")}
+                          -{record.id.slice(0, 3).toUpperCase()}
+                        </td>
+                        <td className="py-3 px-2.5 font-black whitespace-nowrap">
+                          {record.amount} DZD
+                        </td>
+                        <td className="py-3 px-2.5 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              record.status === "paid"
+                                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
+                                : "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                            }`}
+                          >
+                            {record.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2.5 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            className={`p-1.5 rounded-lg transition-colors inline-flex cursor-pointer border ${
+                              isDark
+                                ? "bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200"
+                            }`}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>

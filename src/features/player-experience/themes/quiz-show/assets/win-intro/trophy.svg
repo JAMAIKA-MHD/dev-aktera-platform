@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230" width="200" height="230">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe9a0"/><stop offset=".45" stop-color="#ffc83a"/><stop offset="1" stop-color="#d98200"/></linearGradient></defs>
+<path d="M46 40H18C6 40 6 92 56 108" fill="none" stroke="#b8741a" stroke-width="13" stroke-linecap="round"/>
+<path d="M154 40H182C194 40 194 92 144 108" fill="none" stroke="#b8741a" stroke-width="13" stroke-linecap="round"/>
+<path d="M40 14H160L150 86Q144 134 100 146Q56 134 50 86Z" fill="url(#g)" stroke="#b8741a" stroke-width="6" stroke-linejoin="round"/>
+<path d="M88 146H112V174H88Z" fill="#e08a00" stroke="#b8741a" stroke-width="5"/>
+<path d="M62 174H138L148 198H52Z" fill="url(#g)" stroke="#b8741a" stroke-width="6" stroke-linejoin="round"/>
+<rect x="44" y="198" width="112" height="22" rx="6" fill="#b8741a"/><rect x="72" y="204" width="56" height="10" rx="3" fill="#ffe9a0"/>
+<polygon points="100,34 112,62 142,64 118,82 126,112 100,96 74,112 82,82 58,64 88,62" fill="#fff3a0" stroke="#b8741a" stroke-width="4" stroke-linejoin="round"/>
+<path d="M58 30L64 84" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-opacity=".6"/>
+</svg>

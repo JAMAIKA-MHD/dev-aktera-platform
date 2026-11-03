@@ -26,6 +26,8 @@ import {
 
 interface AnalyticsCenterProps {
   initialCampaignId?: string | null;
+  /** Shown above the combined view's cards, under the toolbar. */
+  notice?: React.ReactNode;
 }
 
 const SECTION_TABS: { key: AnalyticsSection; label: string }[] = [
@@ -40,6 +42,7 @@ const SECTION_TABS: { key: AnalyticsSection; label: string }[] = [
  */
 export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
+  notice,
 }) => {
   const [searchParams] = useSearchParams();
   const requested = searchParams.get("section") as AnalyticsSection | null;
@@ -76,7 +79,10 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
       </div>
 
       {section === "campaigns" && (
-        <CampaignsSection initialCampaignId={initialCampaignId} />
+        <CampaignsSection
+          initialCampaignId={initialCampaignId}
+          notice={notice}
+        />
       )}
       {section === "rewards" && <RewardAnalyticsDashboard />}
       {section === "billing" && <BillingAnalyticsDashboard />}
@@ -86,6 +92,7 @@ export const AnalyticsCenter: React.FC<AnalyticsCenterProps> = ({
 
 const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
   initialCampaignId,
+  notice,
 }) => {
   const { organization: _organization } = useAuth();
   const { theme } = useTheme();
@@ -126,11 +133,21 @@ const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
   );
   const {
     generateReport,
+    generateAllReport,
     generating: generatingReport,
     error: reportError,
   } = useCampaignReport();
-  // Reports are generated per campaign; the combined view has no report yet.
-  const canGenerateReport = selectedCampId !== "all";
+  // One campaign: its own report. The combined view: the report of every campaign listed.
+  const reportCampaignIds = useMemo(
+    () => (analytics?.by_campaign ?? []).map((row) => row.campaign_id),
+    [analytics],
+  );
+  const canGenerateReport =
+    selectedCampId !== "all" || reportCampaignIds.length > 0;
+  const handleReport = () =>
+    void (selectedCampId === "all"
+      ? generateAllReport(reportCampaignIds)
+      : generateReport(selectedCampId));
 
   const selectedCampaign = useMemo(
     () =>
@@ -255,12 +272,14 @@ const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
                 ? "bg-black text-white border-slate-700 hover:bg-black/80"
                 : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
             }`}
-            onClick={() => void generateReport(selectedCampId)}
+            onClick={handleReport}
             disabled={!canGenerateReport || generatingReport}
             title={
-              canGenerateReport
+              selectedCampId !== "all"
                 ? "Download the full analytics report for this campaign"
-                : "Select a campaign to generate its report"
+                : canGenerateReport
+                  ? "Download the analytics report of all campaigns, with every chart and table"
+                  : "There is no campaign to report on yet"
             }
           >
             <i className="fa-regular fa-file-lines text-xs"></i>{" "}
@@ -274,6 +293,8 @@ const CampaignsSection: React.FC<AnalyticsCenterProps> = ({
           {reportError}
         </div>
       )}
+
+      {isAllCampaigns && notice}
 
       {selectedCampId !== "all" ? (
         <div className="mb-4">

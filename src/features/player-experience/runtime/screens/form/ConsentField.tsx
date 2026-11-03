@@ -73,7 +73,7 @@ export function ConsentField({
         >
           {checked && (
             <Check
-              className="xp-pop size-4"
+              className="xp-pop xp-check-draw size-4"
               strokeWidth={3}
               style={{ color: "var(--xp-on-primary)" }}
             />
@@ -96,7 +96,9 @@ export function ConsentField({
           openSheet?.(event.currentTarget);
         }}
         className="min-h-[44px] self-start ps-9 text-sm font-semibold underline decoration-2 underline-offset-4"
-        style={{ color: "var(--xp-primary)" }}
+        // The theme's label color where it has one: a yellow primary vanishes on a white
+        // cloud.
+        style={{ color: "var(--xp-field-label, var(--xp-primary))" }}
       >
         {readRulesLabel}
       </button>
@@ -104,7 +106,7 @@ export function ConsentField({
         id={errorId}
         aria-live="polite"
         dir="auto"
-        className="flex items-start gap-1.5 text-sm font-medium empty:hidden"
+        className="xp-field-error flex items-start gap-1.5 text-sm font-medium empty:hidden"
         style={{ color: "var(--xp-danger)" }}
       >
         {error && (

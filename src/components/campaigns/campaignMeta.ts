@@ -1,14 +1,5 @@
-// Shared vocabulary of the campaigns section (list, wizard, workspace): one label, icon and
-// colour per game type and per status, so the three screens always agree.
-import {
-  Disc,
-  Gift,
-  HelpCircle,
-  Layers,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
-
+// Shared vocabulary of the campaigns section (list, wizard, workspace): one label per game type
+// and per status, so the three screens always agree. A game's icon is its GameEmblem.
 import type { Campaign } from "../../types";
 
 export type GameType = Campaign["gameType"];
@@ -23,9 +14,6 @@ export interface GameMeta {
   description: string;
   /** What the brand has to set up for this game. */
   setup: string;
-  icon: LucideIcon;
-  /** Icon tile: tinted background and matching text colour. */
-  tile: string;
 }
 
 export const GAME_TYPES: GameMeta[] = [
@@ -35,8 +23,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Spin Wheel",
     description: "Players spin a wheel and land on a prize.",
     setup: "Prizes and their share of the wheel",
-    icon: Disc,
-    tile: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
   },
   {
     id: "scratch_card",
@@ -44,8 +30,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Scratch Card",
     description: "Players scratch a card to reveal what they won.",
     setup: "Prizes and win chance",
-    icon: Layers,
-    tile: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
   },
   {
     id: "mystery_box",
@@ -53,8 +37,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Mystery Box",
     description: "Players pick one of three boxes to open.",
     setup: "Prizes and win chance",
-    icon: Gift,
-    tile: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
   },
   {
     id: "hit_it",
@@ -62,8 +44,6 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Hit It",
     description: "Players tap a target as fast as they can in 10 seconds.",
     setup: "Number of hits needed to win",
-    icon: Zap,
-    tile: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
   },
   {
     id: "quiz",
@@ -71,42 +51,23 @@ export const GAME_TYPES: GameMeta[] = [
     label: "Quiz Challenge",
     description: "Players answer your questions to unlock the prize draw.",
     setup: "Your questions and the passing score",
-    icon: HelpCircle,
-    tile: "bg-purple-500/10 text-purple-600 dark:text-purple-300",
   },
 ];
 
 export const gameMeta = (gameType: GameType): GameMeta =>
   GAME_TYPES.find((game) => game.id === gameType) ?? GAME_TYPES[0];
 
+/** Colour pair of a status badge; the word and the dot are always there too. */
+export type BadgeTone = "success" | "warning" | "brand" | "neutral" | "outline";
+
 export const STATUS_META: Record<
   CampaignStatus,
-  { key: string; label: string; badge: string }
+  { key: string; label: string; tone: BadgeTone }
 > = {
-  active: {
-    key: "campaigns.active",
-    label: "Active",
-    badge:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-950/70 dark:text-emerald-300",
-  },
-  paused: {
-    key: "campaigns.paused",
-    label: "Paused",
-    badge:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-950/70 dark:text-amber-300",
-  },
-  draft: {
-    key: "campaigns.draft",
-    label: "Draft",
-    badge:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/40 dark:bg-blue-950/70 dark:text-blue-300",
-  },
-  archived: {
-    key: "campaigns.archived",
-    label: "Archived",
-    badge:
-      "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-600/40 dark:bg-slate-900/70 dark:text-slate-400",
-  },
+  active: { key: "campaigns.active", label: "Active", tone: "success" },
+  paused: { key: "campaigns.paused", label: "Paused", tone: "warning" },
+  draft: { key: "campaigns.draft", label: "Draft", tone: "outline" },
+  archived: { key: "campaigns.archived", label: "Archived", tone: "neutral" },
 };
 
 export const STATUS_ORDER: CampaignStatus[] = [
@@ -120,12 +81,27 @@ const DAY_MS = 86_400_000;
 const dayStart = (isoDay: string) =>
   Date.parse(`${isoDay.slice(0, 10)}T00:00:00`);
 
+/** When a campaign closes: its last day counts in full, as the server saves it (campaignService). */
+export const campaignEndTime = (endDate: string) =>
+  Date.parse(`${endDate.slice(0, 10)}T23:59:59Z`);
+
 /** Whole days from start to end, both included; null when a date is missing or reversed. */
 export function campaignDurationDays(startDate: string, endDate: string) {
   const start = dayStart(startDate);
   const end = dayStart(endDate);
   if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
   return Math.round((end - start) / DAY_MS) + 1;
+}
+
+/** A published campaign whose first day has not come yet: shown as Scheduled, not Active. */
+export function isScheduled(
+  campaign: Pick<Campaign, "status" | "startDate">,
+  now: Date = new Date(),
+) {
+  if (campaign.status !== "active") return false;
+  const start = dayStart(campaign.startDate);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return !Number.isNaN(start) && start > today.getTime();
 }
 
 export interface CampaignTimeline {
@@ -163,3 +139,15 @@ export const formatCount = (count: number) =>
   count >= 1000
     ? `${(count / 1000).toFixed(1).replace(/\.0$/, "")}K`
     : String(count);
+
+/** How a campaign decides its winners, as the card and the details page show it. */
+export function winChanceLabel(
+  campaign: Pick<
+    Campaign,
+    "winProbability" | "autoPacePrizes" | "gameLogicConfig"
+  >,
+) {
+  if (campaign.gameLogicConfig?.wizard?.method === "draw") return "Draw";
+  if (campaign.winProbability >= 100) return "100%";
+  return campaign.autoPacePrizes ? "Paced" : `${campaign.winProbability}%`;
+}
