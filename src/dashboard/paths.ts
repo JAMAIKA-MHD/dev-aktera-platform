@@ -27,6 +27,8 @@ export const PATHS = {
   account: "/account",
   accountTeam: "/account?tab=Team",
   support: "/support",
+  /** The product documentation, a page of its own (opened in a new tab). */
+  docs: "/docs",
   studio: "/studio",
   studioFor: (id: string) => `/studio/${id}`,
 } as const;
