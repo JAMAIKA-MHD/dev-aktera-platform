@@ -20,9 +20,7 @@ import { OptionalColorField } from "./OptionalColorField";
 type Scratch = NonNullable<GameSettings["scratch"]>;
 type Boxes = NonNullable<GameSettings["boxes"]>;
 type HitIt = NonNullable<GameSettings["hitIt"]>;
-type CatchIt = NonNullable<GameSettings["catchIt"]>;
 type Memory = NonNullable<GameSettings["memory"]>;
-type Spot = NonNullable<GameSettings["spot"]>;
 
 export function ScratchSettings({ scratch }: { scratch: Scratch }) {
   const updateGame = useStudio((state) => state.updateGame);
@@ -105,33 +103,6 @@ export function HitItSettings({ hitIt }: { hitIt: HitIt }) {
         purpose="logo"
         value={hitIt.targetImage}
         onChange={(targetImage) => set({ targetImage })}
-        hint="Replaces the icon, e.g. your product."
-      />
-    </PanelSection>
-  );
-}
-
-export function CatchItSettings({ catchIt }: { catchIt: CatchIt }) {
-  const updateGame = useStudio((state) => state.updateGame);
-  const set = (patch: Partial<CatchIt>) =>
-    updateGame({ catchIt: { ...catchIt, ...patch } });
-  return (
-    <PanelSection
-      title="Catch It item"
-      description="What falls through the field. Duration and number of catches are set in the campaign."
-    >
-      <IconPicker
-        label="Item icon"
-        path="game.catchIt.itemIcon"
-        value={catchIt.itemIcon}
-        onChange={(itemIcon) => itemIcon && set({ itemIcon })}
-      />
-      <ImageField
-        label="Item image"
-        path="game.catchIt.itemImage"
-        purpose="logo"
-        value={catchIt.itemImage}
-        onChange={(itemImage) => set({ itemImage })}
         hint="Replaces the icon, e.g. your product."
       />
     </PanelSection>
@@ -253,30 +224,6 @@ export function MemorySettings({ memory }: { memory: Memory }) {
           );
         })}
       </ol>
-    </PanelSection>
-  );
-}
-
-export function SpotSettings({ spot }: { spot: Spot }) {
-  const updateGame = useStudio((state) => state.updateGame);
-  const setIcon = (index: number, icon: Spot["icons"][number]) =>
-    updateGame({
-      spot: { icons: spot.icons.map((it, i) => (i === index ? icon : it)) },
-    });
-  return (
-    <PanelSection
-      title="Spot the Difference pictures"
-      description="Both pictures are drawn with these icons. The number of differences and the time are set in the campaign."
-    >
-      {spot.icons.map((icon, index) => (
-        <IconPicker
-          key={index}
-          label={`Icon ${index + 1}`}
-          path={`game.spot.icons.${index}`}
-          value={icon}
-          onChange={(next) => next && setIcon(index, next)}
-        />
-      ))}
     </PanelSection>
   );
 }

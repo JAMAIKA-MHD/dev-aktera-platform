@@ -27,9 +27,7 @@ export interface DemoCampaignRules {
     questions: Array<{ id: string; correctIndex: number }>;
   };
   hitIt?: { winThreshold: number };
-  catchIt?: { winThreshold: number };
   memory?: { pairs: number };
-  spot?: { differences: number };
 }
 
 const finite = (value: unknown): number =>
@@ -82,14 +80,8 @@ export function buildDemoRules(
   if (snapshot.rules.hitIt) {
     rules.hitIt = { winThreshold: snapshot.rules.hitIt.winThreshold };
   }
-  if (snapshot.rules.catchIt) {
-    rules.catchIt = { winThreshold: snapshot.rules.catchIt.winThreshold };
-  }
   if (snapshot.rules.memory) {
     rules.memory = { pairs: snapshot.rules.memory.pairs };
-  }
-  if (snapshot.rules.spot) {
-    rules.spot = { differences: snapshot.rules.spot.differences };
   }
   return rules;
 }
@@ -133,14 +125,8 @@ export function buildStandaloneDemoRules(
   if (campaign.gameType === "hit_it" && campaign.rules.hitIt) {
     rules.hitIt = { winThreshold: campaign.rules.hitIt.winThreshold };
   }
-  if (campaign.gameType === "catch_it" && campaign.rules.catchIt) {
-    rules.catchIt = { winThreshold: campaign.rules.catchIt.winThreshold };
-  }
   if (campaign.gameType === "memory_match" && campaign.rules.memory) {
     rules.memory = { pairs: campaign.rules.memory.pairs };
-  }
-  if (campaign.gameType === "spot_difference" && campaign.rules.spot) {
-    rules.spot = { differences: campaign.rules.spot.differences };
   }
   return rules;
 }

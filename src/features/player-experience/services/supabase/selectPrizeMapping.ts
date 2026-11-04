@@ -42,10 +42,6 @@ function toGamePayload(payload: GamePayload): Record<string, unknown> {
         moves: payload.moves,
         elapsed_ms: payload.elapsedMs,
       };
-    case "catch":
-      return { caught: payload.caught, elapsed_ms: payload.elapsedMs };
-    case "spot":
-      return { found: payload.found, elapsed_ms: payload.elapsedMs };
     case "none":
       return {};
   }

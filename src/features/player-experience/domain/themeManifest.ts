@@ -348,8 +348,6 @@ const GAME_KEYS = [
   "mystery_box",
   "hit_it",
   "memory_match",
-  "catch_it",
-  "spot_difference",
 ] as const;
 
 export const PRIZE_ART_NAMES = [

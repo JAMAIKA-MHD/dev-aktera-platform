@@ -30,30 +30,18 @@ export interface HitItRules {
   durationSeconds: number;
 }
 
-export interface CatchRules {
-  winThreshold: number; // items to catch
-  durationSeconds: number;
-}
-
 export interface MemoryRules {
   pairs: number; // pairs on the board: all of them must be found
-  durationSeconds: number;
-}
-
-export interface SpotRules {
-  differences: number; // differences hidden in the picture: all of them must be found
   durationSeconds: number;
 }
 
 export interface CampaignRules {
   quiz?: QuizRules;
   hitIt?: HitItRules;
-  catchIt?: CatchRules;
   memory?: MemoryRules;
-  spot?: SpotRules;
 }
 
-// Boards the engines can draw (and the server accepts): 3 to 8 pairs / differences.
+// Boards the engine can draw (and the server accepts): 3 to 8 pairs.
 export const BOARD_SIZE_RANGE = { min: 3, max: 8 } as const;
 const clampBoard = (value: number) =>
   Math.min(
@@ -79,9 +67,7 @@ export interface CampaignSnapshot {
 export const DEFAULT_RULES: Readonly<Required<CampaignRules>> = {
   quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
   hitIt: { winThreshold: 1, durationSeconds: 10 },
-  catchIt: { winThreshold: 10, durationSeconds: 20 },
   memory: { pairs: 6, durationSeconds: 45 },
-  spot: { differences: 5, durationSeconds: 45 },
 };
 
 // Like the RPC, accepts numbers and numeric strings; anything else falls back to the default.
@@ -137,45 +123,13 @@ export function rulesFromGameLogic(
       },
     };
   }
-  // The three newer skill games read the same two numbers the Wizard writes for every skill
-  // game (win_threshold, hit_it_duration_seconds): what the threshold counts depends on the game.
-  if (gameType === "catch_it") {
-    const defaults = DEFAULT_RULES.catchIt;
-    return {
-      catchIt: {
-        winThreshold: readNumber(
-          config,
-          "win_threshold",
-          defaults.winThreshold,
-        ),
-        durationSeconds: readNumber(
-          config,
-          "hit_it_duration_seconds",
-          defaults.durationSeconds,
-        ),
-      },
-    };
-  }
+  // Memory Match reads the same two numbers the Wizard writes for every skill game
+  // (win_threshold, hit_it_duration_seconds): the threshold counts the pairs.
   if (gameType === "memory_match") {
     const defaults = DEFAULT_RULES.memory;
     return {
       memory: {
         pairs: clampBoard(readNumber(config, "win_threshold", defaults.pairs)),
-        durationSeconds: readNumber(
-          config,
-          "hit_it_duration_seconds",
-          defaults.durationSeconds,
-        ),
-      },
-    };
-  }
-  if (gameType === "spot_difference") {
-    const defaults = DEFAULT_RULES.spot;
-    return {
-      spot: {
-        differences: clampBoard(
-          readNumber(config, "win_threshold", defaults.differences),
-        ),
         durationSeconds: readNumber(
           config,
           "hit_it_duration_seconds",

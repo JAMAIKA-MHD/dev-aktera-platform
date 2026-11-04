@@ -1,9 +1,9 @@
 import { tint } from "../../theme/recipes";
 
 // The strip above a timed game: what has been done so far against the goal, the time left as a
-// bar (a number would be one more thing to read while playing) and the goal itself. Shared by
-// the three newer skill games, so they read as one family next to Hit It: same template look
-// (games.hitIt.score and games.hitIt.timer → --xp-hit-score-*, --xp-hit-timer-*).
+// bar (a number would be one more thing to read while playing) and the goal itself. Memory
+// Match reads as one family with Hit It: same template look (games.hitIt.score and
+// games.hitIt.timer → --xp-hit-score-*, --xp-hit-timer-*).
 
 export interface RoundHudProps {
   score: string; // "3 / 6"

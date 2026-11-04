@@ -141,7 +141,6 @@ export interface GameSettings {
     translations: Record<string, QuizQuestionTranslation>;
   };
   hitIt?: { targetIcon: IconName; targetImage: AssetRef };
-  catchIt?: { itemIcon: IconName; itemImage: AssetRef };
   memory?: {
     backIcon: IconName; // the face-down side of every card
     backImage: AssetRef; // replaces backIcon
@@ -149,7 +148,6 @@ export interface GameSettings {
     // One per face, same order: the brand's own picture replaces that face's icon.
     faceImages: AssetRef[];
   };
-  spot?: { icons: IconName[] }; // 3 to 8 icons the two pictures are drawn with
 }
 
 // How a campaign prize is shown, per language. Empty values fall back to prizes.name and prizes.win_message.

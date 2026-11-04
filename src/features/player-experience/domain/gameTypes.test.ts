@@ -9,8 +9,6 @@ const ALL_GAME_TYPES: GameType[] = [
   "mystery_box",
   "hit_it",
   "memory_match",
-  "catch_it",
-  "spot_difference",
 ];
 
 describe("GameType", () => {
@@ -31,8 +29,6 @@ describe("OUTCOME_TIMING", () => {
     expect(OUTCOME_TIMING.mystery_box).toBe("after-interaction");
     expect(OUTCOME_TIMING.hit_it).toBe("after-interaction");
     expect(OUTCOME_TIMING.memory_match).toBe("after-interaction");
-    expect(OUTCOME_TIMING.catch_it).toBe("after-interaction");
-    expect(OUTCOME_TIMING.spot_difference).toBe("after-interaction");
   });
 
   it("covers every game type and nothing else", () => {

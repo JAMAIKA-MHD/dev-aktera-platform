@@ -188,12 +188,6 @@
   --cx-game-memory: #0e7490;
   --cx-game-memory-mid: #67c4d8;
   --cx-game-memory-soft: #dcf4f9;
-  --cx-game-catch: #c2410c;
-  --cx-game-catch-mid: #f4a26b;
-  --cx-game-catch-soft: #ffe9dc;
-  --cx-game-spot: #4338ca;
-  --cx-game-spot-mid: #9a95ee;
-  --cx-game-spot-soft: #e8e7fb;
 }
 
 [data-theme="dark"] {
@@ -215,12 +209,6 @@
   --cx-game-memory: #5fd3ea;
   --cx-game-memory-mid: #1b6f84;
   --cx-game-memory-soft: #0d2f38;
-  --cx-game-catch: #ff9a62;
-  --cx-game-catch-mid: #9a4210;
-  --cx-game-catch-soft: #3a1d0c;
-  --cx-game-spot: #a5a0ff;
-  --cx-game-spot-mid: #4a44b0;
-  --cx-game-spot-soft: #1d1b4a;
 }
 
 /* Set on a card or an emblem: everything inside takes that game's colours through the
@@ -255,16 +243,6 @@
   --cx-gm: var(--cx-game-memory-mid);
   --cx-gs: var(--cx-game-memory-soft);
 }
-.cx-g-catch {
-  --cx-g: var(--cx-game-catch);
-  --cx-gm: var(--cx-game-catch-mid);
-  --cx-gs: var(--cx-game-catch-soft);
-}
-.cx-g-spot {
-  --cx-g: var(--cx-game-spot);
-  --cx-gm: var(--cx-game-spot-mid);
-  --cx-gs: var(--cx-game-spot-soft);
-}
 
 /* Banner pattern of a campaign card, one per game: rings, hatch, dots, grid, stripes.
    It fades out towards the left, where the game's name is written. */
@@ -273,9 +251,7 @@
 .cx-pat-mystery::before,
 .cx-pat-hit::before,
 .cx-pat-quiz::before,
-.cx-pat-memory::before,
-.cx-pat-catch::before,
-.cx-pat-spot::before {
+.cx-pat-memory::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -316,21 +292,6 @@
     linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
     repeating-conic-gradient(var(--cx-gm) 0 25%, transparent 0 50%) 0 0 / 20px
       20px;
-}
-.cx-pat-catch::before {
-  background:
-    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
-    repeating-linear-gradient(
-      100deg,
-      transparent 0 14px,
-      var(--cx-gm) 14px 15px
-    );
-}
-.cx-pat-spot::before {
-  background:
-    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
-    radial-gradient(circle at 50% 50%, transparent 5px, var(--cx-gm) 5px 6px,
-      transparent 6px) 0 0 / 22px 22px;
 }
 
 /* Native dropdown lists (select) follow the dark theme instead of opening white. */

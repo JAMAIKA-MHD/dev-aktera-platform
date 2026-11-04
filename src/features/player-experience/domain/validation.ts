@@ -439,9 +439,6 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
   if (game.type === "hit_it" && game.hitIt) {
     images.push(["game.hitIt.targetImage", game.hitIt.targetImage]);
   }
-  if (game.type === "catch_it" && game.catchIt) {
-    images.push(["game.catchIt.itemImage", game.catchIt.itemImage]);
-  }
   if (game.type === "memory_match" && game.memory) {
     images.push(["game.memory.backImage", game.memory.backImage]);
     (game.memory.faceImages ?? []).forEach((image, index) =>

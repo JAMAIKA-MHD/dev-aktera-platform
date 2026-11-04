@@ -54,25 +54,6 @@ export const MECHANICS_REGISTRY: readonly Mechanic[] = [
     },
   },
   {
-    id: "catch_it",
-    layer: "engagement",
-    category: "skill",
-    label: "Catch It",
-    gameType: "catch_it",
-    skill: {
-      scoreLabel: "Items to catch to win",
-      scoreHint:
-        "Items fall through the field; the round ends as soon as this many are caught.",
-      scoreMin: 3,
-      scoreMax: 40,
-      defaultScore: 12,
-      durationMin: 10,
-      durationMax: 60,
-      defaultDuration: 20,
-      describe: (score) => `catch ${score} items`,
-    },
-  },
-  {
     id: "memory_match",
     layer: "engagement",
     category: "skill",
@@ -89,25 +70,6 @@ export const MECHANICS_REGISTRY: readonly Mechanic[] = [
       durationMax: 90,
       defaultDuration: 45,
       describe: (score) => `${score} pairs`,
-    },
-  },
-  {
-    id: "spot_difference",
-    layer: "engagement",
-    category: "skill",
-    label: "Spot the Difference",
-    gameType: "spot_difference",
-    skill: {
-      scoreLabel: "Differences to find",
-      scoreHint:
-        "The player must find every difference before the time runs out (3 to 8). A wrong tap costs 2 seconds.",
-      scoreMin: 3,
-      scoreMax: 8,
-      defaultScore: 5,
-      durationMin: 20,
-      durationMax: 90,
-      defaultDuration: 45,
-      describe: (score) => `${score} differences`,
     },
   },
   {

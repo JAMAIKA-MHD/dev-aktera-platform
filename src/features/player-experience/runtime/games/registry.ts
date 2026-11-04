@@ -1,7 +1,6 @@
 import { lazy } from "react";
 import {
   DEFAULT_MEMORY_FACES,
-  DEFAULT_SPOT_ICONS,
   buildDefaultWheelSegments,
   emptyMemoryFaceImages,
 } from "../../domain/defaults";
@@ -120,36 +119,6 @@ export const registry: GameRegistry = {
       },
     },
     labels: GAME_LABELS.memory_match,
-    autoCaption,
-  },
-  catch_it: {
-    Engine: lazy(() =>
-      import("./catchIt/CatchEngine").then((module) => ({
-        default: module.CatchEngine,
-      })),
-    ),
-    Teaser: lazy(() =>
-      import("./catchIt/CatchTeaser").then((module) => ({
-        default: module.CatchTeaser,
-      })),
-    ),
-    defaultSettings: { catchIt: { itemIcon: "star", itemImage: null } },
-    labels: GAME_LABELS.catch_it,
-    autoCaption,
-  },
-  spot_difference: {
-    Engine: lazy(() =>
-      import("./spot/SpotEngine").then((module) => ({
-        default: module.SpotEngine,
-      })),
-    ),
-    Teaser: lazy(() =>
-      import("./spot/SpotTeaser").then((module) => ({
-        default: module.SpotTeaser,
-      })),
-    ),
-    defaultSettings: { spot: { icons: [...DEFAULT_SPOT_ICONS] } },
-    labels: GAME_LABELS.spot_difference,
     autoCaption,
   },
 };

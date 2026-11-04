@@ -31,8 +31,7 @@ import { createUuid } from "./uuid";
 
 export const DEFAULT_GAME_TYPE: GameType = "lucky_wheel";
 
-// Presentation defaults of the memory and spot-the-difference boards (8 card faces: a board of
-// N pairs uses the first N; 6 scene icons).
+// Presentation defaults of the memory board: 8 card faces, a board of N pairs uses the first N.
 export const DEFAULT_MEMORY_FACES: readonly IconName[] = [
   "star",
   "gem",
@@ -46,14 +45,6 @@ export const DEFAULT_MEMORY_FACES: readonly IconName[] = [
 // No picture of the brand on any face: every card shows its icon.
 export const emptyMemoryFaceImages = (): AssetRef[] =>
   DEFAULT_MEMORY_FACES.map(() => null);
-export const DEFAULT_SPOT_ICONS: readonly IconName[] = [
-  "star",
-  "gem",
-  "gift",
-  "trophy",
-  "crown",
-  "flame",
-];
 export const DEFAULT_POLICY_VERSION = "2026-09-01";
 
 export const MIN_WHEEL_SEGMENTS = 4;
@@ -141,9 +132,6 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
     case "hit_it":
       settings.hitIt = { targetIcon: "target", targetImage: null };
       break;
-    case "catch_it":
-      settings.catchIt = { itemIcon: "star", itemImage: null };
-      break;
     case "memory_match":
       settings.memory = {
         backIcon: "help-circle",
@@ -151,9 +139,6 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
         faces: [...DEFAULT_MEMORY_FACES],
         faceImages: emptyMemoryFaceImages(),
       };
-      break;
-    case "spot_difference":
-      settings.spot = { icons: [...DEFAULT_SPOT_ICONS] };
       break;
   }
   return settings;

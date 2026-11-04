@@ -51,22 +51,6 @@ export function autoCaption(
         campaign.rules.memory ?? DEFAULT_RULES.memory;
       return fillCaption(template, { count: pairs, duration: durationSeconds });
     }
-    case "catch_it": {
-      const { winThreshold, durationSeconds } =
-        campaign.rules.catchIt ?? DEFAULT_RULES.catchIt;
-      return fillCaption(template, {
-        threshold: winThreshold,
-        duration: durationSeconds,
-      });
-    }
-    case "spot_difference": {
-      const { differences, durationSeconds } =
-        campaign.rules.spot ?? DEFAULT_RULES.spot;
-      return fillCaption(template, {
-        count: differences,
-        duration: durationSeconds,
-      });
-    }
     default:
       return template;
   }

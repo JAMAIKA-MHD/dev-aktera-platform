@@ -6,15 +6,7 @@ import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import type { GameType } from "./campaignMeta";
 
-type GameKey =
-  | "wheel"
-  | "scratch"
-  | "mystery"
-  | "hit"
-  | "quiz"
-  | "memory"
-  | "catch"
-  | "spot";
+type GameKey = "wheel" | "scratch" | "mystery" | "hit" | "quiz" | "memory";
 
 const GAME_KEY: Record<GameType, GameKey> = {
   lucky_wheel: "wheel",
@@ -22,8 +14,6 @@ const GAME_KEY: Record<GameType, GameKey> = {
   mystery_box: "mystery",
   hit_it: "hit",
   memory_match: "memory",
-  catch_it: "catch",
-  spot_difference: "spot",
   quiz: "quiz",
 };
 
@@ -148,40 +138,6 @@ const DRAWINGS: Record<GameKey, ReactNode> = {
         className={M}
       />
       <circle cx="14.5" cy="22.5" r="3.2" className={W} />
-    </>
-  ),
-  // Falling items and a hand-sized catch ring.
-  catch: (
-    <>
-      <circle cx="14" cy="12" r="6" className={S} />
-      <circle cx="33" cy="19" r="5" className={M} />
-      <circle cx="21" cy="30" r="4" className={M} />
-      <path
-        d="M7 40h34"
-        className={SURFACE_LINE}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 40a14 8 0 0 1 28 0"
-        className="fill-none stroke-cx-game [stroke-width:3.2]"
-        strokeLinecap="round"
-      />
-    </>
-  ),
-  // Two pictures side by side with a ring around the difference.
-  spot: (
-    <>
-      <rect x="4" y="9" width="18.5" height="30" rx="4" className={S} />
-      <rect x="25.5" y="9" width="18.5" height="30" rx="4" className={S} />
-      <circle cx="13" cy="24" r="4" className={W} />
-      <circle cx="34.5" cy="24" r="4" className={M} />
-      <circle
-        cx="34.5"
-        cy="24"
-        r="7.6"
-        className="fill-none stroke-cx-surface [stroke-width:2.4]"
-      />
     </>
   ),
   // Speech bubble with a question mark and a check.

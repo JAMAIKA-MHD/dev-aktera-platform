@@ -1,13 +1,13 @@
--- Three new skill games: memory_match, catch_it, spot_difference.
+-- A new skill game: memory_match.
 --
--- 1. campaigns.game_type accepts them.
+-- 1. campaigns.game_type accepts it.
 -- 2. json_number: a number read from JSON that never raises (a payload is client input).
--- 3. resolve_game_outcome judges them before any draw, like hit_it and quiz: a failed game
+-- 3. resolve_game_outcome judges it before any draw, like hit_it and quiz: a failed game
 --    returns a losing outcome without drawing, a passed one draws with p_quiz_passed = true.
 --    The client reports what the player did and how long it took; the server only accepts
 --    numbers that are plausible for the campaign's own goal and time limit. Rules come from
---    game_logic_config: win_threshold (items / pairs / differences) and hit_it_duration_seconds,
---    the two numbers the Wizard writes for every skill game.
+--    game_logic_config: win_threshold (pairs) and hit_it_duration_seconds, the two numbers
+--    the Wizard writes for every skill game.
 -- Idempotent: safe to run twice.
 
 ALTER TABLE public.campaigns DROP CONSTRAINT IF EXISTS campaigns_game_type_check;
@@ -15,7 +15,7 @@ ALTER TABLE public.campaigns
   ADD CONSTRAINT campaigns_game_type_check
   CHECK (game_type IN (
     'lucky_wheel', 'quiz', 'scratch_card', 'mystery_box', 'hit_it',
-    'memory_match', 'catch_it', 'spot_difference'
+    'memory_match'
   ));
 
 CREATE OR REPLACE FUNCTION public.json_number(
@@ -80,7 +80,7 @@ DECLARE
   v_hits INT := 0;
   v_win_threshold INT := 0;
 
-  -- Memory Match, Catch It, Spot the Difference vars
+  -- Memory Match vars
   v_required INT := 0;
   v_score NUMERIC := 0;
   v_moves NUMERIC := 0;
@@ -153,26 +153,6 @@ BEGIN
     END IF;
     v_draw_result := v_draw_result || jsonb_build_object('hits', v_hits, 'passed', v_passed);
 
-  ELSIF v_game_type = 'catch_it' THEN
-    -- Items caught before the clock ran out. The engine ends the round at the goal, so the
-    -- numbers are checked for plausibility: nobody catches faster than items can appear
-    -- (one every 300 ms at the very least) nor after the time limit.
-    v_win_threshold := GREATEST(1, public.json_number(v_config, 'win_threshold', 10))::INT;
-    v_duration_ms := GREATEST(1, public.json_number(v_config, 'hit_it_duration_seconds', 20)) * 1000;
-    v_score := public.json_number(p_payload, 'caught', 0);
-    v_elapsed_ms := public.json_number(p_payload, 'elapsed_ms', 0);
-    v_passed := v_score >= v_win_threshold
-      AND v_score <= CEIL(v_duration_ms / 300) + 2
-      AND v_elapsed_ms >= (v_win_threshold - 1) * 300
-      AND v_elapsed_ms <= v_duration_ms + 3000;
-
-    IF v_passed THEN
-      v_draw_result := public.draw_and_claim_campaign_prize(p_campaign_id, true);
-    ELSE
-      v_draw_result := v_lost;
-    END IF;
-    v_draw_result := v_draw_result || jsonb_build_object('caught', v_score, 'passed', v_passed);
-
   ELSIF v_game_type = 'memory_match' THEN
     -- Every pair of the board found, in at least one move per pair, no faster than a card can be
     -- turned (600 ms per pair) and within the time limit.
@@ -192,24 +172,6 @@ BEGIN
       v_draw_result := v_lost;
     END IF;
     v_draw_result := v_draw_result || jsonb_build_object('pairs_matched', v_score, 'passed', v_passed);
-
-  ELSIF v_game_type = 'spot_difference' THEN
-    -- Every difference found, no faster than 800 ms each and within the time limit (a wrong tap
-    -- only takes time off the player's clock, never off the wall clock checked here).
-    v_required := LEAST(8, GREATEST(3, ROUND(public.json_number(v_config, 'win_threshold', 5))))::INT;
-    v_duration_ms := GREATEST(1, public.json_number(v_config, 'hit_it_duration_seconds', 45)) * 1000;
-    v_score := public.json_number(p_payload, 'found', 0);
-    v_elapsed_ms := public.json_number(p_payload, 'elapsed_ms', 0);
-    v_passed := v_score >= v_required
-      AND v_elapsed_ms >= v_required * 800
-      AND v_elapsed_ms <= v_duration_ms + 3000;
-
-    IF v_passed THEN
-      v_draw_result := public.draw_and_claim_campaign_prize(p_campaign_id, true);
-    ELSE
-      v_draw_result := v_lost;
-    END IF;
-    v_draw_result := v_draw_result || jsonb_build_object('found', v_score, 'passed', v_passed);
 
   ELSE
     -- Scratch, Mystery Box, Lucky Wheel (no skill game, just the draw)

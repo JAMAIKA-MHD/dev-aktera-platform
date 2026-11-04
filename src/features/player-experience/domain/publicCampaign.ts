@@ -31,8 +31,6 @@ const GAME_TYPES = [
   "mystery_box",
   "hit_it",
   "memory_match",
-  "catch_it",
-  "spot_difference",
 ] as const satisfies readonly GameType[];
 
 const publicExperienceSchema = z.object({

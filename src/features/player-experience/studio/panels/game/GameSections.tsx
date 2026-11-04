@@ -5,11 +5,9 @@ import { useStudio } from "../../StudioContext";
 import { PanelIssues, PanelSection } from "../PanelLayout";
 import {
   BoxesSettings,
-  CatchItSettings,
   HitItSettings,
   MemorySettings,
   ScratchSettings,
-  SpotSettings,
 } from "./GameSettings";
 import { PrizeDisplayEditor } from "./PrizeDisplayEditor";
 import { QuizTranslationsEditor } from "./QuizTranslationsEditor";
@@ -79,14 +77,8 @@ export function GameSections() {
       {game.type === "hit_it" && game.hitIt && (
         <HitItSettings hitIt={game.hitIt} />
       )}
-      {game.type === "catch_it" && game.catchIt && (
-        <CatchItSettings catchIt={game.catchIt} />
-      )}
       {game.type === "memory_match" && game.memory && (
         <MemorySettings memory={game.memory} />
-      )}
-      {game.type === "spot_difference" && game.spot && (
-        <SpotSettings spot={game.spot} />
       )}
       {game.type === "quiz" && <QuizTranslationsEditor />}
     </>
