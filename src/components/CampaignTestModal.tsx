@@ -85,6 +85,8 @@ export const CampaignTestModal: React.FC<CampaignTestModalProps> = ({
         return Math.floor(10 + Math.random() * 3);
       case "memory_match":
         return Math.floor(25 + Math.random() * 20);
+      case "choose_brand":
+        return Math.floor(10 + Math.random() * 12);
       case "scratch_card":
         return Math.floor(6 + Math.random() * 8);
       case "mystery_box":

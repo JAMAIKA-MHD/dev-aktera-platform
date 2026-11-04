@@ -10,6 +10,9 @@ import type { Campaign, PrizeTemplate, QuizQuestion } from "../../types";
 import type { GameType } from "../campaigns/campaignMeta";
 import {
   MECHANICS_REGISTRY,
+  engagementDefaults,
+  forcesGuaranteed,
+  isQuizEngagement,
   mechanicById,
   resolveGameType,
   wizardFromCampaign,
@@ -48,7 +51,7 @@ export interface WizardForm {
   winProbability: number;
   /** Instant win, probabilistic odds: the win chance is calculated by AKTERA. */
   autoPace: boolean;
-  /** Knowledge: every question written so far; the first `questionCount` are played. */
+  /** Quiz: every question written so far; the first `questionCount` are played. */
   questions: QuizQuestion[];
   questionCount: number;
   prizes: PrizeLine[];
@@ -180,6 +183,7 @@ export function playingGame(form: WizardForm, gameType: GameType): WizardForm {
         ...form.w,
         category: engagement.category as WizardConfig["category"],
         engagementId: engagement.id,
+        ...engagementDefaults(engagement),
       },
     };
   }
@@ -201,8 +205,11 @@ export function playingGame(form: WizardForm, gameType: GameType): WizardForm {
 
 export const gameTypeOf = (form: WizardForm) => resolveGameType(form.w);
 export const isDraw = (form: WizardForm) => form.w.method === "draw";
+/** Guaranteed: picked by the brand, or the only instant win of a preference game. */
 export const isGuaranteed = (form: WizardForm) =>
-  !isDraw(form) && form.w.mode === "guaranteed";
+  !isDraw(form) && (form.w.mode === "guaranteed" || forcesGuaranteed(form.w));
+/** The quiz's questions, played and saved only by a quiz. */
+export const isQuiz = (form: WizardForm) => isQuizEngagement(form.w);
 /** A draw whose prizes and messages the brand handles itself. */
 export const drawHandledByBrand = (form: WizardForm) =>
   isDraw(form) && form.w.draw.manageStock !== true;
@@ -288,7 +295,7 @@ export function validateStep(
       }),
     );
   }
-  if (step === 2 && w.category === "knowledge") {
+  if (step === 2 && isQuiz(form)) {
     return fieldErrors(
       quizSchema.safeParse({ questions: shownQuestions(form) }),
     );
@@ -373,7 +380,7 @@ export function savedGameLogic(form: WizardForm, base: Campaign | null) {
       win_threshold: w.targetScore,
       hit_it_duration_seconds: w.durationSeconds,
     }),
-    ...(w.category === "knowledge" && {
+    ...(isQuiz(form) && {
       pass_threshold_percentage: w.passPercent,
     }),
     // A draw that Aktera does not manage keeps no messages.
@@ -418,7 +425,7 @@ export function previewCampaign(
     prizes: form.prizes
       .filter((line) => line.templateId && line.quantity > 0)
       .map((line, i) => ({ ...line, id: line.id ?? `draft-${i}` })),
-    questions: w.category === "knowledge" ? shownQuestions(form) : [],
+    questions: isQuiz(form) ? shownQuestions(form) : [],
     participantsCount: 0,
     rewardsClaimed: 0,
     startDate: form.startDate,
@@ -460,9 +467,10 @@ export function engagementSettings(form: WizardForm) {
       setup?.describe(w.targetScore) ?? `${w.targetScore} points to win`
     }`;
   }
-  if (w.category === "knowledge") {
+  if (isQuiz(form)) {
     return `${form.questionCount} ${form.questionCount === 1 ? "question" : "questions"} · pass at ${w.passPercent}%`;
   }
+  if (w.category === "knowledge") return "Rounds set in the Player Studio";
   return "No game settings";
 }
 

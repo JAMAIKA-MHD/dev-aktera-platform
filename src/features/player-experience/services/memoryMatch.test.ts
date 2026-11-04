@@ -59,4 +59,21 @@ describe("select-prize body", () => {
       body({ kind: "memory", pairs: 6, moves: 9, elapsedMs: 21000 }),
     ).toEqual({ pairs_matched: 6, moves: 9, elapsed_ms: 21000 });
   });
+
+  it("sends the Choose Your Brand picks as select-prize stores them", () => {
+    expect(
+      body({
+        kind: "choices",
+        picks: [
+          { roundId: "r-1", side: "left", label: "Classique" },
+          { roundId: "r-2", side: "right", label: "" },
+        ],
+      }),
+    ).toEqual({
+      choices: [
+        { round_id: "r-1", side: "left", label: "Classique" },
+        { round_id: "r-2", side: "right", label: "" },
+      ],
+    });
+  });
 });

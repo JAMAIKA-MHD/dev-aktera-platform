@@ -80,6 +80,7 @@ describe("registry", () => {
       quiz: "quiz",
       hit_it: "hitIt",
       memory_match: "memory",
+      choose_brand: "chooseBrand",
     };
     for (const gameType of GAME_TYPES) {
       const keys = Object.keys(registry[gameType].defaultSettings);

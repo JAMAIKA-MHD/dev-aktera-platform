@@ -1,5 +1,6 @@
 // Step 2, layer 1 (engagement): what the player does. A skill game or a quiz has its own
-// settings; luck has none — its mechanic is the way the reward is revealed (step 3).
+// settings; Choose Your Brand's rounds are set in the Player Studio; luck has none — its
+// mechanic is the way the reward is revealed (step 3).
 import { Info, Plus, Trash2 } from "lucide-react";
 
 import type { QuizQuestion } from "../../types";
@@ -7,6 +8,8 @@ import { cn } from "../../lib/utils";
 import { CxButton, cxFocus } from "../campaigns/campaignUi";
 import { GameEmblem } from "../campaigns/GameEmblem";
 import {
+  engagementDefaults,
+  isQuizEngagement,
   mechanicById,
   mechanicsFor,
   type EngagementCategory,
@@ -36,7 +39,7 @@ export const CATEGORIES: {
   {
     id: "knowledge",
     title: "Knowledge-based",
-    description: "Trivia and diagnostics",
+    description: "Trivia, diagnostics and preferences",
   },
   { id: "luck", title: "Luck", description: "A chance micro-action" },
 ];
@@ -268,11 +271,8 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
                 onSelect={() =>
                   patch({
                     engagementId: mechanic.id,
-                    // Each game starts from its own goal and time limit.
-                    ...(mechanic.skill && {
-                      targetScore: mechanic.skill.defaultScore,
-                      durationSeconds: mechanic.skill.defaultDuration,
-                    }),
+                    // Its own goal and time limit, or a draw for a preference game.
+                    ...engagementDefaults(mechanic),
                   })
                 }
               />
@@ -323,7 +323,28 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
         </StepPanel>
       )}
 
-      {w.category === "knowledge" && (
+      {w.category === "knowledge" && !isQuizEngagement(w) && (
+        <StepPanel
+          title="Choose Your Brand settings"
+          description="What players see in each round is designed in the Player Studio."
+        >
+          <div className="flex items-start gap-3 rounded-cx-md bg-cx-brand-soft px-4 py-3 text-[13px] leading-5 text-cx-ink">
+            <Info
+              className="mt-0.5 size-4 shrink-0 text-cx-brand-text"
+              aria-hidden
+            />
+            <p>
+              <strong>No right or wrong answer.</strong> Players pick the left
+              or the right picture of each round, and their picks are saved with
+              their entry. The rounds and their pictures are set in the Player
+              Studio. The reward is a draw by default; an instant win is always
+              guaranteed (100% Gagnant).
+            </p>
+          </div>
+        </StepPanel>
+      )}
+
+      {isQuizEngagement(w) && (
         <StepPanel
           title="Quiz settings"
           description="How many questions players answer and the score they need to win."

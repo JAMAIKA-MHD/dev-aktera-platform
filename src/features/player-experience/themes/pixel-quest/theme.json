@@ -583,6 +583,26 @@
         "coins": "assets/win-intro/coin.svg",
         "trophy": "assets/heroes/trophy-small.svg"
       }
+    },
+    "choice": {
+      "card": "#FFFFFF",
+      "border": "@ink",
+      "borderWidth": "0.2rem",
+      "radius": "0",
+      "shadow": "0.25rem 0.25rem 0 #8FD0EE",
+      "icon": "#0F2A66",
+      "label": "#FFF4C2",
+      "labelText": "#0F2A66",
+      "labelFont": "ui",
+      "prompt": "#0F2A66",
+      "promptFont": "display",
+      "picked": "@accent",
+      "vs": "@primary",
+      "vsText": "#5A2410",
+      "progress": {
+        "fill": "@accent",
+        "track": "#C7CFDD"
+      }
     }
   },
   "prizes": {},

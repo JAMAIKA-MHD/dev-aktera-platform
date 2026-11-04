@@ -112,6 +112,19 @@ const WELCOME: Record<GameType, ScreenCopy> = {
     ),
     cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
   },
+  choose_brand: {
+    title: localized(
+      "Choisissez votre préféré",
+      "اختر المفضّل لديك",
+      "Choose your favourite",
+    ),
+    subtitle: localized(
+      "À chaque manche, deux choix : touchez celui que vous préférez.",
+      "في كل جولة خياران: المس الذي تفضّله.",
+      "Two options each round: tap the one you like best.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+  },
 };
 
 const PLAY: Record<GameType, ScreenCopy> = {
@@ -176,6 +189,15 @@ const PLAY: Record<GameType, ScreenCopy> = {
     cta: localized("Commencer", "ابدأ", "Start"),
     reinforcement: "timer",
   },
+  choose_brand: {
+    title: localized("À vous de choisir", "القرار لك", "Your call"),
+    subtitle: localized(
+      "Gauche ou droite : il n'y a pas de mauvaise réponse.",
+      "يسار أو يمين: لا توجد إجابة خاطئة.",
+      "Left or right: there is no wrong answer.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+  },
 };
 
 const REGISTER: ScreenCopy = {
@@ -238,6 +260,7 @@ export const DEFAULT_SCREEN_CONTENT: Readonly<
   mystery_box: defaultScreens("mystery_box"),
   hit_it: defaultScreens("hit_it"),
   memory_match: defaultScreens("memory_match"),
+  choose_brand: defaultScreens("choose_brand"),
 };
 
 // Texts of the waiting and status screens, which brands do not edit (see ScreenKey).
@@ -489,7 +512,47 @@ export const TEASER_CAPTIONS: Readonly<Record<GameType, LocalizedText>> = {
     "{count} أزواج في {duration} ثانية",
     "{count} pairs in {duration}s",
   ),
+  choose_brand: localized(
+    "Gauche ou droite ? À vous de choisir",
+    "يسار أم يمين؟ القرار لك",
+    "Left or right? Your call",
+  ),
 };
+
+// Choose Your Brand: what a new campaign starts with, before the brand sets its own pictures.
+export const CHOICE_PROMPT = localized(
+  "Lequel préférez-vous ?",
+  "أيهما تفضّل؟",
+  "Which one do you prefer?",
+);
+export const CHOICE_THANKS = localized(
+  "Merci ! Voici vos choix",
+  "شكراً! هذه اختياراتك",
+  "Thanks! Here are your picks",
+);
+export const DEFAULT_CHOICE_ROUNDS = [
+  {
+    left: { label: localized("Classique", "كلاسيكي", "Classic"), icon: "star" },
+    right: { label: localized("Nouveauté", "جديد", "New"), icon: "sparkles" },
+  },
+  {
+    left: { label: localized("Cadeau", "هدية", "Gift"), icon: "gift" },
+    right: {
+      label: localized("Réduction", "تخفيض", "Discount"),
+      icon: "percent",
+    },
+  },
+  {
+    left: {
+      label: localized("En boutique", "في المتجر", "In store"),
+      icon: "shopping-bag",
+    },
+    right: {
+      label: localized("En ligne", "عبر الإنترنت", "Online"),
+      icon: "wifi",
+    },
+  },
+] as const;
 
 // A campaign asking for a single hit would otherwise read "1 touches" (T5.7). One threshold,
 // one wording — the only mechanic whose caption counts something that can be exactly one.

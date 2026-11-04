@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import {
   DEFAULT_MEMORY_FACES,
+  buildDefaultChoiceRounds,
   buildDefaultWheelSegments,
   emptyMemoryFaceImages,
 } from "../../domain/defaults";
@@ -119,6 +120,21 @@ export const registry: GameRegistry = {
       },
     },
     labels: GAME_LABELS.memory_match,
+    autoCaption,
+  },
+  choose_brand: {
+    Engine: lazy(() =>
+      import("./chooseBrand/ChooseBrandEngine").then((module) => ({
+        default: module.ChooseBrandEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./chooseBrand/ChooseBrandTeaser").then((module) => ({
+        default: module.ChooseBrandTeaser,
+      })),
+    ),
+    defaultSettings: { chooseBrand: { rounds: buildDefaultChoiceRounds() } },
+    labels: GAME_LABELS.choose_brand,
     autoCaption,
   },
 };

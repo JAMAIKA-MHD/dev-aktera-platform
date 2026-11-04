@@ -170,7 +170,8 @@ export interface SaveCampaignInput {
       | "scratch_card"
       | "mystery_box"
       | "hit_it"
-      | "memory_match";
+      | "memory_match"
+      | "choose_brand";
     gameLogicConfig?: any;
     startDate: string;
     endDate: string;

@@ -92,6 +92,10 @@ export const GAME_TYPES = {
   },
   hit_it: { label: "Hit It", caption: "Tap fast to score" },
   memory_match: { label: "Memory Match", caption: "Find every pair in time" },
+  choose_brand: {
+    label: "Choose Your Brand",
+    caption: "Pick a favourite, round after round",
+  },
 } as const satisfies Record<
   Campaign["gameType"],
   { label: string; caption: string }

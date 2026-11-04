@@ -23,6 +23,7 @@ import {
   formatDateTime,
   gameTypeOf,
   isDraw,
+  isGuaranteed,
   maxEntriesLabel,
   revealLabel,
   rewardModeLabel,
@@ -204,7 +205,7 @@ export function StepReview({
                 <Row label="Method">Instant win</Row>
                 <Row label="Mode">{rewardModeLabel(form)}</Row>
                 <Row label="Reveal">{revealLabel(form)}</Row>
-                {w.mode === "probabilistic" && (
+                {!isGuaranteed(form) && (
                   <Row label="Consolation">{w.consolation ? "On" : "Off"}</Row>
                 )}
               </>

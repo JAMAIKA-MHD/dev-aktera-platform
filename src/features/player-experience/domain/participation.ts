@@ -18,7 +18,15 @@ export type GamePayload =
   | { kind: "hitIt"; hits: number }
   // Memory Match reports what the player did and how long it took; the server checks the
   // numbers are plausible before it lets them open the prize draw.
-  | { kind: "memory"; pairs: number; moves: number; elapsedMs: number };
+  | { kind: "memory"; pairs: number; moves: number; elapsedMs: number }
+  // Choose Your Brand: the side picked in each round, in order. A preference, never scored.
+  | { kind: "choices"; picks: ChoicePick[] };
+
+export interface ChoicePick {
+  roundId: string;
+  side: "left" | "right";
+  label: string; // the picked side's label as shown, kept with the entry for the brand
+}
 
 export interface DrawRequest {
   clientRequestId: string; // reused on retry so the same attempt is never counted twice

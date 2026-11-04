@@ -117,6 +117,22 @@ export interface QuizQuestionTranslation {
   options: LocalizedText[]; // same count and order as the options stored in the database
 }
 
+// One side of a Choose Your Brand round: the brand's picture, else its icon, with a label.
+export interface ChoiceOption {
+  label: LocalizedText;
+  image: AssetRef; // replaces the icon
+  icon: IconName;
+}
+
+// A Choose Your Brand round: the player picks the left or the right side. No side is "right":
+// the picks are a preference, sent with the participation; the draw alone decides a win.
+export interface ChoiceRound {
+  id: string; // stable, saved with each pick (entries.metadata.brand_choices)
+  prompt: LocalizedText; // "Which one do you prefer?"
+  left: ChoiceOption;
+  right: ChoiceOption;
+}
+
 // Game PRESENTATION only. Rules that decide a win (prizes, weights, stock, win probability,
 // questions and correct answers, thresholds, durations) live in the campaign, never here.
 export interface GameSettings {
@@ -148,6 +164,7 @@ export interface GameSettings {
     // One per face, same order: the brand's own picture replaces that face's icon.
     faceImages: AssetRef[];
   };
+  chooseBrand?: { rounds: ChoiceRound[] }; // 2 to 8, in the order they are played
 }
 
 // How a campaign prize is shown, per language. Empty values fall back to prizes.name and prizes.win_message.

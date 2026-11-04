@@ -348,6 +348,7 @@ const GAME_KEYS = [
   "mystery_box",
   "hit_it",
   "memory_match",
+  "choose_brand",
 ] as const;
 
 export const PRIZE_ART_NAMES = [
@@ -816,6 +817,28 @@ export const themeManifestSchema = z
             // The theme's own drawing of an icon, by the icon's name (star → its star). The
             // template's prize art fills in the icons it names (themeAssets.ts).
             faceArt: partialRecord(ICON_NAMES, assetPathSchema),
+          })
+          .strict()
+          .prefault({}),
+        // Choose Your Brand: the two cards of a round, the badge between them and the rounds
+        // still to play. The brand's pictures are drawn on the cards as they are.
+        choice: z
+          .object({
+            card: colorSchema.optional(), // under a picture, and behind an icon
+            border: colorSchema.optional(),
+            borderWidth: cssSchema.optional(),
+            radius: cssSchema.optional(),
+            shadow: cssSchema.optional(),
+            icon: colorSchema.optional(), // a side without a picture
+            label: colorSchema.optional(), // the strip under the picture…
+            labelText: colorSchema.optional(), // …and its text
+            labelFont: fontRoleSchema.optional(),
+            prompt: colorSchema.optional(), // "Which one do you prefer?"
+            promptFont: fontRoleSchema.optional(),
+            picked: colorSchema.optional(), // the edge and the glow of the side picked
+            vs: colorSchema.optional(), // the badge between the two cards
+            vsText: colorSchema.optional(),
+            progress: meterSkinSchema.optional(), // the rounds played, out of all of them
           })
           .strict()
           .prefault({}),

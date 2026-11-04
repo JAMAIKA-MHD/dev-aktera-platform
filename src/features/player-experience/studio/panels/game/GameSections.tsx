@@ -9,6 +9,7 @@ import {
   MemorySettings,
   ScratchSettings,
 } from "./GameSettings";
+import { ChooseBrandSettings } from "./ChooseBrandSettings";
 import { PrizeDisplayEditor } from "./PrizeDisplayEditor";
 import { QuizTranslationsEditor } from "./QuizTranslationsEditor";
 import { WheelSegmentsEditor } from "./WheelSegmentsEditor";
@@ -79,6 +80,9 @@ export function GameSections() {
       )}
       {game.type === "memory_match" && game.memory && (
         <MemorySettings memory={game.memory} />
+      )}
+      {game.type === "choose_brand" && game.chooseBrand && (
+        <ChooseBrandSettings chooseBrand={game.chooseBrand} />
       )}
       {game.type === "quiz" && <QuizTranslationsEditor />}
     </>

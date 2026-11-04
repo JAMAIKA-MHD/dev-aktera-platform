@@ -25,6 +25,7 @@ const GAME_TYPES: Campaign["gameType"][] = [
   "mystery_box",
   "hit_it",
   "memory_match",
+  "choose_brand",
 ];
 
 export function StudioCampaignsToolbar({

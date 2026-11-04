@@ -407,6 +407,25 @@
       "shadow": "0 0 0.9rem #FFB02040",
       "matched": "@accent",
       "miss": "#FF3B4A"
+    },
+    "choice": {
+      "card": "#1A1C5C",
+      "border": "@primary",
+      "borderWidth": "0.15rem",
+      "radius": "1.25rem",
+      "shadow": "0 0 1rem #FFB02040",
+      "label": "#0E1030",
+      "labelText": "#FFFFFF",
+      "labelFont": "ui",
+      "prompt": "#FFFFFF",
+      "promptFont": "display",
+      "picked": "@accent",
+      "vs": "@primary",
+      "vsText": "#05061A",
+      "progress": {
+        "fill": "@primary",
+        "track": "#2E2F7A"
+      }
     }
   },
   "prizes": {

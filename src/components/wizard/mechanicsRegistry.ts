@@ -31,6 +31,9 @@ export interface Mechanic {
   label: string;
   gameType?: GameType;
   skill?: SkillSetup;
+  // No answer is right or wrong (the player states a preference), so there is no score to
+  // qualify on: the campaign starts as a draw, and an instant win can only be guaranteed.
+  preference?: true;
 }
 
 export const MECHANICS_REGISTRY: readonly Mechanic[] = [
@@ -79,6 +82,15 @@ export const MECHANICS_REGISTRY: readonly Mechanic[] = [
     label: "Trivia Quiz",
     gameType: "quiz",
   },
+  // The player picks a side in each round (rounds and pictures set in the Studio).
+  {
+    id: "choose_brand",
+    layer: "engagement",
+    category: "knowledge",
+    label: "Choose Your Brand",
+    gameType: "choose_brand",
+    preference: true,
+  },
   // Layer 2: how an instant win is revealed.
   {
     id: "wheel",
@@ -113,6 +125,36 @@ export const mechanicsFor = (
 
 export const mechanicById = (id: string) =>
   MECHANICS_REGISTRY.find((m) => m.id === id);
+
+// The engagement mechanic a configuration plays (none for luck).
+const engagementOf = (w: Pick<WizardConfig, "category" | "engagementId">) =>
+  w.category === "luck" ? undefined : mechanicById(w.engagementId);
+
+/** A knowledge campaign played as a quiz: its questions and passing score apply. */
+export const isQuizEngagement = (
+  w: Pick<WizardConfig, "category" | "engagementId">,
+) => w.category === "knowledge" && engagementOf(w)?.gameType === "quiz";
+
+/** A preference game (no right answer): an instant win is always guaranteed. */
+export const forcesGuaranteed = (
+  w: Pick<WizardConfig, "category" | "engagementId">,
+) => Boolean(engagementOf(w)?.preference);
+
+/** What picking an engagement mechanic sets besides its id. */
+export function engagementDefaults(mechanic: Mechanic): Partial<WizardConfig> {
+  return {
+    // Each skill game starts from its own goal and time limit.
+    ...(mechanic.skill && {
+      targetScore: mechanic.skill.defaultScore,
+      durationSeconds: mechanic.skill.defaultDuration,
+    }),
+    // A preference game starts as a draw; switched to an instant win, it is guaranteed.
+    ...(mechanic.preference && {
+      method: "draw" as const,
+      mode: "guaranteed" as const,
+    }),
+  };
+}
 
 // Everything the wizard adds to campaigns.game_logic_config (key `wizard`), next to the
 // numeric rules the server already reads (win_threshold, pass_threshold_percentage...).
@@ -184,7 +226,18 @@ export function wizardFromCampaign(c: Campaign | null): WizardConfig {
         c.prizes.length > 0 || Boolean(draw.smsWinner || draw.smsLoser);
       draw.manageStock = used ? true : null;
     }
-    return { ...DEFAULT_WIZARD, ...saved, draw };
+    const restored = { ...DEFAULT_WIZARD, ...saved, draw };
+    // Choose Your Brand was first a luck reveal: it is now a knowledge game of its own.
+    if (restored.category === "luck" && restored.revealId === "choose_brand") {
+      return {
+        ...restored,
+        category: "knowledge",
+        engagementId: "choose_brand",
+        revealId: DEFAULT_WIZARD.revealId,
+        mode: "guaranteed",
+      };
+    }
+    return restored;
   }
   const base: WizardConfig = {
     ...DEFAULT_WIZARD,
@@ -208,6 +261,8 @@ export function wizardFromCampaign(c: Campaign | null): WizardConfig {
         Number(c.gameLogicConfig?.win_threshold) ||
         engagement.skill?.defaultScore ||
         base.targetScore,
+      // A preference game cannot be won on odds: an instant win of it is guaranteed.
+      ...(engagement.preference && { mode: "guaranteed" as const }),
     };
   }
   const reveal = MECHANICS_REGISTRY.find((m) => m.gameType === c.gameType);

@@ -43,6 +43,7 @@ import { StepReward } from "./campaignWizard/StepReward";
 import {
   gameTypeOf,
   initialWizardForm,
+  isQuiz,
   playingGame,
   previewCampaign,
   savedAutoPace,
@@ -315,7 +316,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         autoPacePrizes: savedAutoPace(form),
         maxEntries: form.maxEntries,
         prizes: savedPrizeLines(form),
-        questions: form.w.category === "knowledge" ? shownQuestions(form) : [],
+        questions: isQuiz(form) ? shownQuestions(form) : [],
         startDate: form.startDate,
         endDate: form.endDate,
         // The player screens are designed in the Player Experience Studio: the wizard

@@ -716,6 +716,26 @@
       "faceArt": {
         "zap": "assets/decor/bolt.svg"
       }
+    },
+    "choice": {
+      "card": "#FFFFFF",
+      "border": "@ink",
+      "borderWidth": "0.2rem",
+      "radius": "1.1rem",
+      "shadow": "0.3rem 0.35rem 0 #1A62AB",
+      "icon": "@accent",
+      "label": "@primary",
+      "labelText": "@ink",
+      "labelFont": "display",
+      "prompt": "@ink",
+      "promptFont": "display",
+      "picked": "@secondary",
+      "vs": "@secondary",
+      "vsText": "#FFFFFF",
+      "progress": {
+        "fill": "@primary",
+        "track": "#FFFFFF"
+      }
     }
   },
   "prizes": {

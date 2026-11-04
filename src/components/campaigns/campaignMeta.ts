@@ -53,6 +53,14 @@ export const GAME_TYPES: GameMeta[] = [
     setup: "Number of pairs and the time limit",
   },
   {
+    id: "choose_brand",
+    key: "campaigns.chooseBrand",
+    label: "Choose Your Brand",
+    description:
+      "Players pick their favourite of two pictures, round after round.",
+    setup: "Prizes and win chance; the rounds are set in the Studio",
+  },
+  {
     id: "quiz",
     key: "campaigns.quiz",
     label: "Quiz Challenge",

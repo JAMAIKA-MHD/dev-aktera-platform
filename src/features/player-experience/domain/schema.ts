@@ -21,6 +21,7 @@ const gameTypeSchema = z.enum([
   "mystery_box",
   "hit_it",
   "memory_match",
+  "choose_brand",
 ]);
 
 const localizedTextSchema = z.object({
@@ -51,6 +52,12 @@ const assetRefSchema = z
     }),
   ])
   .nullable();
+
+const choiceOptionSchema = z.object({
+  label: localizedTextSchema,
+  image: assetRefSchema,
+  icon: iconNameSchema,
+});
 
 const themeSchema = z.object({
   presetId: z.string().nullable(),
@@ -229,9 +236,30 @@ const gameSchema = z
           .default(() => [null, null, null, null, null, null, null, null]),
       })
       .optional(),
+    chooseBrand: z
+      .object({
+        rounds: z
+          .array(
+            z.object({
+              id: idSchema,
+              prompt: localizedTextSchema,
+              left: choiceOptionSchema,
+              right: choiceOptionSchema,
+            }),
+          )
+          .min(2)
+          .max(8)
+          .refine(
+            (rounds) =>
+              new Set(rounds.map((round) => round.id)).size === rounds.length,
+            "Every round needs its own id",
+          ),
+      })
+      .optional(),
   })
   .superRefine((game, ctx) => {
     const block = {
+      choose_brand: game.chooseBrand,
       lucky_wheel: game.wheel,
       scratch_card: game.scratch,
       mystery_box: game.boxes,

@@ -120,6 +120,34 @@ function readClientRequestId(metadata: Record<string, unknown>): string | null {
   return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
 }
 
+// Choose Your Brand: the side picked in each round, as the player's page sent it. A preference
+// for the brand to read, never a score: it decides nothing. Client input, so it is cut down to
+// plain values (8 rounds at most, short ids and labels) before it is stored with the entry.
+interface BrandChoice {
+  round_id: string;
+  side: "left" | "right";
+  label: string;
+}
+
+function readBrandChoices(payload: Record<string, unknown>): BrandChoice[] {
+  const raw = payload.choices;
+  if (!Array.isArray(raw)) return [];
+  const choices: BrandChoice[] = [];
+  for (const item of raw.slice(0, 8)) {
+    if (typeof item !== "object" || item === null) continue;
+    const { round_id, side, label } = item as Record<string, unknown>;
+    if (typeof round_id !== "string" || !/^[\w-]{1,64}$/.test(round_id))
+      continue;
+    if (side !== "left" && side !== "right") continue;
+    choices.push({
+      round_id,
+      side,
+      label: typeof label === "string" ? label.trim().slice(0, 80) : "",
+    });
+  }
+  return choices;
+}
+
 async function loadPrize(
   admin: SupabaseClient,
   prizeId: string | null,
@@ -471,6 +499,15 @@ serve(async (req) => {
       client_request_id: clientRequestId,
       game_type: campaign.game_type,
       server_timestamp: new Date().toISOString(),
+      // Only the server's own reading of the picks is kept, never the client's metadata.
+      brand_choices:
+        campaign.game_type === "choose_brand"
+          ? readBrandChoices(
+              typeof game_payload === "object" && game_payload !== null
+                ? (game_payload as Record<string, unknown>)
+                : {},
+            )
+          : undefined,
     };
     const { data: newEntry, error: insertError } = await supabaseAdmin
       .from("entries")

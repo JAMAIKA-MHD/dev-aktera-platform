@@ -1,5 +1,7 @@
 import {
+  CHOICE_PROMPT,
   CONSENT_TEXT,
+  DEFAULT_CHOICE_ROUNDS,
   FORM_FIELD_TEXT,
   LEGAL_LINE,
   LOSING_SEGMENT_LABELS,
@@ -19,6 +21,7 @@ import type { IconName } from "./icons";
 import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
   AssetRef,
+  ChoiceRound,
   ExperienceConfig,
   FormField,
   GameSettings,
@@ -45,6 +48,30 @@ export const DEFAULT_MEMORY_FACES: readonly IconName[] = [
 // No picture of the brand on any face: every card shows its icon.
 export const emptyMemoryFaceImages = (): AssetRef[] =>
   DEFAULT_MEMORY_FACES.map(() => null);
+// Choose Your Brand: 2 to 8 rounds; a new campaign starts with three, on icons, until the
+// brand sets its own pictures.
+export const MIN_CHOICE_ROUNDS = 2;
+export const MAX_CHOICE_ROUNDS = 8;
+
+export function buildDefaultChoiceRounds(): ChoiceRound[] {
+  return DEFAULT_CHOICE_ROUNDS.map(({ left, right }) => ({
+    id: createUuid(),
+    prompt: { ...CHOICE_PROMPT },
+    left: { label: { ...left.label }, image: null, icon: left.icon },
+    right: { label: { ...right.label }, image: null, icon: right.icon },
+  }));
+}
+
+// A new round of the Studio: two empty sides, the usual question.
+export function emptyChoiceRound(): ChoiceRound {
+  return {
+    id: createUuid(),
+    prompt: { ...CHOICE_PROMPT },
+    left: { label: {}, image: null, icon: "star" },
+    right: { label: {}, image: null, icon: "sparkles" },
+  };
+}
+
 export const DEFAULT_POLICY_VERSION = "2026-09-01";
 
 export const MIN_WHEEL_SEGMENTS = 4;
@@ -139,6 +166,9 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
         faces: [...DEFAULT_MEMORY_FACES],
         faceImages: emptyMemoryFaceImages(),
       };
+      break;
+    case "choose_brand":
+      settings.chooseBrand = { rounds: buildDefaultChoiceRounds() };
       break;
   }
   return settings;

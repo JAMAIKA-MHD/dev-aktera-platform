@@ -17,6 +17,7 @@ const GAME_TYPES: GameType[] = [
   "mystery_box",
   "hit_it",
   "memory_match",
+  "choose_brand",
 ];
 
 const prizes = (count: number): CampaignSnapshot["prizes"] =>

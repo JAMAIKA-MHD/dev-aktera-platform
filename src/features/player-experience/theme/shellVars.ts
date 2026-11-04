@@ -474,13 +474,14 @@ const GAME_PREFIX = {
   boxes: "box",
   hitIt: "hit",
   memory: "memory",
+  choice: "choice",
 } as const;
 const FONT_VARS = {
   body: "var(--xp-font)",
   ui: "var(--xp-font-ui)",
   display: "var(--xp-font-display)",
 } as const;
-const FONT_KEYS = new Set(["font", "questionFont"]);
+const FONT_KEYS = new Set(["font", "questionFont", "labelFont", "promptFont"]);
 // Pictures, drawn by the game itself (ThemeAssets): never a variable.
 const ART_KEYS = new Set(["art", "faceArt"]);
 const kebab = (key: string) =>

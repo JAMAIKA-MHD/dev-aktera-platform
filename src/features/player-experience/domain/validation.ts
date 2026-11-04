@@ -445,6 +445,18 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
       images.push([`game.memory.faceImages.${index}`, image]),
     );
   }
+  if (game.type === "choose_brand" && game.chooseBrand) {
+    game.chooseBrand.rounds.forEach((round, index) => {
+      images.push([
+        `game.chooseBrand.rounds.${index}.left.image`,
+        round.left.image,
+      ]);
+      images.push([
+        `game.chooseBrand.rounds.${index}.right.image`,
+        round.right.image,
+      ]);
+    });
+  }
   for (const [prizeId, display] of Object.entries(config.prizeDisplay)) {
     images.push([`prizeDisplay.${prizeId}.image`, display.image]);
   }
@@ -488,6 +500,40 @@ function checkMemoryFaces(config: ExperienceConfig, issues: DesignIssue[]) {
   });
 }
 
+// Choose Your Brand: each side needs a label or a picture of its own (an icon alone says
+// nothing of what is offered), and the two sides of a round must not look the same.
+function checkChoiceRounds(config: ExperienceConfig, issues: DesignIssue[]) {
+  const { game } = config;
+  if (game.type !== "choose_brand" || !game.chooseBrand) return;
+  const fallback = config.locales.default;
+  game.chooseBrand.rounds.forEach((round, index) => {
+    const base = `game.chooseBrand.rounds.${index}`;
+    for (const side of ["left", "right"] as const) {
+      const option = round[side];
+      if (option.image || resolveText(option.label, fallback, fallback))
+        continue;
+      issues.push({
+        id: `choice-empty:${base}.${side}`,
+        level: "warning",
+        path: `${base}.${side}.label`,
+        message: `Round ${index + 1}: give the ${side} side a label or a picture, so players know what they pick.`,
+      });
+    }
+    const look = (option: (typeof round)["left"]) =>
+      option.image
+        ? `image:${JSON.stringify(option.image)}`
+        : `icon:${option.icon}:${resolveText(option.label, fallback, fallback)}`;
+    if (look(round.left) === look(round.right)) {
+      issues.push({
+        id: `choice-twin:${base}`,
+        level: "warning",
+        path: `${base}.right`,
+        message: `Round ${index + 1}: both sides look the same. Change one of them.`,
+      });
+    }
+  });
+}
+
 function checkPhone(config: ExperienceConfig, issues: DesignIssue[]): void {
   const phone = config.form.fields.find((field) => field.key === "phone");
   if (phone?.enabled && phone.required) return;
@@ -519,6 +565,7 @@ export function validateExperience(
   }
   checkImages(config, issues);
   checkMemoryFaces(config, issues);
+  checkChoiceRounds(config, issues);
   return [
     ...issues.filter((issue) => issue.level === "error"),
     ...issues.filter((issue) => issue.level === "warning"),

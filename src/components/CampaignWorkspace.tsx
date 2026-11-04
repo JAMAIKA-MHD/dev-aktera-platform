@@ -62,6 +62,10 @@ const GAME_BACKDROPS: Record<string, { gradient: string; glow: string }> = {
     gradient: "bg-gradient-to-br from-[#062a30] via-[#0B1120] to-[#083a44]",
     glow: "bg-cyan-600",
   },
+  choose_brand: {
+    gradient: "bg-gradient-to-br from-[#2e0a33] via-[#0B1120] to-[#3d0f45]",
+    glow: "bg-fuchsia-600",
+  },
   lucky_wheel: {
     gradient: "bg-gradient-to-br from-[#06201B] via-[#0B1120] to-[#0A2E26]",
     glow: "bg-emerald-500",

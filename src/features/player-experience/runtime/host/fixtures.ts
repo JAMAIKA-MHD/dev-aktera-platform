@@ -470,6 +470,28 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
       flow: { gateway: "scripted", scenario: "lose" },
     },
   ),
+  "choose-play": fixture(
+    "flow",
+    "Choose Your Brand in play: two cards per round, the question and the rounds left",
+    {
+      gameType: "choose_brand",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "choose-welcome": fixture(
+    "flow",
+    "The welcome screen of a Choose Your Brand campaign: one side lit after the other, marked Démo",
+    {
+      gameType: "choose_brand",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
   "flow-win": fixture(
     "flow",
     "The prize won, its DEMO code, copy, confirmation and sharing (T4.4)",

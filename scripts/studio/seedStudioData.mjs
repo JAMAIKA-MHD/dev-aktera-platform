@@ -40,6 +40,11 @@ const ROWS = [
   [16, "Memory Brand Cards", "memory_match", "active", -3, 27, 9, null, null],
   [17, "Memory Weekend", "memory_match", "paused", -9, 12, 5, DAY, "retail-blue"],
   [18, "Memory Classic", "memory_match", "ended", -120, -90, 28, 40 * DAY, "obsidian-violet"],
+  // Choose Your Brand: paused with a saved design, a draft on the default rounds, ended
+  // (the 5 live active slots are already taken above).
+  [19, "Brand Duel", "choose_brand", "paused", -4, 26, 12, 2 * HOUR, "midnight-gold"],
+  [20, "Brand Duel Draft", "choose_brand", "draft", 8, 38, 0, null, null],
+  [21, "Brand Duel Winter", "choose_brand", "ended", -100, -70, 31, 30 * DAY, "telecom-red"],
 ];
 
 export const CAMPAIGNS = ROWS.map(
@@ -58,7 +63,7 @@ export const CAMPAIGNS = ROWS.map(
 );
 
 export const PRIZE_QUANTITY = 20;
-// The database refuses allocating more than the template stock: 18 prizes × 20 ≤ 600.
+// The database refuses allocating more than the template stock: 21 prizes × 20 ≤ 600.
 export const CODES = 600;
 export const WINNER_EVERY = 4; // one participant in four won
 // Short: the prize name also labels the wheel segments (14 characters at most).

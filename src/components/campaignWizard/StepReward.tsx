@@ -7,7 +7,11 @@ import { AlertTriangle, BookOpen, Info } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { CxBadge, CxButton, CxNotice } from "../campaigns/campaignUi";
 import { GameEmblem } from "../campaigns/GameEmblem";
-import { mechanicsFor } from "../wizard/mechanicsRegistry";
+import {
+  forcesGuaranteed,
+  mechanicById,
+  mechanicsFor,
+} from "../wizard/mechanicsRegistry";
 import type { StepProps } from "./StepFoundation";
 import {
   Field,
@@ -21,7 +25,7 @@ import {
   StepPanel,
   SwitchRow,
 } from "./wizardFields";
-import { isDraw } from "./wizardForm";
+import { isDraw, isGuaranteed } from "./wizardForm";
 
 function Explainer({ children }: { children: ReactNode }) {
   return (
@@ -47,6 +51,11 @@ export function StepReward({
 }) {
   const { w } = form;
   const draw = isDraw(form);
+  const guaranteed = isGuaranteed(form);
+  // A preference game (Choose Your Brand) has no score to qualify on: no odds, every
+  // player of an instant win receives a reward.
+  const guaranteedOnly = forcesGuaranteed(w);
+  const gameLabel = mechanicById(w.engagementId)?.label ?? "This game";
   const patch = (changes: Partial<typeof w>) =>
     update({ w: { ...w, ...changes } });
   const patchDraw = (changes: Partial<typeof w.draw>) =>
@@ -68,7 +77,12 @@ export function StepReward({
             selected={!draw}
             title="Instant win"
             description="Players see the outcome as soon as they finish."
-            onSelect={() => patch({ method: "instant" })}
+            onSelect={() =>
+              patch({
+                method: "instant",
+                ...(guaranteedOnly && { mode: "guaranteed" as const }),
+              })
+            }
           />
           <OptionCard
             selected={draw}
@@ -90,20 +104,31 @@ export function StepReward({
             className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <OptionCard
-              selected={w.mode === "probabilistic"}
+              selected={!guaranteed}
+              disabled={guaranteedOnly}
               title="Probabilistic odds"
               description="Players win with a chance, against limited stock."
               onSelect={() => patch({ mode: "probabilistic" })}
             />
             <OptionCard
-              selected={w.mode === "guaranteed"}
+              selected={guaranteed}
               title="Guaranteed winning (100% Gagnant)"
               description="Every qualified participant receives a reward. Zero losers."
               onSelect={() => patch({ mode: "guaranteed" })}
             />
           </div>
 
-          {w.mode === "probabilistic" ? (
+          {guaranteedOnly && (
+            <Explainer>
+              <strong>
+                {gameLabel} is always 100% Gagnant as an instant win.
+              </strong>{" "}
+              Players state a preference, there is no right answer to win on.
+              Choose a draw to pick winners later instead.
+            </Explainer>
+          )}
+
+          {!guaranteed ? (
             <>
               <SwitchRow
                 checked={form.autoPace}
