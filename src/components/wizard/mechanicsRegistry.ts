@@ -1,3 +1,9 @@
+import {
+  CHOICE_COUNTS,
+  DEFAULT_CHOICE_COUNT,
+  choiceCountFor,
+  type ChoiceMode,
+} from "../../features/player-experience";
 import type { Campaign } from "../../types";
 
 // Pluggable mechanics library for both wizard layers. To add a minigame or a prize reveal,
@@ -156,6 +162,34 @@ export function engagementDefaults(mechanic: Mechanic): Partial<WizardConfig> {
   };
 }
 
+// Choose Your Brand's modes, as the Wizard explains them. `unit` names what the count counts.
+export const CHOICE_MODE_INFO: Record<
+  ChoiceMode,
+  { label: string; tagline: string; unit: "rounds" | "products" }
+> = {
+  duels: {
+    label: "Duels",
+    tagline: "Fixed pairs, one round after another.",
+    unit: "rounds",
+  },
+  bracket: {
+    label: "Tournament",
+    tagline: "A knockout: the product picked goes on to the next stage.",
+    unit: "products",
+  },
+  ladder: {
+    label: "Winner stays",
+    tagline: "The product picked stays and meets the next one.",
+    unit: "products",
+  },
+};
+export const CHOICE_MODE_IDS = Object.keys(CHOICE_MODE_INFO) as ChoiceMode[];
+export { CHOICE_COUNTS, choiceCountFor };
+
+/** How many picks a player makes: one per round, or one per duel of a tournament. */
+export const choicePicks = (mode: ChoiceMode, count: number) =>
+  mode === "duels" ? count : count - 1;
+
 // Everything the wizard adds to campaigns.game_logic_config (key `wizard`), next to the
 // numeric rules the server already reads (win_threshold, pass_threshold_percentage...).
 export interface WizardConfig {
@@ -164,6 +198,9 @@ export interface WizardConfig {
   durationSeconds: number;
   targetScore: number;
   passPercent: number;
+  // Choose Your Brand: saved as choice_mode and choice_count, read by the player page.
+  choiceMode: ChoiceMode;
+  choiceCount: number;
   method: RewardMethod;
   mode: "probabilistic" | "guaranteed";
   revealId: string;
@@ -188,6 +225,8 @@ export const DEFAULT_WIZARD: WizardConfig = {
   durationSeconds: 20,
   targetScore: 8,
   passPercent: 60,
+  choiceMode: "duels",
+  choiceCount: DEFAULT_CHOICE_COUNT.duels,
   method: "instant",
   mode: "probabilistic",
   revealId: "wheel",
@@ -239,8 +278,17 @@ export function wizardFromCampaign(c: Campaign | null): WizardConfig {
     }
     return restored;
   }
+  const savedMode = c.gameLogicConfig?.choice_mode as ChoiceMode | undefined;
+  const choiceMode =
+    savedMode && savedMode in CHOICE_MODE_INFO ? savedMode : "duels";
   const base: WizardConfig = {
     ...DEFAULT_WIZARD,
+    choiceMode,
+    choiceCount: choiceCountFor(
+      choiceMode,
+      Number(c.gameLogicConfig?.choice_count) ||
+        DEFAULT_CHOICE_COUNT[choiceMode],
+    ),
     targetScore: Number(c.gameLogicConfig?.win_threshold) || 8,
     passPercent: Number(c.gameLogicConfig?.pass_threshold_percentage) || 50,
     mode: c.winProbability >= 100 ? "guaranteed" : "probabilistic",

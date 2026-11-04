@@ -1,6 +1,7 @@
 import {
   CHOICE_PROMPT,
   CONSENT_TEXT,
+  DEFAULT_CHOICE_CONTENDERS,
   DEFAULT_CHOICE_ROUNDS,
   FORM_FIELD_TEXT,
   LEGAL_LINE,
@@ -21,6 +22,7 @@ import type { IconName } from "./icons";
 import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
   AssetRef,
+  ChoiceContender,
   ChoiceRound,
   ExperienceConfig,
   FormField,
@@ -52,14 +54,81 @@ export const emptyMemoryFaceImages = (): AssetRef[] =>
 // brand sets its own pictures.
 export const MIN_CHOICE_ROUNDS = 2;
 export const MAX_CHOICE_ROUNDS = 8;
+// Tournaments: a bracket of 4 or 8 products (no byes), a ladder of 3 to 8.
+export const CHOICE_BRACKET_SIZES = [4, 8] as const;
+export const MIN_LADDER_CONTENDERS = 3;
+export const MAX_CHOICE_CONTENDERS = 8;
 
-export function buildDefaultChoiceRounds(): ChoiceRound[] {
-  return DEFAULT_CHOICE_ROUNDS.map(({ left, right }) => ({
-    id: createUuid(),
+// `makeId` gives each item its id: random for a saved design, fixed for a stand-in that is
+// rebuilt on every render (the runtime's fallback).
+type MakeId = (index: number) => string;
+const randomId: MakeId = () => createUuid();
+
+export function buildDefaultChoiceRounds(
+  makeId: MakeId = randomId,
+): ChoiceRound[] {
+  return DEFAULT_CHOICE_ROUNDS.map(({ left, right }, index) => ({
+    id: makeId(index),
     prompt: { ...CHOICE_PROMPT },
     left: { label: { ...left.label }, image: null, icon: left.icon },
     right: { label: { ...right.label }, image: null, icon: right.icon },
   }));
+}
+
+// The first `count` products of the default list (8 at most).
+export function buildDefaultChoiceContenders(
+  count = 4,
+  makeId: MakeId = randomId,
+): ChoiceContender[] {
+  return DEFAULT_CHOICE_CONTENDERS.slice(0, count).map(
+    ({ label, icon }, index) => ({
+      id: makeId(index),
+      label: { ...label },
+      image: null,
+      icon,
+    }),
+  );
+}
+
+// The product a tournament list gets at `index` when it grows: the default one of that place.
+export function defaultChoiceContenderAt(
+  index: number,
+  id: string = createUuid(),
+): ChoiceContender {
+  const preset =
+    DEFAULT_CHOICE_CONTENDERS[index % DEFAULT_CHOICE_CONTENDERS.length];
+  return { id, label: { ...preset.label }, image: null, icon: preset.icon };
+}
+
+// The round a list of duels gets at `index` when it grows: the default ones, in turn.
+export function defaultChoiceRoundAt(
+  index: number,
+  id: string = createUuid(),
+): ChoiceRound {
+  const { left, right } =
+    DEFAULT_CHOICE_ROUNDS[index % DEFAULT_CHOICE_ROUNDS.length];
+  return {
+    id,
+    prompt: { ...CHOICE_PROMPT },
+    left: { label: { ...left.label }, image: null, icon: left.icon },
+    right: { label: { ...right.label }, image: null, icon: right.icon },
+  };
+}
+
+export const defaultChoicePrompt = () => ({ ...CHOICE_PROMPT });
+
+// The settings of a new Choose Your Brand game: fixed duels, and the eight products a
+// tournament can play, ready aside. The campaign (Wizard) decides the mode and how many play.
+export function buildDefaultChooseBrand(): NonNullable<
+  GameSettings["chooseBrand"]
+> {
+  return {
+    mode: "duels",
+    rounds: buildDefaultChoiceRounds(),
+    contenders: buildDefaultChoiceContenders(MAX_CHOICE_CONTENDERS),
+    prompt: defaultChoicePrompt(),
+    shuffle: false,
+  };
 }
 
 // A new round of the Studio: two empty sides, the usual question.
@@ -168,7 +237,7 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
       };
       break;
     case "choose_brand":
-      settings.chooseBrand = { rounds: buildDefaultChoiceRounds() };
+      settings.chooseBrand = buildDefaultChooseBrand();
       break;
   }
   return settings;

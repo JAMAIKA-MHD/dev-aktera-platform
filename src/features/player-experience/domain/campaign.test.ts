@@ -205,3 +205,30 @@ describe("buildCampaignSnapshot", () => {
     });
   });
 });
+
+describe("Choose Your Brand rules", () => {
+  it("reads the Wizard's mode and count, held to what the mode plays", () => {
+    expect(
+      rulesFromGameLogic("choose_brand", {
+        choice_mode: "bracket",
+        choice_count: 5,
+      }),
+    ).toEqual({ choice: { mode: "bracket", count: 4 } });
+    expect(
+      rulesFromGameLogic("choose_brand", {
+        choice_mode: "ladder",
+        choice_count: "12",
+      }),
+    ).toEqual({ choice: { mode: "ladder", count: 8 } });
+    expect(
+      rulesFromGameLogic("choose_brand", { choice_mode: "duels" }),
+    ).toEqual({ choice: { mode: "duels", count: 3 } });
+  });
+
+  it("has none for a campaign saved before them: the design's mode plays", () => {
+    expect(rulesFromGameLogic("choose_brand", {})).toEqual({});
+    expect(
+      rulesFromGameLogic("choose_brand", { choice_mode: "knockout" }),
+    ).toEqual({});
+  });
+});

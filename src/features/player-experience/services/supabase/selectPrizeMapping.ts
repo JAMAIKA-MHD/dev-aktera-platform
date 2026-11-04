@@ -42,14 +42,23 @@ function toGamePayload(payload: GamePayload): Record<string, unknown> {
         moves: payload.moves,
         elapsed_ms: payload.elapsedMs,
       };
-    // A preference, never scored: select-prize keeps it with the entry (brand_choices).
+    // A preference, never scored: select-prize keeps it with the entry (brand_mode,
+    // brand_choices, brand_champion).
     case "choices":
       return {
+        mode: payload.mode,
         choices: payload.picks.map((pick) => ({
           round_id: pick.roundId,
           side: pick.side,
           label: pick.label,
+          ...(pick.optionId ? { option_id: pick.optionId } : {}),
         })),
+        champion: payload.champion
+          ? {
+              option_id: payload.champion.optionId,
+              label: payload.champion.label,
+            }
+          : null,
       };
     case "none":
       return {};

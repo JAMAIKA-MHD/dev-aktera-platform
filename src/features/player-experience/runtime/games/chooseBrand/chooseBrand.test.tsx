@@ -68,12 +68,58 @@ describe("ChooseBrandEngine", () => {
     expect(props.onInteractionComplete).toHaveBeenCalledTimes(1);
     expect(props.onInteractionComplete).toHaveBeenCalledWith({
       kind: "choices",
+      mode: "duels",
       picks: rounds.map((round, index) => ({
         roundId: round.id,
         side: order[index],
         label: round[order[index]].label.fr,
+        optionId: null,
       })),
+      champion: null,
     });
+  });
+
+  it("plays a tournament down to the champion, and sends it", () => {
+    const contenders = config.game.chooseBrand!.contenders.slice(0, 4);
+    const tournament = {
+      ...config.game,
+      chooseBrand: {
+        ...config.game.chooseBrand!,
+        mode: "bracket" as const,
+        contenders,
+      },
+    };
+    const props = engine("interacting", { settings: tournament });
+    render(<ChooseBrandEngine {...props} />);
+    expect(screen.getByText("Demi-finale · 1/2")).toBeTruthy();
+    for (const picked of ["left", "right", "left"] as const) {
+      fireEvent.click(side(picked));
+      advance(700);
+    }
+    // 1 vs 2 → 1; 3 vs 4 → 4; final 1 vs 4 → 1.
+    expect(props.onInteractionComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "choices",
+        mode: "bracket",
+        champion: {
+          optionId: contenders[0].id,
+          label: contenders[0].label.fr,
+        },
+      }),
+    );
+    expect(screen.getByText("Votre champion !")).toBeTruthy();
+  });
+
+  it("plays the campaign's mode and count, whatever the design's", () => {
+    const props = engine("interacting", {
+      campaign: {
+        ...campaign,
+        rules: { choice: { mode: "ladder", count: 3 } },
+      },
+    });
+    render(<ChooseBrandEngine {...props} />);
+    expect(screen.getByText("Duel · 1/2")).toBeTruthy();
+    expect(screen.getByText("1 / 2")).toBeTruthy();
   });
 
   it("takes one pick per round, even on a double tap", () => {

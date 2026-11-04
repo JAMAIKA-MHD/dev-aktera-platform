@@ -64,16 +64,41 @@ describe("select-prize body", () => {
     expect(
       body({
         kind: "choices",
+        mode: "duels",
         picks: [
-          { roundId: "r-1", side: "left", label: "Classique" },
-          { roundId: "r-2", side: "right", label: "" },
+          { roundId: "r-1", side: "left", label: "Classique", optionId: null },
+          { roundId: "r-2", side: "right", label: "", optionId: null },
         ],
+        champion: null,
       }),
     ).toEqual({
+      mode: "duels",
       choices: [
         { round_id: "r-1", side: "left", label: "Classique" },
         { round_id: "r-2", side: "right", label: "" },
       ],
+      champion: null,
+    });
+  });
+
+  it("sends a tournament's products and its champion", () => {
+    expect(
+      body({
+        kind: "choices",
+        mode: "ladder",
+        picks: [
+          { roundId: "m1", side: "right", label: "Thé", optionId: "p2" },
+          { roundId: "m2", side: "right", label: "Thé", optionId: "p2" },
+        ],
+        champion: { optionId: "p2", label: "Thé" },
+      }),
+    ).toEqual({
+      mode: "ladder",
+      choices: [
+        { round_id: "m1", side: "right", label: "Thé", option_id: "p2" },
+        { round_id: "m2", side: "right", label: "Thé", option_id: "p2" },
+      ],
+      champion: { option_id: "p2", label: "Thé" },
     });
   });
 });

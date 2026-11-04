@@ -78,7 +78,16 @@ export function slugOf(name) {
     .slice(0, 40)}`;
 }
 
-export function gameLogicConfig(game) {
+// The Choose Your Brand seeds show its three modes (Wizard: choice_mode, choice_count): a
+// tournament of 8 products, fixed duels (the draft) and "winner stays" with 5 products.
+const CHOICE_RULES = {
+  19: { choice_mode: "bracket", choice_count: 8 },
+  20: { choice_mode: "duels", choice_count: 3 },
+  21: { choice_mode: "ladder", choice_count: 5 },
+};
+
+export function gameLogicConfig(game, n) {
+  if (game === "choose_brand") return { ...CHOICE_RULES[n] };
   if (game === "quiz") return { pass_threshold_percentage: 100 };
   if (game === "hit_it") return { win_threshold: 5 };
   if (game === "memory_match")

@@ -1,6 +1,12 @@
 import type { CampaignSnapshot } from "./campaign";
 import { MIN_TEXT_CONTRAST, contrastRatio, ctaTextColor } from "./contrast";
-import { MAX_WHEEL_SEGMENTS, MIN_WHEEL_SEGMENTS } from "./defaults";
+import {
+  CHOICE_BRACKET_SIZES,
+  MAX_CHOICE_CONTENDERS,
+  MAX_WHEEL_SEGMENTS,
+  MIN_LADDER_CONTENDERS,
+  MIN_WHEEL_SEGMENTS,
+} from "./defaults";
 import { quizSourceHash, resolvePrizeDisplay } from "./display";
 import { GAME_LABELS } from "./gameTypes";
 import {
@@ -10,7 +16,12 @@ import {
   type Locale,
   type LocalizedText,
 } from "./locale";
-import type { AssetRef, ExperienceConfig, ScreenKey } from "./types";
+import type {
+  AssetRef,
+  ChoiceOption,
+  ExperienceConfig,
+  ScreenKey,
+} from "./types";
 
 // Design checks shown in the Studio (plan §6.5). Errors block sharing, warnings inform.
 // Messages are Studio labels, hence in English. `path` points at the field to open.
@@ -445,6 +456,7 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
       images.push([`game.memory.faceImages.${index}`, image]),
     );
   }
+  // Both lists: the mode is the campaign's, and either one may be played after a change.
   if (game.type === "choose_brand" && game.chooseBrand) {
     game.chooseBrand.rounds.forEach((round, index) => {
       images.push([
@@ -454,6 +466,12 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
       images.push([
         `game.chooseBrand.rounds.${index}.right.image`,
         round.right.image,
+      ]);
+    });
+    game.chooseBrand.contenders.forEach((contender, index) => {
+      images.push([
+        `game.chooseBrand.contenders.${index}.image`,
+        contender.image,
       ]);
     });
   }
@@ -501,12 +519,28 @@ function checkMemoryFaces(config: ExperienceConfig, issues: DesignIssue[]) {
 }
 
 // Choose Your Brand: each side needs a label or a picture of its own (an icon alone says
-// nothing of what is offered), and the two sides of a round must not look the same.
-function checkChoiceRounds(config: ExperienceConfig, issues: DesignIssue[]) {
+// nothing of what is offered), and the two sides of a round must not look the same. A
+// tournament's products must not look the same either. Only the items played are checked:
+// the campaign's mode and count (Wizard) when it has them, else the design's own mode, whose
+// tournament list must then fit it (4 or 8 products for a bracket, 3 to 8 for a ladder).
+function checkChoiceRounds(
+  config: ExperienceConfig,
+  issues: DesignIssue[],
+  campaign: CampaignSnapshot | null,
+) {
   const { game } = config;
   if (game.type !== "choose_brand" || !game.chooseBrand) return;
+  const rules = campaign?.rules.choice;
+  const mode = rules?.mode ?? game.chooseBrand.mode;
+  if (mode !== "duels") {
+    checkChoiceContenders(config, issues, mode, rules?.count);
+    return;
+  }
   const fallback = config.locales.default;
-  game.chooseBrand.rounds.forEach((round, index) => {
+  const rounds = rules
+    ? game.chooseBrand.rounds.slice(0, rules.count)
+    : game.chooseBrand.rounds;
+  rounds.forEach((round, index) => {
     const base = `game.chooseBrand.rounds.${index}`;
     for (const side of ["left", "right"] as const) {
       const option = round[side];
@@ -531,6 +565,70 @@ function checkChoiceRounds(config: ExperienceConfig, issues: DesignIssue[]) {
         message: `Round ${index + 1}: both sides look the same. Change one of them.`,
       });
     }
+  });
+}
+
+function checkChoiceContenders(
+  config: ExperienceConfig,
+  issues: DesignIssue[],
+  mode: "bracket" | "ladder",
+  played?: number, // the campaign's count: its products always fit the mode
+) {
+  const settings = config.game.chooseBrand;
+  if (!settings) return;
+  const contenders =
+    played === undefined
+      ? settings.contenders
+      : settings.contenders.slice(0, played);
+  const fallback = config.locales.default;
+  const count = contenders.length;
+  const sizes: readonly number[] = CHOICE_BRACKET_SIZES;
+  if (played === undefined && mode === "bracket" && !sizes.includes(count)) {
+    issues.push({
+      id: "choice-bracket-size",
+      level: "error",
+      path: "game.chooseBrand.contenders",
+      message: `A tournament plays ${CHOICE_BRACKET_SIZES.join(" or ")} products: this one has ${count}.`,
+    });
+  }
+  if (
+    played === undefined &&
+    mode === "ladder" &&
+    (count < MIN_LADDER_CONTENDERS || count > MAX_CHOICE_CONTENDERS)
+  ) {
+    issues.push({
+      id: "choice-ladder-size",
+      level: "error",
+      path: "game.chooseBrand.contenders",
+      message: `"Winner stays" plays ${MIN_LADDER_CONTENDERS} to ${MAX_CHOICE_CONTENDERS} products: this one has ${count}.`,
+    });
+  }
+  const look = (option: ChoiceOption) =>
+    option.image
+      ? `image:${JSON.stringify(option.image)}`
+      : `icon:${option.icon}:${resolveText(option.label, fallback, fallback)}`;
+  const seen = new Map<string, number>();
+  contenders.forEach((contender, index) => {
+    const base = `game.chooseBrand.contenders.${index}`;
+    if (!contender.image && !resolveText(contender.label, fallback, fallback)) {
+      issues.push({
+        id: `choice-empty:${base}`,
+        level: "warning",
+        path: `${base}.label`,
+        message: `Product ${index + 1}: give it a label or a picture, so players know what they pick.`,
+      });
+    }
+    const first = seen.get(look(contender));
+    if (first === undefined) {
+      seen.set(look(contender), index);
+      return;
+    }
+    issues.push({
+      id: `choice-twin:${base}`,
+      level: "warning",
+      path: base,
+      message: `Product ${index + 1} looks the same as product ${first + 1}: players could not tell them apart. Change one of them.`,
+    });
   });
 }
 
@@ -565,7 +663,7 @@ export function validateExperience(
   }
   checkImages(config, issues);
   checkMemoryFaces(config, issues);
-  checkChoiceRounds(config, issues);
+  checkChoiceRounds(config, issues, campaign ?? null);
   return [
     ...issues.filter((issue) => issue.level === "error"),
     ...issues.filter((issue) => issue.level === "warning"),

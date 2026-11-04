@@ -31,5 +31,11 @@ export { FrameHost } from "./runtime/host/FrameHost";
 export { templateLabel } from "./presets/templates";
 export type { TemplateId } from "./domain/templates";
 
-export type { ExperienceConfig } from "./domain/types";
+export type { ChoiceMode, ExperienceConfig } from "./domain/types";
 export type { CampaignSnapshot } from "./domain/campaign";
+// Choose Your Brand's modes and counts: the Wizard picks them, the runtime holds to them.
+export {
+  CHOICE_COUNTS,
+  DEFAULT_CHOICE_COUNT,
+  choiceCountFor,
+} from "./domain/campaign";

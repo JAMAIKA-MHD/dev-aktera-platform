@@ -548,3 +548,35 @@ describe("validateExperience: list", () => {
     expect(new Set(ids(issues)).size).toBe(issues.length);
   });
 });
+
+describe("Choose Your Brand tournaments", () => {
+  it("asks a bracket for 4 or 8 products, a ladder for 3 to 8", () => {
+    const bracket = configFor("choose_brand", (config) => {
+      config.game.chooseBrand!.mode = "bracket";
+      config.game.chooseBrand!.contenders.splice(3);
+    });
+    expect(
+      find(validateExperience(bracket), "choice-bracket-size")?.level,
+    ).toBe("error");
+
+    const ladder = configFor("choose_brand", (config) => {
+      config.game.chooseBrand!.mode = "ladder";
+      config.game.chooseBrand!.contenders.splice(3);
+    });
+    expect(ids(validateExperience(ladder))).not.toContain("choice-ladder-size");
+  });
+
+  it("warns about two products that look the same", () => {
+    const config = configFor("choose_brand", (draft) => {
+      const settings = draft.game.chooseBrand!;
+      settings.mode = "ladder";
+      settings.contenders[1] = {
+        ...settings.contenders[0],
+        id: settings.contenders[1].id,
+      };
+    });
+    expect(ids(validateExperience(config))).toContain(
+      "choice-twin:game.chooseBrand.contenders.1",
+    );
+  });
+});

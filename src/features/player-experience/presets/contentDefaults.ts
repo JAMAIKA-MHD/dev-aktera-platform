@@ -553,6 +553,37 @@ export const DEFAULT_CHOICE_ROUNDS = [
     },
   },
 ] as const;
+// The tournament modes (bracket, ladder): one list of products, the duels are drawn from it.
+// A new tournament starts with the first four, a bracket of eight takes all of them.
+export const DEFAULT_CHOICE_CONTENDERS = [
+  { label: localized("Classique", "كلاسيكي", "Classic"), icon: "star" },
+  { label: localized("Nouveauté", "جديد", "New"), icon: "sparkles" },
+  { label: localized("Premium", "مميّز", "Premium"), icon: "gem" },
+  {
+    label: localized("Édition limitée", "إصدار محدود", "Limited edition"),
+    icon: "flame",
+  },
+  { label: localized("Pack cadeau", "علبة هدية", "Gift pack"), icon: "gift" },
+  { label: localized("Promo", "عرض خاص", "Special offer"), icon: "percent" },
+  {
+    label: localized("Best-seller", "الأكثر مبيعاً", "Best seller"),
+    icon: "trophy",
+  },
+  { label: localized("Exclusif", "حصري", "Exclusive"), icon: "crown" },
+] as const;
+// The stage of a tournament duel, above the question.
+export const CHOICE_STAGE_LABELS = {
+  quarter: localized("Quart de finale", "ربع النهائي", "Quarter-final"),
+  semi: localized("Demi-finale", "نصف النهائي", "Semi-final"),
+  final: localized("Finale", "النهائي", "Final"),
+  challenge: localized("Duel", "مواجهة", "Duel"),
+} as const;
+// The end of a tournament: the one product left.
+export const CHOICE_CHAMPION = localized(
+  "Votre champion !",
+  "بطلك!",
+  "Your champion!",
+);
 
 // A campaign asking for a single hit would otherwise read "1 touches" (T5.7). One threshold,
 // one wording — the only mechanic whose caption counts something that can be exactly one.

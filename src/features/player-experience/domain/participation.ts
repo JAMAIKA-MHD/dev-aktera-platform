@@ -19,13 +19,25 @@ export type GamePayload =
   // Memory Match reports what the player did and how long it took; the server checks the
   // numbers are plausible before it lets them open the prize draw.
   | { kind: "memory"; pairs: number; moves: number; elapsedMs: number }
-  // Choose Your Brand: the side picked in each round, in order. A preference, never scored.
-  | { kind: "choices"; picks: ChoicePick[] };
+  // Choose Your Brand: the side picked in each duel, in order, and the product left at the
+  // end of a tournament. A preference, never scored.
+  | {
+      kind: "choices";
+      mode: "duels" | "bracket" | "ladder";
+      picks: ChoicePick[];
+      champion: ChoiceChampion | null; // tournaments only
+    };
 
 export interface ChoicePick {
-  roundId: string;
+  roundId: string; // the duel: a round id, or a tournament match ("qf1", "sf2", "f1", "m3")
   side: "left" | "right";
   label: string; // the picked side's label as shown, kept with the entry for the brand
+  optionId: string | null; // the tournament product picked; null for a fixed duel
+}
+
+export interface ChoiceChampion {
+  optionId: string;
+  label: string;
 }
 
 export interface DrawRequest {

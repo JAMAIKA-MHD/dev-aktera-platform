@@ -133,6 +133,17 @@ export interface ChoiceRound {
   right: ChoiceOption;
 }
 
+// A product of a Choose Your Brand tournament: the duels are drawn from the list.
+export interface ChoiceContender extends ChoiceOption {
+  id: string; // stable, saved with each pick and with the champion
+}
+
+// How the duels of Choose Your Brand follow one another:
+// - "duels": fixed pairs (rounds), each one on its own;
+// - "bracket": a knockout of 4 or 8 products (quarter-finals, semi-finals, final);
+// - "ladder": the picked product stays and meets the next one (3 to 8 products).
+export type ChoiceMode = "duels" | "bracket" | "ladder";
+
 // Game PRESENTATION only. Rules that decide a win (prizes, weights, stock, win probability,
 // questions and correct answers, thresholds, durations) live in the campaign, never here.
 export interface GameSettings {
@@ -164,7 +175,13 @@ export interface GameSettings {
     // One per face, same order: the brand's own picture replaces that face's icon.
     faceImages: AssetRef[];
   };
-  chooseBrand?: { rounds: ChoiceRound[] }; // 2 to 8, in the order they are played
+  chooseBrand?: {
+    mode: ChoiceMode;
+    rounds: ChoiceRound[]; // duels: 2 to 8, in the order they are played
+    contenders: ChoiceContender[]; // bracket: 4 or 8; ladder: 3 to 8
+    prompt: LocalizedText; // the question of every tournament duel
+    shuffle: boolean; // tournaments: the list in another order for each player
+  };
 }
 
 // How a campaign prize is shown, per language. Empty values fall back to prizes.name and prizes.win_message.

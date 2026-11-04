@@ -1,27 +1,40 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
 } from "react";
-import { buildDefaultChoiceRounds } from "../../../domain/defaults";
+import {
+  buildChoicePlan,
+  choiceProgress,
+  type ChoicePlan,
+  type ChoiceSide,
+} from "../../../domain/chooseBrand";
 import { resolveText } from "../../../domain/locale";
-import type { ChoicePick } from "../../../domain/participation";
-import type { ChoiceRound } from "../../../domain/types";
-import { CHOICE_PROMPT, CHOICE_THANKS } from "../../../presets/contentDefaults";
+import type { ChoiceChampion, ChoicePick } from "../../../domain/participation";
+import {
+  CHOICE_CHAMPION,
+  CHOICE_PROMPT,
+  CHOICE_STAGE_LABELS,
+  CHOICE_THANKS,
+} from "../../../presets/contentDefaults";
 import { runtimeAudio } from "../../feedback/audio";
 import { vibrate } from "../../feedback/haptics";
 import { useElementSize } from "../../layout/useElementSize";
 import type { GameEngineProps } from "../types";
-import { ChoiceCard, type ChoiceSide, type ChoiceState } from "./ChoiceCard";
+import { ChoiceCard, type ChoiceState } from "./ChoiceCard";
 
-// Choose Your Brand. Round after round, two cards: the player taps the one they prefer. No
-// side is right or wrong — the picks are a preference the brand reads later, sent with the
-// participation once the last round is played. Whether that wins, and what, is the server's
-// draw alone (N1): nothing here looks at an outcome before the reveal.
+// Choose Your Brand. Duel after duel, two cards: the player taps the one they prefer. In the
+// "duels" mode the brand set every pair; in a tournament (bracket, ladder) the product picked
+// goes on to the next duel, and the last one standing is the player's champion
+// (domain/chooseBrand.ts draws the duels). No side is right or wrong — the picks are a
+// preference the brand reads later, sent with the participation once the last duel is
+// played. Whether that wins, and what, is the server's draw alone (N1): nothing here looks at
+// an outcome before the reveal.
 
-const HOLD_MS = 650; // the picked card is seen before the next round comes in
+const HOLD_MS = 650; // the picked card is seen before the next duel comes in
 const HOLD_STILL_MS = 250;
 const REVEAL_MS = 500;
 const LABEL_MAX = 80; // what select-prize keeps of a label
@@ -37,22 +50,42 @@ function cardWidth(width: number, height: number) {
   };
 }
 
-export function ChooseBrandEngine({
-  settings,
+// A new list, a new order or another mode is a new game: in the Studio's preview, while the
+// brand edits it. A label or a picture edited keeps the game where it is.
+function planKey(plan: ChoicePlan) {
+  const items = plan.mode === "duels" ? plan.rounds : plan.order;
+  return `${plan.mode}:${items.map((item) => item.id).join(",")}`;
+}
+
+export function ChooseBrandEngine(props: GameEngineProps) {
+  const settings = props.settings.chooseBrand;
+  // The mode and the number of items are the campaign's (Wizard); the design sets the rest.
+  const rules = props.campaign.rules.choice;
+  // One order per player when the brand shuffles the products, the same one all game long.
+  const [seed] = useState(() => Math.floor(Math.random() * 0x100000000));
+  const plan = useMemo(
+    () => buildChoicePlan(settings, seed, rules),
+    [settings, seed, rules],
+  );
+  return <ChooseBrandGame key={planKey(plan)} {...props} plan={plan} />;
+}
+
+function ChooseBrandGame({
+  plan,
   config,
   phase,
   onInteractionComplete,
   onRevealComplete,
   reducedMotion,
   locale,
-}: GameEngineProps) {
+}: GameEngineProps & { plan: ChoicePlan }) {
   const fallback = config.locales.default;
-  const [fallbackRounds] = useState(buildDefaultChoiceRounds);
-  const rounds: ChoiceRound[] = settings.chooseBrand?.rounds?.length
-    ? settings.chooseBrand.rounds
-    : fallbackRounds;
+  const text = (value: Parameters<typeof resolveText>[0]) =>
+    resolveText(value, locale, fallback);
+  const short = (value: Parameters<typeof resolveText>[0]) =>
+    text(value).trim().slice(0, LABEL_MAX);
 
-  const [index, setIndex] = useState(0);
+  const [sides, setSides] = useState<ChoiceSide[]>([]);
   const [picked, setPicked] = useState<ChoiceSide | null>(null);
   const [picks, setPicks] = useState<ChoicePick[]>([]);
   const [done, setDone] = useState(false);
@@ -86,23 +119,22 @@ export function ChooseBrandEngine({
     return () => clearTimeout(timer);
   }, [phase, reducedMotion]);
 
-  const text = (value: Parameters<typeof resolveText>[0]) =>
-    resolveText(value, locale, fallback);
-  const round = rounds[Math.min(index, rounds.length - 1)];
-  const playing = phase === "interacting" && !done;
+  const { duel, champion } = choiceProgress(plan, sides);
+  const playing = phase === "interacting" && !done && duel !== null;
+  const tournament = plan.mode !== "duels";
 
-  // A keyboard player keeps the focus on the duel from one round to the next: the new
-  // round's cards replace the old ones, and the focus would otherwise fall to the page.
+  // A keyboard player keeps the focus on the duel from one to the next: the new duel's cards
+  // replace the old ones, and the focus would otherwise fall to the page.
   const refocus = useRef(false);
   const [duelRef, size] = useElementSize<HTMLDivElement>();
   useEffect(() => {
     if (!refocus.current) return;
     refocus.current = false;
     duelRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
-  }, [index, duelRef]);
+  }, [sides.length, duelRef]);
 
   const pick = (side: ChoiceSide) => {
-    if (!playing || locked.current) return;
+    if (!playing || !duel || locked.current) return;
     locked.current = true;
     refocus.current = Boolean(
       duelRef.current?.contains(document.activeElement),
@@ -110,25 +142,37 @@ export function ChooseBrandEngine({
     setPicked(side);
     runtimeAudio.play("click");
     vibrate("tap");
-    const next: ChoicePick[] = [
+    const slot = duel[side];
+    const nextPicks: ChoicePick[] = [
       ...picks,
       {
-        roundId: round.id,
+        roundId: duel.id,
         side,
-        label: text(round[side].label).trim().slice(0, LABEL_MAX),
+        label: short(slot.option.label),
+        optionId: slot.contenderId,
       },
     ];
-    setPicks(next);
+    const nextSides = [...sides, side];
+    setPicks(nextPicks);
     later(
       () => {
-        if (index + 1 >= rounds.length) {
-          setDone(true);
-          send.current({ kind: "choices", picks: next });
+        const after = choiceProgress(plan, nextSides);
+        setSides(nextSides);
+        setPicked(null);
+        if (after.duel) {
+          locked.current = false;
           return;
         }
-        setIndex(index + 1);
-        setPicked(null);
-        locked.current = false;
+        setDone(true);
+        const crowned: ChoiceChampion | null = after.champion
+          ? { optionId: after.champion.id, label: short(after.champion.label) }
+          : null;
+        send.current({
+          kind: "choices",
+          mode: plan.mode,
+          picks: nextPicks,
+          champion: tournament ? crowned : null,
+        });
       },
       reducedMotion ? HOLD_STILL_MS : HOLD_MS,
     );
@@ -146,34 +190,52 @@ export function ChooseBrandEngine({
   const { card, vs, gap } = cardWidth(size.width, size.height);
   const stateOf = (side: ChoiceSide): ChoiceState =>
     picked === null ? "idle" : picked === side ? "picked" : "dropped";
-  const prompt = text(round.prompt) || text(CHOICE_PROMPT);
+  const prompt =
+    (duel && text(duel.prompt)) || text(plan.prompt) || text(CHOICE_PROMPT);
   const cta = text(config.screens.play.primaryCta);
+  const step = Math.min(sides.length + 1, plan.total);
+
+  // "Quarter-final · 2/4", "Semi-final · 1/2", "Final"; nothing for fixed duels.
+  const stage =
+    duel && duel.stage !== "duel"
+      ? `${text(CHOICE_STAGE_LABELS[duel.stage])}${
+          duel.stage !== "final" && duel.stageCount > 1
+            ? ` · ${duel.stageIndex}/${duel.stageCount}`
+            : ""
+        }`
+      : null;
+  // The champion keeps the tone of the side it won the final on.
+  const championSide = picks[picks.length - 1]?.side ?? "left";
+  const championWidth = measured
+    ? Math.min(size.width * 0.6, size.height * 0.72)
+    : undefined;
 
   return (
     <div
       className="grid size-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-[clamp(0.35rem,2cqmin,0.75rem)]"
       data-xp-game="choose_brand"
+      data-xp-choice-mode={plan.mode}
       data-xp-phase={phase}
       data-xp-still={reducedMotion ? "" : undefined}
     >
-      {/* The rounds: one step each, the current one lit. */}
+      {/* The duels: one step each, the current one lit. */}
       <div
         className="flex items-center gap-2"
         role="progressbar"
         aria-valuemin={1}
-        aria-valuemax={rounds.length}
-        aria-valuenow={Math.min(index + 1, rounds.length)}
-        aria-label={`${Math.min(index + 1, rounds.length)} / ${rounds.length}`}
+        aria-valuemax={plan.total}
+        aria-valuenow={step}
+        aria-label={`${step} / ${plan.total}`}
       >
         <span className="flex flex-1 gap-1">
-          {rounds.map((item, step) => (
+          {Array.from({ length: plan.total }, (_, index) => (
             <span
-              key={item.id}
+              key={index}
               className="xp-choice-step"
               data-xp-step={
-                step < picks.length
+                index < picks.length
                   ? "done"
-                  : step === index && !done
+                  : index === sides.length && !done
                     ? "now"
                     : undefined
               }
@@ -181,46 +243,67 @@ export function ChooseBrandEngine({
           ))}
         </span>
         <span className="xp-choice-count text-xs font-extrabold tabular-nums">
-          {Math.min(index + 1, rounds.length)} / {rounds.length}
+          {step} / {plan.total}
         </span>
       </div>
 
-      {done ? (
-        <p
-          key="thanks"
-          dir="auto"
-          className="xp-choice-prompt text-center"
-          aria-live="polite"
-        >
-          {text(CHOICE_THANKS)}
-        </p>
-      ) : (
-        <p
-          key={round.id}
-          dir="auto"
-          data-xp-clamp
-          className="xp-choice-prompt line-clamp-2 text-center"
-          aria-live="polite"
-        >
-          {prompt}
-        </p>
-      )}
+      <div className="grid justify-items-center gap-1 text-center">
+        {stage && !done && (
+          <span key={`stage-${duel?.id}`} className="xp-choice-stage">
+            {stage}
+          </span>
+        )}
+        {done ? (
+          <p
+            key="thanks"
+            dir="auto"
+            className="xp-choice-prompt"
+            aria-live="polite"
+          >
+            {text(tournament ? CHOICE_CHAMPION : CHOICE_THANKS)}
+          </p>
+        ) : (
+          <p
+            key={duel?.id}
+            dir="auto"
+            data-xp-clamp
+            className="xp-choice-prompt line-clamp-2"
+            aria-live="polite"
+          >
+            {prompt}
+          </p>
+        )}
+      </div>
 
       <div
         ref={duelRef}
         className="grid min-h-0 min-w-0 place-items-center overflow-hidden p-[clamp(0.25rem,2cqmin,0.75rem)]"
         style={{ opacity: phase === "interacting" || done ? 1 : 0.6 }}
       >
-        {done ? (
-          // What the player chose, round after round, while the server answers.
+        {done && tournament && champion ? (
+          // The one product left, crowned, while the server answers.
+          <div
+            className="xp-choice-champion"
+            style={{ width: championWidth, aspectRatio: "3 / 4" }}
+          >
+            <ChoiceCard
+              option={champion}
+              label={text(champion.label)}
+              side={championSide}
+              state="idle"
+              crown
+            />
+          </div>
+        ) : done ? (
+          // What the player chose, duel after duel, while the server answers.
           <ul className="xp-choice-summary" aria-label={prompt}>
-            {picks.map((choice, step) => {
-              const chosen = rounds[step];
+            {picks.map((choice, index) => {
+              const chosen = plan.rounds[index];
               if (!chosen) return null;
               return (
                 <li
                   key={choice.roundId}
-                  style={{ animationDelay: `${step * 70}ms` }}
+                  style={{ animationDelay: `${index * 70}ms` }}
                 >
                   <ChoiceCard
                     option={chosen[choice.side]}
@@ -232,9 +315,9 @@ export function ChooseBrandEngine({
               );
             })}
           </ul>
-        ) : (
+        ) : duel ? (
           // Always drawn left to right, whatever the page's direction: the brand set its
-          // pictures as a left one and a right one.
+          // pictures as a left one and a right one, and a tournament keeps its sides.
           <div
             dir="ltr"
             onKeyDown={onKeyDown}
@@ -247,10 +330,17 @@ export function ChooseBrandEngine({
             }}
           >
             {(["left", "right"] as const).map((side) => {
-              const label = text(round[side].label);
+              const slot = duel[side];
+              const label = text(slot.option.label);
               return (
                 <button
-                  key={`${round.id}-${side}`}
+                  // In "winner stays", the product picked keeps its card: only the newcomer
+                  // comes in. Everywhere else, each duel brings two new cards.
+                  key={
+                    plan.mode === "ladder"
+                      ? `${slot.contenderId}-${side}`
+                      : `${duel.id}-${side}`
+                  }
                   type="button"
                   disabled={!playing || picked !== null}
                   aria-pressed={picked === side}
@@ -265,7 +355,7 @@ export function ChooseBrandEngine({
                   }}
                 >
                   <ChoiceCard
-                    option={round[side]}
+                    option={slot.option}
                     label={label}
                     side={side}
                     state={stateOf(side)}
@@ -274,7 +364,7 @@ export function ChooseBrandEngine({
               );
             })}
             <span
-              key={`vs-${round.id}`}
+              key={`vs-${duel.id}`}
               aria-hidden
               className="xp-choice-vs"
               style={{ gridColumn: 2, gridRow: 1, width: vs }}
@@ -282,7 +372,7 @@ export function ChooseBrandEngine({
               VS
             </span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

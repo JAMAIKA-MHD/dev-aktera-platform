@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Crown } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { ChoiceOption } from "../../../domain/types";
 import { ICON_COMPONENTS } from "../../../presets/icons";
@@ -18,6 +18,7 @@ export interface ChoiceCardProps {
   label: string; // already resolved in the player's language
   side: ChoiceSide;
   state: ChoiceState;
+  crown?: boolean; // the champion of a tournament
   style?: CSSProperties;
 }
 
@@ -26,6 +27,7 @@ export function ChoiceCard({
   label,
   side,
   state,
+  crown = false,
   style,
 }: ChoiceCardProps) {
   const src = useAssetSrc(option.image);
@@ -64,6 +66,11 @@ export function ChoiceCard({
       {state === "picked" && (
         <span className="xp-choice-badge" aria-hidden>
           <Check className="size-[64%]" strokeWidth={3.2} />
+        </span>
+      )}
+      {crown && (
+        <span className="xp-choice-crown" aria-hidden>
+          <Crown className="size-[62%]" strokeWidth={2.6} />
         </span>
       )}
     </span>

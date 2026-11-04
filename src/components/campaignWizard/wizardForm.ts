@@ -9,7 +9,9 @@
 import type { Campaign, PrizeTemplate, QuizQuestion } from "../../types";
 import type { GameType } from "../campaigns/campaignMeta";
 import {
+  CHOICE_MODE_INFO,
   MECHANICS_REGISTRY,
+  choicePicks,
   engagementDefaults,
   forcesGuaranteed,
   isQuizEngagement,
@@ -210,6 +212,9 @@ export const isGuaranteed = (form: WizardForm) =>
   !isDraw(form) && (form.w.mode === "guaranteed" || forcesGuaranteed(form.w));
 /** The quiz's questions, played and saved only by a quiz. */
 export const isQuiz = (form: WizardForm) => isQuizEngagement(form.w);
+/** Choose Your Brand: its mode and count are saved for the player page. */
+export const isChooseBrand = (form: WizardForm) =>
+  gameTypeOf(form) === "choose_brand";
 /** A draw whose prizes and messages the brand handles itself. */
 export const drawHandledByBrand = (form: WizardForm) =>
   isDraw(form) && form.w.draw.manageStock !== true;
@@ -383,6 +388,10 @@ export function savedGameLogic(form: WizardForm, base: Campaign | null) {
     ...(isQuiz(form) && {
       pass_threshold_percentage: w.passPercent,
     }),
+    ...(isChooseBrand(form) && {
+      choice_mode: w.choiceMode,
+      choice_count: w.choiceCount,
+    }),
     // A draw that Aktera does not manage keeps no messages.
     wizard: drawHandledByBrand(form)
       ? { ...w, draw: { ...w.draw, smsWinner: "", smsLoser: "" } }
@@ -417,6 +426,10 @@ export function previewCampaign(
       win_threshold: w.targetScore,
       hit_it_duration_seconds: w.durationSeconds,
       pass_threshold_percentage: w.passPercent,
+      ...(isChooseBrand(form) && {
+        choice_mode: w.choiceMode,
+        choice_count: w.choiceCount,
+      }),
     },
     status: "draft",
     winProbability: isGuaranteed(form) ? 100 : form.winProbability,
@@ -470,7 +483,11 @@ export function engagementSettings(form: WizardForm) {
   if (isQuiz(form)) {
     return `${form.questionCount} ${form.questionCount === 1 ? "question" : "questions"} · pass at ${w.passPercent}%`;
   }
-  if (w.category === "knowledge") return "Rounds set in the Player Studio";
+  if (isChooseBrand(form)) {
+    const { label, unit } = CHOICE_MODE_INFO[w.choiceMode];
+    const picks = choicePicks(w.choiceMode, w.choiceCount);
+    return `${label} · ${w.choiceCount} ${unit} · ${picks} picks per player`;
+  }
   return "No game settings";
 }
 

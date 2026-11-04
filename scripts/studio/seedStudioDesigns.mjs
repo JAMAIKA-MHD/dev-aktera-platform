@@ -64,7 +64,7 @@ export function seedDesign(builders, c, id, savedAt) {
       options: q.options,
       correctIndex: q.correct,
     })),
-    gameLogicConfig: gameLogicConfig(c.game),
+    gameLogicConfig: gameLogicConfig(c.game, c.n),
   };
   const config = builders.createDefaultExperience({
     gameType: c.game,

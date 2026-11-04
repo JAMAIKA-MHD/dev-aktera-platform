@@ -14,6 +14,7 @@ import {
   mechanicsFor,
   type EngagementCategory,
 } from "../wizard/mechanicsRegistry";
+import { ChooseBrandModeFields } from "./ChooseBrandModeFields";
 import type { StepProps } from "./StepFoundation";
 import {
   Field,
@@ -324,24 +325,7 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
       )}
 
       {w.category === "knowledge" && !isQuizEngagement(w) && (
-        <StepPanel
-          title="Choose Your Brand settings"
-          description="What players see in each round is designed in the Player Studio."
-        >
-          <div className="flex items-start gap-3 rounded-cx-md bg-cx-brand-soft px-4 py-3 text-[13px] leading-5 text-cx-ink">
-            <Info
-              className="mt-0.5 size-4 shrink-0 text-cx-brand-text"
-              aria-hidden
-            />
-            <p>
-              <strong>No right or wrong answer.</strong> Players pick the left
-              or the right picture of each round, and their picks are saved with
-              their entry. The rounds and their pictures are set in the Player
-              Studio. The reward is a draw by default; an instant win is always
-              guaranteed (100% Gagnant).
-            </p>
-          </div>
-        </StepPanel>
+        <ChooseBrandModeFields w={w} patch={patch} />
       )}
 
       {isQuizEngagement(w) && (

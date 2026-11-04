@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { DEFAULT_GAME_TYPE, createDefaultExperience } from "./defaults";
+import {
+  DEFAULT_GAME_TYPE,
+  MAX_CHOICE_CONTENDERS,
+  buildDefaultChoiceContenders,
+  createDefaultExperience,
+  defaultChoicePrompt,
+} from "./defaults";
 import type { GameType } from "./gameTypes";
 import { ICON_NAMES } from "./icons";
 import { migrateExperienceConfig } from "./migrations";
@@ -254,6 +260,21 @@ const gameSchema = z
               new Set(rounds.map((round) => round.id)).size === rounds.length,
             "Every round needs its own id",
           ),
+        // A design saved before the tournaments existed keeps its duels, and gets a list
+        // ready for them. How many products each mode needs is a design rule
+        // (validation.ts): the Studio may hold a list on its way to the right size.
+        mode: z.enum(["duels", "bracket", "ladder"]).default("duels"),
+        contenders: z
+          .array(choiceOptionSchema.extend({ id: idSchema }))
+          .max(MAX_CHOICE_CONTENDERS)
+          .refine(
+            (items) =>
+              new Set(items.map((item) => item.id)).size === items.length,
+            "Every product needs its own id",
+          )
+          .default(() => buildDefaultChoiceContenders(MAX_CHOICE_CONTENDERS)),
+        prompt: localizedTextSchema.default(defaultChoicePrompt),
+        shuffle: z.boolean().default(false),
       })
       .optional(),
   })

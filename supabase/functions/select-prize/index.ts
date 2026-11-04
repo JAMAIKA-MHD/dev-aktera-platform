@@ -120,13 +120,34 @@ function readClientRequestId(metadata: Record<string, unknown>): string | null {
   return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
 }
 
-// Choose Your Brand: the side picked in each round, as the player's page sent it. A preference
-// for the brand to read, never a score: it decides nothing. Client input, so it is cut down to
-// plain values (8 rounds at most, short ids and labels) before it is stored with the entry.
+// Choose Your Brand: the side picked in each duel, as the player's page sent it, and the
+// product left at the end of a tournament. A preference for the brand to read, never a score:
+// it decides nothing. Client input, so it is cut down to plain values (8 duels at most, short
+// ids and labels) before it is stored with the entry.
 interface BrandChoice {
   round_id: string;
   side: "left" | "right";
   label: string;
+  option_id?: string; // the tournament product picked
+}
+
+interface BrandChampion {
+  option_id: string;
+  label: string;
+}
+
+const BRAND_ID = /^[\w-]{1,64}$/;
+const BRAND_MODES = ["duels", "bracket", "ladder"] as const;
+type BrandMode = (typeof BRAND_MODES)[number];
+
+const brandLabel = (value: unknown) =>
+  typeof value === "string" ? value.trim().slice(0, 80) : "";
+
+function readBrandMode(payload: Record<string, unknown>): BrandMode {
+  const mode = payload.mode;
+  return BRAND_MODES.includes(mode as BrandMode)
+    ? (mode as BrandMode)
+    : "duels";
 }
 
 function readBrandChoices(payload: Record<string, unknown>): BrandChoice[] {
@@ -135,17 +156,54 @@ function readBrandChoices(payload: Record<string, unknown>): BrandChoice[] {
   const choices: BrandChoice[] = [];
   for (const item of raw.slice(0, 8)) {
     if (typeof item !== "object" || item === null) continue;
-    const { round_id, side, label } = item as Record<string, unknown>;
-    if (typeof round_id !== "string" || !/^[\w-]{1,64}$/.test(round_id))
-      continue;
+    const { round_id, side, label, option_id } = item as Record<
+      string,
+      unknown
+    >;
+    if (typeof round_id !== "string" || !BRAND_ID.test(round_id)) continue;
     if (side !== "left" && side !== "right") continue;
     choices.push({
       round_id,
       side,
-      label: typeof label === "string" ? label.trim().slice(0, 80) : "",
+      label: brandLabel(label),
+      ...(typeof option_id === "string" &&
+        BRAND_ID.test(option_id) && { option_id }),
     });
   }
   return choices;
+}
+
+function readBrandChampion(
+  payload: Record<string, unknown>,
+): BrandChampion | null {
+  const raw = payload.champion;
+  if (typeof raw !== "object" || raw === null) return null;
+  const { option_id, label } = raw as Record<string, unknown>;
+  if (typeof option_id !== "string" || !BRAND_ID.test(option_id)) return null;
+  return { option_id, label: brandLabel(label) };
+}
+
+// The keys an entry keeps for Choose Your Brand. Every other game gets them undefined, so
+// that keys of the same name in the client's metadata are never stored as if they were ours.
+function brandMetadata(gameType: string, gamePayload: unknown) {
+  if (gameType !== "choose_brand") {
+    return {
+      brand_mode: undefined,
+      brand_choices: undefined,
+      brand_champion: undefined,
+    };
+  }
+  const payload =
+    typeof gamePayload === "object" && gamePayload !== null
+      ? (gamePayload as Record<string, unknown>)
+      : {};
+  const mode = readBrandMode(payload);
+  return {
+    brand_mode: mode,
+    brand_choices: readBrandChoices(payload),
+    // Fixed duels have no champion, whatever the page sent.
+    brand_champion: mode === "duels" ? null : readBrandChampion(payload),
+  };
 }
 
 async function loadPrize(
@@ -500,14 +558,7 @@ serve(async (req) => {
       game_type: campaign.game_type,
       server_timestamp: new Date().toISOString(),
       // Only the server's own reading of the picks is kept, never the client's metadata.
-      brand_choices:
-        campaign.game_type === "choose_brand"
-          ? readBrandChoices(
-              typeof game_payload === "object" && game_payload !== null
-                ? (game_payload as Record<string, unknown>)
-                : {},
-            )
-          : undefined,
+      ...brandMetadata(campaign.game_type, game_payload),
     };
     const { data: newEntry, error: insertError } = await supabaseAdmin
       .from("entries")

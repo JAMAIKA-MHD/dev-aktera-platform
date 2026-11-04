@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import {
   DEFAULT_MEMORY_FACES,
-  buildDefaultChoiceRounds,
+  buildDefaultChooseBrand,
   buildDefaultWheelSegments,
   emptyMemoryFaceImages,
 } from "../../domain/defaults";
@@ -133,7 +133,7 @@ export const registry: GameRegistry = {
         default: module.ChooseBrandTeaser,
       })),
     ),
-    defaultSettings: { chooseBrand: { rounds: buildDefaultChoiceRounds() } },
+    defaultSettings: { chooseBrand: buildDefaultChooseBrand() },
     labels: GAME_LABELS.choose_brand,
     autoCaption,
   },

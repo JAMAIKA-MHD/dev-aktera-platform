@@ -1,5 +1,6 @@
 import type { Campaign, PrizeTemplate } from "@/src/types";
 import type { GameType } from "./gameTypes";
+import type { ChoiceMode } from "./types";
 
 // What the runtime knows about a campaign. Never contains weights, stock, win probability,
 // coupon codes or correct answers: those only reach the demo gateway, or stay on the server.
@@ -35,11 +36,46 @@ export interface MemoryRules {
   durationSeconds: number;
 }
 
+// Choose Your Brand: how its duels follow one another and how many items it plays (rounds of
+// fixed duels, or products of a tournament). Chosen in the Wizard; the Studio only sets what
+// each item shows. No rule here decides a win: every pick is a preference.
+export interface ChoiceRules {
+  mode: ChoiceMode;
+  count: number;
+}
+
 export interface CampaignRules {
   quiz?: QuizRules;
   hitIt?: HitItRules;
   memory?: MemoryRules;
+  choice?: ChoiceRules;
 }
+
+// The counts each Choose Your Brand mode can play: 2 to 8 rounds of duels, a knockout of 4 or
+// 8 products (no byes), 3 to 8 products in "winner stays".
+export const CHOICE_MODES = ["duels", "bracket", "ladder"] as const;
+export const CHOICE_COUNTS: Readonly<Record<ChoiceMode, readonly number[]>> = {
+  duels: [2, 3, 4, 5, 6, 7, 8],
+  bracket: [4, 8],
+  ladder: [3, 4, 5, 6, 7, 8],
+};
+export const DEFAULT_CHOICE_COUNT: Readonly<Record<ChoiceMode, number>> = {
+  duels: 3,
+  bracket: 8,
+  ladder: 5,
+};
+
+// The allowed count of `mode` nearest to `value` (the larger one on a tie).
+export function choiceCountFor(mode: ChoiceMode, value: number): number {
+  const allowed = CHOICE_COUNTS[mode];
+  if (!Number.isFinite(value)) return DEFAULT_CHOICE_COUNT[mode];
+  return allowed.reduce((best, count) =>
+    Math.abs(count - value) <= Math.abs(best - value) ? count : best,
+  );
+}
+
+export const isChoiceMode = (value: unknown): value is ChoiceMode =>
+  CHOICE_MODES.includes(value as ChoiceMode);
 
 // Boards the engine can draw (and the server accepts): 3 to 8 pairs.
 export const BOARD_SIZE_RANGE = { min: 3, max: 8 } as const;
@@ -64,11 +100,13 @@ export interface CampaignSnapshot {
 
 // Same defaults as the resolve_game_outcome RPC when game_logic_config has no value.
 // secondsPerQuestion and durationSeconds are not read by the RPC yet (plan §12.2).
-export const DEFAULT_RULES: Readonly<Required<CampaignRules>> = {
-  quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
-  hitIt: { winThreshold: 1, durationSeconds: 10 },
-  memory: { pairs: 6, durationSeconds: 45 },
-};
+// Choose Your Brand has none: without the campaign's mode, the design's own plays.
+export const DEFAULT_RULES: Readonly<Required<Omit<CampaignRules, "choice">>> =
+  {
+    quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
+    hitIt: { winThreshold: 1, durationSeconds: 10 },
+    memory: { pairs: 6, durationSeconds: 45 },
+  };
 
 // Like the RPC, accepts numbers and numeric strings; anything else falls back to the default.
 function readNumber(config: unknown, key: string, fallback: number): number {
@@ -134,6 +172,24 @@ export function rulesFromGameLogic(
           config,
           "hit_it_duration_seconds",
           defaults.durationSeconds,
+        ),
+      },
+    };
+  }
+  // Choose Your Brand: choice_mode and choice_count, written by the Wizard. A campaign saved
+  // before they existed has none: its game is then the design's own (the Studio's).
+  if (gameType === "choose_brand") {
+    const mode =
+      typeof config === "object" && config !== null
+        ? (config as Record<string, unknown>).choice_mode
+        : undefined;
+    if (!isChoiceMode(mode)) return {};
+    return {
+      choice: {
+        mode,
+        count: choiceCountFor(
+          mode,
+          readNumber(config, "choice_count", DEFAULT_CHOICE_COUNT[mode]),
         ),
       },
     };
