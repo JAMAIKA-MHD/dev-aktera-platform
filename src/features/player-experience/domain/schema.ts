@@ -227,6 +227,11 @@ const gameSchema = z
         backIcon: iconNameSchema,
         backImage: assetRefSchema,
         faces: z.array(iconNameSchema).length(8),
+        // A design saved before the face pictures existed keeps a valid shape: icons only.
+        faceImages: z
+          .array(assetRefSchema)
+          .length(8)
+          .default(() => [null, null, null, null, null, null, null, null]),
       })
       .optional(),
     spot: z.object({ icons: z.array(iconNameSchema).min(3).max(8) }).optional(),

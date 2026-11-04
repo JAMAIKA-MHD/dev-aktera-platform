@@ -1,8 +1,9 @@
 /*
  * The play screen of each game (runtime/games/), in the template's look and with its motion.
  * Imported by layout.css. Every rule reads the game variables a template's theme.json sets
- * (games.quiz, games.scratch, games.boxes, games.hitIt → --xp-quiz-*, --xp-scratch-*,
- * --xp-box-*, --xp-hit-*: theme/shellVars.ts) with the classic look as their fallback. Pure
+ * (games.quiz, games.scratch, games.boxes, games.hitIt, games.memory → --xp-quiz-*,
+ * --xp-scratch-*, --xp-box-*, --xp-hit-*, --xp-memory-*: theme/shellVars.ts) with the classic
+ * look as their fallback. Pure
  * look and motion: no rule here changes what a game accepts or sends.
  */
 
@@ -156,6 +157,221 @@
   -webkit-mask: url("../../themes/_shared/assets/fx/burst.svg") center / contain
     no-repeat;
   animation: xp-game-burst 480ms ease-out both;
+}
+
+/* ── Memory Match ────────────────────────────────────────────────────────────── */
+
+/* A card turns on itself: the back faces the player until the card is up or found. Every
+   size is a share of the card, which the board sizes on its container. */
+.xp-memory-card {
+  perspective: 40rem;
+  transition: translate 160ms ease-out;
+}
+.xp-memory-turn {
+  transform-style: preserve-3d;
+  transition: transform 440ms cubic-bezier(0.2, 0.8, 0.3, 1.15);
+}
+.xp-memory-card:not([data-xp-card="down"]) .xp-memory-turn {
+  transform: rotateY(180deg);
+}
+.xp-memory-side {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--xp-memory-radius, var(--xp-radius-md));
+  border: var(--xp-memory-border-width, 0.125rem) solid
+    var(
+      --xp-memory-border,
+      color-mix(in srgb, var(--xp-memory-tone) 55%, transparent)
+    );
+  box-shadow: var(
+    --xp-memory-shadow,
+    0 0.45rem 1rem -0.45rem
+      color-mix(in srgb, var(--xp-primary) 60%, transparent)
+  );
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition:
+    border-color 200ms ease-out,
+    box-shadow 240ms ease-out;
+}
+
+/* Face down: the template's colors (or the brand's gradient) under fine stripes, an inner
+   frame, and a light that sweeps across now and then. */
+.xp-memory-back {
+  color: var(--xp-memory-back-icon, var(--xp-on-primary));
+  border-color: var(
+    --xp-memory-border,
+    color-mix(in srgb, var(--xp-primary) 55%, transparent)
+  );
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(
+          --xp-memory-pattern,
+          color-mix(in srgb, var(--xp-on-primary) 12%, transparent)
+        )
+        0 0.2rem,
+      transparent 0.2rem 0.65rem
+    ),
+    linear-gradient(
+      145deg,
+      var(--xp-memory-back, var(--xp-primary)),
+      var(--xp-memory-back-end, var(--xp-secondary))
+    );
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    pointer-events: none;
+    border-radius: calc(var(--xp-memory-radius, var(--xp-radius-md)) * 0.7);
+    border: 0.1rem dashed
+      color-mix(
+        in srgb,
+        var(--xp-memory-back-icon, var(--xp-on-primary)) 45%,
+        transparent
+      );
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        105deg,
+        transparent 38%,
+        color-mix(in srgb, var(--xp-on-primary) 30%, transparent) 50%,
+        transparent 62%
+      )
+      120% 0 / 250% 100% no-repeat;
+    animation: xp-game-sheen 3.6s ease-in-out infinite;
+  }
+}
+[data-xp-memory-board] > :nth-child(3n + 2) .xp-memory-back::after {
+  animation-delay: 0.6s;
+}
+[data-xp-memory-board] > :nth-child(3n) .xp-memory-back::after {
+  animation-delay: 1.2s;
+}
+.xp-memory-back-icon {
+  position: relative;
+  filter: drop-shadow(
+    0 0.15rem 0.2rem color-mix(in srgb, var(--xp-text) 30%, transparent)
+  );
+}
+
+/* Face up: a soft halo in the pair's tone, its icon, its picture, or the template's art. */
+.xp-memory-face {
+  transform: rotateY(180deg);
+  color: var(--xp-memory-face-icon, var(--xp-memory-tone));
+  background: radial-gradient(
+    circle at 50% 38%,
+    color-mix(
+      in srgb,
+      var(--xp-memory-tone) 24%,
+      var(--xp-memory-face, var(--xp-surface))
+    ),
+    var(--xp-memory-face, var(--xp-surface)) 72%
+  );
+}
+.xp-memory-photo {
+  border-radius: calc(var(--xp-memory-radius, var(--xp-radius-md)) * 0.7);
+}
+.xp-memory-art {
+  filter: drop-shadow(
+    0 0.2rem 0.35rem color-mix(in srgb, var(--xp-memory-tone) 40%, transparent)
+  );
+}
+
+/* A pair found: it jumps, glows in the template's color and gets its check. */
+.xp-memory-card[data-xp-card="matched"] {
+  animation: xp-memory-found 560ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  & .xp-memory-face {
+    border-color: var(--xp-memory-matched, var(--xp-accent));
+    box-shadow:
+      0 0 0 0.15rem
+        color-mix(
+          in srgb,
+          var(--xp-memory-matched, var(--xp-accent)) 40%,
+          transparent
+        ),
+      0 0 1.25rem
+        color-mix(
+          in srgb,
+          var(--xp-memory-matched, var(--xp-accent)) 55%,
+          transparent
+        );
+  }
+}
+.xp-memory-badge {
+  top: 6%;
+  inset-inline-end: 6%;
+  width: 26%;
+  aspect-ratio: 1;
+  color: var(--xp-surface);
+  background-color: var(--xp-memory-matched, var(--xp-accent));
+  box-shadow: 0 0.1rem 0.3rem
+    color-mix(in srgb, var(--xp-text) 30%, transparent);
+  animation: xp-memory-badge 380ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 180ms both;
+}
+
+/* A wrong pair: a red edge and a shake, then both cards turn back. */
+.xp-memory-card[data-xp-miss] {
+  animation: xp-memory-miss 420ms ease-in-out 220ms both;
+  & .xp-memory-face {
+    border-color: var(--xp-memory-miss, var(--xp-danger));
+  }
+}
+
+/* A card the player can turn rises under the pointer. */
+@media (hover: hover) {
+  [data-xp-game="memory_match"]
+    button:enabled:hover
+    > .xp-memory-card[data-xp-card="down"] {
+    translate: 0 -4%;
+  }
+}
+
+/* Still: no turn, no sweep, no jump. */
+.xp-memory-card[data-xp-still] {
+  animation: none;
+  & :is(.xp-memory-turn, .xp-memory-side) {
+    transition: none;
+  }
+  & :is(*, *::before, *::after) {
+    animation: none;
+  }
+}
+
+@keyframes xp-memory-found {
+  40% {
+    scale: 1.1;
+  }
+  70% {
+    scale: 0.97;
+  }
+}
+@keyframes xp-memory-miss {
+  20% {
+    translate: -6% 0;
+  }
+  40% {
+    translate: 6% 0;
+  }
+  60% {
+    translate: -4% 0;
+  }
+  80% {
+    translate: 3% 0;
+  }
+}
+@keyframes xp-memory-badge {
+  from {
+    opacity: 0;
+    scale: 0.2;
+  }
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────────────── */

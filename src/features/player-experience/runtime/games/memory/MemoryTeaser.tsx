@@ -29,6 +29,7 @@ export function MemoryTeaser(props: GameTeaserProps) {
   }, [still, active]);
 
   const faces = settings.memory?.faces ?? DEFAULT_MEMORY_FACES;
+  const faceImages = settings.memory?.faceImages ?? [];
   const backIcon = settings.memory?.backIcon ?? "help-circle";
   const backImage = settings.memory?.backImage ?? null;
   const inCycle = still ? CYCLE - 1 : step % CYCLE;
@@ -65,6 +66,7 @@ export function MemoryTeaser(props: GameTeaserProps) {
               <MemoryCard
                 state={stateOf(index)}
                 face={faces[pair % faces.length]}
+                faceImage={faceImages[pair % faces.length] ?? null}
                 toneIndex={pair}
                 backIcon={backIcon}
                 backImage={backImage}

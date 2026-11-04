@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_RULES } from "../../../domain/campaign";
 import { DEFAULT_MEMORY_FACES } from "../../../domain/defaults";
 import { resolveText } from "../../../domain/locale";
-import type { IconName } from "../../../domain/types";
+import type { AssetRef, IconName } from "../../../domain/types";
 import { runtimeAudio } from "../../feedback/audio";
 import { vibrate } from "../../feedback/haptics";
 import { useElementSize } from "../../layout/useElementSize";
@@ -22,14 +22,20 @@ const MISS_MS = 800;
 
 interface Slot {
   face: IconName;
+  faceImage: AssetRef; // the brand's picture of that face, over its icon
   pair: number;
 }
 
-function buildDeck(faces: readonly IconName[], pairs: number): Slot[] {
+function buildDeck(
+  faces: readonly IconName[],
+  faceImages: readonly AssetRef[],
+  pairs: number,
+): Slot[] {
   const deck: Slot[] = [];
   for (let pair = 0; pair < pairs; pair++) {
-    const face = faces[pair % faces.length];
-    deck.push({ face, pair }, { face, pair });
+    const index = pair % faces.length;
+    const card = { face: faces[index], faceImage: faceImages[index] ?? null };
+    deck.push({ ...card, pair }, { ...card, pair });
   }
   // Fisher–Yates: the layout is cosmetic, it carries no prize information.
   for (let i = deck.length - 1; i > 0; i--) {
@@ -66,12 +72,14 @@ export function MemoryEngine({
   const rules = campaign.rules.memory ?? DEFAULT_RULES.memory;
   const totalMs = rules.durationSeconds * 1000;
   const faces = settings.memory?.faces ?? DEFAULT_MEMORY_FACES;
+  const faceImages = settings.memory?.faceImages ?? [];
   const backIcon = settings.memory?.backIcon ?? "help-circle";
   const backImage = settings.memory?.backImage ?? null;
   const fallback = config.locales.default;
 
-  const [deck] = useState(() => buildDeck(faces, rules.pairs));
+  const [deck] = useState(() => buildDeck(faces, faceImages, rules.pairs));
   const [flipped, setFlipped] = useState<number[]>([]);
+  const [missed, setMissed] = useState<number[]>([]); // a wrong pair, until it turns back
   const [matched, setMatched] = useState<boolean[]>(() =>
     deck.map(() => false),
   );
@@ -158,9 +166,11 @@ export function MemoryEngine({
         reducedMotion ? 0 : MATCH_MS,
       );
     } else {
+      setMissed(next);
       later(
         () => {
           setFlipped([]);
+          setMissed([]);
           locked.current = false;
         },
         reducedMotion ? 450 : MISS_MS,
@@ -198,7 +208,8 @@ export function MemoryEngine({
       />
       <div
         ref={boardRef}
-        className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center overflow-hidden"
+        // The padding keeps the room a found pair jumps and glows into, inside the board.
+        className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center overflow-hidden p-[clamp(0.25rem,2.5cqmin,0.75rem)]"
         style={{ opacity: phase === "interacting" ? 1 : 0.6 }}
       >
         <div
@@ -220,15 +231,17 @@ export function MemoryEngine({
                 aria-pressed={state !== "down"}
                 aria-label={`${label} ${index + 1}`}
                 onClick={() => flip(index)}
-                className="aspect-square min-h-[44px] min-w-[44px] cursor-pointer rounded-[var(--xp-radius-md)] transition-transform duration-150 enabled:active:scale-[0.96] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
+                className="aspect-square min-h-[44px] min-w-[44px] cursor-pointer rounded-[var(--xp-memory-radius,var(--xp-radius-md))] transition-transform duration-150 enabled:active:scale-[0.96] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--xp-primary)]"
               >
                 <MemoryCard
                   state={state}
                   face={slot.face}
+                  faceImage={slot.faceImage}
                   toneIndex={slot.pair}
                   backIcon={backIcon}
                   backImage={backImage}
                   reducedMotion={reducedMotion}
+                  miss={missed.includes(index)}
                 />
               </button>
             );

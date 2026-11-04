@@ -698,6 +698,24 @@
         "low": "@secondary"
       },
       "burst": "@primary"
+    },
+    "memory": {
+      "back": "@secondary",
+      "backEnd": "#B81F1F",
+      "backIcon": "@primary",
+      "pattern": "#C42828",
+      "face": "#FFFFFF",
+      "faceIcon": "@ink",
+      "border": "@ink",
+      "borderWidth": "0.2rem",
+      "radius": "0.85rem",
+      "shadow": "0.25rem 0.3rem 0 #1A62AB",
+      "matched": "@primary",
+      "miss": "@secondary",
+      "art": "assets/decor/star-yellow.svg",
+      "faceArt": {
+        "zap": "assets/decor/bolt.svg"
+      }
     }
   },
   "prizes": {

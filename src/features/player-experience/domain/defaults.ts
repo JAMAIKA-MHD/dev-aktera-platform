@@ -18,6 +18,7 @@ import type { GameType } from "./gameTypes";
 import type { IconName } from "./icons";
 import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
+  AssetRef,
   ExperienceConfig,
   FormField,
   GameSettings,
@@ -42,6 +43,9 @@ export const DEFAULT_MEMORY_FACES: readonly IconName[] = [
   "flame",
   "ticket",
 ];
+// No picture of the brand on any face: every card shows its icon.
+export const emptyMemoryFaceImages = (): AssetRef[] =>
+  DEFAULT_MEMORY_FACES.map(() => null);
 export const DEFAULT_SPOT_ICONS: readonly IconName[] = [
   "star",
   "gem",
@@ -145,6 +149,7 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
         backIcon: "help-circle",
         backImage: null,
         faces: [...DEFAULT_MEMORY_FACES],
+        faceImages: emptyMemoryFaceImages(),
       };
       break;
     case "spot_difference":

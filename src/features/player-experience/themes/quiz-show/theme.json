@@ -394,6 +394,19 @@
         "low": "#FF3B4A"
       },
       "burst": "@primary"
+    },
+    "memory": {
+      "back": "#7A2FE0",
+      "backEnd": "#4630C4",
+      "backIcon": "@primary",
+      "pattern": "#8A45EC",
+      "face": "#1A1C5C",
+      "border": "@primary",
+      "borderWidth": "0.15rem",
+      "radius": "0.875rem",
+      "shadow": "0 0 0.9rem #FFB02040",
+      "matched": "@accent",
+      "miss": "#FF3B4A"
     }
   },
   "prizes": {

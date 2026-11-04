@@ -146,6 +146,8 @@ export interface GameSettings {
     backIcon: IconName; // the face-down side of every card
     backImage: AssetRef; // replaces backIcon
     faces: IconName[]; // exactly 8: a board of N pairs uses the first N
+    // One per face, same order: the brand's own picture replaces that face's icon.
+    faceImages: AssetRef[];
   };
   spot?: { icons: IconName[] }; // 3 to 8 icons the two pictures are drawn with
 }

@@ -444,6 +444,9 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
   }
   if (game.type === "memory_match" && game.memory) {
     images.push(["game.memory.backImage", game.memory.backImage]);
+    (game.memory.faceImages ?? []).forEach((image, index) =>
+      images.push([`game.memory.faceImages.${index}`, image]),
+    );
   }
   for (const [prizeId, display] of Object.entries(config.prizeDisplay)) {
     images.push([`prizeDisplay.${prizeId}.image`, display.image]);
@@ -460,6 +463,32 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
       });
     }
   }
+}
+
+// Two faces drawn the same (one icon, no picture, or one picture) make two pairs a player
+// cannot tell apart: a board of N pairs uses the first N faces, so every face counts.
+function checkMemoryFaces(config: ExperienceConfig, issues: DesignIssue[]) {
+  const { game } = config;
+  if (game.type !== "memory_match" || !game.memory) return;
+  const { faces, faceImages } = game.memory;
+  const seen = new Map<string, number>();
+  faces.forEach((icon, index) => {
+    const image = faceImages?.[index] ?? null;
+    const look = image ? `image:${JSON.stringify(image)}` : `icon:${icon}`;
+    const first = seen.get(look);
+    if (first === undefined) {
+      seen.set(look, index);
+      return;
+    }
+    issues.push({
+      id: `memory-face-twin:game.memory.faces.${index}`,
+      level: "warning",
+      path: image
+        ? `game.memory.faceImages.${index}`
+        : `game.memory.faces.${index}`,
+      message: `Face ${index + 1} looks the same as face ${first + 1}: players could not tell those pairs apart. Give it another icon or picture.`,
+    });
+  });
 }
 
 function checkPhone(config: ExperienceConfig, issues: DesignIssue[]): void {
@@ -492,6 +521,7 @@ export function validateExperience(
     checkQuiz(config, campaign, issues);
   }
   checkImages(config, issues);
+  checkMemoryFaces(config, issues);
   return [
     ...issues.filter((issue) => issue.level === "error"),
     ...issues.filter((issue) => issue.level === "warning"),

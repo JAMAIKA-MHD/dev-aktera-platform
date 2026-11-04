@@ -3,6 +3,7 @@ import {
   DEFAULT_MEMORY_FACES,
   DEFAULT_SPOT_ICONS,
   buildDefaultWheelSegments,
+  emptyMemoryFaceImages,
 } from "../../domain/defaults";
 import { GAME_LABELS } from "../../domain/gameTypes";
 import { SCRATCH_COVER_TEXT } from "../../presets/contentDefaults";
@@ -115,6 +116,7 @@ export const registry: GameRegistry = {
         backIcon: "help-circle",
         backImage: null,
         faces: [...DEFAULT_MEMORY_FACES],
+        faceImages: emptyMemoryFaceImages(),
       },
     },
     labels: GAME_LABELS.memory_match,

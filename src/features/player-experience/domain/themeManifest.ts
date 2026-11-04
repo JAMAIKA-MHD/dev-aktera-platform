@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ICON_NAMES } from "./icons";
 import { TEMPLATE_IDS, type TemplateId } from "./templates";
 
 // The contract of a theme.json (themes/<id>/theme.json): everything a template of the library
@@ -346,6 +347,9 @@ const GAME_KEYS = [
   "scratch_card",
   "mystery_box",
   "hit_it",
+  "memory_match",
+  "catch_it",
+  "spot_difference",
 ] as const;
 
 export const PRIZE_ART_NAMES = [
@@ -794,6 +798,29 @@ export const themeManifestSchema = z
           })
           .strict()
           .prefault({}),
+        // Memory Match: the cards' two sides. The brand's own picture of a side always comes
+        // first, then the template's art, then the icon drawn in these colors.
+        memory: z
+          .object({
+            back: colorSchema.optional(), // the face-down side, corner to corner…
+            backEnd: colorSchema.optional(), // …to this color
+            backIcon: colorSchema.optional(),
+            pattern: colorSchema.optional(), // the fine stripes over the back
+            face: colorSchema.optional(), // the face-up side
+            faceIcon: colorSchema.optional(), // an icon face, instead of the brand's tones
+            border: colorSchema.optional(),
+            borderWidth: cssSchema.optional(),
+            radius: cssSchema.optional(),
+            shadow: cssSchema.optional(), // under every card
+            matched: colorSchema.optional(), // the edge and the glow of a found pair
+            miss: colorSchema.optional(), // the edge of a wrong pair, before it turns back
+            art: assetPathSchema.optional(), // the theme's own picture on the back
+            // The theme's own drawing of an icon, by the icon's name (star → its star). The
+            // template's prize art fills in the icons it names (themeAssets.ts).
+            faceArt: partialRecord(ICON_NAMES, assetPathSchema),
+          })
+          .strict()
+          .prefault({}),
       })
       .strict()
       .prefault({}),
@@ -871,6 +898,8 @@ export function manifestAssetPaths(manifest: ThemeManifest): string[] {
     manifest.title.backdrop?.src,
     manifest.wheel.pointerArt,
     manifest.games.hitIt.art,
+    manifest.games.memory.art,
+    ...Object.values(manifest.games.memory.faceArt),
     ...manifest.motion.flyers.map((flyer) => flyer.src),
     ...Object.values(manifest.motion.winIntro?.art ?? {}),
     ...Object.values(manifest.heroes).map((hero) => hero?.src),

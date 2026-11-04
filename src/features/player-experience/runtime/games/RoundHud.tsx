@@ -2,7 +2,8 @@ import { tint } from "../../theme/recipes";
 
 // The strip above a timed game: what has been done so far against the goal, the time left as a
 // bar (a number would be one more thing to read while playing) and the goal itself. Shared by
-// the three newer skill games, so they read as one family next to Hit It.
+// the three newer skill games, so they read as one family next to Hit It: same template look
+// (games.hitIt.score and games.hitIt.timer → --xp-hit-score-*, --xp-hit-timer-*).
 
 export interface RoundHudProps {
   score: string; // "3 / 6"
@@ -28,8 +29,14 @@ export function RoundHud({
         data-xp-hit-score
         className="rounded-full border px-3 py-1 text-sm font-extrabold tabular-nums transition-colors"
         style={{
-          borderColor: tint(reached ? "--xp-accent" : "--xp-primary", 55),
-          backgroundColor: reached ? tint("--xp-accent", 20) : "transparent",
+          borderColor: reached
+            ? tint("--xp-accent", 70)
+            : `var(--xp-hit-score-border, ${tint("--xp-primary", 55)})`,
+          backgroundColor: reached
+            ? tint("--xp-accent", 20)
+            : "var(--xp-hit-score-bg, transparent)",
+          color: "var(--xp-hit-score-text, inherit)",
+          fontFamily: "var(--xp-hit-score-font, inherit)",
         }}
       >
         {score}
@@ -37,16 +44,22 @@ export function RoundHud({
       <span
         aria-hidden
         data-xp-hit-time
-        className="h-2 flex-1 overflow-hidden rounded-full"
-        style={{ backgroundColor: tint("--xp-text", 12) }}
+        data-xp-low={share <= 0.25 ? "" : undefined}
+        className="xp-hit-time h-2 flex-1 overflow-hidden rounded-full"
+        style={{
+          backgroundColor: `var(--xp-hit-timer-track, ${tint("--xp-text", 12)})`,
+        }}
       >
         <span
           className="block h-full rounded-full"
           style={{
             width: `${(share * 100).toFixed(1)}%`,
-            // The last quarter of the clock warns, without a second color to learn.
+            // The last quarter of the clock warns (.xp-hit-time[data-xp-low], games.css): the
+            // template's own low color, else the accent.
             backgroundColor:
-              share > 0.25 ? "var(--xp-primary)" : "var(--xp-accent)",
+              share > 0.25
+                ? "var(--xp-hit-timer-now)"
+                : "var(--xp-hit-timer-low, var(--xp-accent))",
             transition: reducedMotion ? "none" : "width 120ms linear",
           }}
         />
