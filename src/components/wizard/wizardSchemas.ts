@@ -31,6 +31,11 @@ export const foundationSchema = z
       .trim()
       .min(2, "Brand name must be at least 2 characters.")
       .max(50, "Brand name must be 50 characters or fewer."),
+    description: z
+      .string()
+      .trim()
+      .max(300, "The description must be 300 characters or fewer.")
+      .optional(),
     startDate: z.string().min(1, "Pick a start date and time."),
     endDate: z.string().min(1, "Pick an end date and time."),
   })

@@ -78,6 +78,28 @@ export function StepFoundation({
         </div>
 
         <Field
+          label="Description"
+          hint="Up to 300 characters. For your team: players do not see it."
+          error={errorFor("description")}
+        >
+          {(props) => (
+            <textarea
+              {...props}
+              rows={3}
+              dir="auto"
+              maxLength={300}
+              value={form.description}
+              onChange={(event) => update({ description: event.target.value })}
+              placeholder="e.g. Drive store visits during the last ten days of Ramadan."
+              className={cn(
+                inputClass(Boolean(errorFor("description"))),
+                "h-auto py-2.5 leading-5",
+              )}
+            />
+          )}
+        </Field>
+
+        <Field
           label="Player link"
           required
           hint={

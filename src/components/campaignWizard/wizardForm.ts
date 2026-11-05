@@ -32,6 +32,8 @@ export type PrizeLine = Campaign["prizes"][number];
 export interface WizardForm {
   name: string;
   brandName: string;
+  /** Optional, for the brand's team: saved with the campaign, never shown to players. */
+  description: string;
   /** The public link: generated once, never edited (a relaunch gets a new one). */
   slug: string;
   heroImageUrl: string;
@@ -121,6 +123,7 @@ export function initialWizardForm(
         ? `${relaunchDraft.name} (Relaunch)`
         : "",
     brandName: base?.gameLogicConfig?.brand_name ?? "",
+    description: base?.gameLogicConfig?.description ?? "",
     slug:
       editingCampaign?.slug ??
       crypto.randomUUID().replace(/-/g, "").slice(0, 8),
@@ -265,6 +268,7 @@ export function validateStep(
       foundationSchema.safeParse({
         name: form.name,
         brandName: form.brandName,
+        description: form.description,
         startDate: form.startDate,
         endDate: form.endDate,
       }),
@@ -364,6 +368,7 @@ export function savedGameLogic(form: WizardForm, base: Campaign | null) {
   return {
     ...(base?.gameLogicConfig ?? {}),
     brand_name: form.brandName.trim(),
+    description: form.description.trim(),
     ...(w.category === "skill" && {
       win_threshold: w.targetScore,
       hit_it_duration_seconds: w.durationSeconds,

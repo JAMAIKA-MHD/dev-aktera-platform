@@ -3,10 +3,8 @@ import React, { useMemo, useState } from "react";
 import { Campaign, LeadEntry, PrizeTemplate } from "../types";
 import {
   BarChart3,
-  Check,
   ChevronRight,
   Copy,
-  ExternalLink,
   FlaskConical,
   Palette,
   Pause,
@@ -28,7 +26,6 @@ import {
   CxBadge,
   CxBar,
   CxButton,
-  cxButtonClass,
   cxCount,
   cxFocus,
   cxPanel,
@@ -36,6 +33,7 @@ import {
   cxText,
   type ActionMenuItem,
 } from "./campaigns/campaignUi";
+import { CampaignLinkShare } from "./campaigns/CampaignLinkShare";
 import { GameEmblem } from "./campaigns/GameEmblem";
 import { CampaignTestModal } from "./CampaignTestModal";
 import { formatPeriod } from "./playerStudio/studioCampaignCells";
@@ -148,7 +146,6 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
   preview,
 }) => {
   const { t } = useLanguage();
-  const [copied, setCopied] = useState(false);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [tab, setTab] = useState<TabId>("rewards");
 
@@ -157,7 +154,6 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
     [campaign.id, leads],
   );
 
-  const campaignLink = `${window.location.origin}/play/${campaign.slug}`;
   const totalAllocated = campaign.prizes.reduce(
     (sum, prize) => sum + prize.quantity,
     0,
@@ -187,16 +183,6 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
           : 0,
     };
   });
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(campaignLink);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   const game = gameMeta(campaign.gameType);
   const toggle =
@@ -295,6 +281,14 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
                   {formatPeriod(campaign.startDate, campaign.endDate)}
                 </span>
               </p>
+              {campaign.gameLogicConfig?.description && (
+                <p
+                  dir="auto"
+                  className="whitespace-pre-line text-cx-ink-muted [overflow-wrap:anywhere]"
+                >
+                  {campaign.gameLogicConfig.description}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -359,39 +353,9 @@ export const CampaignWorkspace: React.FC<CampaignWorkspaceProps> = ({
           </Stat>
         </dl>
 
-        {/* Share: the one link players need, always visible */}
-        <section
-          aria-label="Player link"
-          className={cn(
-            cxPanel,
-            "flex flex-wrap items-center gap-3 py-3 pl-5 pr-3",
-          )}
-        >
-          <span className={cxText.label}>Player link</span>
-          <code
-            title={campaignLink}
-            className="min-w-0 flex-1 basis-48 truncate font-mono text-[13px] leading-5 text-cx-ink"
-          >
-            {campaignLink}
-          </code>
-          <CxButton size="sm" onClick={handleCopyLink}>
-            {copied ? (
-              <Check className="text-cx-success" aria-hidden />
-            ) : (
-              <Copy aria-hidden />
-            )}
-            {copied ? "Copied" : "Copy link"}
-          </CxButton>
-          <a
-            href={campaignLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Open live page"
-            className={cxButtonClass({ size: "sm" })}
-          >
-            <ExternalLink aria-hidden />
-            Open
-          </a>
+        {/* Share: the one link players need and its QR code, always visible */}
+        <section aria-label="Player link" className={cn(cxPanel, "p-4 pl-5")}>
+          <CampaignLinkShare name={campaign.name} slug={campaign.slug} />
         </section>
 
         <div

@@ -184,6 +184,30 @@ describe("CampaignWizard", () => {
     });
   });
 
+  it("saves the description with the campaign, and reads it back", async () => {
+    const { user, onSave } = setup();
+    await fillFoundation(user);
+    await user.type(
+      screen.getByLabelText(/Description/),
+      "  Drive store visits.  ",
+    );
+    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    expect(onSave.mock.calls[0][0].gameLogicConfig).toMatchObject({
+      brand_name: "Sunny",
+      description: "Drive store visits.",
+    });
+    expect(
+      initialWizardForm(
+        {
+          ...LIVE,
+          gameLogicConfig: { description: "Drive store visits." },
+        },
+        null,
+        [],
+      ).description,
+    ).toBe("Drive store visits.");
+  });
+
   it("keeps the dates of a campaign being edited", () => {
     setup({ editingCampaign: LIVE, initialStartDate: "2026-12-20" });
     expect((screen.getByLabelText(/Starts/) as HTMLInputElement).value).toBe(

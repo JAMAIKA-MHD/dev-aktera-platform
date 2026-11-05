@@ -172,6 +172,13 @@ export function StepReview({
                 <p className={hintClass}>{form.brandName || "No brand yet"}</p>
               </div>
             </div>
+            {form.description.trim() && (
+              <Row label="Description">
+                <span dir="auto" className="[overflow-wrap:anywhere]">
+                  {form.description.trim()}
+                </span>
+              </Row>
+            )}
             <Row label="Player link">
               <span className="font-mono text-[13px] font-normal">
                 /play/{form.slug}
