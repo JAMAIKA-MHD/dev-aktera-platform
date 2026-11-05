@@ -508,6 +508,15 @@ describe("validateExperience: campaign links and images", () => {
       "image-size:game.scratch.coverImage",
     ]);
     expect(heavy[0].message).toContain("500 KB");
+    expect(
+      ids(
+        validateExperience(
+          configFor("lucky_wheel", (c) => {
+            c.game.wheel!.segments[1].image = image(450);
+          }),
+        ),
+      ),
+    ).toContain("image-size:game.wheel.segments.1.image");
     const remote = validateExperience(
       configFor("quiz", (c) => {
         c.brand.logo = {

@@ -8,6 +8,7 @@ import { resolvePrizeDisplay } from "../../../domain/display";
 import type { GameSettings, WheelSegment } from "../../../domain/types";
 import { createUuid } from "../../../domain/uuid";
 import { IconPicker } from "../../fields/IconPicker";
+import { ImageField } from "../../fields/ImageField";
 import { ListEditor } from "../../fields/ListEditor";
 import { LocalizedTextField } from "../../fields/LocalizedTextField";
 import { SelectField } from "../../fields/SelectField";
@@ -18,8 +19,8 @@ import { OptionalColorField } from "./OptionalColorField";
 import { useCampaignView } from "./useCampaignView";
 
 // The wheel's segments (plan §6.6): which prize each one shows, or "lose", its label, color and
-// icon, from 4 to 12. All segments have the same size: the odds are the campaign's, drawn by
-// the server — a bigger segment would be a lie, so there is no such setting.
+// icon or background image, from 4 to 12. All segments have the same size: the odds are the
+// campaign's, drawn by the server — a bigger segment would be a lie, so there is no such setting.
 
 const LOSE = "";
 
@@ -74,6 +75,7 @@ export function WheelSegmentsEditor({ wheel }: { wheel: Wheel }) {
           label: {},
           color: null,
           icon: null,
+          image: null,
         })}
         renderItem={(segment, index, update) => (
           <div className="space-y-3">
@@ -100,12 +102,22 @@ export function WheelSegmentsEditor({ wheel }: { wheel: Wheel }) {
               hint={segment.prizeId ? "Empty: the prize name." : undefined}
               {...textLocale}
             />
-            <IconPicker
-              label="Icon"
-              allowNone
-              value={segment.icon}
-              onChange={(icon) => update({ ...segment, icon })}
+            <ImageField
+              label="Background image"
+              purpose="logo"
+              path={`game.wheel.segments.${index}.image`}
+              value={segment.image}
+              onChange={(image) => update({ ...segment, image })}
+              hint="Fills the slice, behind its label and in place of its icon. The slice is narrow: keep what matters near the middle, towards the outer edge."
             />
+            {!segment.image && (
+              <IconPicker
+                label="Icon"
+                allowNone
+                value={segment.icon}
+                onChange={(icon) => update({ ...segment, icon })}
+              />
+            )}
             <OptionalColorField
               label="Color"
               value={segment.color}

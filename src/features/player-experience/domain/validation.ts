@@ -433,6 +433,11 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
     ["brand.logo", config.brand.logo],
   ];
   const { game } = config;
+  if (game.type === "lucky_wheel" && game.wheel) {
+    game.wheel.segments.forEach((segment, index) =>
+      images.push([`game.wheel.segments.${index}.image`, segment.image]),
+    );
+  }
   if (game.type === "scratch_card" && game.scratch) {
     images.push(["game.scratch.coverImage", game.scratch.coverImage]);
   }

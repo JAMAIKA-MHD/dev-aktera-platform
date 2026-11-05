@@ -13,6 +13,7 @@ const segment = (id: string, prizeId: string | null): WheelSegment => ({
   label: {},
   color: null,
   icon: null,
+  image: null,
 });
 
 const SEGMENTS: WheelSegment[] = [

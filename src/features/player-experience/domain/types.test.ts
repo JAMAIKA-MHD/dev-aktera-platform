@@ -136,6 +136,7 @@ const sampleConfig: ExperienceConfig = {
           label: { fr: "5000 DA" },
           color: null,
           icon: "coins",
+          image: null,
         },
         {
           id: "s-2",
@@ -143,6 +144,7 @@ const sampleConfig: ExperienceConfig = {
           label: { fr: "Rejouez" },
           color: "#334155",
           icon: null,
+          image: null,
         },
       ],
       hubLabel: { fr: "JOUER" },

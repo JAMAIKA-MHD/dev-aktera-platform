@@ -109,6 +109,7 @@ export interface WheelSegment {
   label: LocalizedText; // empty = the prize display label
   color: string | null; // null = derived from the theme
   icon: IconName | null;
+  image: AssetRef; // fills the slice, in place of the icon; null = the color alone
 }
 
 export interface QuizQuestionTranslation {

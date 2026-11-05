@@ -180,6 +180,8 @@ const gameSchema = z
               label: localizedTextSchema,
               color: colorSchema.nullable(),
               icon: iconNameSchema.nullable(),
+              // A design saved before it existed keeps its slices as they were.
+              image: assetRefSchema.default(null),
             }),
           )
           .min(2)

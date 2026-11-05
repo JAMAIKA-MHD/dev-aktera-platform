@@ -1,9 +1,10 @@
-import { useId, type CSSProperties, type Ref } from "react";
+import { useId, useState, type CSSProperties, type Ref } from "react";
 import type { CampaignSnapshot } from "../../../domain/campaign";
 import { resolvePrizeDisplay } from "../../../domain/display";
 import { resolveText, type Locale } from "../../../domain/locale";
 import type { ExperienceConfig, WheelSegment } from "../../../domain/types";
 import { ICON_COMPONENTS } from "../../../presets/icons";
+import { useOptionalExperienceServices } from "../../../services/ServicesProvider";
 import { useGameTheme } from "../../../theme/GameTheme";
 import { tint } from "../../../theme/recipes";
 import { prizeArtUrl } from "../../../theme/themeAssets";
@@ -16,7 +17,8 @@ import { prizeArtUrl } from "../../../theme/themeAssets";
 // Its colors are the theme's wheel tokens (--xp-wheel-*, from theme.json), each falling back
 // to the classic wheel in the brand's own colors. A theme with bulbs gets lights around the
 // rim, blinking while the wheel turns; a theme with prize art shows each prize's picture on
-// its slice instead of an icon.
+// its slice instead of an icon. A brand's own image on a segment fills its slice, over the
+// slice's color and in place of the art or the icon; its label stays readable on a halo.
 
 // Geometry, in the SVG's own units: the viewBox scales the whole thing, so the pointer and
 // the hub grow with the wheel instead of staying a fixed pixel size (plan §8.6).
@@ -97,6 +99,14 @@ function arcPath(startAngle: number, endAngle: number): string {
   return `M 0 0 L ${point(startAngle)} A ${DISC} ${DISC} 0 ${large} 1 ${point(endAngle)} Z`;
 }
 
+// The box around a slice standing upright, its point at the wheel's center: an image covering
+// it covers the whole slice, whatever the number of segments.
+function sliceBox(segmentAngle: number) {
+  const half = segmentAngle / 2;
+  const halfWidth = half >= 90 ? DISC : Math.sin((half * Math.PI) / 180) * DISC;
+  return { x: -halfWidth, y: -DISC, width: halfWidth * 2, height: DISC };
+}
+
 export interface WheelFaceProps {
   segments: readonly WheelSegment[];
   hubLabel: string;
@@ -124,6 +134,11 @@ export function WheelFace({
 }: WheelFaceProps) {
   const gradientId = useId(); // several wheels can live in one page (Studio preview)
   const { manifest, assets } = useGameTheme();
+  // A stored image has no URL of its own: the services resolve it. Without services, only an
+  // image that already carries its URL can be drawn.
+  const storage = useOptionalExperienceServices()?.assets ?? null;
+  // An image that fails to load gives way to the slice without it, never to a broken picture.
+  const [failedImages, setFailedImages] = useState<readonly string[]>([]);
   const themed = manifest !== null;
   const palette = manifest?.wheel.segments.length ?? CLASSIC.length;
   const count = segments.length;
@@ -263,18 +278,55 @@ export function WheelFace({
           );
           const label = own || display?.label || "";
           const iconName = segment.icon ?? display?.icon ?? null;
+          const resolved = !segment.image
+            ? null
+            : storage
+              ? storage.resolveUrl(segment.image)
+              : "url" in segment.image
+                ? segment.image.url
+                : null;
+          const image =
+            resolved && !failedImages.includes(resolved) ? resolved : null;
           const art =
-            segment.prizeId !== null ? prizeArtUrl(assets, iconName) : null;
-          const Icon = !art && iconName ? ICON_COMPONENTS[iconName] : null;
+            !image && segment.prizeId !== null
+              ? prizeArtUrl(assets, iconName)
+              : null;
+          const Icon =
+            !image && !art && iconName ? ICON_COMPONENTS[iconName] : null;
           const colors = sliceColors(segment, index, count, palette);
           const iconX = Math.cos(radians) * ICON_RADIUS;
           const iconY = Math.sin(radians) * ICON_RADIUS;
+          const slice = arcPath(start, start + segmentAngle);
+          const clipId = `${gradientId}-slice-${index}`;
           return (
             <g key={segment.id} data-xp-segment>
+              {image && (
+                <>
+                  {/* Its color shows while the image loads, and through a transparent one. */}
+                  <path d={slice} fill={colors.fill} />
+                  <clipPath id={clipId}>
+                    <path d={slice} />
+                  </clipPath>
+                  <g clipPath={`url(#${clipId})`}>
+                    {/* Upright when its slice stands under the pointer. */}
+                    <image
+                      className="xp-wheel-slice-image"
+                      href={image}
+                      {...sliceBox(segmentAngle)}
+                      preserveAspectRatio="xMidYMid slice"
+                      transform={`rotate(${(middle + 90).toFixed(2)})`}
+                      // eslint-disable-next-line react/no-unknown-property -- React fires it on an SVG image too
+                      onError={() =>
+                        setFailedImages((failed) => [...failed, image])
+                      }
+                    />
+                  </g>
+                </>
+              )}
               <path
                 className="xp-wheel-segment"
-                d={arcPath(start, start + segmentAngle)}
-                fill={colors.fill}
+                d={slice}
+                fill={image ? "none" : colors.fill}
                 stroke={tint("--xp-surface", 55)}
                 strokeWidth={1.5}
               />
@@ -285,9 +337,18 @@ export function WheelFace({
                   className="xp-wheel-label"
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill={colors.text}
+                  fill={image ? "var(--xp-text)" : colors.text}
                   fontSize="11"
                   fontWeight="800"
+                  // On a picture, whatever its colors: the text on a halo of the surface.
+                  {...(image
+                    ? {
+                        stroke: tint("--xp-surface", 85),
+                        strokeWidth: 3,
+                        strokeLinejoin: "round" as const,
+                        paintOrder: "stroke",
+                      }
+                    : {})}
                   style={
                     themed
                       ? undefined

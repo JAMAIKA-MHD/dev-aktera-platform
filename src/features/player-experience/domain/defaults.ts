@@ -51,6 +51,7 @@ function losingSegment(index: number): WheelSegment {
     label: LOSING_SEGMENT_LABELS[index % LOSING_SEGMENT_LABELS.length],
     color: null,
     icon: null,
+    image: null,
   };
 }
 
@@ -84,6 +85,7 @@ export function buildDefaultWheelSegments(
         label: {}, // empty = the prize display label
         color: null,
         icon: null,
+        image: null,
       });
     }
   }

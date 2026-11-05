@@ -72,6 +72,37 @@ describe("WheelEngine", () => {
     expect(labels).toContain("JOUER"); // the hub, from the configuration
   });
 
+  it("fills a slice with the brand's image, in place of its icon, and drops one that fails", () => {
+    const config = baseConfig();
+    const segments = config.game.wheel!.segments;
+    const url = "https://cdn.example.com/slice.webp";
+    segments[0] = {
+      ...segments[0],
+      icon: "gift",
+      image: { kind: "remote", url },
+    };
+    segments[1] = { ...segments[1], icon: "gift" };
+    const { container } = render(
+      <WheelEngine {...engineProps("idle", { config })} />,
+    );
+    const slices = container.querySelectorAll("[data-xp-segment]");
+    const image = slices[0].querySelector("image")!;
+    expect(image.getAttribute("href")).toBe(url);
+    expect(image.parentElement?.getAttribute("clip-path")).toMatch(/^url\(#/);
+    expect(slices[0].querySelector("svg")).toBeNull(); // no icon over the image
+    expect(slices[1].querySelector("image")).toBeNull();
+    expect(slices[1].querySelector("svg")).not.toBeNull();
+    // The label is still there, and one outline per slice.
+    expect(slices[0].querySelector("text")?.getAttribute("paint-order")).toBe(
+      "stroke",
+    );
+    expect(slices[0].querySelectorAll(".xp-wheel-segment")).toHaveLength(1);
+
+    fireEvent.error(image);
+    expect(slices[0].querySelector("image")).toBeNull();
+    expect(slices[0].querySelector("svg")).not.toBeNull();
+  });
+
   it("is the button while it waits, and fires the same event as the CTA", () => {
     const props = engineProps("idle");
     render(<WheelEngine {...props} />);

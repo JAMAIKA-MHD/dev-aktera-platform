@@ -192,6 +192,7 @@ function importWheelSegments(legacy: unknown): WheelSegment[] | null {
     label: readText(slice.label) ?? {},
     color: readColor(slice.color),
     icon: pick<IconName>(slice.icon, ICON_NAMES),
+    image: null,
   }));
 }
 
