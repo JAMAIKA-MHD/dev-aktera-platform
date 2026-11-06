@@ -16,6 +16,11 @@ import { dashboardRoutes } from "./dashboard/dashboardRoutes";
 // Loaded on demand: the dashboard bundle does not carry the runtime.
 const PublicPlayPage = lazy(() => import("./pages/play/PublicPlayPage"));
 
+// The product documentation, a page of its own (the sidebar opens it in a new tab).
+const DocumentationPage = lazy(
+  () => import("./components/docs/DocumentationPage"),
+);
+
 // Player Experience runtime in a document of its own (Studio preview, responsive checks).
 // Loaded on demand: the dashboard bundle does not carry the runtime.
 const XpFrame = lazy(() =>
@@ -95,6 +100,21 @@ export default function AppRouter() {
               </Suspense>
             }
           />
+
+          {/* Product documentation: public, one URL per page */}
+          {["/docs", "/docs/:pageId"].map((path) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <Suspense
+                  fallback={<div className="min-h-dvh bg-brand-dark" />}
+                >
+                  <DocumentationPage />
+                </Suspense>
+              }
+            />
+          ))}
 
           {/* Player Experience frame: demo services only, no server data */}
           <Route

@@ -229,9 +229,12 @@ function SidebarBody({
             {t("nav.support", "Client support")}
           </span>
         </NavLink>
+        {/* The documentation is a page of its own: it opens in a new tab. */}
         <a
           className="dz-side-foot-link text-brand-textMuted hover:text-brand-text transition-colors rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
-          href="#"
+          href={PATHS.docs}
+          target="_blank"
+          rel="noopener noreferrer"
           title={t("nav.docs", "Full documentation")}
         >
           <div className="w-6 flex items-center justify-center shrink-0">

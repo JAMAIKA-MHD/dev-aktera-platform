@@ -220,6 +220,9 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
     const support = screen.getByRole("link", { name: /Client support/ });
     const docs = screen.getByRole("link", { name: /Full documentation/ });
     expect(support.getAttribute("href")).toBe("/support");
+    // The documentation is its own page, opened in a new tab.
+    expect(docs.getAttribute("href")).toBe("/docs");
+    expect(docs.getAttribute("target")).toBe("_blank");
     // Right before the documentation in the menu.
     expect(
       support.compareDocumentPosition(docs) & Node.DOCUMENT_POSITION_FOLLOWING,
