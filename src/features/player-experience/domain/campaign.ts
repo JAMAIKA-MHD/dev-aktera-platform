@@ -43,6 +43,10 @@ export interface CampaignSnapshot {
   prizes: CampaignPrize[];
   quiz: CampaignQuizQuestion[]; // sorted by position
   rules: CampaignRules;
+  // A draw campaign (the Wizard's method "draw", a sweepstake): nobody wins on the spot, the
+  // winners are drawn after the campaign. The journey ends on the Ballot screen ("your entry
+  // is in the draw") instead of Win or Lose. Absent = an instant-win campaign.
+  ballot?: boolean;
   // From the Wizard's foundation step: they seed the default welcome screen (brand + logo).
   brandName?: string;
   imageUrl?: string;
@@ -66,6 +70,15 @@ function readNumber(config: unknown, key: string, fallback: number): number {
         ? Number(value)
         : Number.NaN;
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+// A draw campaign, read from its game_logic_config (the Wizard keeps its reward method in
+// wizard.method). Anything else, or no config, is an instant-win campaign.
+export function isBallotLogic(config: unknown): boolean {
+  if (typeof config !== "object" || config === null) return false;
+  const wizard = (config as Record<string, unknown>).wizard;
+  if (typeof wizard !== "object" || wizard === null) return false;
+  return (wizard as Record<string, unknown>).method === "draw";
 }
 
 // The public game rules of a game_logic_config, whatever it comes from: the dashboard's
@@ -145,6 +158,7 @@ export function buildCampaignSnapshot(
       options: [...question.options],
     })),
     rules: rulesFromGameLogic(campaign.gameType, campaign.gameLogicConfig),
+    ...(isBallotLogic(campaign.gameLogicConfig) ? { ballot: true } : {}),
     brandName: campaign.gameLogicConfig?.brand_name || undefined,
     imageUrl: campaign.heroImageUrl || undefined,
   };

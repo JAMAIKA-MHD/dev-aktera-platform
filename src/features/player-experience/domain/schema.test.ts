@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { WHEEL_HUB_LABEL } from "../presets/contentDefaults";
+import {
+  WHEEL_HUB_LABEL,
+  defaultBallotScreen,
+} from "../presets/contentDefaults";
 import { createDefaultExperience } from "./defaults";
 import type { GameType } from "./gameTypes";
 import { experienceConfigSchema, parseExperienceConfig } from "./schema";
@@ -58,6 +61,25 @@ describe("the win intro switch", () => {
     const { config, recovered } = parseExperienceConfig(saved);
     expect(recovered).toBe(false);
     expect(config.features.winIntro).toBe(true);
+  });
+});
+
+describe("the Ballot screen", () => {
+  it("is in a new design, and a design saved before it gets its default texts, unrepaired", () => {
+    expect(validConfig().screens.ballot).toEqual(defaultBallotScreen());
+    const saved = broken((r) => delete r.screens.ballot);
+    const { config, recovered } = parseExperienceConfig(saved);
+    expect(recovered).toBe(false);
+    expect(config.screens.ballot).toEqual(defaultBallotScreen());
+  });
+
+  it("keeps the brand's own ballot texts", () => {
+    const edited = broken(
+      (r) => (r.screens.ballot.title = { fr: "Vous êtes inscrit !" }),
+    );
+    expect(parseExperienceConfig(edited).config.screens.ballot.title).toEqual({
+      fr: "Vous êtes inscrit !",
+    });
   });
 });
 

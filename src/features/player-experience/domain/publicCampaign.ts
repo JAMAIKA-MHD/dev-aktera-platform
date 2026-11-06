@@ -43,6 +43,8 @@ const publicExperienceSchema = z.object({
     brand_name: z.string().nullish(),
     image_url: z.string().nullish(),
     rules: z.unknown().optional(),
+    // Absent before migration 20261106120000: the campaign is then an instant-win one.
+    is_draw: z.boolean().nullish(),
     // Absent before migration 20261028120000: the page then keeps the design's own name.
     organization_name: z.string().nullish(),
   }),
@@ -118,6 +120,7 @@ export function parsePublicExperience(raw: unknown): PublicExperience {
       options: [...question.options],
     })),
     rules: rulesFromGameLogic(gameType, data.campaign.rules),
+    ...(data.campaign.is_draw ? { ballot: true } : {}),
     brandName: data.campaign.brand_name || undefined,
     imageUrl: data.campaign.image_url || undefined,
   };

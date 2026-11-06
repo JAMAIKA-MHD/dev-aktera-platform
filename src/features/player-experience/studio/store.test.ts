@@ -3,7 +3,13 @@ import { createDefaultExperience } from "../domain/defaults";
 import { createLocalExperienceRepository } from "../services/local/localExperienceRepository";
 import { THEME_PRESETS } from "../presets/themePresets";
 import { loadIntoStudio } from "./loadIntoStudio";
-import { createStudioStore, DEFAULT_VIEWPORT, HISTORY_LIMIT } from "./store";
+import { createDemoCampaign } from "../presets/demoCampaign";
+import {
+  createStudioStore,
+  DEFAULT_VIEWPORT,
+  HISTORY_LIMIT,
+  screensFor,
+} from "./store";
 
 // A clock that moves one second per call, so every edit gets its own updatedAt.
 function ticking(start = Date.parse("2026-09-23T10:00:00.000Z")) {
@@ -248,5 +254,43 @@ describe("studio store", () => {
     const store = newStore();
     store.getState().setCampaign(null);
     expect(store.temporal.getState().pastStates).toHaveLength(0);
+  });
+});
+
+describe("the Ballot screen of a draw campaign", () => {
+  const draw = { ...createDemoCampaign("lucky_wheel"), ballot: true };
+
+  it("replaces Win and Lose in the tabs, and only for a draw campaign", () => {
+    expect(screensFor(true)).toEqual([
+      "welcome",
+      "register",
+      "play",
+      "ballot",
+      "status",
+    ]);
+    expect(screensFor(false)).not.toContain("ballot");
+  });
+
+  it("opens Ballot where a draw campaign would show Win or Lose, and back", () => {
+    const store = newStore();
+    store.getState().setScreen("lose");
+    store.getState().setCampaign(draw);
+    expect(store.getState().ui.screen).toBe("ballot");
+    store.getState().setScreen("win");
+    expect(store.getState().ui.screen).toBe("ballot");
+    store.getState().setCampaign({ ...draw, ballot: undefined });
+    expect(store.getState().ui.screen).toBe("win");
+  });
+
+  it("checks the ballot texts of a draw campaign only", () => {
+    const store = newStore();
+    store.getState().updateScreen("ballot", { title: { fr: "x".repeat(200) } });
+    const flagged = () =>
+      store
+        .getState()
+        .issues.some((issue) => issue.path?.startsWith("screens.ballot"));
+    expect(flagged()).toBe(false);
+    store.getState().setCampaign(draw);
+    expect(flagged()).toBe(true);
   });
 });

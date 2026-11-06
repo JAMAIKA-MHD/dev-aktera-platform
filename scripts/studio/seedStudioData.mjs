@@ -16,12 +16,15 @@ const DAY = 24 * HOUR;
 // [n, name, game, database status, start day, end day, participants, design saved … ago, theme]
 // Days are relative to now. "ended" is the database status the dashboard shows as Archived.
 // A null "saved ago" means the Studio design was never saved (the table shows "Default").
+// An organization runs at most 5 active campaigns that have not ended (campaigns_active_limit):
+// rows 1 to 5 take the 5 slots, the others are paused, drafts or over.
 // prettier-ignore
 const ROWS = [
   [1, "Summer Spin", "lucky_wheel", "active", -10, 20, 42, 30 * 1000, "midnight-gold"],
   [2, "Culture Quiz", "quiz", "active", -5, 25, 18, 2 * HOUR, "obsidian-violet"],
   [3, "Scratch & Win", "scratch_card", "active", -3, 30, 7, null, null],
-  [4, "Mystery Gifts", "mystery_box", "active", -1, 40, 0, 3 * DAY, "telecom-red"],
+  // A draw (DRAW_CAMPAIGNS): nobody wins on the spot, its players end on the Ballot screen.
+  [4, "Grand Prize Draw", "lucky_wheel", "active", -1, 40, 15, 3 * DAY, "telecom-red"],
   [5, "Hit the Target", "hit_it", "active", -8, 12, 25, null, null],
   [6, "Back to School", "lucky_wheel", "active", -40, -2, 60, 21 * DAY, "retail-blue"],
   [7, "Ramadan Nights", "quiz", "active", -90, -60, 33, 60 * DAY, "midnight-gold"],
@@ -31,8 +34,11 @@ const ROWS = [
   [11, "Hit It Draft", "hit_it", "draft", 20, 50, 0, 5 * HOUR, "telecom-red"],
   [12, "Spring Wheel 2026", "lucky_wheel", "ended", -200, -150, 51, 120 * DAY, "obsidian-violet"],
   [13, "Old Trivia", "quiz", "ended", -300, -250, 20, null, null],
-  [14, "Very long campaign name to check truncation in the table", "scratch_card", "active", -2, 14, 9, null, null],
+  [14, "Very long campaign name to check truncation in the table", "scratch_card", "paused", -2, 14, 9, null, null],
 ];
+
+// The draw campaigns (the Wizard's reward method "draw"): no instant win, win chance 0.
+const DRAW_CAMPAIGNS = new Set([4]);
 
 export const CAMPAIGNS = ROWS.map(
   ([n, name, game, status, start, end, players, savedAgo, preset]) => ({
@@ -46,6 +52,7 @@ export const CAMPAIGNS = ROWS.map(
     players,
     savedAgo,
     preset,
+    draw: DRAW_CAMPAIGNS.has(n),
   }),
 );
 
@@ -65,15 +72,55 @@ export function slugOf(name) {
     .slice(0, 40)}`;
 }
 
-export function gameLogicConfig(game) {
-  if (game === "quiz") return { pass_threshold_percentage: 100 };
-  if (game === "hit_it") return { win_threshold: 5 };
-  if (game !== "lucky_wheel") return {};
+// The Wizard's own block (game_logic_config.wizard): engagement and reward method.
+function wizardOf(game, draw) {
+  const reward = draw
+    ? {
+        method: "draw",
+        draw: {
+          at: "",
+          winners: 3,
+          ticketPrefix: "SEED",
+          rules:
+            "One entry per phone number. 3 winners drawn at random after the campaign.",
+          smsWinner: "Congratulations, you won the Seed draw!",
+          smsLoser: "Thanks for taking part in the Seed draw.",
+          manageStock: true,
+        },
+      }
+    : { method: "instant" };
+  if (game === "quiz") {
+    return {
+      category: "knowledge",
+      engagementId: "quiz",
+      passPercent: 100,
+      ...reward,
+    };
+  }
+  if (game === "hit_it") {
+    return {
+      category: "skill",
+      engagementId: "hit_it",
+      targetScore: 5,
+      ...reward,
+    };
+  }
+  const revealId =
+    { scratch_card: "scratch", mystery_box: "mystery_box" }[game] ?? "wheel";
+  return { category: "luck", revealId, mode: "probabilistic", ...reward };
+}
+
+export function gameLogicConfig(game, draw = false) {
+  const wizard = wizardOf(game, draw);
+  if (game === "quiz") return { pass_threshold_percentage: 100, wizard };
+  if (game === "hit_it") return { win_threshold: 5, wizard };
+  if (game !== "lucky_wheel") return { wizard };
   const segment = (label, prize) => ({
     label,
     prize_template_id: prize ? TEMPLATE_ID : null,
   });
   return {
+    wizard,
     segments: [
       segment("Voucher", true),
       segment("Try again", false),
@@ -98,7 +145,8 @@ export function participantsOf(campaign, now) {
     const n = String(campaign.n).padStart(2, "0");
     return {
       phone: `0699${n}${String(index + 1).padStart(4, "0")}`,
-      isWinner: (index + 1) % WINNER_EVERY === 0,
+      // A draw wins nothing on the spot: every entry is in the draw.
+      isWinner: !campaign.draw && (index + 1) % WINNER_EVERY === 0,
       createdAt: new Date(Math.max(from, at)).toISOString(),
       dwell: 8 + ((index * 7) % 30),
     };

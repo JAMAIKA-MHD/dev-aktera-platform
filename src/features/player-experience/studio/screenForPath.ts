@@ -10,6 +10,7 @@ const SCREEN_KEYS: readonly PreviewScreen[] = [
   "play",
   "win",
   "lose",
+  "ballot",
 ];
 
 export function screenForPath(path: string): PreviewScreen | null {

@@ -6,6 +6,7 @@ import {
   createInitialFlowState,
   createPreviewFlowState,
   flowReducer,
+  isBallotCampaign,
   nextCommand,
   outcomeTimingFor,
   type FlowScreen,
@@ -110,6 +111,7 @@ function initialState(
   return createInitialFlowState(campaign.gameType, {
     startedAt,
     timing: outcomeTimingFor(campaign),
+    ballot: isBallotCampaign(campaign),
   });
 }
 

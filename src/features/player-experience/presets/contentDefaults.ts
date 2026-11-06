@@ -190,6 +190,27 @@ const LOSE: ScreenCopy = {
   cta: localized("Retour à l'accueil", "العودة إلى البداية", "Back to start"),
 };
 
+// The end of a draw campaign's journey: no win nor loss on the spot, the entry is recorded
+// and the winners are drawn later. Never promises a prize.
+const BALLOT: ScreenCopy = {
+  title: localized(
+    "Participation validée !",
+    "تم تأكيد مشاركتك!",
+    "Entry confirmed!",
+  ),
+  subtitle: localized(
+    "Vous êtes inscrit au tirage au sort. Les gagnants seront contactés à la fin de la campagne.",
+    "أنت مسجّل في القرعة. سيتم الاتصال بالفائزين في نهاية الحملة.",
+    "You are in the draw. The winners will be contacted when the campaign ends.",
+  ),
+  cta: localized("Terminer", "إنهاء", "Done"),
+  hero: "badge",
+};
+
+export function defaultBallotScreen(): ScreenContent {
+  return structuredClone(screen(BALLOT));
+}
+
 export function defaultScreens(
   gameType: GameType,
 ): Record<ScreenKey, ScreenContent> {
@@ -199,6 +220,7 @@ export function defaultScreens(
     play: screen(PLAY[gameType]),
     win: screen(WIN),
     lose: screen(LOSE),
+    ballot: screen(BALLOT),
   };
 }
 
@@ -525,6 +547,22 @@ export const RESULT_TEXT = {
     "J'ai gagné {prize} chez {brand} ! Tentez votre chance :",
     "لقد ربحت {prize} من {brand}! جرب حظك:",
     "I just won {prize} at {brand}! Try your luck:",
+  ),
+  // The Ballot screen (a draw campaign): the entry is in the draw, nothing is won yet.
+  ballotBadge: localized(
+    "Inscrit au tirage",
+    "مسجّل في القرعة",
+    "Entered in the draw",
+  ),
+  ballotReference: localized(
+    "Référence de participation",
+    "مرجع المشاركة",
+    "Entry reference",
+  ),
+  shareBallotText: localized(
+    "Je participe au tirage au sort de {brand} ! Tentez votre chance :",
+    "أشارك في قرعة {brand}! جرب حظك:",
+    "I just entered the {brand} prize draw! Try your luck:",
   ),
   shareLoseText: localized(
     "Tentez votre chance et gagnez des lots chez {brand} :",

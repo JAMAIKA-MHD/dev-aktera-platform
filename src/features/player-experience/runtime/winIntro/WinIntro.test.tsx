@@ -98,6 +98,30 @@ afterEach(() => {
 
 describe("WinIntro", () => {
   it.each(THEMED_TEMPLATE_IDS)(
+    "%s: plays before the Ballot screen of a draw campaign too",
+    (templateId) => {
+      const play = vi.spyOn(runtimeAudio, "play");
+      const { container } = setup(templateId);
+      const { seconds, handoff } =
+        getThemeManifest(templateId)!.motion.winIntro!;
+      act(() => (flowScreen.set as (s: string) => void)("ballot"));
+
+      expect(overlay(container)).toBeTruthy();
+      expect(screen.getByText("Inscrit au tirage")).toBeTruthy();
+      expect(page(container).hasAttribute("data-xp-held")).toBe(true);
+      expect(play).not.toHaveBeenCalledWith("win");
+
+      // Past the handoff (its timer may round a hair later), then to the end.
+      elapse(handoff + 0.01);
+      elapse(seconds - handoff);
+      expect(overlay(container)).toBeNull();
+      expect(page(container).hasAttribute("data-xp-held")).toBe(false);
+      expect(play).toHaveBeenCalledWith("win");
+      expect(confetti.fire).toHaveBeenCalled();
+    },
+  );
+
+  it.each(THEMED_TEMPLATE_IDS)(
     "%s: holds the page, then hands it over at the theme's own moment",
     (templateId) => {
       const play = vi.spyOn(runtimeAudio, "play");

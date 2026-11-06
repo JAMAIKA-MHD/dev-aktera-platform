@@ -56,6 +56,26 @@ export type PreviewFlowMode = "demo" | "scripted" | "static";
 // played, closed, network error), shown by the scripted scenario.
 export type PreviewScreen = ScreenKey | "status";
 
+// The screens a campaign shows, in the order of the tabs: a draw campaign (campaign.ballot)
+// ends on Ballot, never on Win or Lose; an instant-win one never shows Ballot.
+export function screensFor(ballot: boolean): PreviewScreen[] {
+  return ballot
+    ? ["welcome", "register", "play", "ballot", "status"]
+    : ["welcome", "register", "play", "win", "lose", "status"];
+}
+
+// The screen to show once the campaign is known: a result screen the campaign never shows
+// becomes the one it does.
+function screenForCampaign(
+  screen: PreviewScreen,
+  campaign: CampaignSnapshot | null,
+): PreviewScreen {
+  const ballot = campaign?.ballot === true;
+  if (ballot && (screen === "win" || screen === "lose")) return "ballot";
+  if (!ballot && screen === "ballot") return "win";
+  return screen;
+}
+
 export interface ViewportState {
   deviceId: string | null; // null = a free size ("responsive")
   width: number;
@@ -345,10 +365,14 @@ export function createStudioStore(
             store.temporal.getState().clear();
           },
           setCampaign: (next) =>
-            set({
+            set((state) => ({
               campaign: next,
-              issues: checkDesign(get().config, next),
-            }),
+              issues: checkDesign(state.config, next),
+              ui: {
+                ...state.ui,
+                screen: screenForCampaign(state.ui.screen, next),
+              },
+            })),
           setStoredUpdatedAt: (storedUpdatedAt) => set({ storedUpdatedAt }),
           // A path that belongs to a screen opens that screen too, so the panel draws the right
           // one at once and the field is there to be brought into view.
@@ -358,13 +382,20 @@ export function createStudioStore(
                 ...state.ui,
                 panel,
                 focusPath,
-                screen:
+                screen: screenForCampaign(
                   (focusPath ? screenForPath(focusPath) : null) ??
-                  state.ui.screen,
+                    state.ui.screen,
+                  state.campaign,
+                ),
               },
             })),
           setScreen: (screen) =>
-            set((state) => ({ ui: { ...state.ui, screen } })),
+            set((state) => ({
+              ui: {
+                ...state.ui,
+                screen: screenForCampaign(screen, state.campaign),
+              },
+            })),
           setLocale: (locale) =>
             set((state) => ({ ui: { ...state.ui, locale } })),
           setMode: (mode, scenario) =>

@@ -20,6 +20,7 @@ import type { FormConfig, FormFieldKey } from "./types";
 //   play ─DRAW_STARTED→ resolving          (wheel, scratch card: drawn before the animation)
 //   play ─INTERACTION_DONE→ resolving      (quiz, mystery box, Hit It: drawn after the player acts)
 //   resolving ─RESOLVED→ revealing ─REVEAL_DONE→ win | lose
+//                                   (a draw campaign: ballot, the entry is in the draw)
 //   resolving ─FAILED→ duplicate | closed | register (invalid input) | error ─RETRY→ resolving
 //   welcome | register ─UNAVAILABLE→ closed (the campaign is closed, sold out or not started yet,
 //   before any draw)
@@ -32,6 +33,7 @@ export type FlowScreen =
   | "revealing"
   | "win"
   | "lose"
+  | "ballot"
   | "duplicate"
   | "closed"
   | "error";
@@ -40,6 +42,8 @@ export interface FlowState {
   screen: FlowScreen;
   gameType: GameType;
   timing: OutcomeTiming;
+  // A draw campaign (CampaignSnapshot.ballot): a participation without a win ends on "ballot".
+  ballot: boolean;
   participant: {
     fullName: string;
     phone: string; // as typed: normalized when the draw request is built
@@ -91,6 +95,13 @@ const EMPTY_PARTICIPANT: FlowState["participant"] = {
 
 // A quiz without any question has nothing to answer: as in production, it is drawn as
 // soon as the player starts, like a wheel. The Studio flags such a campaign (T1.11).
+// Whether a journey of this campaign ends on the Ballot screen.
+export function isBallotCampaign(
+  campaign: Pick<CampaignSnapshot, "ballot">,
+): boolean {
+  return campaign.ballot === true;
+}
+
 export function outcomeTimingFor(
   campaign: Pick<CampaignSnapshot, "gameType" | "quiz">,
 ): OutcomeTiming {
@@ -102,12 +113,13 @@ export function outcomeTimingFor(
 
 export function createInitialFlowState(
   gameType: GameType,
-  options: { startedAt: number; timing?: OutcomeTiming },
+  options: { startedAt: number; timing?: OutcomeTiming; ballot?: boolean },
 ): FlowState {
   return {
     screen: "welcome",
     gameType,
     timing: options.timing ?? OUTCOME_TIMING[gameType],
+    ballot: options.ballot ?? false,
     participant: { ...EMPTY_PARTICIPANT },
     consentAccepted: false,
     consentAcceptedAt: null,
@@ -222,7 +234,16 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
 
     case "REVEAL_DONE":
       if (state.screen !== "revealing" || !state.outcome) return state;
-      return { ...state, screen: state.outcome.isWinner ? "win" : "lose" };
+      // A draw campaign never wins on the spot (its win chance is 0 on the server): the entry
+      // is in the draw. A win the server still returned is shown as one, code included.
+      return {
+        ...state,
+        screen: state.outcome.isWinner
+          ? "win"
+          : state.ballot
+            ? "ballot"
+            : "lose",
+      };
 
     case "CONFIRM_COUPON":
       if (
@@ -256,6 +277,7 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
         ...createInitialFlowState(state.gameType, {
           startedAt: state.startedAt,
           timing: state.timing,
+          ballot: state.ballot,
         }),
         participant: state.participant,
       };
@@ -395,12 +417,13 @@ const PREVIEW_ERRORS: Partial<Record<FlowScreen, ParticipationErrorCode>> = {
 // screens with a live gateway.
 export function createPreviewFlowState(
   screen: FlowScreen,
-  campaign: Pick<CampaignSnapshot, "gameType" | "quiz" | "prizes">,
+  campaign: Pick<CampaignSnapshot, "gameType" | "quiz" | "prizes" | "ballot">,
   options: { startedAt: number; clientRequestId: string },
 ): FlowState {
   const base = createInitialFlowState(campaign.gameType, {
     startedAt: options.startedAt,
     timing: outcomeTimingFor(campaign),
+    ballot: isBallotCampaign(campaign),
   });
   if (screen === "welcome" || screen === "register") return { ...base, screen };
   const attempt: FlowState = {
@@ -422,12 +445,23 @@ export function createPreviewFlowState(
     name: "",
     winMessage: null,
   };
-  // "revealing" stays a draw seen from the player's side: a win when there is a prize.
+  // "revealing" stays a draw seen from the player's side: a win when there is a prize (never
+  // in a draw campaign, which wins nothing on the spot).
   const isWinner =
-    screen === "win" || (screen === "revealing" && campaign.prizes.length > 0);
+    screen === "win" ||
+    (screen === "revealing" &&
+      campaign.prizes.length > 0 &&
+      !isBallotCampaign(campaign));
   return {
     ...attempt,
-    screen: screen === "revealing" ? "revealing" : isWinner ? "win" : "lose",
+    screen:
+      screen === "revealing"
+        ? "revealing"
+        : isWinner
+          ? "win"
+          : screen === "ballot"
+            ? "ballot"
+            : "lose",
     entryId: options.clientRequestId,
     outcome: isWinner
       ? {

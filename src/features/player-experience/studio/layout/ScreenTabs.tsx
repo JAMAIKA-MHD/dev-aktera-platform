@@ -1,24 +1,28 @@
-import type { PreviewScreen } from "../store";
+import { screensFor, type PreviewScreen } from "../store";
 import { useStudio } from "../StudioContext";
 
 // The screen tabs (plan §9.3), in the preview bar: they pick the screen shown in the preview and
-// edited in Sections (the menu of the Sections panel picks the same one).
+// edited in Sections (the menu of the Sections panel picks the same one). A draw campaign shows
+// "Ballot" in place of Win and Lose: its players never win nor lose on the spot.
 
-const SCREENS: readonly { id: PreviewScreen; label: string }[] = [
-  { id: "welcome", label: "Welcome" },
-  { id: "register", label: "Register" },
-  { id: "play", label: "Play" },
-  { id: "win", label: "Win" },
-  { id: "lose", label: "Lose" },
-  { id: "status", label: "Status" },
-];
+const LABELS: Readonly<Record<PreviewScreen, string>> = {
+  welcome: "Welcome",
+  register: "Register",
+  play: "Play",
+  win: "Win",
+  lose: "Lose",
+  ballot: "Ballot",
+  status: "Status",
+};
 
 export const screenLabel = (screen: PreviewScreen): string =>
-  SCREENS.find((item) => item.id === screen)?.label ?? screen;
+  LABELS[screen] ?? screen;
 
 export function ScreenTabs() {
   const screen = useStudio((state) => state.ui.screen);
   const setScreen = useStudio((state) => state.setScreen);
+  const ballot = useStudio((state) => state.campaign?.ballot === true);
+  const SCREENS = screensFor(ballot).map((id) => ({ id, label: LABELS[id] }));
 
   return (
     <div

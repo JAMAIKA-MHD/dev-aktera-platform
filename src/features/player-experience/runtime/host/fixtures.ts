@@ -53,6 +53,7 @@ interface FixtureOptions {
   screen?: ScreenKey;
   state?: FramePreviewState;
   flow?: FlowFixture;
+  ballot?: boolean; // a draw campaign: its journey ends on the Ballot screen
   customize?: (config: ExperienceConfig) => void;
 }
 
@@ -63,7 +64,8 @@ function fixture(
 ): () => Fixture {
   const { gameType = "lucky_wheel", presetId = "midnight-gold" } = options;
   return () => {
-    const campaign = createDemoCampaign(gameType);
+    const demo = createDemoCampaign(gameType);
+    const campaign = options.ballot ? { ...demo, ballot: true } : demo;
     const config = createDefaultExperience({ gameType, campaign, presetId });
     options.customize?.(config);
     return {
@@ -462,6 +464,15 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
     {
       customize: zetaMarket,
       flow: { gateway: "scripted", scenario: "lose", initialScreen: "lose" },
+    },
+  ),
+  "flow-ballot": fixture(
+    "flow",
+    "A draw campaign: the entry is accepted and in the draw, no prize nor code",
+    {
+      customize: zetaMarket,
+      ballot: true,
+      flow: { gateway: "scripted", scenario: "lose", initialScreen: "ballot" },
     },
   ),
 };

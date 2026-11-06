@@ -73,6 +73,7 @@ const sampleConfig: ExperienceConfig = {
     play: screen("Tournez la roue !"),
     win: screen("Bravo !"),
     lose: screen("Pas de chance cette fois"),
+    ballot: screen("Votre participation est validée"),
   },
   sections: {
     jackpot: {

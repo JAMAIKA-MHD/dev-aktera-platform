@@ -51,7 +51,7 @@ export function changeBetween(
 ): ScreenChange | null {
   if (from === to || (ON_STAGE.has(from) && ON_STAGE.has(to))) return null;
   if (always && wipe) return "wipe";
-  if (to === "win") return "impact";
+  if (to === "win" || to === "ballot") return "impact";
   if (to === "lose") return "soft";
   if (to === "error" || to === "duplicate" || to === "closed") return "shake";
   if (ON_STAGE.has(to)) return "zoom";

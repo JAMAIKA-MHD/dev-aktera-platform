@@ -79,10 +79,12 @@ export interface ExperienceFrameProps {
 
 // The screen this frame draws ("screens.win" → "win"): the template's stage reacts to it
 // (templates.css), a brighter burst on a win, a dimmer hall on a loss.
+// The Ballot screen (a draw campaign) is dressed as the template's win: no theme needs a
+// look of its own for it.
 function screenOf(editPath: string | null): ThemeScreen | undefined {
-  return editPath?.startsWith("screens.")
-    ? (editPath.slice("screens.".length) as ThemeScreen)
-    : undefined;
+  if (!editPath?.startsWith("screens.")) return undefined;
+  const screen = editPath.slice("screens.".length);
+  return (screen === "ballot" ? "win" : screen) as ThemeScreen;
 }
 
 export function ExperienceFrame({

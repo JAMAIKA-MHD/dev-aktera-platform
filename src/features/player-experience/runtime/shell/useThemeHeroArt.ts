@@ -29,6 +29,8 @@ export function themeHeroArt(
   screen: string | undefined,
   withCharacters = true, // a theme may keep its characters in the body (layout.characters)
 ): ThemeHeroArt | null {
+  // The Ballot screen of a draw campaign is dressed as the win.
+  if (screen === "ballot") screen = "win";
   const own = screen
     ? assets.heroes[screen as keyof typeof assets.heroes]
     : undefined;

@@ -189,4 +189,16 @@ describe("buildCampaignSnapshot", () => {
       }
     });
   });
+
+  it("marks a draw campaign (the Wizard's method) as a ballot, and only that one", () => {
+    const draw = campaign({
+      gameLogicConfig: { wizard: { method: "draw" } },
+    });
+    expect(buildCampaignSnapshot(draw).ballot).toBe(true);
+    const instant = campaign({
+      gameLogicConfig: { wizard: { method: "instant" } },
+    });
+    expect(buildCampaignSnapshot(instant).ballot).toBeUndefined();
+    expect(buildCampaignSnapshot(campaign()).ballot).toBeUndefined();
+  });
 });

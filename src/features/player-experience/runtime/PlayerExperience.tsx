@@ -11,6 +11,7 @@ import { useGameTheme } from "../theme/GameTheme";
 import { ThemeScope } from "../theme/ThemeScope";
 import { runtimeAudio } from "./feedback/audio";
 import { MUSIC_URL } from "./feedback/music";
+import { BallotScreen } from "./screens/BallotScreen";
 import { GatewayRefusedScreen } from "./screens/GatewayRefusedScreen";
 import { LoseScreen } from "./screens/LoseScreen";
 import { RegisterScreen } from "./screens/RegisterScreen";
@@ -95,6 +96,7 @@ export function PlayerExperience(props: PlayerExperienceProps) {
     campaign.id,
     campaign.gameType,
     outcomeTimingFor(campaign),
+    campaign.ballot ? "ballot" : "instant",
     props.initialScreen ?? "welcome",
   ].join("|");
 
@@ -108,7 +110,7 @@ export function PlayerExperience(props: PlayerExperienceProps) {
     >
       <ThemeSounds />
       {/* Outside the journey: a new screen changes the stage's mood, never remounts it. */}
-      <GameFrame gameType={campaign.gameType} screen={screen} />
+      <GameFrame gameType={campaign.gameType} screen={stageScreen(screen)} />
       {allowedGatewayModes.includes(mode) ? (
         <Journey
           key={journey}
@@ -204,8 +206,10 @@ function Journey({
       : null;
   const introArt = assets?.winIntro ?? NO_ART;
   useWinIntroPreload(winIntro, introArt);
+  // The Ballot screen of a draw campaign is a happy ending too: the same scene plays before it.
   const arrivedOnWin =
-    shown.screen === "win" && (shown.change !== null || previewWinIntro);
+    (shown.screen === "win" || shown.screen === "ballot") &&
+    (shown.change !== null || previewWinIntro);
   const intro = useWinIntro({
     intro: arrivedOnWin ? winIntro : null,
     serial: shown.serial,
@@ -265,5 +269,11 @@ function screenElement(screen: FlowScreen, props: ScreenProps) {
   }
   if (screen === "win") return <WinScreen {...props} />;
   if (screen === "lose") return <LoseScreen {...props} />;
+  if (screen === "ballot") return <BallotScreen {...props} />;
   return <PlayScreen {...props} />;
+}
+
+// What the stage reacts to: the Ballot screen wears the win's mood, sky and flyers.
+function stageScreen(screen: FlowScreen): FlowScreen {
+  return screen === "ballot" ? "win" : screen;
 }

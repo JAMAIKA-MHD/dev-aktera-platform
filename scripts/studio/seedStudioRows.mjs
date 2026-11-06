@@ -58,12 +58,13 @@ async function insertCampaign(admin, org, c, winners, now) {
       status: c.status,
       start_date: isoIn(c.start, now),
       end_date: isoIn(c.end, now),
-      win_probability: 0.5,
+      // A draw has no instant win (the Wizard saves 0).
+      win_probability: c.draw ? 0 : 0.5,
       max_entries: 1,
       require_quiz: c.game === "quiz",
       auto_pace_prizes: false,
       game_type: c.game,
-      game_logic_config: gameLogicConfig(c.game),
+      game_logic_config: gameLogicConfig(c.game, c.draw),
     }),
   );
   await must(
@@ -76,7 +77,8 @@ async function insertCampaign(admin, org, c, winners, now) {
       name: PRIZE_NAME,
       quantity: PRIZE_QUANTITY,
       quantity_won: winners,
-      weight: 1,
+      // A draw's rewards are all for its winners (the Wizard saves weight 100).
+      weight: c.draw ? 100 : 1,
       is_active: true,
       win_message: "You won a 500 DA voucher!",
     }),

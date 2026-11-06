@@ -32,6 +32,13 @@ const ok = (raw: unknown) => {
 };
 
 describe("parsePublicExperience", () => {
+  it("reads a draw campaign as a ballot, and an older answer as instant-win", () => {
+    const draw = answer();
+    (draw.campaign as Record<string, unknown>).is_draw = true;
+    expect(ok(draw).campaign.ballot).toBe(true);
+    expect(ok(answer()).campaign.ballot).toBeUndefined();
+  });
+
   it("returns not_found for an unknown or unpublished slug", () => {
     expect(parsePublicExperience({ found: false })).toEqual({
       status: "not_found",

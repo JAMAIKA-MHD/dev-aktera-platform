@@ -207,6 +207,14 @@ A themed template can play one scene between a game and its win page: `motion.wi
 - A journey that arrives on the win plays it, and so does the Studio's preview each time it opens on Win (`winIntro` on the bridge's `xp:ui`, `previewWinIntro`), with its skip button working there. Other forced screens never do: fixtures, or the hidden frame of "Check all sizes".
 - While it plays the page is already there, held: its entrances paused (`data-xp-held`), out of reach (`inert`), its sound, vibration and confetti waiting (`useWinHold`).
 - Off with `features.winIntro` (Studio: Sections, Win), with `features.animations` and with reduced motion. The player can skip it.
+
+## The Ballot screen (draw campaigns)
+
+A draw campaign (the Wizard's reward method `draw`, read as `CampaignSnapshot.ballot` from `game_logic_config.wizard.method` or from `get_public_experience`'s `campaign.is_draw`) wins nothing on the spot: a participation the server did not make a winner ends on `ballot` instead of `lose` (`domain/flow.ts`), telling the player their entry is accepted and in the draw. It never shows a prize or a code; a win the server still returned shows as a win.
+
+- Its texts are `screens.ballot` (a design saved before it gets the defaults, `schema.ts`).
+- It is played and dressed as a win: the scene before a win plays before it, and the template's win look (title colors, panel frame, hero art, stage mood) is its own. No theme needs a `ballot` entry.
+- In the Studio, a draw campaign shows **Ballot** in place of Win and Lose (tabs and Sections menu, `screensFor` in `studio/store.ts`). The design checks only look at the screens the campaign can reach.
 - The outcome is already decided and recorded when it starts. Nothing in it depends on the prize.
 
 `comic.css` is in percent of 10.4 s; the three other timelines are in percent of 10 s, so `1%` is `0.1 s`.

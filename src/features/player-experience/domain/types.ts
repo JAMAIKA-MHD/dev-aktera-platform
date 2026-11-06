@@ -34,7 +34,10 @@ export interface ThemeTokens {
   font: "poppins" | "plus-jakarta"; // Latin script only: Arabic always uses Noto Sans Arabic
 }
 
-export type ScreenKey = "welcome" | "register" | "play" | "win" | "lose";
+// "ballot" ends the journey of a draw campaign (CampaignSnapshot.ballot) in place of win and
+// lose: the player's entry is in the draw, the winners are announced later.
+export type ScreenKey =
+  "welcome" | "register" | "play" | "win" | "lose" | "ballot";
 
 export interface ScreenContent {
   showHeader: boolean;

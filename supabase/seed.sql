@@ -14,6 +14,12 @@
 -- organizations -> prize_templates -> prize_template_items -> campaigns -> prizes
 --               -> prize_inventory -> quiz_questions -> entries -> coupon_redemptions
 --
+-- Current schema: every campaign has its game_type and the game_logic_config the Campaign
+-- Wizard writes (brand_name, the server's numeric rules, and the wizard block: engagement and
+-- reward method). One campaign per organization is a draw (wizard.method = 'draw'): nobody wins
+-- on the spot (win_probability 0), its players end on the Ballot screen. At most 5 running
+-- active campaigns per organization (campaigns_active_limit): the seed creates 3.
+--
 -- Safety: Hard-fails if run against any non-local/non-Docker database network.
 -- ==============================================================================
 
@@ -78,6 +84,7 @@ BEGIN
       v_c_quiz_active  uuid := gen_random_uuid();
       v_c_wheel_paused uuid := gen_random_uuid();
       v_c_wheel_draft  uuid := gen_random_uuid();
+      v_c_draw_active  uuid := gen_random_uuid();
 
       -- Prize IDs
       v_p_w1 uuid := gen_random_uuid();
@@ -85,6 +92,13 @@ BEGIN
       v_p_w3 uuid := gen_random_uuid();
       v_p_q1 uuid := gen_random_uuid();
       v_p_q2 uuid := gen_random_uuid();
+      v_p_d1 uuid := gen_random_uuid();
+
+      -- game_logic_config, as the Campaign Wizard saves it (src/components/wizard).
+      v_cfg_wheel jsonb;
+      v_cfg_quiz  jsonb;
+      v_cfg_draw  jsonb;
+      v_wilaya text;
 
       i integer;
       v_carrier text;
@@ -127,6 +141,43 @@ BEGIN
       END IF;
 
       RAISE NOTICE '⚡ Seeding organization "%" (ID: %) with franchise "%"...', v_org_name, v_org_id, v_franchise_name;
+
+      -- Instant win revealed by the wheel (probabilistic odds).
+      v_cfg_wheel := jsonb_build_object(
+        'brand_name', v_org_name,
+        'wizard', jsonb_build_object(
+          'category', 'luck',
+          'method', 'instant',
+          'mode', 'probabilistic',
+          'revealId', 'wheel'));
+      -- Knowledge: the quiz, all 3 answers right to pass, then an instant win.
+      v_cfg_quiz := jsonb_build_object(
+        'brand_name', v_org_name,
+        'pass_threshold_percentage', 100,
+        'quiz_seconds_per_question', 0,
+        'wizard', jsonb_build_object(
+          'category', 'knowledge',
+          'engagementId', 'quiz',
+          'passPercent', 100,
+          'method', 'instant',
+          'mode', 'probabilistic'));
+      -- A draw (sweepstake): played on the wheel, winners drawn the day after the end.
+      -- Aktera manages its stock (manageStock), so it keeps its rewards and SMS texts.
+      v_cfg_draw := jsonb_build_object(
+        'brand_name', v_org_name,
+        'wizard', jsonb_build_object(
+          'category', 'luck',
+          'method', 'draw',
+          'mode', 'probabilistic',
+          'revealId', 'wheel',
+          'draw', jsonb_build_object(
+            'at', to_char(now() + interval '19 days', 'YYYY-MM-DD"T"HH24:MI'),
+            'winners', 5,
+            'ticketPrefix', 'DRAW',
+            'rules', 'One entry per phone number. 5 winners drawn at random among all entries the day after the campaign ends, contacted by SMS.',
+            'smsWinner', 'Congratulations! You won a 1,000 DA coupon in the ' || v_franchise_name || ' draw.',
+            'smsLoser', 'Thanks for taking part in the ' || v_franchise_name || ' draw. Better luck next time!',
+            'manageStock', true)));
 
       -- A. Dependency-Ordered Cleanup for this organization
       DELETE FROM coupon_redemptions WHERE entry_id IN (SELECT id FROM entries WHERE organization_id = v_org_id);
@@ -193,12 +244,14 @@ BEGIN
       END LOOP;
 
       -- E. Insert Campaigns (All referring to the same cohesive Franchise Name)
-      INSERT INTO campaigns (id, organization_id, name, arabic_name, slug, description, status, start_date, end_date, win_probability, max_entries, require_phone, require_quiz, created_at)
+      INSERT INTO campaigns (id, organization_id, name, arabic_name, slug, description, status, start_date, end_date, win_probability, max_entries, require_phone, require_quiz, game_type, game_logic_config, created_at)
       VALUES
-        (v_c_wheel_active, v_org_id, v_franchise_name || ' — Lucky Spin Wheel', 'عجلة الحظ الكبرى', v_slug_base || '-spin-wheel', 'Spin the grand prize wheel daily to win vouchers, data passes, and exclusive gifts.', 'active', now() - interval '14 days', now() + interval '16 days', 0.65, 1, true, false, now() - interval '14 days'),
-        (v_c_quiz_active,  v_org_id, v_franchise_name || ' — Trivia & Culture Quiz', 'مسابقة الثقافة والتحدي', v_slug_base || '-trivia-quiz', 'Answer 3 fast trivia questions to qualify for instant recharge vouchers.', 'active', now() - interval '8 days', now() + interval '22 days', 0.80, 1, true, true, now() - interval '8 days'),
-        (v_c_wheel_paused, v_org_id, v_franchise_name || ' — Weekend Flash Special', 'عروض نهاية الأسبوع الخاصة', v_slug_base || '-weekend-flash', 'Special weekend promotional wheel (currently paused for maintenance).', 'paused', now() - interval '20 days', now() + interval '10 days', 0.50, 1, true, false, now() - interval '20 days'),
-        (v_c_wheel_draft,  v_org_id, v_franchise_name || ' — Ramadan Night Rewards (Draft)', 'جوائز سهرات رمضان (مسودة)', v_slug_base || '-ramadan-draft', 'Upcoming festive season campaign scheduled for next month.', 'draft', now() + interval '5 days', now() + interval '35 days', 0.70, 1, true, false, now() - interval '2 days');
+        (v_c_wheel_active, v_org_id, v_franchise_name || ' — Lucky Spin Wheel', 'عجلة الحظ الكبرى', v_slug_base || '-spin-wheel', 'Spin the grand prize wheel daily to win vouchers, data passes, and exclusive gifts.', 'active', now() - interval '14 days', now() + interval '16 days', 0.65, 1, true, false, 'lucky_wheel', v_cfg_wheel, now() - interval '14 days'),
+        (v_c_quiz_active,  v_org_id, v_franchise_name || ' — Trivia & Culture Quiz', 'مسابقة الثقافة والتحدي', v_slug_base || '-trivia-quiz', 'Answer 3 fast trivia questions to qualify for instant recharge vouchers.', 'active', now() - interval '8 days', now() + interval '22 days', 0.80, 1, true, true, 'quiz', v_cfg_quiz, now() - interval '8 days'),
+        (v_c_wheel_paused, v_org_id, v_franchise_name || ' — Weekend Flash Special', 'عروض نهاية الأسبوع الخاصة', v_slug_base || '-weekend-flash', 'Special weekend promotional wheel (currently paused for maintenance).', 'paused', now() - interval '20 days', now() + interval '10 days', 0.50, 1, true, false, 'lucky_wheel', v_cfg_wheel, now() - interval '20 days'),
+        (v_c_wheel_draft,  v_org_id, v_franchise_name || ' — Ramadan Night Rewards (Draft)', 'جوائز سهرات رمضان (مسودة)', v_slug_base || '-ramadan-draft', 'Upcoming festive season campaign scheduled for next month.', 'draft', now() + interval '5 days', now() + interval '35 days', 0.70, 1, true, false, 'lucky_wheel', v_cfg_wheel, now() - interval '2 days'),
+        -- A draw: win_probability 0, the Wizard's own value for a draw (no instant win).
+        (v_c_draw_active,  v_org_id, v_franchise_name || ' — Grand Prize Draw', 'القرعة الكبرى', v_slug_base || '-grand-draw', 'Spin to enter the grand prize draw: 5 winners drawn at random when the campaign ends.', 'active', now() - interval '6 days', now() + interval '18 days', 0, 1, true, false, 'lucky_wheel', v_cfg_draw, now() - interval '6 days');
 
       -- F. Insert Prizes & Atomic Prize Inventory Quotas
       -- Active Wheel Prizes (Allocations: 40, 20, 10 -> Won: 18, 9, 3 -> Remaining: 22, 11, 7)
@@ -224,6 +277,16 @@ BEGIN
       VALUES
         (v_p_q1, v_c_quiz_active, v_org_id, 30, 18, 12),
         (v_p_q2, v_c_quiz_active, v_org_id, 15,  9,  6);
+
+      -- Draw Prizes: every reward is for the draw's winners (weight 100, as the Wizard saves a
+      -- draw), nothing won yet: the draw happens after the campaign.
+      INSERT INTO prizes (id, campaign_id, organization_id, prize_template_id, name, quantity, quantity_won, weight, probability, is_active)
+      VALUES
+        (v_p_d1, v_c_draw_active, v_org_id, v_t_voucher1k, '1,000 DA Coupon', 5, 0, 100.00, 0, true);
+
+      INSERT INTO prize_inventory (prize_id, campaign_id, organization_id, initial_quantity, remaining, claimed)
+      VALUES
+        (v_p_d1, v_c_draw_active, v_org_id, 5, 5, 0);
 
       -- G. Insert Quiz Questions
       INSERT INTO quiz_questions (campaign_id, organization_id, question, options, correct_option_index, position, is_active)
@@ -291,7 +354,10 @@ BEGIN
             'carrier', v_carrier,
             'dwell_time_seconds', v_dwell,
             'coupon_confirmed', v_confirmed,
-            'ip_city', CASE WHEN i % 3 = 0 THEN 'Algiers' WHEN i % 3 = 1 THEN 'Oran' ELSE 'Constantine' END
+            'ip_city', CASE WHEN i % 3 = 0 THEN 'Algiers' WHEN i % 3 = 1 THEN 'Oran' ELSE 'Constantine' END,
+            'wilaya', CASE WHEN i % 3 = 0 THEN 'Alger' WHEN i % 3 = 1 THEN 'Oran' ELSE 'Constantine' END,
+            'source', 'web_player',
+            'consent', jsonb_build_object('accepted', true, 'acceptedAt', v_entry_time, 'policyVersion', '2026-09-01', 'locale', 'fr')
           ),
           v_user_agent,
           v_entry_time
@@ -364,7 +430,10 @@ BEGIN
             'carrier', v_carrier,
             'dwell_time_seconds', v_dwell,
             'quiz_score', CASE WHEN i <= 18 THEN '3/3' ELSE '1/3' END,
-            'coupon_confirmed', v_confirmed
+            'coupon_confirmed', v_confirmed,
+            'wilaya', CASE WHEN i % 2 = 0 THEN 'Blida' ELSE 'Sétif' END,
+            'source', 'web_player',
+            'consent', jsonb_build_object('accepted', true, 'acceptedAt', v_entry_time, 'policyVersion', '2026-09-01', 'locale', 'fr')
           ),
           v_user_agent,
           v_entry_time
@@ -381,6 +450,50 @@ BEGIN
             ON CONFLICT DO NOTHING;
           END IF;
         END IF;
+      END LOOP;
+
+      -- J. Insert Draw Entries (30 Entries: every one is in the draw, nobody won on the spot)
+      FOR i IN 1..30 LOOP
+        IF i % 3 = 0 THEN
+          v_carrier := 'Djezzy'; v_prefix := '07' || LPAD((72 + (i % 20))::text, 2, '0');
+        ELSIF i % 3 = 1 THEN
+          v_carrier := 'Mobilis'; v_prefix := '06' || LPAD((61 + (i % 30))::text, 2, '0');
+        ELSE
+          v_carrier := 'Ooredoo'; v_prefix := '05' || LPAD((52 + (i % 40))::text, 2, '0');
+        END IF;
+
+        v_phone := v_prefix || LPAD((500000 + (i * 457) % 499999)::text, 6, '0');
+        v_participant_name := v_names[1 + ((i + 7) % array_length(v_names, 1))];
+        v_entry_time := now() - (interval '6 days' * (1.0 - (i::numeric / 30.0))) + (interval '1 hour' * ((i * 5) % 24));
+        v_dwell := 6 + ((i * 5 + 2) % 15);
+        v_user_agent := v_user_agents[1 + ((i + 2) % array_length(v_user_agents, 1))];
+        v_wilaya := CASE WHEN i % 4 = 0 THEN 'Alger' WHEN i % 4 = 1 THEN 'Oran' WHEN i % 4 = 2 THEN 'Tizi Ouzou' ELSE 'Annaba' END;
+
+        INSERT INTO entries (
+          id, campaign_id, organization_id, phone_number, participant_name,
+          quiz_passed, is_winner, prize_id, redeemed_coupon_value, dwell_time_seconds, metadata, user_agent, created_at
+        ) VALUES (
+          gen_random_uuid(),
+          v_c_draw_active,
+          v_org_id,
+          v_phone,
+          v_participant_name,
+          NULL,
+          false,
+          NULL,
+          NULL,
+          v_dwell,
+          jsonb_build_object(
+            'carrier', v_carrier,
+            'dwell_time_seconds', v_dwell,
+            'coupon_confirmed', false,
+            'wilaya', v_wilaya,
+            'source', 'web_player',
+            'consent', jsonb_build_object('accepted', true, 'acceptedAt', v_entry_time, 'policyVersion', '2026-09-01', 'locale', 'fr')
+          ),
+          v_user_agent,
+          v_entry_time
+        );
       END LOOP;
 
     END;

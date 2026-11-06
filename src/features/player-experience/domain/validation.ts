@@ -39,8 +39,18 @@ const SCREEN_KEYS: readonly ScreenKey[] = [
   "play",
   "win",
   "lose",
+  "ballot",
 ];
 const SAFE_LINK = /^(https:|mailto:|tel:)/i;
+
+// The screens players of this campaign can reach: a draw campaign ends on Ballot, never on
+// Win or Lose; an instant-win one (or the demo campaign) never on Ballot.
+function shownScreens(campaign: CampaignSnapshot | null): readonly ScreenKey[] {
+  const ballot = campaign?.ballot === true;
+  return SCREEN_KEYS.filter((key) =>
+    ballot ? key !== "win" && key !== "lose" : key !== "ballot",
+  );
+}
 
 // Wording that promises a win. A heuristic, so only ever a warning.
 const PROMISES: readonly RegExp[] = [
@@ -86,12 +96,15 @@ interface TextEntry {
 }
 
 // Every text the player may read, with its path.
-function playerTexts(config: ExperienceConfig): TextEntry[] {
+function playerTexts(
+  config: ExperienceConfig,
+  screens: readonly ScreenKey[],
+): TextEntry[] {
   const entries: TextEntry[] = [];
   const add = (path: string, text: LocalizedText | null) => {
     if (text) entries.push({ path, text });
   };
-  for (const key of SCREEN_KEYS) {
+  for (const key of screens) {
     const screen = config.screens[key];
     add(`screens.${key}.title`, screen.title);
     add(`screens.${key}.subtitle`, screen.subtitle);
@@ -202,8 +215,12 @@ function checkTexts(
   }
 }
 
-function checkTitles(config: ExperienceConfig, issues: DesignIssue[]) {
-  for (const key of SCREEN_KEYS) {
+function checkTitles(
+  config: ExperienceConfig,
+  screens: readonly ScreenKey[],
+  issues: DesignIssue[],
+) {
+  for (const key of screens) {
     const title = config.screens[key].title;
     const tooLong = config.locales.enabled.filter((locale) => {
       const value = title[locale] ?? ""; // a missing text is too short, never too long
@@ -474,11 +491,12 @@ export function validateExperience(
   campaign?: CampaignSnapshot | null,
 ): DesignIssue[] {
   const issues: DesignIssue[] = [];
-  const texts = playerTexts(config);
+  const screens = shownScreens(campaign ?? null);
+  const texts = playerTexts(config, screens);
   checkContrast(config, issues);
   checkConsentAndLinks(config, issues);
   checkPhone(config, issues);
-  checkTitles(config, issues);
+  checkTitles(config, screens, issues);
   checkTexts(config, texts, issues);
   checkWheel(config, campaign ?? null, issues);
   if (campaign) {

@@ -53,12 +53,15 @@ _(Supabase CLI automatically executes `supabase/seed.sql` after applying migrati
 
 ### C. Unified Franchise Campaigns (Per Organization)
 
-| Campaign Name                                          | Type          | Status   | Features                                                  |
-| :----------------------------------------------------- | :------------ | :------- | :-------------------------------------------------------- |
-| **[Org] Mega Grand Challenge — Lucky Spin Wheel**      | `lucky_wheel` | `active` | 3 allocated prizes, 60 realistic participant entries      |
-| **[Org] Mega Grand Challenge — Trivia & Culture Quiz** | `quiz`        | `active` | 3 trivia questions, allocated vouchers, pass/fail entries |
-| **[Org] Mega Grand Challenge — Weekend Flash Special** | `lucky_wheel` | `paused` | Paused campaign testing                                   |
-| **[Org] Mega Grand Challenge — Ramadan Night Rewards** | `lucky_wheel` | `draft`  | Draft campaign testing                                    |
+| Campaign Name                                          | Type          | Status   | Features                                                                                                            |
+| :----------------------------------------------------- | :------------ | :------- | :------------------------------------------------------------------------------------------------------------------ |
+| **[Org] Mega Grand Challenge — Lucky Spin Wheel**      | `lucky_wheel` | `active` | 3 allocated prizes, 60 realistic participant entries                                                                |
+| **[Org] Mega Grand Challenge — Trivia & Culture Quiz** | `quiz`        | `active` | 3 trivia questions, allocated vouchers, pass/fail entries                                                           |
+| **[Org] Mega Grand Challenge — Weekend Flash Special** | `lucky_wheel` | `paused` | Paused campaign testing                                                                                             |
+| **[Org] Mega Grand Challenge — Ramadan Night Rewards** | `lucky_wheel` | `draft`  | Draft campaign testing                                                                                              |
+| **[Org] Mega Grand Challenge — Grand Prize Draw**      | `lucky_wheel` | `active` | Draw campaign: 0% instant win, 5 coupons for the draw, 30 entries, no winner yet (players end on the Ballot screen) |
+
+Every campaign carries its `game_type` and the `game_logic_config` the Campaign Wizard writes: `brand_name`, the server's numeric rules (`pass_threshold_percentage`…) and the `wizard` block (engagement, reward method `instant` or `draw`). An organization runs at most 5 active campaigns that have not ended (`campaigns_active_limit`): the seed creates 3. Entries carry their `wilaya`, `source` and consent record in `metadata`.
 
 ### D. Participant Entries (60+ Entries per Organization)
 

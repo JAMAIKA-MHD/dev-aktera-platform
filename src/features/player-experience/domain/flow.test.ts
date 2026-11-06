@@ -83,6 +83,7 @@ describe("createInitialFlowState", () => {
       screen: "welcome",
       gameType: "quiz",
       timing: "after-interaction",
+      ballot: false,
       participant: { fullName: "", phone: "", email: "", wilaya: "" },
       consentAccepted: false,
       consentAcceptedAt: null,
@@ -772,5 +773,71 @@ describe("createPreviewFlowState", () => {
     const retried = flowReducer(at("error"), { type: "RETRY" });
     expect(retried.screen).toBe("resolving");
     expect(buildDrawRequest(retried, input)).toBeNull();
+  });
+});
+
+describe("a draw campaign (ballot)", () => {
+  const ballotPlaying = () =>
+    run(
+      createInitialFlowState("lucky_wheel", { startedAt: T0, ballot: true }),
+      ...FILL,
+      SUBMIT,
+      { type: "DRAW_STARTED" },
+    );
+
+  it("ends a participation without a win on the Ballot screen, not on Lose", () => {
+    const done = run(
+      ballotPlaying(),
+      { type: "RESOLVED", entryId: "entry-1", outcome: LOSS },
+      { type: "REVEAL_DONE" },
+    );
+    expect(done.screen).toBe("ballot");
+    expect(done.entryId).toBe("entry-1");
+  });
+
+  it("still shows a win the server returned, with its code", () => {
+    const done = run(
+      ballotPlaying(),
+      { type: "RESOLVED", entryId: "entry-1", outcome: WIN },
+      { type: "REVEAL_DONE" },
+    );
+    expect(done.screen).toBe("win");
+  });
+
+  it("stays a draw campaign after RESTART", () => {
+    const done = run(
+      ballotPlaying(),
+      { type: "RESOLVED", entryId: "entry-1", outcome: LOSS },
+      { type: "REVEAL_DONE" },
+      { type: "RESTART" },
+    );
+    expect(done).toMatchObject({ screen: "welcome", ballot: true });
+  });
+
+  it("an instant-win campaign still ends on Lose", () => {
+    const done = run(
+      resolving(),
+      { type: "RESOLVED", entryId: "entry-1", outcome: LOSS },
+      { type: "REVEAL_DONE" },
+    );
+    expect(done.screen).toBe("lose");
+  });
+
+  it("previews the Ballot screen, and never a win while revealing", () => {
+    const campaign = {
+      gameType: "lucky_wheel" as GameType,
+      quiz: [],
+      prizes: [{ id: "prize-1", name: "Bon d'achat", winMessage: null }],
+      ballot: true,
+    };
+    const options = { startedAt: T0, clientRequestId: "preview-1" };
+    expect(createPreviewFlowState("ballot", campaign, options)).toMatchObject({
+      screen: "ballot",
+      ballot: true,
+      outcome: { isWinner: false, couponCode: null },
+    });
+    expect(
+      createPreviewFlowState("revealing", campaign, options).outcome?.isWinner,
+    ).toBe(false);
   });
 });

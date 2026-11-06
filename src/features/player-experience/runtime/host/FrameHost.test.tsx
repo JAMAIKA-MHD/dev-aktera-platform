@@ -83,6 +83,7 @@ describe("fixtures", () => {
       "hit-it-welcome",
       "flow-win",
       "flow-lose",
+      "flow-ballot",
     ]);
     expect(getFixture("layout-debug")?.config.theme.presetId).toBe(
       "midnight-gold",
@@ -171,7 +172,7 @@ describe("FrameHost", () => {
     expect(screen.getByText('Unknown fixture "nope"')).toBeTruthy();
     expect(
       screen.getByText(
-        "Available: layout-debug, theme-presets, all-games, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error, wheel-play, wheel-spinning, wheel-welcome, scratch-play, scratch-welcome, boxes-play, boxes-welcome, quiz-play, quiz-welcome, hit-it-play, hit-it-welcome, flow-win, flow-lose",
+        "Available: layout-debug, theme-presets, all-games, feedback-debug, welcome-midnight-gold, frame-long-texts, frame-play-hit-it, frame-quiz-progress, frame-cta-loading, frame-cta-disabled, frame-no-header, flow-welcome, flow-gateway-refused, register, register-all-fields, resolving, status-duplicate, status-closed, status-error, wheel-play, wheel-spinning, wheel-welcome, scratch-play, scratch-welcome, boxes-play, boxes-welcome, quiz-play, quiz-welcome, hit-it-play, hit-it-welcome, flow-win, flow-lose, flow-ballot",
       ),
     ).toBeTruthy();
   });

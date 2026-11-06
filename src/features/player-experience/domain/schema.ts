@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { defaultBallotScreen } from "../presets/contentDefaults";
 import { DEFAULT_GAME_TYPE, createDefaultExperience } from "./defaults";
 import type { GameType } from "./gameTypes";
 import { ICON_NAMES } from "./icons";
@@ -274,6 +275,8 @@ export const experienceConfigSchema = z.object({
     play: screenContentSchema,
     win: screenContentSchema,
     lose: screenContentSchema,
+    // A design saved before the Ballot screen existed gets its default texts.
+    ballot: screenContentSchema.default(() => defaultBallotScreen()),
   }),
   sections: sectionsSchema,
   form: formSchema,
