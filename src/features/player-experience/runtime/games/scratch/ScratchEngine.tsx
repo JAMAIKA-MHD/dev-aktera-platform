@@ -28,6 +28,10 @@ import {
 // starts scratching (the draw runs before the animation): the engine only uncovers what it
 // was handed (N1). What has been scratched is held in normalized coordinates — a resize
 // repaints the very same scratches at the new size, and the percentage never moves.
+//
+// The foil answers the first touch: it launches the draw, like the CTA, and the same gesture
+// goes on scratching while the server answers. Only blank card can show until then (the
+// outcome is not known yet), and the card is uncovered only once the outcome has arrived.
 
 const SCRATCH_RADIUS = 0.07; // of the card's width
 const REVEAL_MS = 420;
@@ -133,8 +137,13 @@ export function ScratchEngine({
     );
   }, [reducedMotion]);
 
+  // Scratched past the threshold before the outcome arrived: uncovered as soon as it does.
+  useEffect(() => {
+    if (scratching && scratchedPercent(mask.current) >= threshold) finish();
+  }, [scratching, threshold, finish]);
+
   const move = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (!scratching || event.buttons === 0) return;
+    if (phase === "idle" || uncovered || event.buttons === 0) return;
     const box = event.currentTarget.getBoundingClientRect();
     if (box.width === 0 || box.height === 0) return;
     const point = {
@@ -162,7 +171,7 @@ export function ScratchEngine({
         runtimeAudio.play("scratch");
       }
     }
-    if (scratchedPercent(mask.current) >= threshold) finish();
+    if (scratching && scratchedPercent(mask.current) >= threshold) finish();
   };
 
   // A flake of foil where the finger is: a small piece of the cover, flying off and fading
@@ -223,6 +232,7 @@ export function ScratchEngine({
               onPointerDown={(event) => {
                 event.currentTarget.setPointerCapture(event.pointerId);
                 last.current = null;
+                if (phase === "idle") onStart();
                 move(event);
               }}
               onPointerMove={move}

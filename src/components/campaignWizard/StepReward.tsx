@@ -7,13 +7,16 @@ import { AlertTriangle, BookOpen, Info } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { CxBadge, CxButton, CxNotice } from "../campaigns/campaignUi";
 import { GameEmblem } from "../campaigns/GameEmblem";
-import { mechanicsFor } from "../wizard/mechanicsRegistry";
+import {
+  forcesGuaranteed,
+  mechanicById,
+  mechanicsFor,
+} from "../wizard/mechanicsRegistry";
 import type { StepProps } from "./StepFoundation";
 import {
   Field,
   FieldError,
   GroupLabel,
-  hintClass,
   inputClass,
   OptionCard,
   RangeField,
@@ -21,7 +24,7 @@ import {
   StepPanel,
   SwitchRow,
 } from "./wizardFields";
-import { isDraw } from "./wizardForm";
+import { isDraw, isGuaranteed } from "./wizardForm";
 
 function Explainer({ children }: { children: ReactNode }) {
   return (
@@ -47,6 +50,11 @@ export function StepReward({
 }) {
   const { w } = form;
   const draw = isDraw(form);
+  const guaranteed = isGuaranteed(form);
+  // A preference game (Pick Your Favorite) has no score to qualify on: no odds, every
+  // player of an instant win receives a reward.
+  const guaranteedOnly = forcesGuaranteed(w);
+  const gameLabel = mechanicById(w.engagementId)?.label ?? "This game";
   const patch = (changes: Partial<typeof w>) =>
     update({ w: { ...w, ...changes } });
   const patchDraw = (changes: Partial<typeof w.draw>) =>
@@ -68,7 +76,12 @@ export function StepReward({
             selected={!draw}
             title="Instant win"
             description="Players see the outcome as soon as they finish."
-            onSelect={() => patch({ method: "instant" })}
+            onSelect={() =>
+              patch({
+                method: "instant",
+                ...(guaranteedOnly && { mode: "guaranteed" as const }),
+              })
+            }
           />
           <OptionCard
             selected={draw}
@@ -90,20 +103,31 @@ export function StepReward({
             className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <OptionCard
-              selected={w.mode === "probabilistic"}
+              selected={!guaranteed}
+              disabled={guaranteedOnly}
               title="Probabilistic odds"
               description="Players win with a chance, against limited stock."
               onSelect={() => patch({ mode: "probabilistic" })}
             />
             <OptionCard
-              selected={w.mode === "guaranteed"}
+              selected={guaranteed}
               title="Guaranteed winning (100% Gagnant)"
               description="Every qualified participant receives a reward. Zero losers."
               onSelect={() => patch({ mode: "guaranteed" })}
             />
           </div>
 
-          {w.mode === "probabilistic" ? (
+          {guaranteedOnly && (
+            <Explainer>
+              <strong>
+                {gameLabel} is always 100% Gagnant as an instant win.
+              </strong>{" "}
+              Players state a preference, there is no right answer to win on.
+              Choose a draw to pick winners later instead.
+            </Explainer>
+          )}
+
+          {!guaranteed ? (
             <>
               <SwitchRow
                 checked={form.autoPace}
@@ -152,7 +176,8 @@ export function StepReward({
         </StepPanel>
       )}
 
-      {!draw && (
+      {/* Only luck has a reveal to pick: a skill or knowledge campaign plays its own game. */}
+      {!draw && w.category === "luck" && (
         <StepPanel
           title="How is the reward revealed?"
           description="The game players play to discover their result. From the mechanics library."
@@ -178,12 +203,6 @@ export function StepReward({
               />
             ))}
           </div>
-          {w.category !== "luck" && (
-            <p className={hintClass}>
-              Players play the game of the Engagement step; the reveal is used
-              for luck campaigns.
-            </p>
-          )}
         </StepPanel>
       )}
 
@@ -250,7 +269,7 @@ export function StepReward({
               <GroupLabel>
                 <label htmlFor="wizard-draw-rules">Sweepstake rules</label>
               </GroupLabel>
-              <CxBadge tone="warning">Required before going live</CxBadge>
+              <CxBadge tone="warning">Required</CxBadge>
             </div>
             <textarea
               id="wizard-draw-rules"

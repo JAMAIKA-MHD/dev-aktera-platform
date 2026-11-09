@@ -75,7 +75,8 @@ export interface DashboardData {
 
   /** Creates or updates a campaign; throws (and flags the banner) when it is refused. */
   persistCampaign: (draft: CampaignDraft) => Promise<void>;
-  toggleCampaignStatus: (id: string) => Promise<void>;
+  /** Publishes a draft, pauses a live campaign, resumes a paused one. False when refused (the banner says why). */
+  toggleCampaignStatus: (id: string) => Promise<boolean>;
   archiveCampaign: (id: string) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
 }
@@ -208,17 +209,19 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const toggleCampaignStatus = async (id: string) => {
       setActionError(null);
       const campaign = campaigns.find((c) => c.id === id);
-      if (!campaign) return;
+      if (!campaign) return false;
       try {
         await updateCampaignStatusService(
           id,
           campaign.status === "active" ? "paused" : "active",
         );
         refetchCampaigns();
+        return true;
       } catch (err) {
         setActionError(
           toFriendlyErrorMessage(err, "Failed to update campaign status."),
         );
+        return false;
       }
     };
 

@@ -1,5 +1,7 @@
 import {
+  CHOICE_PROMPT,
   CONSENT_TEXT,
+  DEFAULT_CHOICE_CONTENDERS,
   FORM_FIELD_TEXT,
   LEGAL_LINE,
   LOSING_SEGMENT_LABELS,
@@ -15,8 +17,11 @@ import { createDemoCampaign } from "../presets/demoCampaign";
 import { themeFromPreset } from "../presets/themePresets";
 import type { CampaignSnapshot } from "./campaign";
 import type { GameType } from "./gameTypes";
+import type { IconName } from "./icons";
 import { DEFAULT_TEMPLATE_ID } from "./templates";
 import type {
+  AssetRef,
+  ChoiceContender,
   ExperienceConfig,
   FormField,
   GameSettings,
@@ -28,6 +33,69 @@ import { createUuid } from "./uuid";
 // which imports React.
 
 export const DEFAULT_GAME_TYPE: GameType = "lucky_wheel";
+
+// Presentation defaults of the memory board: 8 card faces, a board of N pairs uses the first N.
+export const DEFAULT_MEMORY_FACES: readonly IconName[] = [
+  "star",
+  "gem",
+  "gift",
+  "trophy",
+  "zap",
+  "crown",
+  "flame",
+  "ticket",
+];
+// No picture of the brand on any face: every card shows its icon.
+export const emptyMemoryFaceImages = (): AssetRef[] =>
+  DEFAULT_MEMORY_FACES.map(() => null);
+// Pick Your Favorite ("winner stays"): 2 to 8 products; a new design gets the eight default
+// ones, on icons, until the brand sets its own pictures. The campaign sets how many play.
+export const MIN_CHOICE_CONTENDERS = 2;
+export const MAX_CHOICE_CONTENDERS = 8;
+
+// `makeId` gives each product its id: random for a saved design, fixed for a stand-in that
+// is rebuilt on every render (the runtime's fallback).
+type MakeId = (index: number) => string;
+const randomId: MakeId = () => createUuid();
+
+// The first `count` products of the default list (8 at most).
+export function buildDefaultChoiceContenders(
+  count = MAX_CHOICE_CONTENDERS,
+  makeId: MakeId = randomId,
+): ChoiceContender[] {
+  return DEFAULT_CHOICE_CONTENDERS.slice(0, count).map(
+    ({ label, icon }, index) => ({
+      id: makeId(index),
+      label: { ...label },
+      image: null,
+      icon,
+    }),
+  );
+}
+
+// The product a list gets at `index` when it grows: the default one of that place.
+export function defaultChoiceContenderAt(
+  index: number,
+  id: string = createUuid(),
+): ChoiceContender {
+  const preset =
+    DEFAULT_CHOICE_CONTENDERS[index % DEFAULT_CHOICE_CONTENDERS.length];
+  return { id, label: { ...preset.label }, image: null, icon: preset.icon };
+}
+
+export const defaultChoicePrompt = () => ({ ...CHOICE_PROMPT });
+
+// The settings of a new Pick Your Favorite game: the eight default products, in order.
+export function buildDefaultChooseBrand(): NonNullable<
+  GameSettings["chooseBrand"]
+> {
+  return {
+    contenders: buildDefaultChoiceContenders(),
+    prompt: defaultChoicePrompt(),
+    shuffle: false,
+  };
+}
+
 export const DEFAULT_POLICY_VERSION = "2026-09-01";
 
 export const MIN_WHEEL_SEGMENTS = 4;
@@ -51,6 +119,7 @@ function losingSegment(index: number): WheelSegment {
     label: LOSING_SEGMENT_LABELS[index % LOSING_SEGMENT_LABELS.length],
     color: null,
     icon: null,
+    image: null,
   };
 }
 
@@ -84,6 +153,7 @@ export function buildDefaultWheelSegments(
         label: {}, // empty = the prize display label
         color: null,
         icon: null,
+        image: null,
       });
     }
   }
@@ -114,6 +184,17 @@ function defaultGameSettings(campaign: CampaignSnapshot): GameSettings {
       break;
     case "hit_it":
       settings.hitIt = { targetIcon: "target", targetImage: null };
+      break;
+    case "memory_match":
+      settings.memory = {
+        backIcon: "help-circle",
+        backImage: null,
+        faces: [...DEFAULT_MEMORY_FACES],
+        faceImages: emptyMemoryFaceImages(),
+      };
+      break;
+    case "choose_brand":
+      settings.chooseBrand = buildDefaultChooseBrand();
       break;
   }
   return settings;

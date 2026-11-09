@@ -1,5 +1,10 @@
 import { lazy } from "react";
-import { buildDefaultWheelSegments } from "../../domain/defaults";
+import {
+  DEFAULT_MEMORY_FACES,
+  buildDefaultChooseBrand,
+  buildDefaultWheelSegments,
+  emptyMemoryFaceImages,
+} from "../../domain/defaults";
 import { GAME_LABELS } from "../../domain/gameTypes";
 import { SCRATCH_COVER_TEXT } from "../../presets/contentDefaults";
 import { autoCaption } from "./autoCaption";
@@ -93,6 +98,43 @@ export const registry: GameRegistry = {
     ),
     defaultSettings: { hitIt: { targetIcon: "target", targetImage: null } },
     labels: GAME_LABELS.hit_it,
+    autoCaption,
+  },
+  memory_match: {
+    Engine: lazy(() =>
+      import("./memory/MemoryEngine").then((module) => ({
+        default: module.MemoryEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./memory/MemoryTeaser").then((module) => ({
+        default: module.MemoryTeaser,
+      })),
+    ),
+    defaultSettings: {
+      memory: {
+        backIcon: "help-circle",
+        backImage: null,
+        faces: [...DEFAULT_MEMORY_FACES],
+        faceImages: emptyMemoryFaceImages(),
+      },
+    },
+    labels: GAME_LABELS.memory_match,
+    autoCaption,
+  },
+  choose_brand: {
+    Engine: lazy(() =>
+      import("./chooseBrand/ChooseBrandEngine").then((module) => ({
+        default: module.ChooseBrandEngine,
+      })),
+    ),
+    Teaser: lazy(() =>
+      import("./chooseBrand/ChooseBrandTeaser").then((module) => ({
+        default: module.ChooseBrandTeaser,
+      })),
+    ),
+    defaultSettings: { chooseBrand: buildDefaultChooseBrand() },
+    labels: GAME_LABELS.choose_brand,
     autoCaption,
   },
 };

@@ -1,6 +1,11 @@
 import type { CampaignSnapshot } from "./campaign";
 import { MIN_TEXT_CONTRAST, contrastRatio, ctaTextColor } from "./contrast";
-import { MAX_WHEEL_SEGMENTS, MIN_WHEEL_SEGMENTS } from "./defaults";
+import {
+  MAX_CHOICE_CONTENDERS,
+  MAX_WHEEL_SEGMENTS,
+  MIN_CHOICE_CONTENDERS,
+  MIN_WHEEL_SEGMENTS,
+} from "./defaults";
 import { quizSourceHash, resolvePrizeDisplay } from "./display";
 import { GAME_LABELS } from "./gameTypes";
 import {
@@ -10,7 +15,12 @@ import {
   type Locale,
   type LocalizedText,
 } from "./locale";
-import type { AssetRef, ExperienceConfig, ScreenKey } from "./types";
+import type {
+  AssetRef,
+  ChoiceOption,
+  ExperienceConfig,
+  ScreenKey,
+} from "./types";
 
 // Design checks shown in the Studio (plan §6.5). Errors block sharing, warnings inform.
 // Messages are Studio labels, hence in English. `path` points at the field to open.
@@ -433,11 +443,30 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
     ["brand.logo", config.brand.logo],
   ];
   const { game } = config;
+  if (game.type === "lucky_wheel" && game.wheel) {
+    game.wheel.segments.forEach((segment, index) =>
+      images.push([`game.wheel.segments.${index}.image`, segment.image]),
+    );
+  }
   if (game.type === "scratch_card" && game.scratch) {
     images.push(["game.scratch.coverImage", game.scratch.coverImage]);
   }
   if (game.type === "hit_it" && game.hitIt) {
     images.push(["game.hitIt.targetImage", game.hitIt.targetImage]);
+  }
+  if (game.type === "memory_match" && game.memory) {
+    images.push(["game.memory.backImage", game.memory.backImage]);
+    (game.memory.faceImages ?? []).forEach((image, index) =>
+      images.push([`game.memory.faceImages.${index}`, image]),
+    );
+  }
+  if (game.type === "choose_brand" && game.chooseBrand) {
+    game.chooseBrand.contenders.forEach((contender, index) => {
+      images.push([
+        `game.chooseBrand.contenders.${index}.image`,
+        contender.image,
+      ]);
+    });
   }
   for (const [prizeId, display] of Object.entries(config.prizeDisplay)) {
     images.push([`prizeDisplay.${prizeId}.image`, display.image]);
@@ -454,6 +483,90 @@ function checkImages(config: ExperienceConfig, issues: DesignIssue[]) {
       });
     }
   }
+}
+
+// Two faces drawn the same (one icon, no picture, or one picture) make two pairs a player
+// cannot tell apart: a board of N pairs uses the first N faces, so every face counts.
+function checkMemoryFaces(config: ExperienceConfig, issues: DesignIssue[]) {
+  const { game } = config;
+  if (game.type !== "memory_match" || !game.memory) return;
+  const { faces, faceImages } = game.memory;
+  const seen = new Map<string, number>();
+  faces.forEach((icon, index) => {
+    const image = faceImages?.[index] ?? null;
+    const look = image ? `image:${JSON.stringify(image)}` : `icon:${icon}`;
+    const first = seen.get(look);
+    if (first === undefined) {
+      seen.set(look, index);
+      return;
+    }
+    issues.push({
+      id: `memory-face-twin:game.memory.faces.${index}`,
+      level: "warning",
+      path: image
+        ? `game.memory.faceImages.${index}`
+        : `game.memory.faces.${index}`,
+      message: `Face ${index + 1} looks the same as face ${first + 1}: players could not tell those pairs apart. Give it another icon or picture.`,
+    });
+  });
+}
+
+// Pick Your Favorite ("winner stays"): each product needs a label or a picture of its own (an
+// icon alone says nothing of what is offered), and no two products may look the same. Only
+// the products played are checked: the campaign's count (Wizard) when there is one; without
+// it (the standalone Studio) the whole list plays, and must hold 3 to 8 products.
+function checkChoiceContenders(
+  config: ExperienceConfig,
+  issues: DesignIssue[],
+  campaign: CampaignSnapshot | null,
+) {
+  const { game } = config;
+  if (game.type !== "choose_brand" || !game.chooseBrand) return;
+  const played = campaign?.rules.choice?.count;
+  const contenders =
+    played === undefined
+      ? game.chooseBrand.contenders
+      : game.chooseBrand.contenders.slice(0, played);
+  const fallback = config.locales.default;
+  const count = contenders.length;
+  if (
+    played === undefined &&
+    (count < MIN_CHOICE_CONTENDERS || count > MAX_CHOICE_CONTENDERS)
+  ) {
+    issues.push({
+      id: "choice-size",
+      level: "error",
+      path: "game.chooseBrand.contenders",
+      message: `Pick Your Favorite plays ${MIN_CHOICE_CONTENDERS} to ${MAX_CHOICE_CONTENDERS} products: this one has ${count}.`,
+    });
+  }
+  const look = (option: ChoiceOption) =>
+    option.image
+      ? `image:${JSON.stringify(option.image)}`
+      : `icon:${option.icon}:${resolveText(option.label, fallback, fallback)}`;
+  const seen = new Map<string, number>();
+  contenders.forEach((contender, index) => {
+    const base = `game.chooseBrand.contenders.${index}`;
+    if (!contender.image && !resolveText(contender.label, fallback, fallback)) {
+      issues.push({
+        id: `choice-empty:${base}`,
+        level: "warning",
+        path: `${base}.label`,
+        message: `Product ${index + 1}: give it a label or a picture, so players know what they pick.`,
+      });
+    }
+    const first = seen.get(look(contender));
+    if (first === undefined) {
+      seen.set(look(contender), index);
+      return;
+    }
+    issues.push({
+      id: `choice-twin:${base}`,
+      level: "warning",
+      path: base,
+      message: `Product ${index + 1} looks the same as product ${first + 1}: players could not tell them apart. Change one of them.`,
+    });
+  });
 }
 
 function checkPhone(config: ExperienceConfig, issues: DesignIssue[]): void {
@@ -486,6 +599,8 @@ export function validateExperience(
     checkQuiz(config, campaign, issues);
   }
   checkImages(config, issues);
+  checkMemoryFaces(config, issues);
+  checkChoiceContenders(config, issues, campaign ?? null);
   return [
     ...issues.filter((issue) => issue.level === "error"),
     ...issues.filter((issue) => issue.level === "warning"),

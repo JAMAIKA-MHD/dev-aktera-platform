@@ -63,7 +63,7 @@ async function insertCampaign(admin, org, c, winners, now) {
       require_quiz: c.game === "quiz",
       auto_pace_prizes: false,
       game_type: c.game,
-      game_logic_config: gameLogicConfig(c.game),
+      game_logic_config: gameLogicConfig(c.game, c.n),
     }),
   );
   await must(

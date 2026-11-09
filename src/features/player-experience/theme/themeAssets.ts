@@ -49,6 +49,9 @@ export interface ThemeAssets {
   titleBackdrop: string | null;
   wheelPointer: string | null;
   hitArt: string | null; // the theme's own Hit It target
+  // Memory Match: the theme's picture on the back of the cards, and its drawing of an icon.
+  memoryBack: string | null;
+  memoryFaces: Readonly<Partial<Record<IconName, string>>>;
   // The template's own picture above the title of a screen, and how wide it is drawn.
   heroes: Readonly<
     Partial<Record<ThemeScreen, { url: string; width: string }>>
@@ -74,6 +77,19 @@ function urls<K extends string>(
   }
   return resolved;
 }
+
+// The icons a template's prize art draws on a memory card, one picture per icon: two icons
+// never share a picture, so two pairs never look the same (ART_FOR_ICON below may).
+const ICON_FOR_PRIZE_ART: Readonly<Partial<Record<IconName, PrizeArtName>>> = {
+  gift: "gift",
+  ticket: "ticket",
+  coins: "coin",
+  star: "star",
+  gem: "gem",
+  trophy: "trophy",
+  crown: "crown",
+  target: "medal",
+};
 
 const cache = new WeakMap<ThemeManifest, ThemeAssets>();
 
@@ -112,6 +128,18 @@ export function resolveThemeAssets(manifest: ThemeManifest): ThemeAssets {
     titleBackdrop: url(manifest.title.backdrop?.src),
     wheelPointer: url(manifest.wheel.pointerArt ?? undefined),
     hitArt: url(manifest.games.hitIt.art),
+    memoryBack: url(manifest.games.memory.art),
+    memoryFaces: {
+      ...urls(
+        manifest,
+        Object.fromEntries(
+          Object.entries(ICON_FOR_PRIZE_ART).flatMap(([icon, art]) =>
+            art && manifest.prizes[art] ? [[icon, manifest.prizes[art]]] : [],
+          ),
+        ) as Partial<Record<IconName, string>>,
+      ),
+      ...urls(manifest, manifest.games.memory.faceArt),
+    },
     heroes: Object.fromEntries(
       Object.entries(manifest.heroes).flatMap(([screen, hero]) => {
         const resolved = hero ? url(hero.src) : null;

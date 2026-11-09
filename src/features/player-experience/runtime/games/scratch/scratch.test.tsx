@@ -195,6 +195,35 @@ describe("ScratchEngine", () => {
     expect(playing.onRevealComplete).not.toHaveBeenCalled();
   });
 
+  it("launches the draw at the first touch of the foil, and goes on scratching through it", () => {
+    const props = engineProps("idle");
+    const { container, rerender } = render(<ScratchEngine {...props} />);
+    const canvas = cover(container);
+    scratch(canvas, [[0, 10]]);
+    expect(props.onStart).toHaveBeenCalledOnce();
+
+    // Past the threshold while the server answers: nothing is uncovered without an outcome.
+    rerender(<ScratchEngine {...props} phase="awaiting-outcome" />);
+    for (let row = 0; row < 6; row++) {
+      scratch(
+        canvas,
+        Array.from({ length: 12 }, (_, step) => [step * 27, 10 + row * 32]),
+      );
+    }
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(props.onStart).toHaveBeenCalledOnce();
+    expect(props.onRevealComplete).not.toHaveBeenCalled();
+
+    // The outcome arrives: the card is uncovered at once, with no further scratch.
+    rerender(<ScratchEngine {...props} phase="revealing" outcome={WIN} />);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(props.onRevealComplete).toHaveBeenCalledOnce();
+  });
+
   it("launches the draw from the card, like the CTA does", () => {
     const props = engineProps("idle");
     render(<ScratchEngine {...props} />);

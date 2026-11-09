@@ -109,12 +109,27 @@ export interface WheelSegment {
   label: LocalizedText; // empty = the prize display label
   color: string | null; // null = derived from the theme
   icon: IconName | null;
+  image: AssetRef; // fills the slice, in place of the icon; null = the color alone
 }
 
 export interface QuizQuestionTranslation {
   sourceHash: string; // fingerprint of the source text: flags a translation made outdated by a Wizard edit
   text: LocalizedText;
   options: LocalizedText[]; // same count and order as the options stored in the database
+}
+
+// What a Pick Your Favorite card shows: the brand's picture, else its icon, with a label.
+export interface ChoiceOption {
+  label: LocalizedText;
+  image: AssetRef; // replaces the icon
+  icon: IconName;
+}
+
+// A product of Pick Your Favorite ("winner stays"): the product the player picks stays and
+// meets the next one of the list. No pick is "right": the picks are a preference, sent with
+// the participation; the draw alone decides a win.
+export interface ChoiceContender extends ChoiceOption {
+  id: string; // stable, saved with each pick and with the champion
 }
 
 // Game PRESENTATION only. Rules that decide a win (prizes, weights, stock, win probability,
@@ -141,6 +156,19 @@ export interface GameSettings {
     translations: Record<string, QuizQuestionTranslation>;
   };
   hitIt?: { targetIcon: IconName; targetImage: AssetRef };
+  memory?: {
+    backIcon: IconName; // the face-down side of every card
+    backImage: AssetRef; // replaces backIcon
+    faces: IconName[]; // exactly 8: a board of N pairs uses the first N
+    // One per face, same order: the brand's own picture replaces that face's icon.
+    faceImages: AssetRef[];
+  };
+  chooseBrand?: {
+    // 3 to 8, in the order they come in; the campaign (Wizard) sets how many play.
+    contenders: ChoiceContender[];
+    prompt: LocalizedText; // the question of every duel
+    shuffle: boolean; // the list in another order for each player
+  };
 }
 
 // How a campaign prize is shown, per language. Empty values fall back to prizes.name and prizes.win_message.

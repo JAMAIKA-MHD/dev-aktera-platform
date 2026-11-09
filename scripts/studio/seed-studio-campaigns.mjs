@@ -6,10 +6,10 @@
 //                                            (PowerShell drops a bare "--": write '--')
 //   npm run studio:seed:clean                remove every seed row, nothing else
 //
-// Additive and replayable: 14 campaigns (5eed… ids, seed-… slugs) with prizes, voucher codes,
-// quiz questions, fictitious participants and 8 Studio designs built by the Player Experience
-// module itself. It never touches other rows, never runs supabase/seed.sql, never resets the
-// database. Local stack only: it refuses to run against any other URL.
+// Additive and replayable: 21 campaigns (5eed… ids, seed-… slugs) with prizes, voucher codes,
+// quiz questions, fictitious participants and Studio designs built by the Player Experience
+// module itself. Campaigns 15 to 18 are Memory Match, 19 to 21 Pick Your Favorite. It never touches other rows, never runs
+// supabase/seed.sql, never resets the database. Local stack only: it refuses to run against any other URL.
 import { createClient } from "@supabase/supabase-js";
 
 import { must, removeSeed } from "./seedStudioCleanup.mjs";

@@ -1,5 +1,6 @@
 // Step 2, layer 1 (engagement): what the player does. A skill game or a quiz has its own
-// settings; luck has none — its mechanic is the way the reward is revealed (step 3).
+// settings; Pick Your Favorite's rounds are set in the Player Studio; luck has none — its
+// mechanic is the way the reward is revealed (step 3).
 import { Info, Plus, Trash2 } from "lucide-react";
 
 import type { QuizQuestion } from "../../types";
@@ -7,9 +8,13 @@ import { cn } from "../../lib/utils";
 import { CxButton, cxFocus } from "../campaigns/campaignUi";
 import { GameEmblem } from "../campaigns/GameEmblem";
 import {
+  engagementDefaults,
+  isQuizEngagement,
+  mechanicById,
   mechanicsFor,
   type EngagementCategory,
 } from "../wizard/mechanicsRegistry";
+import { ChooseBrandFields } from "./ChooseBrandFields";
 import type { StepProps } from "./StepFoundation";
 import {
   Field,
@@ -35,7 +40,7 @@ export const CATEGORIES: {
   {
     id: "knowledge",
     title: "Knowledge-based",
-    description: "Trivia and diagnostics",
+    description: "Trivia, diagnostics and preferences",
   },
   { id: "luck", title: "Luck", description: "A chance micro-action" },
 ];
@@ -193,6 +198,7 @@ function QuizQuestions({ form, update, errorFor }: StepProps) {
 
 export function StepEngagement({ form, update, errorFor }: StepProps) {
   const { w } = form;
+  const skill = mechanicById(w.engagementId)?.skill;
   const patch = (changes: Partial<typeof w>) =>
     update({ w: { ...w, ...changes } });
 
@@ -263,7 +269,13 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
                     <GameEmblem gameType={mechanic.gameType} size={36} />
                   )
                 }
-                onSelect={() => patch({ engagementId: mechanic.id })}
+                onSelect={() =>
+                  patch({
+                    engagementId: mechanic.id,
+                    // Its own goal and time limit, or a draw for a preference game.
+                    ...engagementDefaults(mechanic),
+                  })
+                }
               />
             ))}
           </div>
@@ -279,23 +291,27 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
             <RangeField
               label="Game duration"
               value={w.durationSeconds}
-              min={10}
-              max={60}
+              min={skill?.durationMin ?? 10}
+              max={skill?.durationMax ?? 60}
               step={5}
               unit=" s"
               onChange={(durationSeconds) => patch({ durationSeconds })}
             />
             <Field
-              label="Target score to win"
+              label={skill?.scoreLabel ?? "Target score to win"}
               required
-              hint={`Players reach ${w.targetScore || "…"} points in ${w.durationSeconds} seconds to win.`}
+              hint={
+                skill?.scoreHint ??
+                `Players reach ${w.targetScore || "…"} points in ${w.durationSeconds} seconds to win.`
+              }
               error={errorFor("targetScore")}
             >
               {(props) => (
                 <input
                   {...props}
                   type="number"
-                  min={1}
+                  min={skill?.scoreMin ?? 1}
+                  max={skill?.scoreMax}
                   value={Number.isNaN(w.targetScore) ? "" : w.targetScore}
                   onChange={(event) =>
                     patch({ targetScore: event.target.valueAsNumber })
@@ -308,7 +324,11 @@ export function StepEngagement({ form, update, errorFor }: StepProps) {
         </StepPanel>
       )}
 
-      {w.category === "knowledge" && (
+      {w.category === "knowledge" && !isQuizEngagement(w) && (
+        <ChooseBrandFields w={w} patch={patch} />
+      )}
+
+      {isQuizEngagement(w) && (
         <StepPanel
           title="Quiz settings"
           description="How many questions players answer and the score they need to win."

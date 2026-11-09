@@ -1,9 +1,14 @@
-import type { GameSettings } from "../../../domain/types";
-import { IconPicker } from "../../fields/IconPicker";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
+import type { AssetRef, GameSettings } from "../../../domain/types";
+import { ICON_COMPONENTS } from "../../../presets/icons";
+import { getThemeManifest } from "../../../presets/themeManifests";
+import { resolveThemeAssets } from "../../../theme/themeAssets";
+import { IconPicker, iconLabel } from "../../fields/IconPicker";
 import { ImageField } from "../../fields/ImageField";
 import { LocalizedTextField } from "../../fields/LocalizedTextField";
 import { NumberField } from "../../fields/NumberField";
-import { useStudio } from "../../StudioContext";
+import { useStudio, useStudioContext } from "../../StudioContext";
 import { PanelSection } from "../PanelLayout";
 import { useTextLocale } from "../useTextLocale";
 import { OptionalColorField } from "./OptionalColorField";
@@ -15,6 +20,7 @@ import { OptionalColorField } from "./OptionalColorField";
 type Scratch = NonNullable<GameSettings["scratch"]>;
 type Boxes = NonNullable<GameSettings["boxes"]>;
 type HitIt = NonNullable<GameSettings["hitIt"]>;
+type Memory = NonNullable<GameSettings["memory"]>;
 
 export function ScratchSettings({ scratch }: { scratch: Scratch }) {
   const updateGame = useStudio((state) => state.updateGame);
@@ -99,6 +105,125 @@ export function HitItSettings({ hitIt }: { hitIt: HitIt }) {
         onChange={(targetImage) => set({ targetImage })}
         hint="Replaces the icon, e.g. your product."
       />
+    </PanelSection>
+  );
+}
+
+export function MemorySettings({ memory }: { memory: Memory }) {
+  const updateGame = useStudio((state) => state.updateGame);
+  const templateId = useStudio((state) => state.config.templateId);
+  const { services } = useStudioContext();
+  // A face the brand opened, or the one an issue or a click in the preview points at: its
+  // fields must be in view (useRevealFocusPath).
+  const focusPath = useStudio((state) => state.ui.focusPath);
+  const focusedFace = Number(
+    /^game\.memory\.(?:faces|faceImages)\.(\d+)/.exec(focusPath ?? "")?.[1] ??
+      Number.NaN,
+  );
+  const [opened, setOpened] = useState<ReadonlySet<number>>(
+    () => new Set(Number.isInteger(focusedFace) ? [focusedFace] : []),
+  );
+  // Opened during the render itself, so the field is drawn before the panel scrolls to it.
+  const [lastFocused, setLastFocused] = useState(focusedFace);
+  if (!Object.is(focusedFace, lastFocused)) {
+    setLastFocused(focusedFace);
+    if (Number.isInteger(focusedFace) && !opened.has(focusedFace))
+      setOpened(new Set(opened).add(focusedFace));
+  }
+  const toggleFace = (index: number, open: boolean) =>
+    setOpened((current) => {
+      if (current.has(index) === open) return current;
+      const next = new Set(current);
+      if (open) next.add(index);
+      else next.delete(index);
+      return next;
+    });
+  // A themed template draws some icons in its own art: the brand's picture still comes first
+  // (MemoryCard). The card back is the template's own (or the default icon): not edited here.
+  const manifest = getThemeManifest(templateId);
+  const themeAssets = manifest ? resolveThemeAssets(manifest) : null;
+  const set = (patch: Partial<Memory>) =>
+    updateGame({ memory: { ...memory, ...patch } });
+  const setFace = (index: number, icon: Memory["faces"][number]) =>
+    set({ faces: memory.faces.map((face, i) => (i === index ? icon : face)) });
+  const setFaceImage = (index: number, image: AssetRef) =>
+    set({
+      faceImages: memory.faces.map((_, i) =>
+        i === index ? image : (memory.faceImages?.[i] ?? null),
+      ),
+    });
+  return (
+    <PanelSection
+      title="Card faces"
+      description="Each pair shows one face. The number of pairs is set in the campaign: a board of N pairs uses the first N faces. Upload a picture to replace a face's icon, e.g. your products."
+    >
+      <ol className="space-y-2">
+        {memory.faces.map((face, index) => {
+          const image = memory.faceImages?.[index] ?? null;
+          const src = services.assets.resolveUrl(image);
+          const art = src ? null : (themeAssets?.memoryFaces[face] ?? null);
+          const Icon = ICON_COMPONENTS[face];
+          return (
+            <li key={index}>
+              <details
+                open={opened.has(index)}
+                onToggle={(event) =>
+                  toggleFace(index, event.currentTarget.open)
+                }
+                className="group rounded-xl border border-card-border bg-card-bg-subtle"
+              >
+                <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-brand-text focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-card-border bg-card-bg">
+                    {src || art ? (
+                      <img
+                        src={src ?? art ?? undefined}
+                        alt=""
+                        className={
+                          src
+                            ? "size-full object-cover"
+                            : "size-[80%] object-contain"
+                        }
+                      />
+                    ) : (
+                      <Icon aria-hidden className="size-5" />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    Face {index + 1}
+                    <span className="block text-xs font-normal text-brand-text-muted">
+                      {src
+                        ? "Your picture"
+                        : art
+                          ? `${iconLabel(face)}, in the template's art`
+                          : iconLabel(face)}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    aria-hidden
+                    className="size-4 shrink-0 text-brand-text-muted transition-transform group-open:rotate-180"
+                  />
+                </summary>
+                <div className="space-y-4 border-t border-card-border p-3">
+                  <IconPicker
+                    label="Icon"
+                    path={`game.memory.faces.${index}`}
+                    value={face}
+                    onChange={(icon) => icon && setFace(index, icon)}
+                  />
+                  <ImageField
+                    label="Picture"
+                    path={`game.memory.faceImages.${index}`}
+                    purpose="logo"
+                    value={image}
+                    onChange={(next) => setFaceImage(index, next)}
+                    hint="Replaces the icon on this face. Use a picture unlike the other faces."
+                  />
+                </div>
+              </details>
+            </li>
+          );
+        })}
+      </ol>
     </PanelSection>
   );
 }

@@ -381,7 +381,7 @@ export function StepPrizes({
       {draw && w.draw.manageStock === true && (
         <StepPanel
           title="Messages after the draw"
-          description="Sent by SMS once the winners are drawn. Required before going live."
+          description="Sent by SMS once the winners are drawn. Required."
         >
           {(
             [

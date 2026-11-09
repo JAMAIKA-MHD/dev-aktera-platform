@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { DEFAULT_GAME_TYPE, createDefaultExperience } from "./defaults";
+import {
+  DEFAULT_GAME_TYPE,
+  MAX_CHOICE_CONTENDERS,
+  MIN_CHOICE_CONTENDERS,
+  buildDefaultChoiceContenders,
+  createDefaultExperience,
+  defaultChoicePrompt,
+} from "./defaults";
 import type { GameType } from "./gameTypes";
 import { ICON_NAMES } from "./icons";
 import { migrateExperienceConfig } from "./migrations";
@@ -20,6 +27,8 @@ const gameTypeSchema = z.enum([
   "scratch_card",
   "mystery_box",
   "hit_it",
+  "memory_match",
+  "choose_brand",
 ]);
 
 const localizedTextSchema = z.object({
@@ -50,6 +59,12 @@ const assetRefSchema = z
     }),
   ])
   .nullable();
+
+const choiceOptionSchema = z.object({
+  label: localizedTextSchema,
+  image: assetRefSchema,
+  icon: iconNameSchema,
+});
 
 const themeSchema = z.object({
   presetId: z.string().nullable(),
@@ -180,6 +195,8 @@ const gameSchema = z
               label: localizedTextSchema,
               color: colorSchema.nullable(),
               icon: iconNameSchema.nullable(),
+              // A design saved before it existed keeps its slices as they were.
+              image: assetRefSchema.default(null),
             }),
           )
           .min(2)
@@ -216,14 +233,46 @@ const gameSchema = z
     hitIt: z
       .object({ targetIcon: iconNameSchema, targetImage: assetRefSchema })
       .optional(),
+    memory: z
+      .object({
+        backIcon: iconNameSchema,
+        backImage: assetRefSchema,
+        faces: z.array(iconNameSchema).length(8),
+        // A design saved before the face pictures existed keeps a valid shape: icons only.
+        faceImages: z
+          .array(assetRefSchema)
+          .length(8)
+          .default(() => [null, null, null, null, null, null, null, null]),
+      })
+      .optional(),
+    chooseBrand: z
+      .object({
+        // A design saved with the earlier modes (fixed duels, a bracket) loses their keys and
+        // keeps its products: every Pick Your Favorite game is now "winner stays".
+        contenders: z
+          .array(choiceOptionSchema.extend({ id: idSchema }))
+          .min(MIN_CHOICE_CONTENDERS)
+          .max(MAX_CHOICE_CONTENDERS)
+          .refine(
+            (items) =>
+              new Set(items.map((item) => item.id)).size === items.length,
+            "Every product needs its own id",
+          )
+          .default(() => buildDefaultChoiceContenders()),
+        prompt: localizedTextSchema.default(defaultChoicePrompt),
+        shuffle: z.boolean().default(false),
+      })
+      .optional(),
   })
   .superRefine((game, ctx) => {
     const block = {
+      choose_brand: game.chooseBrand,
       lucky_wheel: game.wheel,
       scratch_card: game.scratch,
       mystery_box: game.boxes,
       quiz: game.quiz,
       hit_it: game.hitIt,
+      memory_match: game.memory,
     }[game.type];
     if (!block) {
       ctx.addIssue({

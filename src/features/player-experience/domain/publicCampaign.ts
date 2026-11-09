@@ -30,6 +30,8 @@ const GAME_TYPES = [
   "scratch_card",
   "mystery_box",
   "hit_it",
+  "memory_match",
+  "choose_brand",
 ] as const satisfies readonly GameType[];
 
 const publicExperienceSchema = z.object({

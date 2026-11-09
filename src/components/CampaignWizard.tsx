@@ -17,7 +17,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Rocket,
+  Plus,
   Save,
   Smartphone,
   X,
@@ -43,6 +43,7 @@ import { StepReward } from "./campaignWizard/StepReward";
 import {
   gameTypeOf,
   initialWizardForm,
+  isQuiz,
   playingGame,
   previewCampaign,
   savedAutoPace,
@@ -210,9 +211,6 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
   // Steps the user has been through. A new campaign's step only turns green once it has
   // been seen: its default values are valid, but nobody has looked at them yet.
   const [seenSteps, setSeenSteps] = useState<Set<StepId>>(new Set());
-  // Going live asks for more than a draft (the sweepstake rules, the draw's messages): after
-  // an attempt to publish, the steps are checked as for going live until a draft is saved.
-  const [strictness, setStrictness] = useState<SaveStatus>("draft");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmLiveSave, setConfirmLiveSave] = useState<SaveStatus | null>(
     null,
@@ -244,11 +242,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     }),
     [prizes, editingCampaign, existingNames],
   );
-  const errorsFor = (status: SaveStatus) =>
-    validateWizard(form, status, context);
+  // A new campaign is saved as a draft and published later from its card, in one click and
+  // with no other check: so every campaign is checked as for going live (the sweepstake
+  // rules, the draw's messages) before it is saved.
   const errors = useMemo(
-    () => validateWizard(form, strictness, context),
-    [form, strictness, context],
+    () => validateWizard(form, "active", context),
+    [form, context],
   );
   const issues = listIssues(errors);
   const hasErrors = (id: StepId) => Boolean(errors[id]);
@@ -315,7 +314,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
         autoPacePrizes: savedAutoPace(form),
         maxEntries: form.maxEntries,
         prizes: savedPrizeLines(form),
-        questions: form.w.category === "knowledge" ? shownQuestions(form) : [],
+        questions: isQuiz(form) ? shownQuestions(form) : [],
         startDate: form.startDate,
         endDate: form.endDate,
         // The player screens are designed in the Player Experience Studio: the wizard
@@ -336,12 +335,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     }
   };
 
-  // Saving is possible from any step; what is missing sends the user to where to fix it.
-  const requestSave = (submitStatus: SaveStatus) => {
+  // What is missing sends the user to where to fix it. A campaign not yet live stays a draft:
+  // it is published from its card or its page.
+  const requestSave = () => {
     setSaveError(null);
-    setStrictness(submitStatus);
-    const found = errorsFor(submitStatus);
-    const firstStep = SETTING_STEPS.find((id) => found[id]);
+    const submitStatus: SaveStatus = isLiveCampaign ? "active" : "draft";
+    const firstStep = SETTING_STEPS.find((id) => errors[id]);
     if (firstStep) {
       markChecked(...SETTING_STEPS);
       goToStep(firstStep);
@@ -375,12 +374,8 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
     ? editingCampaign.name
     : isRelaunchMode
       ? `A new campaign that starts from the settings of “${relaunchDraft?.name}”.`
-      : "Five short steps. You can save a draft at any time and finish later.";
-  const publishLabel = isLiveCampaign
-    ? "Save changes"
-    : isEditMode
-      ? "Publish"
-      : "Publish campaign";
+      : "Five short steps. It is saved as a draft: publish it from its card when you are ready.";
+  const saveLabel = isEditMode ? "Save changes" : "Create campaign";
   const stepIssues = issues.filter((issue) => issue.step === step);
   const showStepErrors = checkedSteps.has(step) && stepIssues.length > 0;
   const doneCount = WIZARD_STEPS.filter((item) => isStepDone(item.id)).length;
@@ -583,8 +578,8 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
           </div>
         </div>
 
-        {/* One filled button at a time: saving a live campaign, publishing on the review,
-            Continue everywhere else. */}
+        {/* One filled button at a time: saving an existing campaign, creating a new one on
+            the review, Continue everywhere else. */}
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-cx-border px-6 py-4">
           <CxButton
             variant="ghost"
@@ -603,18 +598,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 Back
               </CxButton>
             )}
-            {!isLiveCampaign && (
-              <CxButton
-                disabled={isSubmitting}
-                onClick={() => requestSave("draft")}
-              >
-                <Save aria-hidden />
-                {isSubmitting ? "Saving…" : "Save draft"}
-              </CxButton>
-            )}
             {step < lastStep && (
               <CxButton
-                variant={isLiveCampaign ? "secondary" : "primary"}
+                variant={isEditMode ? "secondary" : "primary"}
                 onClick={next}
                 disabled={isSubmitting}
               >
@@ -622,14 +608,14 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({
                 <ArrowRight aria-hidden />
               </CxButton>
             )}
-            {(isLiveCampaign || step === lastStep) && (
+            {(isEditMode || step === lastStep) && (
               <CxButton
                 variant="primary"
                 disabled={isSubmitting}
-                onClick={() => requestSave("active")}
+                onClick={requestSave}
               >
-                {isLiveCampaign ? <Save aria-hidden /> : <Rocket aria-hidden />}
-                {isSubmitting ? "Saving…" : publishLabel}
+                {isEditMode ? <Save aria-hidden /> : <Plus aria-hidden />}
+                {isSubmitting ? "Saving…" : saveLabel}
               </CxButton>
             )}
           </div>

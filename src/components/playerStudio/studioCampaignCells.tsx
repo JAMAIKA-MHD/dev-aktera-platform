@@ -32,6 +32,14 @@ const GAMES: Record<Campaign["gameType"], { key: string; label: string }> = {
     key: "campaigns.hitIt",
     label: "Hit It",
   },
+  memory_match: {
+    key: "campaigns.memoryMatch",
+    label: "Memory Match",
+  },
+  choose_brand: {
+    key: "campaigns.chooseBrand",
+    label: "Pick Your Favorite",
+  },
 };
 
 const ENDED_TONE =

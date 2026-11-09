@@ -473,13 +473,17 @@ const GAME_PREFIX = {
   scratch: "scratch",
   boxes: "box",
   hitIt: "hit",
+  memory: "memory",
+  choice: "choice",
 } as const;
 const FONT_VARS = {
   body: "var(--xp-font)",
   ui: "var(--xp-font-ui)",
   display: "var(--xp-font-display)",
 } as const;
-const FONT_KEYS = new Set(["font", "questionFont"]);
+const FONT_KEYS = new Set(["font", "questionFont", "labelFont", "promptFont"]);
+// Pictures, drawn by the game itself (ThemeAssets): never a variable.
+const ART_KEYS = new Set(["art", "faceArt"]);
 const kebab = (key: string) =>
   key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 
@@ -490,13 +494,12 @@ function gameVars(
   const vars: Record<string, string> = {};
   const write = (name: string, key: string, value: unknown): void => {
     if (value === undefined || value === null) return;
+    if (ART_KEYS.has(key)) return;
     if (Array.isArray(value)) {
       value.forEach((item, index) => write(`${name}-${index + 1}`, key, item));
     } else if (typeof value === "object") {
       for (const [inner, innerValue] of Object.entries(value))
         write(`${name}-${kebab(inner)}`, inner, innerValue);
-    } else if (key === "art") {
-      return; // a picture, drawn by the game itself (ThemeAssets)
     } else if (FONT_KEYS.has(key)) {
       vars[name] = FONT_VARS[value as keyof typeof FONT_VARS];
     } else {

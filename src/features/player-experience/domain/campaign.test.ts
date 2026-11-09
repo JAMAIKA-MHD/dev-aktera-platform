@@ -1,6 +1,10 @@
 import type { Campaign } from "@/src/types";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_RULES, buildCampaignSnapshot } from "./campaign";
+import {
+  DEFAULT_RULES,
+  buildCampaignSnapshot,
+  rulesFromGameLogic,
+} from "./campaign";
 
 const campaign = (overrides: Partial<Campaign> = {}): Campaign => ({
   id: "campaign-1",
@@ -134,7 +138,18 @@ describe("buildCampaignSnapshot", () => {
       expect(DEFAULT_RULES).toEqual({
         quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
         hitIt: { winThreshold: 1, durationSeconds: 10 },
+        memory: { pairs: 6, durationSeconds: 45 },
       });
+    });
+
+    it("reads the goal and time limit of Memory Match, clamping the board", () => {
+      const config = { win_threshold: 12, hit_it_duration_seconds: 30 };
+      expect(
+        rulesFromGameLogic("memory_match", { ...config, win_threshold: 99 }),
+      ).toEqual({ memory: { pairs: 8, durationSeconds: 30 } });
+      expect(
+        rulesFromGameLogic("memory_match", { ...config, win_threshold: 1 }),
+      ).toEqual({ memory: { pairs: 3, durationSeconds: 30 } });
     });
 
     it("reads the quiz rules from game_logic_config", () => {
@@ -187,6 +202,32 @@ describe("buildCampaignSnapshot", () => {
       ] as const) {
         expect(buildCampaignSnapshot(campaign({ gameType })).rules).toEqual({});
       }
+    });
+  });
+});
+
+describe("Pick Your Favorite rules", () => {
+  it("reads the Wizard's count of products, held to 2 to 8", () => {
+    const count = (choice_count: unknown) =>
+      rulesFromGameLogic("choose_brand", { choice_count }).choice?.count;
+    expect(count(6)).toBe(6);
+    expect(count("12")).toBe(8);
+    expect(count(2)).toBe(2);
+    expect(count(1)).toBe(2);
+  });
+
+  it("reads the Wizard's time per round, held to 5 to 15 seconds", () => {
+    const seconds = (choice_round_seconds: unknown) =>
+      rulesFromGameLogic("choose_brand", { choice_round_seconds }).choice
+        ?.roundSeconds;
+    expect(seconds(7)).toBe(7);
+    expect(seconds("30")).toBe(15);
+    expect(seconds(1)).toBe(5);
+  });
+
+  it("plays 5 products at 10 seconds for a campaign saved before these rules", () => {
+    expect(rulesFromGameLogic("choose_brand", {})).toEqual({
+      choice: { count: 5, roundSeconds: 10 },
     });
   });
 });

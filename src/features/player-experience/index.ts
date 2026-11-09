@@ -33,3 +33,12 @@ export type { TemplateId } from "./domain/templates";
 
 export type { ExperienceConfig } from "./domain/types";
 export type { CampaignSnapshot } from "./domain/campaign";
+// Pick Your Favorite: how many products play. The Wizard picks it, the runtime holds to it.
+export {
+  CHOICE_COUNT_RANGE,
+  DEFAULT_CHOICE_COUNT,
+  clampChoiceCount,
+  CHOICE_ROUND_SECONDS_RANGE,
+  DEFAULT_CHOICE_ROUND_SECONDS,
+  clampChoiceRoundSeconds,
+} from "./domain/campaign";

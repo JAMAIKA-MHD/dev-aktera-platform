@@ -8,6 +8,7 @@ import { useDashboard } from "../DashboardContext";
 import { PageSpinner } from "../DashboardShell";
 import { FROM_CAMPAIGN_DETAILS, PATHS } from "../paths";
 import { STUDIO_BACKEND } from "../studioBackend";
+import { useCampaignStatusToggle } from "../useCampaignStatusToggle";
 
 // The real runtime in a phone-sized frame, with the design saved in the Studio (demo gateway).
 // Silent on this page, and its bar leads to the Player Studio instead of "Play again".
@@ -20,8 +21,8 @@ const CampaignSimulator = lazy(() =>
 export default function CampaignWorkspacePage() {
   const { campaignId = "" } = useParams();
   const navigate = useNavigate();
-  const { campaigns, campLoading, prizes, leads, toggleCampaignStatus } =
-    useDashboard();
+  const { campaigns, campLoading, prizes, leads } = useDashboard();
+  const { toggleStatus, publishedDialog } = useCampaignStatusToggle();
 
   const campaign = campaigns.find((item) => item.id === campaignId);
   if (!campaign) {
@@ -34,43 +35,46 @@ export default function CampaignWorkspacePage() {
   }
 
   return (
-    <CampaignWorkspace
-      campaign={campaign}
-      prizes={prizes}
-      leads={leads}
-      onBack={() => navigate(PATHS.campaigns)}
-      onEditCampaign={(camp) =>
-        navigate(PATHS.edit(camp.id), { state: FROM_CAMPAIGN_DETAILS })
-      }
-      onCustomizePlayerScreen={(camp) => navigate(PATHS.studioFor(camp.id))}
-      onRelaunch={(camp) =>
-        navigate(PATHS.relaunch(camp.id), { state: FROM_CAMPAIGN_DETAILS })
-      }
-      onToggleStatus={toggleCampaignStatus}
-      onOpenAnalytics={(id) => navigate(PATHS.analyticsFor(id))}
-      preview={
-        <Suspense fallback={<PageSpinner className="flex-1" />}>
-          <CampaignSimulator
-            campaigns={campaigns}
-            prizeTemplates={prizes}
-            campaignId={campaign.id}
-            backend={STUDIO_BACKEND}
-            silent
-            footer={
-              <div className="p-3">
-                <CxButton
-                  variant="primary"
-                  className="w-full"
-                  onClick={() => navigate(PATHS.studioFor(campaign.id))}
-                >
-                  <Palette aria-hidden />
-                  Customize player screens
-                </CxButton>
-              </div>
-            }
-          />
-        </Suspense>
-      }
-    />
+    <>
+      <CampaignWorkspace
+        campaign={campaign}
+        prizes={prizes}
+        leads={leads}
+        onBack={() => navigate(PATHS.campaigns)}
+        onEditCampaign={(camp) =>
+          navigate(PATHS.edit(camp.id), { state: FROM_CAMPAIGN_DETAILS })
+        }
+        onCustomizePlayerScreen={(camp) => navigate(PATHS.studioFor(camp.id))}
+        onRelaunch={(camp) =>
+          navigate(PATHS.relaunch(camp.id), { state: FROM_CAMPAIGN_DETAILS })
+        }
+        onToggleStatus={(id) => void toggleStatus(id)}
+        onOpenAnalytics={(id) => navigate(PATHS.analyticsFor(id))}
+        preview={
+          <Suspense fallback={<PageSpinner className="flex-1" />}>
+            <CampaignSimulator
+              campaigns={campaigns}
+              prizeTemplates={prizes}
+              campaignId={campaign.id}
+              backend={STUDIO_BACKEND}
+              silent
+              footer={
+                <div className="p-3">
+                  <CxButton
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => navigate(PATHS.studioFor(campaign.id))}
+                  >
+                    <Palette aria-hidden />
+                    Customize player screens
+                  </CxButton>
+                </div>
+              }
+            />
+          </Suspense>
+        }
+      />
+      {publishedDialog}
+    </>
   );
 }

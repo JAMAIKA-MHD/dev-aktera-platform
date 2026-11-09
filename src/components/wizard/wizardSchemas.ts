@@ -31,6 +31,11 @@ export const foundationSchema = z
       .trim()
       .min(2, "Brand name must be at least 2 characters.")
       .max(50, "Brand name must be 50 characters or fewer."),
+    description: z
+      .string()
+      .trim()
+      .max(300, "The description must be 300 characters or fewer.")
+      .optional(),
     startDate: z.string().min(1, "Pick a start date and time."),
     endDate: z.string().min(1, "Pick an end date and time."),
   })
@@ -46,6 +51,16 @@ export const skillSchema = z.object({
     .int("The target score must be a whole number.")
     .min(1, "The target score must be at least 1."),
 });
+
+// The goal of a skill game, within what its engine can draw and the server accepts.
+export const skillSchemaFor = (min: number, max: number) =>
+  z.object({
+    targetScore: z
+      .number("Enter a target score.")
+      .int("The target score must be a whole number.")
+      .min(min, `The target score must be at least ${min}.`)
+      .max(max, `The target score must be ${max} or fewer.`),
+  });
 
 export const quizSchema = z.object({
   questions: z.array(

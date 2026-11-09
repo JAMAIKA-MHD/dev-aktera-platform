@@ -1,5 +1,6 @@
 // The campaign wizard: a new campaign (/create), an edit (/create/:id/edit) or a relaunch
-// pre-filled from an existing campaign (/create/:id/relaunch).
+// pre-filled from an existing campaign (/create/:id/relaunch). A new campaign is saved as a
+// draft: it is published later from its card or its page, which then show its link and QR code.
 import {
   Navigate,
   useLocation,
@@ -49,12 +50,15 @@ export default function CreatorPage({
       ? PATHS.campaign(source.id)
       : null;
 
+  // A relaunch creates another campaign: it shows up in the list, not on the source's page.
+  const closeToSaved = () =>
+    navigate((mode === "edit" && detailsPath) || PATHS.campaigns);
+
   const save = async (draft: CampaignDraft) => {
     await persistCampaign(draft);
     await refetchCampaigns();
     await refetchPrizes();
-    // A relaunch creates another campaign: it shows up in the list, not on the source's page.
-    navigate((mode === "edit" && detailsPath) || PATHS.campaigns);
+    closeToSaved();
   };
 
   // The editor is a window over the screen it was opened from, which stays visible (and inert) behind.

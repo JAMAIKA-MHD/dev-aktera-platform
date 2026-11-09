@@ -251,7 +251,10 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
 
   it("opens a screen directly from its URL, as after a refresh", async () => {
     renderAt("/campaigns/c2");
-    expect(await screen.findByText("workspace:c2")).toBeTruthy();
+    // The page is loaded lazily, with the QR code it shows once a draft is published.
+    expect(
+      await screen.findByText("workspace:c2", {}, { timeout: 5000 }),
+    ).toBeTruthy();
     expect(url()).toBe("/campaigns/c2");
   });
 
@@ -373,7 +376,10 @@ describe("Dashboard routing", { timeout: 15000 }, () => {
 
   it("opens the wizard to edit or relaunch the campaign named in the URL", async () => {
     const { unmount } = renderAt("/create/c1/edit");
-    expect(await screen.findByText("wizard:c1|-")).toBeTruthy();
+    // The first test to open this lazy page also waits for its import.
+    expect(
+      await screen.findByText("wizard:c1|-", {}, { timeout: 5000 }),
+    ).toBeTruthy();
     unmount();
     renderAt("/create/c2/relaunch");
     expect(await screen.findByText("wizard:-|c2")).toBeTruthy();

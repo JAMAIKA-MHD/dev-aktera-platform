@@ -120,6 +120,76 @@ function readClientRequestId(metadata: Record<string, unknown>): string | null {
   return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
 }
 
+// Pick Your Favorite ("winner stays"): the side picked in each duel, as the player's page sent
+// it, and the product left at the end. A preference for the brand to read, never a score:
+// it decides nothing. Client input, so it is cut down to plain values (8 duels at most, short
+// ids and labels) before it is stored with the entry.
+interface BrandChoice {
+  round_id: string;
+  side: "left" | "right";
+  label: string;
+  option_id?: string; // the product picked
+}
+
+interface BrandChampion {
+  option_id: string;
+  label: string;
+}
+
+const BRAND_ID = /^[\w-]{1,64}$/;
+
+const brandLabel = (value: unknown) =>
+  typeof value === "string" ? value.trim().slice(0, 80) : "";
+
+function readBrandChoices(payload: Record<string, unknown>): BrandChoice[] {
+  const raw = payload.choices;
+  if (!Array.isArray(raw)) return [];
+  const choices: BrandChoice[] = [];
+  for (const item of raw.slice(0, 8)) {
+    if (typeof item !== "object" || item === null) continue;
+    const { round_id, side, label, option_id } = item as Record<
+      string,
+      unknown
+    >;
+    if (typeof round_id !== "string" || !BRAND_ID.test(round_id)) continue;
+    if (side !== "left" && side !== "right") continue;
+    choices.push({
+      round_id,
+      side,
+      label: brandLabel(label),
+      ...(typeof option_id === "string" &&
+        BRAND_ID.test(option_id) && { option_id }),
+    });
+  }
+  return choices;
+}
+
+function readBrandChampion(
+  payload: Record<string, unknown>,
+): BrandChampion | null {
+  const raw = payload.champion;
+  if (typeof raw !== "object" || raw === null) return null;
+  const { option_id, label } = raw as Record<string, unknown>;
+  if (typeof option_id !== "string" || !BRAND_ID.test(option_id)) return null;
+  return { option_id, label: brandLabel(label) };
+}
+
+// The keys an entry keeps for Pick Your Favorite. Every other game gets them undefined, so
+// that keys of the same name in the client's metadata are never stored as if they were ours.
+function brandMetadata(gameType: string, gamePayload: unknown) {
+  if (gameType !== "choose_brand") {
+    return { brand_choices: undefined, brand_champion: undefined };
+  }
+  const payload =
+    typeof gamePayload === "object" && gamePayload !== null
+      ? (gamePayload as Record<string, unknown>)
+      : {};
+  return {
+    brand_choices: readBrandChoices(payload),
+    brand_champion: readBrandChampion(payload),
+  };
+}
+
 async function loadPrize(
   admin: SupabaseClient,
   prizeId: string | null,
@@ -471,6 +541,8 @@ serve(async (req) => {
       client_request_id: clientRequestId,
       game_type: campaign.game_type,
       server_timestamp: new Date().toISOString(),
+      // Only the server's own reading of the picks is kept, never the client's metadata.
+      ...brandMetadata(campaign.game_type, game_payload),
     };
     const { data: newEntry, error: insertError } = await supabaseAdmin
       .from("entries")
