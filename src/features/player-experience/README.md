@@ -151,7 +151,9 @@ only come in through `assets/` paths. `presets/themeManifests.ts` loads and chec
   texts alone: the game is first seen on its own screen (Cartoon Pop: the template's login).
 - **Game 1, the wheel.** `WheelFace` reads `--xp-wheel-*` (slice palette and their text colors,
   blank slice, rim, lights blinking while it turns, pointer, hub) and shows the theme's prize art
-  on prize slices. It still lands only where the gateway's outcome says (`useWheelSpin`).
+  on prize slices. A brand's image on a segment (`segment.image`, set in the Studio) fills its
+  slice in place of the art or icon. It still lands only where the gateway's outcome says
+  (`useWheelSpin`).
   A theme may also give it its own pointer art drawn above the rim (`wheel.pointerArt`), one
   outlined light per slice line (`bulbsPerSlice`, `bulbInk`), a flat hub (`hubShine: false`) and
   a hard shadow under the still wheel (`wheel.shadow`). In the spotlight layout the game screen

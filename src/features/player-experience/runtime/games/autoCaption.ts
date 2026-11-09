@@ -46,6 +46,11 @@ export function autoCaption(
         { threshold: winThreshold, duration: durationSeconds },
       );
     }
+    case "memory_match": {
+      const { pairs, durationSeconds } =
+        campaign.rules.memory ?? DEFAULT_RULES.memory;
+      return fillCaption(template, { count: pairs, duration: durationSeconds });
+    }
     default:
       return template;
   }

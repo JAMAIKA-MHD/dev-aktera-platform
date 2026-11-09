@@ -23,6 +23,7 @@ import {
   formatDateTime,
   gameTypeOf,
   isDraw,
+  isGuaranteed,
   maxEntriesLabel,
   revealLabel,
   rewardModeLabel,
@@ -172,6 +173,13 @@ export function StepReview({
                 <p className={hintClass}>{form.brandName || "No brand yet"}</p>
               </div>
             </div>
+            {form.description.trim() && (
+              <Row label="Description">
+                <span dir="auto" className="[overflow-wrap:anywhere]">
+                  {form.description.trim()}
+                </span>
+              </Row>
+            )}
             <Row label="Player link">
               <span className="font-mono text-[13px] font-normal">
                 /play/{form.slug}
@@ -203,8 +211,10 @@ export function StepReview({
               <>
                 <Row label="Method">Instant win</Row>
                 <Row label="Mode">{rewardModeLabel(form)}</Row>
-                <Row label="Reveal">{revealLabel(form)}</Row>
-                {w.mode === "probabilistic" && (
+                {w.category === "luck" && (
+                  <Row label="Reveal">{revealLabel(form)}</Row>
+                )}
+                {!isGuaranteed(form) && (
                   <Row label="Consolation">{w.consolation ? "On" : "Off"}</Row>
                 )}
               </>

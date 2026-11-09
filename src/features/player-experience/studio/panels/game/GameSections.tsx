@@ -3,7 +3,13 @@ import { GAME_LABELS, type GameType } from "../../../domain/gameTypes";
 import { SelectField } from "../../fields/SelectField";
 import { useStudio } from "../../StudioContext";
 import { PanelIssues, PanelSection } from "../PanelLayout";
-import { BoxesSettings, HitItSettings, ScratchSettings } from "./GameSettings";
+import {
+  BoxesSettings,
+  HitItSettings,
+  MemorySettings,
+  ScratchSettings,
+} from "./GameSettings";
+import { ChooseBrandSettings } from "./ChooseBrandSettings";
 import { PrizeDisplayEditor } from "./PrizeDisplayEditor";
 import { QuizTranslationsEditor } from "./QuizTranslationsEditor";
 import { WheelSegmentsEditor } from "./WheelSegmentsEditor";
@@ -71,6 +77,12 @@ export function GameSections() {
       )}
       {game.type === "hit_it" && game.hitIt && (
         <HitItSettings hitIt={game.hitIt} />
+      )}
+      {game.type === "memory_match" && game.memory && (
+        <MemorySettings memory={game.memory} />
+      )}
+      {game.type === "choose_brand" && game.chooseBrand && (
+        <ChooseBrandSettings chooseBrand={game.chooseBrand} />
       )}
       {game.type === "quiz" && <QuizTranslationsEditor />}
     </>

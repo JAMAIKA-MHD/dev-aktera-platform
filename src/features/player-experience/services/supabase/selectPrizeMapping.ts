@@ -36,6 +36,27 @@ function toGamePayload(payload: GamePayload): Record<string, unknown> {
       return { selected_box_index: payload.selectedIndex };
     case "hitIt":
       return { hits: payload.hits };
+    case "memory":
+      return {
+        pairs_matched: payload.pairs,
+        moves: payload.moves,
+        elapsed_ms: payload.elapsedMs,
+      };
+    // A preference, never scored: select-prize keeps it with the entry (brand_choices,
+    // brand_champion).
+    case "choices":
+      return {
+        choices: payload.picks.map((pick) => ({
+          round_id: pick.roundId,
+          side: pick.side,
+          label: pick.label,
+          option_id: pick.optionId,
+        })),
+        champion: payload.champion && {
+          option_id: payload.champion.optionId,
+          label: payload.champion.label,
+        },
+      };
     case "none":
       return {};
   }

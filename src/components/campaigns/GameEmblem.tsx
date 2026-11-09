@@ -6,13 +6,16 @@ import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import type { GameType } from "./campaignMeta";
 
-type GameKey = "wheel" | "scratch" | "mystery" | "hit" | "quiz";
+type GameKey =
+  "wheel" | "scratch" | "mystery" | "hit" | "quiz" | "memory" | "choice";
 
 const GAME_KEY: Record<GameType, GameKey> = {
   lucky_wheel: "wheel",
   scratch_card: "scratch",
   mystery_box: "mystery",
   hit_it: "hit",
+  memory_match: "memory",
+  choose_brand: "choice",
   quiz: "quiz",
 };
 
@@ -124,6 +127,38 @@ const DRAWINGS: Record<GameKey, ReactNode> = {
         className={OUTLINED}
         strokeLinejoin="round"
         transform="translate(-3 -3)"
+      />
+    </>
+  ),
+  // Two face-down cards, one flipped to show a star.
+  memory: (
+    <>
+      <rect x="5" y="9" width="19" height="27" rx="4" className={S} />
+      <rect x="26" y="12" width="17" height="27" rx="4" className={W} />
+      <path
+        d="M34.5 19.2l1.9 3.9 4.3.6-3.1 3 .7 4.2-3.8-2-3.8 2 .7-4.2-3.1-3 4.3-.6z"
+        className={M}
+      />
+      <circle cx="14.5" cy="22.5" r="3.2" className={W} />
+    </>
+  ),
+  // Two cards side by side, the right one picked with a check.
+  choice: (
+    <>
+      <rect x="4" y="11" width="17" height="24" rx="3.5" className={M} />
+      <rect x="25" y="8" width="19" height="27" rx="3.5" className={S} />
+      <path
+        d="M30 21.5l3.4 3.4 6-6.2"
+        className={SURFACE_LINE}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12.5" cy="21" r="3.6" className={W} />
+      <path
+        d="M9 41h30"
+        className="fill-none stroke-cx-game-mid [stroke-width:2.6]"
+        strokeLinecap="round"
       />
     </>
   ),

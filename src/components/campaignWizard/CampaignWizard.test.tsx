@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -92,6 +92,12 @@ async function fillFoundation(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/Brand name/), "Sunny");
 }
 
+// A new campaign is created from the review, the last step.
+async function createCampaign(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(stepButton(/Review/));
+  await user.click(screen.getByRole("button", { name: /Create campaign/ }));
+}
+
 describe("wizard rules", () => {
   it("lists what blocks saving, step by step", () => {
     const form = {
@@ -177,10 +183,55 @@ describe("CampaignWizard", () => {
     expect(screen.queryByText("Leave without saving?")).toBeNull();
 
     await fillFoundation(user);
-    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    await createCampaign(user);
     expect(onSave.mock.calls[0][0]).toMatchObject({
       startDate: "2026-12-20T00:00",
       endDate: "2027-01-19T23:59",
+    });
+  });
+
+  it("saves the description with the campaign, and reads it back", async () => {
+    const { user, onSave } = setup();
+    await fillFoundation(user);
+    await user.type(
+      screen.getByLabelText(/Description/),
+      "  Drive store visits.  ",
+    );
+    await createCampaign(user);
+    expect(onSave.mock.calls[0][0].gameLogicConfig).toMatchObject({
+      brand_name: "Sunny",
+      description: "Drive store visits.",
+    });
+    expect(
+      initialWizardForm(
+        {
+          ...LIVE,
+          gameLogicConfig: { description: "Drive store visits." },
+        },
+        null,
+        [],
+      ).description,
+    ).toBe("Drive store visits.");
+  });
+
+  it("saves the time per round of Pick Your Favorite, held to 5 to 15 seconds", async () => {
+    const { user, onSave } = setup({ initialGameType: "choose_brand" });
+    await fillFoundation(user);
+    await user.click(stepButton(/Engagement/));
+    const slider = screen.getByRole("slider", {
+      name: /Time per round/,
+    }) as HTMLInputElement;
+    expect([slider.min, slider.max, slider.value]).toEqual(["5", "15", "10"]);
+    fireEvent.change(slider, { target: { value: "7" } });
+    // Two products is now the smallest game.
+    await user.click(screen.getByRole("radio", { name: "2" }));
+    // The game starts as a draw, which needs a date: an instant win saves at once.
+    await user.click(stepButton(/Reward/));
+    await user.click(screen.getByRole("radio", { name: /Instant win/ }));
+    await createCampaign(user);
+    expect(onSave.mock.calls[0][0].gameLogicConfig).toMatchObject({
+      choice_count: 2,
+      choice_round_seconds: 7,
     });
   });
 
@@ -203,6 +254,13 @@ describe("CampaignWizard", () => {
         .getByRole("radio", { name: /Scratch Card/ })
         .getAttribute("aria-checked"),
     ).toBe("true");
+  });
+
+  it("offers a reveal to a luck campaign only: any other plays its own game", async () => {
+    const { user } = setup({ initialGameType: "choose_brand" });
+    await user.click(stepButton(/Reward/));
+    await user.click(screen.getByRole("radio", { name: /Instant win/ }));
+    expect(screen.queryByRole("radiogroup", { name: "Reveal" })).toBeNull();
   });
 
   it("opens as a window with the five steps listed, green once finished", async () => {
@@ -286,15 +344,20 @@ describe("CampaignWizard", () => {
     expect(screen.queryByText("Game settings")).toBeNull();
   });
 
-  it("saves a draft from any step, and sends the user to what is missing", async () => {
+  it("creates the campaign as a draft from the review, after sending the user to what is missing", async () => {
     const { user, onSave } = setup();
-    await user.click(stepButton(/Prizes/));
-    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    // Neither a draft button nor a publish one: a new campaign is created, then published later.
+    expect(screen.queryByRole("button", { name: /Save draft/ })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Create campaign/ }),
+    ).toBeNull();
+    await createCampaign(user);
+    expect(screen.queryByRole("button", { name: /Publish/ })).toBeNull();
     expect(onSave).not.toHaveBeenCalled();
     expect(currentStep()).toContain("Foundation");
 
     await fillFoundation(user);
-    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    await createCampaign(user);
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave.mock.calls[0][0]).toMatchObject({
       name: "Ramadan Wheel",
@@ -316,14 +379,14 @@ describe("CampaignWizard", () => {
     await fillFoundation(user);
     await user.click(stepButton(/Reward/));
     await user.click(screen.getByRole("radio", { name: /Guaranteed winning/ }));
-    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    await createCampaign(user);
     expect(onSave.mock.calls[0][0]).toMatchObject({
       winProbability: 100,
       autoPacePrizes: false,
     });
   });
 
-  it("asks for the draw rules before going live, not for a draft", async () => {
+  it("asks for the draw rules before creating the campaign", async () => {
     const { user, onSave } = setup();
     await fillFoundation(user);
     await user.click(stepButton(/Reward/));
@@ -335,8 +398,7 @@ describe("CampaignWizard", () => {
     await user.click(stepButton(/Prizes/));
     await user.click(screen.getByRole("radio", { name: /^No/ }));
 
-    await user.click(stepButton(/Review/));
-    await user.click(screen.getByRole("button", { name: /Publish campaign/ }));
+    await createCampaign(user);
     expect(onSave).not.toHaveBeenCalled();
     expect(currentStep()).toContain("Reward");
     expect(
@@ -344,11 +406,30 @@ describe("CampaignWizard", () => {
         .length,
     ).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("button", { name: /Save draft/ }));
+    // Pasted at once: typed key by key, a long text slows the test past its time limit.
+    fireEvent.change(document.getElementById("wizard-draw-rules")!, {
+      target: { value: "One winner per phone number." },
+    });
+    await createCampaign(user);
     expect(onSave.mock.calls[0][0]).toMatchObject({
       winProbability: 0,
       prizes: [],
       gameLogicConfig: { wizard: { method: "draw" } },
+      submitStatus: "draft",
+    });
+  });
+
+  it("saves a draft being edited from any step, and keeps it a draft", async () => {
+    const { user, onSave } = setup({
+      editingCampaign: { ...LIVE, status: "draft" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    // Not live: nothing to confirm.
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      id: "c1",
+      mode: "edit",
+      submitStatus: "draft",
     });
   });
 
@@ -357,6 +438,9 @@ describe("CampaignWizard", () => {
     expect(screen.getByText("2 plays")).toBeTruthy();
     expect(screen.getByText("Wheel of Fortune")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Save draft/ })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Create campaign/ }),
+    ).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(onSave).not.toHaveBeenCalled();

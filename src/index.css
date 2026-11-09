@@ -185,6 +185,12 @@
   --cx-game-quiz: #7e22ce;
   --cx-game-quiz-mid: #c08bf0;
   --cx-game-quiz-soft: #f1e6fd;
+  --cx-game-memory: #0e7490;
+  --cx-game-memory-mid: #67c4d8;
+  --cx-game-memory-soft: #dcf4f9;
+  --cx-game-choice: #a21caf;
+  --cx-game-choice-mid: #e58ef0;
+  --cx-game-choice-soft: #fbe7fd;
 }
 
 [data-theme="dark"] {
@@ -203,6 +209,12 @@
   --cx-game-quiz: #c295ff;
   --cx-game-quiz-mid: #5b2a92;
   --cx-game-quiz-soft: #2a1745;
+  --cx-game-memory: #5fd3ea;
+  --cx-game-memory-mid: #1b6f84;
+  --cx-game-memory-soft: #0d2f38;
+  --cx-game-choice: #f08cff;
+  --cx-game-choice-mid: #8a1f98;
+  --cx-game-choice-soft: #34123a;
 }
 
 /* Set on a card or an emblem: everything inside takes that game's colours through the
@@ -232,6 +244,16 @@
   --cx-gm: var(--cx-game-quiz-mid);
   --cx-gs: var(--cx-game-quiz-soft);
 }
+.cx-g-memory {
+  --cx-g: var(--cx-game-memory);
+  --cx-gm: var(--cx-game-memory-mid);
+  --cx-gs: var(--cx-game-memory-soft);
+}
+.cx-g-choice {
+  --cx-g: var(--cx-game-choice);
+  --cx-gm: var(--cx-game-choice-mid);
+  --cx-gs: var(--cx-game-choice-soft);
+}
 
 /* Banner pattern of a campaign card, one per game: rings, hatch, dots, grid, stripes.
    It fades out towards the left, where the game's name is written. */
@@ -239,7 +261,9 @@
 .cx-pat-scratch::before,
 .cx-pat-mystery::before,
 .cx-pat-hit::before,
-.cx-pat-quiz::before {
+.cx-pat-quiz::before,
+.cx-pat-memory::before,
+.cx-pat-choice::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -274,6 +298,23 @@
   background:
     linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
     repeating-linear-gradient(90deg, transparent 0 11px, var(--cx-gm) 11px 13px);
+}
+.cx-pat-memory::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    repeating-conic-gradient(var(--cx-gm) 0 25%, transparent 0 50%) 0 0 / 20px
+      20px;
+}
+.cx-pat-choice::before {
+  background:
+    linear-gradient(90deg, var(--cx-gs) 25%, transparent 80%),
+    linear-gradient(
+        90deg,
+        transparent 0 calc(50% - 1px),
+        var(--cx-gm) calc(50% - 1px) calc(50% + 1px),
+        transparent calc(50% + 1px)
+      )
+      0 0 / 28px 100%;
 }
 
 /* Native dropdown lists (select) follow the dark theme instead of opening white. */

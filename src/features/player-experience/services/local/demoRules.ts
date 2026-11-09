@@ -27,6 +27,7 @@ export interface DemoCampaignRules {
     questions: Array<{ id: string; correctIndex: number }>;
   };
   hitIt?: { winThreshold: number };
+  memory?: { pairs: number };
 }
 
 const finite = (value: unknown): number =>
@@ -79,6 +80,9 @@ export function buildDemoRules(
   if (snapshot.rules.hitIt) {
     rules.hitIt = { winThreshold: snapshot.rules.hitIt.winThreshold };
   }
+  if (snapshot.rules.memory) {
+    rules.memory = { pairs: snapshot.rules.memory.pairs };
+  }
   return rules;
 }
 
@@ -120,6 +124,9 @@ export function buildStandaloneDemoRules(
   }
   if (campaign.gameType === "hit_it" && campaign.rules.hitIt) {
     rules.hitIt = { winThreshold: campaign.rules.hitIt.winThreshold };
+  }
+  if (campaign.gameType === "memory_match" && campaign.rules.memory) {
+    rules.memory = { pairs: campaign.rules.memory.pairs };
   }
   return rules;
 }

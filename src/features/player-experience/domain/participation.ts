@@ -15,7 +15,26 @@ export type GamePayload =
   | { kind: "none" } // wheel, scratch card: drawn before the animation
   | { kind: "quiz"; answers: Record<string, number> } // question id → option index, database order
   | { kind: "boxes"; selectedIndex: number }
-  | { kind: "hitIt"; hits: number };
+  | { kind: "hitIt"; hits: number }
+  // Memory Match reports what the player did and how long it took; the server checks the
+  // numbers are plausible before it lets them open the prize draw.
+  | { kind: "memory"; pairs: number; moves: number; elapsedMs: number }
+  // Pick Your Favorite: the side picked in each duel, in order, and the product left at the
+  // end. A preference, never scored: a duel whose time ran out has no pick, and a game without
+  // a single pick has no champion.
+  | { kind: "choices"; picks: ChoicePick[]; champion: ChoiceChampion | null };
+
+export interface ChoicePick {
+  roundId: string; // the duel: "m1", "m2"…
+  side: "left" | "right";
+  label: string; // the picked product's label as shown, kept with the entry for the brand
+  optionId: string; // the product picked
+}
+
+export interface ChoiceChampion {
+  optionId: string;
+  label: string;
+}
 
 export interface DrawRequest {
   clientRequestId: string; // reused on retry so the same attempt is never counted twice

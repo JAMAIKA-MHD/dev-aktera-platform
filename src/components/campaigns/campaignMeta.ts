@@ -46,6 +46,21 @@ export const GAME_TYPES: GameMeta[] = [
     setup: "Number of hits needed to win",
   },
   {
+    id: "memory_match",
+    key: "campaigns.memoryMatch",
+    label: "Memory Match",
+    description: "Players flip cards to find every matching pair in time.",
+    setup: "Number of pairs and the time limit",
+  },
+  {
+    id: "choose_brand",
+    key: "campaigns.chooseBrand",
+    label: "Pick Your Favorite",
+    description:
+      "Players pick their favourite of two pictures, round after round.",
+    setup: "Prizes and win chance; the rounds are set in the Studio",
+  },
+  {
     id: "quiz",
     key: "campaigns.quiz",
     label: "Quiz Challenge",

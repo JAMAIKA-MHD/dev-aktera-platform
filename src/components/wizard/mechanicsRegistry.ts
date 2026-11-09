@@ -1,3 +1,11 @@
+import {
+  CHOICE_COUNT_RANGE,
+  CHOICE_ROUND_SECONDS_RANGE,
+  DEFAULT_CHOICE_COUNT,
+  DEFAULT_CHOICE_ROUND_SECONDS,
+  clampChoiceCount,
+  clampChoiceRoundSeconds,
+} from "../../features/player-experience";
 import type { Campaign } from "../../types";
 
 // Pluggable mechanics library for both wizard layers. To add a minigame or a prize reveal,
@@ -9,12 +17,31 @@ export type EngagementCategory = "skill" | "knowledge" | "luck";
 export type RewardMethod = "instant" | "draw";
 export type GameType = Campaign["gameType"];
 
+// What a skill game asks the brand for: a time limit and a goal. They are stored for every
+// skill game in the same two numbers (win_threshold, hit_it_duration_seconds) that the server
+// reads; what the goal counts depends on the game.
+export interface SkillSetup {
+  scoreLabel: string; // "Target score to win"
+  scoreHint: string;
+  scoreMin: number;
+  scoreMax: number;
+  defaultScore: number;
+  durationMin: number;
+  durationMax: number;
+  defaultDuration: number;
+  describe: (score: number) => string; // "target 8 points": the wizard's summary
+}
+
 export interface Mechanic {
   id: string;
   layer: "engagement" | "reward";
   category: EngagementCategory | RewardMethod;
   label: string;
   gameType?: GameType;
+  skill?: SkillSetup;
+  // No answer is right or wrong (the player states a preference), so there is no score to
+  // qualify on: the campaign starts as a draw, and an instant win can only be guaranteed.
+  preference?: true;
 }
 
 export const MECHANICS_REGISTRY: readonly Mechanic[] = [
@@ -25,6 +52,36 @@ export const MECHANICS_REGISTRY: readonly Mechanic[] = [
     category: "skill",
     label: "Hit It",
     gameType: "hit_it",
+    skill: {
+      scoreLabel: "Target score to win",
+      scoreHint: "Taps on the target needed before the time runs out.",
+      scoreMin: 1,
+      scoreMax: 500,
+      defaultScore: 8,
+      durationMin: 10,
+      durationMax: 60,
+      defaultDuration: 20,
+      describe: (score) => `target ${score} points`,
+    },
+  },
+  {
+    id: "memory_match",
+    layer: "engagement",
+    category: "skill",
+    label: "Memory Match",
+    gameType: "memory_match",
+    skill: {
+      scoreLabel: "Pairs on the board",
+      scoreHint:
+        "The player must find every pair before the time runs out (3 to 8 pairs).",
+      scoreMin: 3,
+      scoreMax: 8,
+      defaultScore: 6,
+      durationMin: 20,
+      durationMax: 90,
+      defaultDuration: 45,
+      describe: (score) => `${score} pairs`,
+    },
   },
   {
     id: "quiz",
@@ -32,6 +89,15 @@ export const MECHANICS_REGISTRY: readonly Mechanic[] = [
     category: "knowledge",
     label: "Trivia Quiz",
     gameType: "quiz",
+  },
+  // The player picks a side in each round (rounds and pictures set in the Studio).
+  {
+    id: "choose_brand",
+    layer: "engagement",
+    category: "knowledge",
+    label: "Pick Your Favorite",
+    gameType: "choose_brand",
+    preference: true,
   },
   // Layer 2: how an instant win is revealed.
   {
@@ -68,6 +134,42 @@ export const mechanicsFor = (
 export const mechanicById = (id: string) =>
   MECHANICS_REGISTRY.find((m) => m.id === id);
 
+// The engagement mechanic a configuration plays (none for luck).
+const engagementOf = (w: Pick<WizardConfig, "category" | "engagementId">) =>
+  w.category === "luck" ? undefined : mechanicById(w.engagementId);
+
+/** A knowledge campaign played as a quiz: its questions and passing score apply. */
+export const isQuizEngagement = (
+  w: Pick<WizardConfig, "category" | "engagementId">,
+) => w.category === "knowledge" && engagementOf(w)?.gameType === "quiz";
+
+/** A preference game (no right answer): an instant win is always guaranteed. */
+export const forcesGuaranteed = (
+  w: Pick<WizardConfig, "category" | "engagementId">,
+) => Boolean(engagementOf(w)?.preference);
+
+/** What picking an engagement mechanic sets besides its id. */
+export function engagementDefaults(mechanic: Mechanic): Partial<WizardConfig> {
+  return {
+    // Each skill game starts from its own goal and time limit.
+    ...(mechanic.skill && {
+      targetScore: mechanic.skill.defaultScore,
+      durationSeconds: mechanic.skill.defaultDuration,
+    }),
+    // A preference game starts as a draw; switched to an instant win, it is guaranteed.
+    ...(mechanic.preference && {
+      method: "draw" as const,
+      mode: "guaranteed" as const,
+    }),
+  };
+}
+
+// Pick Your Favorite ("winner stays"): how many products play, the picks that makes, and the
+// time a player has for each duel.
+export { CHOICE_COUNT_RANGE, CHOICE_ROUND_SECONDS_RANGE, clampChoiceCount };
+/** One pick per duel: the first two products meet, then each next one comes in. */
+export const choicePicks = (count: number) => count - 1;
+
 // Everything the wizard adds to campaigns.game_logic_config (key `wizard`), next to the
 // numeric rules the server already reads (win_threshold, pass_threshold_percentage...).
 export interface WizardConfig {
@@ -76,6 +178,10 @@ export interface WizardConfig {
   durationSeconds: number;
   targetScore: number;
   passPercent: number;
+  // Pick Your Favorite: how many products play, saved as choice_count for the player page.
+  choiceCount: number;
+  // Seconds per duel, saved as choice_round_seconds for the player page.
+  choiceRoundSeconds: number;
   method: RewardMethod;
   mode: "probabilistic" | "guaranteed";
   revealId: string;
@@ -100,6 +206,8 @@ export const DEFAULT_WIZARD: WizardConfig = {
   durationSeconds: 20,
   targetScore: 8,
   passPercent: 60,
+  choiceCount: DEFAULT_CHOICE_COUNT,
+  choiceRoundSeconds: DEFAULT_CHOICE_ROUND_SECONDS,
   method: "instant",
   mode: "probabilistic",
   revealId: "wheel",
@@ -138,17 +246,61 @@ export function wizardFromCampaign(c: Campaign | null): WizardConfig {
         c.prizes.length > 0 || Boolean(draw.smsWinner || draw.smsLoser);
       draw.manageStock = used ? true : null;
     }
-    return { ...DEFAULT_WIZARD, ...saved, draw };
+    const restored = {
+      ...DEFAULT_WIZARD,
+      ...saved,
+      draw,
+      choiceCount: clampChoiceCount(
+        Number(saved.choiceCount ?? DEFAULT_CHOICE_COUNT),
+      ),
+      choiceRoundSeconds: clampChoiceRoundSeconds(
+        Number(saved.choiceRoundSeconds ?? DEFAULT_CHOICE_ROUND_SECONDS),
+      ),
+    };
+    // Pick Your Favorite was first a luck reveal: it is now a knowledge game of its own.
+    if (restored.category === "luck" && restored.revealId === "choose_brand") {
+      return {
+        ...restored,
+        category: "knowledge",
+        engagementId: "choose_brand",
+        revealId: DEFAULT_WIZARD.revealId,
+        mode: "guaranteed",
+      };
+    }
+    return restored;
   }
   const base: WizardConfig = {
     ...DEFAULT_WIZARD,
+    choiceCount: clampChoiceCount(
+      Number(c.gameLogicConfig?.choice_count) || DEFAULT_CHOICE_COUNT,
+    ),
+    choiceRoundSeconds: clampChoiceRoundSeconds(
+      Number(c.gameLogicConfig?.choice_round_seconds) ||
+        DEFAULT_CHOICE_ROUND_SECONDS,
+    ),
     targetScore: Number(c.gameLogicConfig?.win_threshold) || 8,
     passPercent: Number(c.gameLogicConfig?.pass_threshold_percentage) || 50,
     mode: c.winProbability >= 100 ? "guaranteed" : "probabilistic",
   };
-  if (c.gameType === "hit_it") return base;
-  if (c.gameType === "quiz") {
-    return { ...base, category: "knowledge", engagementId: "quiz" };
+  const engagement = MECHANICS_REGISTRY.find(
+    (m) => m.layer === "engagement" && m.gameType === c.gameType,
+  );
+  if (engagement) {
+    return {
+      ...base,
+      category: engagement.category as EngagementCategory,
+      engagementId: engagement.id,
+      durationSeconds:
+        Number(c.gameLogicConfig?.hit_it_duration_seconds) ||
+        engagement.skill?.defaultDuration ||
+        base.durationSeconds,
+      targetScore:
+        Number(c.gameLogicConfig?.win_threshold) ||
+        engagement.skill?.defaultScore ||
+        base.targetScore,
+      // A preference game cannot be won on odds: an instant win of it is guaranteed.
+      ...(engagement.preference && { mode: "guaranteed" as const }),
+    };
   }
   const reveal = MECHANICS_REGISTRY.find((m) => m.gameType === c.gameType);
   return { ...base, category: "luck", revealId: reveal?.id ?? "wheel" };

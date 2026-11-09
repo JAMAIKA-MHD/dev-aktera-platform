@@ -519,6 +519,48 @@
         "low": "@secondary"
       },
       "burst": "@accent"
+    },
+    "memory": {
+      "back": "#5B45C9",
+      "backEnd": "#2A1A6B",
+      "backIcon": "@accent",
+      "pattern": "#6A55D8",
+      "face": "#26204A",
+      "border": "@accent",
+      "borderWidth": "0.2rem",
+      "radius": "0",
+      "shadow": "0 0 0.75rem #7DF3FF59",
+      "matched": "@primary",
+      "miss": "@secondary",
+      "art": "assets/decor/star-4.svg",
+      "faceArt": {
+        "star": "assets/win-intro/star.svg",
+        "gem": "assets/win-intro/gem.svg",
+        "crown": "assets/win-intro/crown.svg",
+        "trophy": "assets/win-intro/trophy.svg",
+        "coins": "assets/win-intro/coin.svg",
+        "target": "assets/win-intro/medal.svg",
+        "gift": "assets/win-intro/gift-box.svg"
+      }
+    },
+    "choice": {
+      "card": "#26204A",
+      "border": "@accent",
+      "borderWidth": "0.2rem",
+      "radius": "0",
+      "shadow": "0 0 0.9rem #7DF3FF59",
+      "label": "#1B1447",
+      "labelText": "#C9FBFF",
+      "labelFont": "ui",
+      "prompt": "#F4EEDC",
+      "promptFont": "display",
+      "picked": "@primary",
+      "vs": "@secondary",
+      "vsText": "#0D0630",
+      "progress": {
+        "fill": "@accent",
+        "track": "#3B3A5C"
+      }
     }
   },
   "prizes": {},

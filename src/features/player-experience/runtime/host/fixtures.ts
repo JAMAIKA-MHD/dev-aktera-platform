@@ -186,7 +186,7 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
   ),
   "all-games": fixture(
     "all-games",
-    "The five pregame teasers on one page, one per mechanic (T5.7)",
+    "Every pregame teaser on one page, one per mechanic (T5.7)",
   ),
   "feedback-debug": fixture(
     "feedback-debug",
@@ -444,6 +444,50 @@ const FIXTURES: Readonly<Record<string, () => Fixture>> = {
     "The welcome screen of a Hit It campaign: the target hopping, marked Démo (T5.6)",
     {
       gameType: "hit_it",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
+  "memory-play": fixture(
+    "flow",
+    "Memory Match in play: face-down cards, the pair count and the campaign's own clock",
+    {
+      gameType: "memory_match",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "memory-welcome": fixture(
+    "flow",
+    "The welcome screen of a Memory Match campaign: six cards finding their twins, marked Démo",
+    {
+      gameType: "memory_match",
+      customize: zetaMarket,
+      flow: { gateway: "scripted", scenario: "lose" },
+    },
+  ),
+  "choose-play": fixture(
+    "flow",
+    "Pick Your Favorite in play: two cards per round, the question and the rounds left",
+    {
+      gameType: "choose_brand",
+      customize: zetaMarket,
+      flow: {
+        gateway: "scripted",
+        scenario: "win-demo-prize-voucher",
+        initialScreen: "play",
+      },
+    },
+  ),
+  "choose-welcome": fixture(
+    "flow",
+    "The welcome screen of a Pick Your Favorite campaign: one side lit after the other, marked Démo",
+    {
+      gameType: "choose_brand",
       customize: zetaMarket,
       flow: { gateway: "scripted", scenario: "lose" },
     },

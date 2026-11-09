@@ -262,6 +262,15 @@ describe("parseExperienceConfig", () => {
     expect(parseExperienceConfig(raw).config.game.type).toBe("hit_it");
   });
 
+  it("loads a wheel saved before its segments had images, without any repair", () => {
+    const raw = broken((r) => {
+      delete r.game.wheel.segments[0].image;
+    });
+    const result = parseExperienceConfig(raw);
+    expect(result.recovered).toBe(false);
+    expect(result.config.game.wheel?.segments[0].image).toBeNull();
+  });
+
   it("repairs inside an optional game block", () => {
     const raw = broken((r) => {
       r.game.wheel.hubLabel = "not a localized text";

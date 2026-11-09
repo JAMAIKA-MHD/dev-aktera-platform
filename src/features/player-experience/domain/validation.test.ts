@@ -26,6 +26,8 @@ const GAME_TYPES: GameType[] = [
   "scratch_card",
   "mystery_box",
   "hit_it",
+  "memory_match",
+  "choose_brand",
 ];
 
 const campaign = (
@@ -508,6 +510,15 @@ describe("validateExperience: campaign links and images", () => {
       "image-size:game.scratch.coverImage",
     ]);
     expect(heavy[0].message).toContain("500 KB");
+    expect(
+      ids(
+        validateExperience(
+          configFor("lucky_wheel", (c) => {
+            c.game.wheel!.segments[1].image = image(450);
+          }),
+        ),
+      ),
+    ).toContain("image-size:game.wheel.segments.1.image");
     const remote = validateExperience(
       configFor("quiz", (c) => {
         c.brand.logo = {
@@ -544,5 +555,39 @@ describe("validateExperience: list", () => {
     expect(levels[0]).toBe("error");
     expect(levels.at(-1)).toBe("warning");
     expect(new Set(ids(issues)).size).toBe(issues.length);
+  });
+});
+
+describe("Pick Your Favorite", () => {
+  it("asks for 2 to 8 products without a campaign's count", () => {
+    const short = configFor("choose_brand", (config) => {
+      config.game.chooseBrand!.contenders.splice(1);
+    });
+    expect(find(validateExperience(short), "choice-size")?.level).toBe("error");
+
+    const two = configFor("choose_brand", (config) => {
+      config.game.chooseBrand!.contenders.splice(2);
+    });
+    expect(ids(validateExperience(two))).not.toContain("choice-size");
+  });
+
+  it("warns about two products that look the same, among those played", () => {
+    const config = configFor("choose_brand", (draft) => {
+      const settings = draft.game.chooseBrand!;
+      settings.contenders[5] = {
+        ...settings.contenders[0],
+        id: settings.contenders[5].id,
+      };
+    });
+    expect(ids(validateExperience(config))).toContain(
+      "choice-twin:game.chooseBrand.contenders.5",
+    );
+    // A campaign playing 3 products never shows product 6.
+    const three = campaign("choose_brand", {
+      rules: { choice: { count: 3, roundSeconds: 10 } },
+    });
+    expect(ids(validateExperience(config, three))).not.toContain(
+      "choice-twin:game.chooseBrand.contenders.5",
+    );
   });
 });

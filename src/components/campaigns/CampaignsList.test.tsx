@@ -257,7 +257,7 @@ describe("CampaignsList, new campaign button", () => {
       screen.getByRole("button", { name: "Choose a game type" }),
     );
     const menu = screen.getByRole("menu", { name: "Start from a game type" });
-    expect(within(menu).getAllByRole("menuitem")).toHaveLength(5);
+    expect(within(menu).getAllByRole("menuitem")).toHaveLength(7);
     await user.click(within(menu).getByRole("menuitem", { name: /^Quiz/ }));
     expect(onQuickStart).toHaveBeenCalledWith("quiz");
     expect(screen.queryByRole("menu")).toBeNull();

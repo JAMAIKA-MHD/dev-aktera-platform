@@ -327,7 +327,7 @@ export function RangeField({
             <span className={cn(hintClass, "mt-0.5 block")}>{hint}</span>
           )}
         </label>
-        <span className={cxText.statValueSm}>
+        <span className={cn(cxText.statValueSm, "shrink-0 whitespace-nowrap")}>
           {value}
           {unit}
         </span>

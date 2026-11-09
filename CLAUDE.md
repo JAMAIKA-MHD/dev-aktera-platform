@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**OCTOREACH** — Algeria-focused gamification marketing SaaS MVP. B2B brands create game-based campaigns (Wheel of Fortune, Quiz, Scratch Card, Mystery Box, Hit It); players access via public `/play/:slug` link and win prizes. Phase 2 complete, Phase 3 in progress.
+**OCTOREACH** — Algeria-focused gamification marketing SaaS MVP. B2B brands create game-based campaigns (Wheel of Fortune, Quiz, Scratch Card, Mystery Box, Hit It, Memory Match, Pick Your Favorite); players access via public `/play/:slug` link and win prizes. Phase 2 complete, Phase 3 in progress.
 
 ## Commands
 
@@ -64,7 +64,7 @@ Custom hooks (`useCampaigns`, `usePrizeTemplates`, `useEntries`, etc.) return ma
 
 Located in `supabase/functions/`. Four functions:
 
-- **`select-prize`** — Core server-side prize selection. POST with `campaign_id`, `phone_number`, game payload and `metadata` (consent proof, `client_request_id`, `source`, `wilaya`). Normalizes Algerian phone numbers (`0541234567` / `+213541234567`), refuses a participation without consent, replays the same answer for the same `client_request_id` (`replayed: true`), checks the campaign period, and claims the coupon atomically (`claim_campaign_prize_coupon`). Every error has a `code` (`INVALID_INPUT`, `CONSENT_REQUIRED`, `CAMPAIGN_CLOSED`, `CAMPAIGN_NOT_STARTED` (with `starts_at`), `ALREADY_PARTICIPATED`, `DRAW_FAILED`, `SERVER_ERROR`). Returns winner status, prize, coupon code.
+- **`select-prize`** — Core server-side prize selection. POST with `campaign_id`, `phone_number`, game payload and `metadata` (consent proof, `client_request_id`, `source`, `wilaya`). Normalizes Algerian phone numbers (`0541234567` / `+213541234567`), refuses a participation without consent, replays the same answer for the same `client_request_id` (`replayed: true`), checks the campaign period, and claims the coupon atomically (`claim_campaign_prize_coupon`). Pick Your Favorite ("winner stays") picks are kept, sanitized, in `entries.metadata` (`brand_choices`, `brand_champion`). Every error has a `code` (`INVALID_INPUT`, `CONSENT_REQUIRED`, `CAMPAIGN_CLOSED`, `CAMPAIGN_NOT_STARTED` (with `starts_at`), `ALREADY_PARTICIPATED`, `DRAW_FAILED`, `SERVER_ERROR`). Returns winner status, prize, coupon code.
 - **`create-organization`** — Gated by `REGISTRATION_ENABLED` env var.
 - **`confirm-coupon`** — Coupon redemption confirmation.
 - **`team-members`** — Invite a teammate, change a role, remove a member. Checks that the caller is an owner or admin; roles, organizations and plans can only be changed by the server (`trg_protect_profile_access`, `trg_protect_organization_plan`).

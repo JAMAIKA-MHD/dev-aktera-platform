@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ICON_NAMES } from "./icons";
 import { TEMPLATE_IDS, type TemplateId } from "./templates";
 
 // The contract of a theme.json (themes/<id>/theme.json): everything a template of the library
@@ -346,6 +347,8 @@ const GAME_KEYS = [
   "scratch_card",
   "mystery_box",
   "hit_it",
+  "memory_match",
+  "choose_brand",
 ] as const;
 
 export const PRIZE_ART_NAMES = [
@@ -794,6 +797,51 @@ export const themeManifestSchema = z
           })
           .strict()
           .prefault({}),
+        // Memory Match: the cards' two sides. The brand's own picture of a side always comes
+        // first, then the template's art, then the icon drawn in these colors.
+        memory: z
+          .object({
+            back: colorSchema.optional(), // the face-down side, corner to corner…
+            backEnd: colorSchema.optional(), // …to this color
+            backIcon: colorSchema.optional(),
+            pattern: colorSchema.optional(), // the fine stripes over the back
+            face: colorSchema.optional(), // the face-up side
+            faceIcon: colorSchema.optional(), // an icon face, instead of the brand's tones
+            border: colorSchema.optional(),
+            borderWidth: cssSchema.optional(),
+            radius: cssSchema.optional(),
+            shadow: cssSchema.optional(), // under every card
+            matched: colorSchema.optional(), // the edge and the glow of a found pair
+            miss: colorSchema.optional(), // the edge of a wrong pair, before it turns back
+            art: assetPathSchema.optional(), // the theme's own picture on the back
+            // The theme's own drawing of an icon, by the icon's name (star → its star). The
+            // template's prize art fills in the icons it names (themeAssets.ts).
+            faceArt: partialRecord(ICON_NAMES, assetPathSchema),
+          })
+          .strict()
+          .prefault({}),
+        // Pick Your Favorite: the two cards of a round, the badge between them and the rounds
+        // still to play. The brand's pictures are drawn on the cards as they are.
+        choice: z
+          .object({
+            card: colorSchema.optional(), // under a picture, and behind an icon
+            border: colorSchema.optional(),
+            borderWidth: cssSchema.optional(),
+            radius: cssSchema.optional(),
+            shadow: cssSchema.optional(),
+            icon: colorSchema.optional(), // a side without a picture
+            label: colorSchema.optional(), // the strip under the picture…
+            labelText: colorSchema.optional(), // …and its text
+            labelFont: fontRoleSchema.optional(),
+            prompt: colorSchema.optional(), // "Which one do you prefer?"
+            promptFont: fontRoleSchema.optional(),
+            picked: colorSchema.optional(), // the edge and the glow of the side picked
+            vs: colorSchema.optional(), // the badge between the two cards
+            vsText: colorSchema.optional(),
+            progress: meterSkinSchema.optional(), // the rounds played, out of all of them
+          })
+          .strict()
+          .prefault({}),
       })
       .strict()
       .prefault({}),
@@ -871,6 +919,8 @@ export function manifestAssetPaths(manifest: ThemeManifest): string[] {
     manifest.title.backdrop?.src,
     manifest.wheel.pointerArt,
     manifest.games.hitIt.art,
+    manifest.games.memory.art,
+    ...Object.values(manifest.games.memory.faceArt),
     ...manifest.motion.flyers.map((flyer) => flyer.src),
     ...Object.values(manifest.motion.winIntro?.art ?? {}),
     ...Object.values(manifest.heroes).map((hero) => hero?.src),

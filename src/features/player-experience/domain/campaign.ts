@@ -30,10 +30,55 @@ export interface HitItRules {
   durationSeconds: number;
 }
 
+export interface MemoryRules {
+  pairs: number; // pairs on the board: all of them must be found
+  durationSeconds: number;
+}
+
+// Pick Your Favorite ("winner stays"): how many products play, the first ones of the design.
+// Chosen in the Wizard; the Studio only sets what each product shows. No rule here decides a
+// win: every pick is a preference.
+export interface ChoiceRules {
+  count: number;
+  roundSeconds: number; // the clock of each duel, restarted with every one
+}
+
 export interface CampaignRules {
   quiz?: QuizRules;
   hitIt?: HitItRules;
+  memory?: MemoryRules;
+  choice?: ChoiceRules;
 }
+
+// Products a Pick Your Favorite game can play: 2 to 8 (1 to 7 picks per player).
+export const CHOICE_COUNT_RANGE = { min: 2, max: 8 } as const;
+export const DEFAULT_CHOICE_COUNT = 5;
+export const clampChoiceCount = (value: number) =>
+  Number.isFinite(value)
+    ? Math.min(
+        CHOICE_COUNT_RANGE.max,
+        Math.max(CHOICE_COUNT_RANGE.min, Math.round(value)),
+      )
+    : DEFAULT_CHOICE_COUNT;
+
+// Seconds a player has for each duel: 5 to 15, set by the brand in the Wizard.
+export const CHOICE_ROUND_SECONDS_RANGE = { min: 5, max: 15 } as const;
+export const DEFAULT_CHOICE_ROUND_SECONDS = 10;
+export const clampChoiceRoundSeconds = (value: number) =>
+  Number.isFinite(value)
+    ? Math.min(
+        CHOICE_ROUND_SECONDS_RANGE.max,
+        Math.max(CHOICE_ROUND_SECONDS_RANGE.min, Math.round(value)),
+      )
+    : DEFAULT_CHOICE_ROUND_SECONDS;
+
+// Boards the engine can draw (and the server accepts): 3 to 8 pairs.
+export const BOARD_SIZE_RANGE = { min: 3, max: 8 } as const;
+const clampBoard = (value: number) =>
+  Math.min(
+    BOARD_SIZE_RANGE.max,
+    Math.max(BOARD_SIZE_RANGE.min, Math.round(value)),
+  );
 
 export interface CampaignSnapshot {
   id: string;
@@ -50,10 +95,13 @@ export interface CampaignSnapshot {
 
 // Same defaults as the resolve_game_outcome RPC when game_logic_config has no value.
 // secondsPerQuestion and durationSeconds are not read by the RPC yet (plan §12.2).
-export const DEFAULT_RULES: Readonly<Required<CampaignRules>> = {
-  quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
-  hitIt: { winThreshold: 1, durationSeconds: 10 },
-};
+// Pick Your Favorite has none: without a campaign (the standalone Studio), the whole list plays.
+export const DEFAULT_RULES: Readonly<Required<Omit<CampaignRules, "choice">>> =
+  {
+    quiz: { passThresholdPercent: 100, secondsPerQuestion: 0 },
+    hitIt: { winThreshold: 1, durationSeconds: 10 },
+    memory: { pairs: 6, durationSeconds: 45 },
+  };
 
 // Like the RPC, accepts numbers and numeric strings; anything else falls back to the default.
 function readNumber(config: unknown, key: string, fallback: number): number {
@@ -104,6 +152,39 @@ export function rulesFromGameLogic(
           config,
           "hit_it_duration_seconds",
           defaults.durationSeconds,
+        ),
+      },
+    };
+  }
+  // Memory Match reads the same two numbers the Wizard writes for every skill game
+  // (win_threshold, hit_it_duration_seconds): the threshold counts the pairs.
+  if (gameType === "memory_match") {
+    const defaults = DEFAULT_RULES.memory;
+    return {
+      memory: {
+        pairs: clampBoard(readNumber(config, "win_threshold", defaults.pairs)),
+        durationSeconds: readNumber(
+          config,
+          "hit_it_duration_seconds",
+          defaults.durationSeconds,
+        ),
+      },
+    };
+  }
+  // Pick Your Favorite: choice_count and choice_round_seconds, written by the Wizard (5 products
+  // and 10 seconds for a campaign saved before them).
+  if (gameType === "choose_brand") {
+    return {
+      choice: {
+        count: clampChoiceCount(
+          readNumber(config, "choice_count", DEFAULT_CHOICE_COUNT),
+        ),
+        roundSeconds: clampChoiceRoundSeconds(
+          readNumber(
+            config,
+            "choice_round_seconds",
+            DEFAULT_CHOICE_ROUND_SECONDS,
+          ),
         ),
       },
     };

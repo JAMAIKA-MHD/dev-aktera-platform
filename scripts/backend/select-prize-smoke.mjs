@@ -173,6 +173,15 @@ async function setup() {
     { game_type: "hit_it", game_logic_config: { win_threshold: 8 } },
     5,
   );
+  // Memory Match: goal and time limit are the two numbers the Wizard writes.
+  const memory = await campaign(
+    "memory",
+    {
+      game_type: "memory_match",
+      game_logic_config: { win_threshold: 6, hit_it_duration_seconds: 45 },
+    },
+    5,
+  );
   const quiz = await campaign(
     "quiz",
     {
@@ -300,6 +309,7 @@ async function setup() {
     paused,
     ended,
     hitIt,
+    memory,
     quiz,
     soldOut,
     noCode,
@@ -487,6 +497,32 @@ function scenarios(f) {
             stock.remaining === 5 &&
             Boolean(success.body?.prize),
           detail: `${winners}/20 failed games won, stock ${stock.remaining}/5, 9 hits → ${success.body?.prize ? "winner" : "loser"}`,
+        };
+      },
+    },
+    {
+      name: "T7b Memory Match: implausible report → loser, plausible → winner",
+      run: async () => {
+        const cases = [
+          [
+            f.memory,
+            { pairs_matched: 6, moves: 9, elapsed_ms: 20000 },
+            { pairs_matched: 6, moves: 9, elapsed_ms: 50 },
+          ],
+        ];
+        const results = [];
+        for (const [game, plausible, implausible] of cases) {
+          const fake = await play(game.id, { game_payload: implausible });
+          const real = await play(game.id, { game_payload: plausible });
+          results.push(!fake.body?.prize && Boolean(real.body?.prize));
+        }
+        // A payload that is not a number never makes the server fail.
+        const garbage = await play(f.memory.id, {
+          game_payload: { pairs_matched: "lots", moves: [], elapsed_ms: {} },
+        });
+        return {
+          ok: results.every(Boolean) && garbage.status === 200,
+          detail: `memory ok: ${results.join(", ")}; garbage payload → ${garbage.status}`,
         };
       },
     },

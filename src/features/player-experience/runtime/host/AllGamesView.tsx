@@ -6,7 +6,7 @@ import { createDemoCampaign } from "../../presets/demoCampaign";
 import { tint } from "../../theme/recipes";
 import { registry } from "../games/registry";
 
-// Control page of /xp-frame?fixture=all-games (tasks.md T5.7): the five pregame teasers on
+// Control page of /xp-frame?fixture=all-games (tasks.md T5.7): every pregame teaser on
 // one page, each with its own demo campaign, so a single sweep checks all of them at once —
 // that they show their own mechanic, that none shows a prize, and that none of them breaks
 // the layout at any size.

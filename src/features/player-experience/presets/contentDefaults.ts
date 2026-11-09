@@ -99,6 +99,32 @@ const WELCOME: Record<GameType, ScreenCopy> = {
     ),
     cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
   },
+  memory_match: {
+    title: localized(
+      "Retrouvez toutes les paires",
+      "اعثر على كل الأزواج",
+      "Find every matching pair",
+    ),
+    subtitle: localized(
+      "Retournez les cartes et associez-les avant la fin du temps.",
+      "اقلب البطاقات وطابقها قبل انتهاء الوقت.",
+      "Flip the cards and match them all before time runs out.",
+    ),
+    cta: localized("Relever le défi", "ابدأ التحدي", "Take the challenge"),
+  },
+  choose_brand: {
+    title: localized(
+      "Choisissez votre préféré",
+      "اختر المفضّل لديك",
+      "Pick your favorite",
+    ),
+    subtitle: localized(
+      "À chaque manche, deux choix : touchez celui que vous préférez.",
+      "في كل جولة خياران: المس الذي تفضّله.",
+      "Two options each round: tap the one you like best.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+  },
 };
 
 const PLAY: Record<GameType, ScreenCopy> = {
@@ -148,6 +174,29 @@ const PLAY: Record<GameType, ScreenCopy> = {
     ),
     cta: localized("Commencer", "ابدأ", "Start"),
     reinforcement: "timer",
+  },
+  memory_match: {
+    title: localized(
+      "Trouvez les paires",
+      "اعثر على الأزواج",
+      "Find the pairs",
+    ),
+    subtitle: localized(
+      "Touchez deux cartes à la fois. Le temps démarre à la première carte.",
+      "المس بطاقتين في كل مرة. يبدأ الوقت عند أول بطاقة.",
+      "Tap two cards at a time. The clock starts on your first card.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
+    reinforcement: "timer",
+  },
+  choose_brand: {
+    title: localized("À vous de choisir", "القرار لك", "Your call"),
+    subtitle: localized(
+      "Gauche ou droite : il n'y a pas de mauvaise réponse.",
+      "يسار أو يمين: لا توجد إجابة خاطئة.",
+      "Left or right: there is no wrong answer.",
+    ),
+    cta: localized("Commencer", "ابدأ", "Start"),
   },
 };
 
@@ -210,6 +259,8 @@ export const DEFAULT_SCREEN_CONTENT: Readonly<
   scratch_card: defaultScreens("scratch_card"),
   mystery_box: defaultScreens("mystery_box"),
   hit_it: defaultScreens("hit_it"),
+  memory_match: defaultScreens("memory_match"),
+  choose_brand: defaultScreens("choose_brand"),
 };
 
 // Texts of the waiting and status screens, which brands do not edit (see ScreenKey).
@@ -456,7 +507,58 @@ export const TEASER_CAPTIONS: Readonly<Record<GameType, LocalizedText>> = {
     "{threshold} لمسات في {duration} ثانية",
     "{threshold} hits in {duration}s",
   ),
+  memory_match: localized(
+    "{count} paires en {duration} s",
+    "{count} أزواج في {duration} ثانية",
+    "{count} pairs in {duration}s",
+  ),
+  choose_brand: localized(
+    "Gauche ou droite ? À vous de choisir",
+    "يسار أم يمين؟ القرار لك",
+    "Left or right? Your call",
+  ),
 };
+
+// Pick Your Favorite: what a new campaign starts with, before the brand sets its own pictures.
+export const CHOICE_PROMPT = localized(
+  "Lequel préférez-vous ?",
+  "أيهما تفضّل؟",
+  "Which one do you prefer?",
+);
+// The products of a new design ("winner stays"): the campaign plays the first ones.
+export const DEFAULT_CHOICE_CONTENDERS = [
+  { label: localized("Classique", "كلاسيكي", "Classic"), icon: "star" },
+  { label: localized("Nouveauté", "جديد", "New"), icon: "sparkles" },
+  { label: localized("Premium", "مميّز", "Premium"), icon: "gem" },
+  {
+    label: localized("Édition limitée", "إصدار محدود", "Limited edition"),
+    icon: "flame",
+  },
+  { label: localized("Pack cadeau", "علبة هدية", "Gift pack"), icon: "gift" },
+  { label: localized("Promo", "عرض خاص", "Special offer"), icon: "percent" },
+  {
+    label: localized("Best-seller", "الأكثر مبيعاً", "Best seller"),
+    icon: "trophy",
+  },
+  { label: localized("Exclusif", "حصري", "Exclusive"), icon: "crown" },
+] as const;
+// The stage of a duel, above the question: "Duel · 2/4", then the last one, "Finale".
+export const CHOICE_STAGE_LABELS = {
+  challenge: localized("Duel", "مواجهة", "Duel"),
+  final: localized("Finale", "النهائي", "Final"),
+} as const;
+// A duel whose clock ran out: the product on screen stays, nobody picked it.
+export const CHOICE_TIME_UP = localized(
+  "Temps écoulé !",
+  "انتهى الوقت!",
+  "Time's up!",
+);
+// The end of the game: the one product left.
+export const CHOICE_CHAMPION = localized(
+  "Votre champion !",
+  "بطلك!",
+  "Your champion!",
+);
 
 // A campaign asking for a single hit would otherwise read "1 touches" (T5.7). One threshold,
 // one wording — the only mechanic whose caption counts something that can be exactly one.

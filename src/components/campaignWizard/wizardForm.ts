@@ -10,6 +10,10 @@ import type { Campaign, PrizeTemplate, QuizQuestion } from "../../types";
 import type { GameType } from "../campaigns/campaignMeta";
 import {
   MECHANICS_REGISTRY,
+  choicePicks,
+  engagementDefaults,
+  forcesGuaranteed,
+  isQuizEngagement,
   mechanicById,
   resolveGameType,
   wizardFromCampaign,
@@ -21,7 +25,7 @@ import {
   foundationSchema,
   prizesSchema,
   quizSchema,
-  skillSchema,
+  skillSchemaFor,
   type FieldErrors,
 } from "../wizard/wizardSchemas";
 
@@ -32,6 +36,8 @@ export type PrizeLine = Campaign["prizes"][number];
 export interface WizardForm {
   name: string;
   brandName: string;
+  /** Optional, for the brand's team: saved with the campaign, never shown to players. */
+  description: string;
   /** The public link: generated once, never edited (a relaunch gets a new one). */
   slug: string;
   heroImageUrl: string;
@@ -48,7 +54,7 @@ export interface WizardForm {
   winProbability: number;
   /** Instant win, probabilistic odds: the win chance is calculated by AKTERA. */
   autoPace: boolean;
-  /** Knowledge: every question written so far; the first `questionCount` are played. */
+  /** Quiz: every question written so far; the first `questionCount` are played. */
   questions: QuizQuestion[];
   questionCount: number;
   prizes: PrizeLine[];
@@ -121,6 +127,7 @@ export function initialWizardForm(
         ? `${relaunchDraft.name} (Relaunch)`
         : "",
     brandName: base?.gameLogicConfig?.brand_name ?? "",
+    description: base?.gameLogicConfig?.description ?? "",
     slug:
       editingCampaign?.slug ??
       crypto.randomUUID().replace(/-/g, "").slice(0, 8),
@@ -180,6 +187,7 @@ export function playingGame(form: WizardForm, gameType: GameType): WizardForm {
         ...form.w,
         category: engagement.category as WizardConfig["category"],
         engagementId: engagement.id,
+        ...engagementDefaults(engagement),
       },
     };
   }
@@ -201,8 +209,14 @@ export function playingGame(form: WizardForm, gameType: GameType): WizardForm {
 
 export const gameTypeOf = (form: WizardForm) => resolveGameType(form.w);
 export const isDraw = (form: WizardForm) => form.w.method === "draw";
+/** Guaranteed: picked by the brand, or the only instant win of a preference game. */
 export const isGuaranteed = (form: WizardForm) =>
-  !isDraw(form) && form.w.mode === "guaranteed";
+  !isDraw(form) && (form.w.mode === "guaranteed" || forcesGuaranteed(form.w));
+/** The quiz's questions, played and saved only by a quiz. */
+export const isQuiz = (form: WizardForm) => isQuizEngagement(form.w);
+/** Pick Your Favorite: its mode and count are saved for the player page. */
+export const isChooseBrand = (form: WizardForm) =>
+  gameTypeOf(form) === "choose_brand";
 /** A draw whose prizes and messages the brand handles itself. */
 export const drawHandledByBrand = (form: WizardForm) =>
   isDraw(form) && form.w.draw.manageStock !== true;
@@ -265,6 +279,7 @@ export function validateStep(
       foundationSchema.safeParse({
         name: form.name,
         brandName: form.brandName,
+        description: form.description,
         startDate: form.startDate,
         endDate: form.endDate,
       }),
@@ -281,9 +296,14 @@ export function validateStep(
     return found;
   }
   if (step === 2 && w.category === "skill") {
-    return fieldErrors(skillSchema.safeParse({ targetScore: w.targetScore }));
+    const setup = mechanicById(w.engagementId)?.skill;
+    return fieldErrors(
+      skillSchemaFor(setup?.scoreMin ?? 1, setup?.scoreMax ?? 500).safeParse({
+        targetScore: w.targetScore,
+      }),
+    );
   }
-  if (step === 2 && w.category === "knowledge") {
+  if (step === 2 && isQuiz(form)) {
     return fieldErrors(
       quizSchema.safeParse({ questions: shownQuestions(form) }),
     );
@@ -364,12 +384,17 @@ export function savedGameLogic(form: WizardForm, base: Campaign | null) {
   return {
     ...(base?.gameLogicConfig ?? {}),
     brand_name: form.brandName.trim(),
+    description: form.description.trim(),
     ...(w.category === "skill" && {
       win_threshold: w.targetScore,
       hit_it_duration_seconds: w.durationSeconds,
     }),
-    ...(w.category === "knowledge" && {
+    ...(isQuiz(form) && {
       pass_threshold_percentage: w.passPercent,
+    }),
+    ...(isChooseBrand(form) && {
+      choice_count: w.choiceCount,
+      choice_round_seconds: w.choiceRoundSeconds,
     }),
     // A draw that Aktera does not manage keeps no messages.
     wizard: drawHandledByBrand(form)
@@ -405,6 +430,10 @@ export function previewCampaign(
       win_threshold: w.targetScore,
       hit_it_duration_seconds: w.durationSeconds,
       pass_threshold_percentage: w.passPercent,
+      ...(isChooseBrand(form) && {
+        choice_count: w.choiceCount,
+        choice_round_seconds: w.choiceRoundSeconds,
+      }),
     },
     status: "draft",
     winProbability: isGuaranteed(form) ? 100 : form.winProbability,
@@ -413,7 +442,7 @@ export function previewCampaign(
     prizes: form.prizes
       .filter((line) => line.templateId && line.quantity > 0)
       .map((line, i) => ({ ...line, id: line.id ?? `draft-${i}` })),
-    questions: w.category === "knowledge" ? shownQuestions(form) : [],
+    questions: isQuiz(form) ? shownQuestions(form) : [],
     participantsCount: 0,
     rewardsClaimed: 0,
     startDate: form.startDate,
@@ -450,10 +479,17 @@ export function engagementLabel(form: WizardForm) {
 export function engagementSettings(form: WizardForm) {
   const { w } = form;
   if (w.category === "skill") {
-    return `${w.durationSeconds} s · ${w.targetScore} points to win`;
+    const setup = mechanicById(w.engagementId)?.skill;
+    return `${w.durationSeconds} s · ${
+      setup?.describe(w.targetScore) ?? `${w.targetScore} points to win`
+    }`;
   }
-  if (w.category === "knowledge") {
+  if (isQuiz(form)) {
     return `${form.questionCount} ${form.questionCount === 1 ? "question" : "questions"} · pass at ${w.passPercent}%`;
+  }
+  if (isChooseBrand(form)) {
+    const picks = choicePicks(w.choiceCount);
+    return `Winner stays · ${w.choiceCount} products · ${picks} ${picks === 1 ? "pick" : "picks"} per player · ${w.choiceRoundSeconds} s per round`;
   }
   return "No game settings";
 }
